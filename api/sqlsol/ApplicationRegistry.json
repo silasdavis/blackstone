@@ -1,0 +1,16 @@
+{
+  "initSeq":{
+    "applicationId":{"deserialize":"getApplicationAtIndex", "len":{"call": "getNumberOfApplications", "field": "size"}},
+    "accessPointId":{"dependent": "applicationId", "deserialize":"getAccessPointAtIndex", "len":{"call": "getNumberOfAccessPoints", "field": "size"}}
+  },
+  "tables":{
+    "APPLICATIONS":{
+      "call": "getApplicationData",
+      "keys": ["applicationId"]
+    },
+    "APPLICATION_ACCESS_POINTS": {
+      "call": "getAccessPointData",
+      "keys": ["applicationId", "accessPointId"]
+    }
+  } 
+}

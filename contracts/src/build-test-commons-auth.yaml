@@ -1,0 +1,37 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: ParticipantsManagerTest
+    build:
+      contract: commons-auth/test/ParticipantsManagerTest.sol
+  - name: ParticipantsManager
+    build:
+      contract: commons-auth/DefaultParticipantsManager.sol
+  - name: ParticipantsManagerDb
+    build:
+      contract: commons-auth/ParticipantsManagerDb.sol
+  - name: DefaultOrganization
+    build:
+      contract: commons-auth/DefaultOrganization.sol
+  - name: EcosystemTest
+    build:
+      contract: commons-auth/test/EcosystemTest.sol
+  - name: EcosystemRegistry
+    build:
+      contract: commons-auth/EcosystemRegistry.sol
+  - name: DefaultEcosystemRegistry
+    build:
+      contract: commons-auth/DefaultEcosystemRegistry.sol
+  - name: EcosystemRegistryDb
+    build:
+      contract: commons-auth/EcosystemRegistryDb.sol

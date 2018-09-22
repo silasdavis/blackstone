@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# Preflight checks
+if [ -z $CHAIN_URL_GRPC ]; then
+  echo "Please set \$CHAIN_URL_GRPC and then rerun me. Exiting."
+  exit 1
+fi
+if [ -z $CONTRACTS_DEPLOYMENT_ADDRESS ]; then
+  echo "Please set \$CONTRACTS_DEPLOYMENT_ADDRESS and then rerun me. Exiting."
+  exit 1
+fi
+
+main() {
+  echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
+  echo -e "Using chain url: $CHAIN_URL_GRPC"
+  set -e
+  cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/src
+  burrow deploy \
+    --file=build.yaml
+  burrow deploy \
+    --chain-url="$CHAIN_URL_GRPC" \
+    --mempool-signing="true" \
+    --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
+    --file=deploy.yaml
+
+  cp ../abi.csv ./bin/.
+  exit 0
+}
+
+main $@

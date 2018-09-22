@@ -1,0 +1,53 @@
+# default files
+.gitattributes
+.github
+.travis.yml
+**/rust_mozprofile*
+
+# OS-specific
+.DS_Store
+
+# IDE-generated
+.idea
+.mix
+.project
+.vscode
+.tern-project
+.settings
+.scratch.md
+
+# Compiler-generated
+abi
+bin
+*output.json
+tmp*.json
+test-contracts*.log
+
+# node stuff
+node_modules
+npm-debug.log
+
+# contracts stuff
+public-abi
+*.output.json
+jobs_output.json
+bundle_cache
+
+# chain stuff
+**/.burrow
+burrow.log
+keys.log
+
+# docs stuff
+docdev
+apidoc
+
+# Build artifacts
+assembly
+release
+
+# Bundles-specific
+contract_bundles
+
+# Deploy logs
+*.log

@@ -1,0 +1,4 @@
+jobs:
+  - name: AgreementSignatureCheck
+    build:
+      contract: agreements/AgreementSignatureCheck.sol

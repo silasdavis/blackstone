@@ -1,0 +1,155 @@
+jobs:
+
+##########
+# Libraries
+
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+- name: TypeUtilsImpl
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsImpl
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+- name: MappingsLib
+  deploy:
+    contract: MappingsLib.bin
+    libraries: TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl
+
+- name: DataStorageUtils
+  deploy:
+    contract: commons-collections/DataStorageUtils.sol
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib
+
+- name: BpmModelLib
+  deploy:
+    contract: bpm-model/BpmModelLib.sol
+    libraries: ErrorsLib:$ErrorsLib, DataStorageUtils:$DataStorageUtils
+
+##########
+# BPM Tests
+
+- name: BpmModelLibTest
+  deploy:
+    contract: bpm-model/test/BpmModelLibTest.sol
+    libraries: ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: testConditionalDataFunctions
+  call:
+    destination: $BpmModelLibTest
+    bin: BpmModelLibTest
+    function: testConditionalDataFunctions
+
+- name: assertConditionalDataFunctions
+  assert:
+    key: $testConditionalDataFunctions
+    relation: eq
+    val: success
+
+- name: DefaultProcessModelRepository
+  deploy:
+    contract: DefaultProcessModelRepository.bin
+    instance: DefaultProcessModelRepository
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+
+- name: ProcessModelRepositoryDb
+  deploy:
+    contract: ProcessModelRepositoryDb.bin
+    instance: ProcessModelRepositoryDb
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib
+
+- name: ChangeRepositoryDbOwnership
+  call:
+    destination: $ProcessModelRepositoryDb
+    bin: ProcessModelRepositoryDb
+    function: transferSystemOwnership
+    data: [$DefaultProcessModelRepository]
+
+- name: GetRepositoryDbOwner
+  call:
+    destination: $ProcessModelRepositoryDb
+    bin: ProcessModelRepositoryDb
+    function: getSystemOwner
+
+- name: AssertRepositoryDbOwner
+  assert:
+    key: $GetRepositoryDbOwner.0
+    relation: eq
+    val: $DefaultProcessModelRepository
+
+- name: SetDbInRepository
+  call:
+    destination: $DefaultProcessModelRepository
+    bin: DefaultProcessModelRepository
+    function: acceptDatabase
+    data: [$ProcessModelRepositoryDb]
+
+- name: ProcessModelRepositoryTest
+  deploy:
+    contract: ProcessModelRepositoryTest.bin
+    instance: ProcessModelRepositoryTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+
+- name: testProcessModelRepository
+  call:
+    destination: $ProcessModelRepositoryTest
+    bin: ProcessModelRepositoryTest
+    function: testRepository
+
+- name: assertProcessModelRepository
+  assert:
+    key: $testProcessModelRepository.0
+    relation: eq
+    val: 1
+
+- name: ProcessModelTest
+  deploy:
+    contract: ProcessModelTest.bin
+    instance: ProcessModelTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+
+- name: testProcessModel
+  call:
+    destination: $ProcessModelTest
+    bin: ProcessModelTest
+    function: testProcessModel
+
+- name: assertProcessModel
+  assert:
+    key: $testProcessModel.0
+    relation: eq
+    val: 1
+
+- name: ProcessDefinitionTest
+  deploy:
+    contract: ProcessDefinitionTest.bin
+    instance: ProcessDefinitionTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: testProcessDefinition
+  call:
+    destination: $ProcessDefinitionTest
+    bin: ProcessDefinitionTest
+    function: testProcessDefinition
+
+- name: assertProcessDefinition
+  assert:
+    key: $testProcessDefinition.0
+    relation: eq
+    val: 1
+
+- name: testTransitionConditionResolution
+  call:
+    destination: $ProcessDefinitionTest
+    bin: ProcessDefinitionTest
+    function: testTransitionConditionResolution
+
+- name: assertTransitionConditionResolution
+  assert:
+    key: $testTransitionConditionResolution
+    relation: eq
+    val: success

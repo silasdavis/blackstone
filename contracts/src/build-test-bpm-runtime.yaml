@@ -1,0 +1,46 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsImpl
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsImpl
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: DataStorageUtils
+    build:
+      contract: commons-collections/DataStorageUtils.sol
+  - name: ERC165Utils
+    build:
+      contract: commons-standards/ERC165Utils.sol
+  - name: BpmRuntimeLib
+    build:
+      contract: bpm-runtime/BpmRuntimeLib.sol
+  - name: ServiceUpgradeabilityTest
+    build:
+      contract: bpm-runtime/test/ServiceUpgradeabilityTest.sol
+      instance: ServiceUpgradeabilityTest
+  - name: ApplicationRegistryTest
+    build:
+      contract: bpm-runtime/test/ApplicationRegistryTest.sol
+      instance: ApplicationRegistryTest
+  - name: ProcessModelRepositoryDb
+    build:
+      contract: bpm-model/ProcessModelRepositoryDb.sol
+  - name: ProcessModelRepository
+    build:
+      contract: bpm-model/DefaultProcessModelRepository.sol
+  - name: ApplicationRegistryDb
+    build:
+      contract: bpm-runtime/ApplicationRegistryDb.sol
+  - name: ApplicationRegistry
+    build:
+      contract: bpm-runtime/DefaultApplicationRegistry.sol
+  - name: BpmServiceTest
+    build:
+      contract: bpm-runtime/test/BpmServiceTest.sol
+      instance: BpmServiceTest

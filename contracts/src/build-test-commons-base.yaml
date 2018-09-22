@@ -1,0 +1,12 @@
+jobs:
+  - name: BaseTest
+    build:
+      contract: commons-base/test/BaseTest.sol
+      instance: BaseTest
+  - name: VersionedTest
+    build:
+      contract: commons-base/test/VersionedTest.sol
+      instance: all
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol

@@ -1,0 +1,19 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: AbstractDocumentTest
+    build:
+      contract: documents-commons/test/AbstractDocumentTest.sol
+      instance: AbstractDocumentTest
+  - name: DefaultDocumentTest
+    build:
+      contract: documents-commons/test/DefaultDocumentFunctionsTest.sol
+      instance: DefaultDocumentFunctionsTest
+  - name: AgreementTest
+    build:
+      contract: documents-commons/test/AgreementTest.sol
+      instance: all
+  - name: UseCaseTest
+    build:
+      contract: documents-commons/test/UseCaseTest.sol

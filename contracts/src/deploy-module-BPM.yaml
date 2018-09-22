@@ -1,0 +1,244 @@
+jobs:
+
+#####
+# Retrieve DOUG
+#####
+- name: DOUG
+  query-name:
+      name: DOUG
+      field: data
+
+#####
+# Retrieve Library Addresses
+#####
+- name: ErrorsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [ErrorsLib]
+
+- name: TypeUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [TypeUtils]
+
+- name: ArrayUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [ArrayUtils]
+
+- name: MappingsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [MappingsLib]
+
+- name: BpmModelLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [BpmModelLib]
+
+- name: BpmRuntimeLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [BpmRuntimeLib]
+
+- name: DataStorageUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [DataStorageUtils]
+
+#####
+# ProcessModelRepository
+#####
+- name: ProcessModelRepository
+  deploy:
+    contract: DefaultProcessModelRepository.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: ProcessModelRepositoryDb
+  deploy:
+    contract: ProcessModelRepositoryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+
+- name: ChangeRepositoryDbOwnership
+  call:
+    destination: $ProcessModelRepositoryDb
+    bin: ProcessModelRepositoryDb
+    function: transferSystemOwnership
+    data: [$ProcessModelRepository]
+
+- name: SetRepositoryDb
+  call:
+    destination: $ProcessModelRepository
+    bin: DefaultProcessModelRepository
+    function: acceptDatabase
+    data: [$ProcessModelRepositoryDb]
+
+- name: AssertRepositoryDb
+  assert:
+    key: $SetRepositoryDb
+    relation: eq
+    val: "true"
+
+- name: ChangeRepositoryUpgradeOwnership
+  call:
+    destination: $ProcessModelRepository
+    bin: UpgradeOwned
+    function: transferUpgradeOwnership
+    data: [$DOUG]
+
+- name: DeployProcessModelRepository
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: deployContract
+    data: [ProcessModelRepository, $ProcessModelRepository]
+
+- name: AssertProcessModelRepository
+  assert:
+    key: $DeployProcessModelRepository
+    relation: eq
+    val: "true"
+
+#####
+# ApplicationRegistry
+#####
+- name: ApplicationRegistry
+  deploy:
+    contract: DefaultApplicationRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ApplicationRegistryDb
+  deploy:
+    contract: ApplicationRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ChangeAppRegistryDbOwnership
+  call:
+    destination: $ApplicationRegistryDb
+    bin: ApplicationRegistryDb
+    function: transferSystemOwnership
+    data: [$ApplicationRegistry]
+
+- name: SetApplicationRegistryDb
+  call:
+    destination: $ApplicationRegistry
+    bin: DefaultApplicationRegistry
+    function: acceptDatabase
+    data: [$ApplicationRegistryDb]
+
+- name: AssertApplicationRegistryDb
+  assert:
+    key: $SetApplicationRegistryDb
+    relation: eq
+    val: "true"
+
+- name: ChangeApplicationRegistryUpgradeOwnership
+  call:
+    destination: $ApplicationRegistry
+    bin: UpgradeOwned
+    function: transferUpgradeOwnership
+    data: [$DOUG]
+
+- name: DeployApplicationRegistry
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: deployContract
+    data: [ApplicationRegistry, $ApplicationRegistry]
+
+- name: AssertApplicationRegistry
+  assert:
+    key: $DeployApplicationRegistry
+    relation: eq
+    val: "true"
+
+#####
+# BpmService
+#####
+- name: BpmService
+  deploy:
+    contract: bpm-runtime/DefaultBpmService.sol
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+
+- name: BpmServiceDb
+  deploy:
+    contract: bpm-runtime/BpmServiceDb.sol
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib
+
+- name: ChangeBpmServiceDbOwnership
+  call:
+    destination: $BpmServiceDb
+    bin: BpmServiceDb
+    function: transferSystemOwnership
+    data: [$BpmService]
+
+- name: SetBpmServiceDb
+  call:
+    destination: $BpmService
+    bin: DefaultBpmService
+    function: acceptDatabase
+    data: [$BpmServiceDb]
+
+- name: AssertBpmServiceDb
+  assert:
+    key: $SetBpmServiceDb
+    relation: eq
+    val: "true"
+
+- name: ChangeBpmServiceUpgradeOwnership
+  call:
+    destination: $BpmService
+    bin: UpgradeOwned
+    function: transferUpgradeOwnership
+    data: [$DOUG]
+
+- name: DeployBpmService
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: deployContract
+    data: [BpmService, $BpmService]
+
+- name: AssertBpmService
+  assert:
+    key: $DeployBpmService
+    relation: eq
+    val: "true"
+
+- name: GetModelRepositoryFromBpmService
+  query-contract:
+    destination: $BpmService
+    bin: BpmService
+    function: getProcessModelRepository
+
+- name: AssertDependencyModelRepository
+  assert:
+    key: $GetModelRepositoryFromBpmService
+    relation: eq
+    val: $ProcessModelRepository
+
+- name: GetApplicationRegistryFromBpmService
+  query-contract:
+    destination: $BpmService
+    bin: BpmService
+    function: getApplicationRegistry
+
+- name: AssertDependencyApplicationRegistry
+  assert:
+    key: $GetApplicationRegistryFromBpmService
+    relation: eq
+    val: $ApplicationRegistry

@@ -1,0 +1,13 @@
+jobs:
+  - name: IsoCountriesInterface
+    build:
+      contract: commons-standards/IsoCountries.sol
+  - name: IsoCurrenciesInterface
+    build:
+      contract: commons-standards/IsoCurrencies.sol
+  - name: IsoCountries
+    build:
+      contract: commons-standards/IsoCountries100.sol
+  - name: IsoCurrencies
+    build:
+      contract: commons-standards/IsoCurrencies100.sol

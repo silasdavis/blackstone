@@ -1,0 +1,250 @@
+pragma solidity ^0.4.23;
+
+import "commons-base/BaseErrors.sol";
+import "commons-utils/TypeUtilsAPI.sol";
+import "commons-collections/AbstractDataStorage.sol";
+
+import "bpm-model/ProcessDefinition.sol";
+import "bpm-model/DefaultProcessModel.sol";
+
+contract ProcessDefinitionTest {
+	
+	string constant SUCCESS = "success";
+
+	// test data
+	bytes32 activity1Id = "activity1";
+	bytes32 activity2Id = "activity2";
+	bytes32 activity3Id = "activity3";
+	bytes32 activity4Id = "activity4";
+	bytes32 activity5Id = "activity5";
+	bytes32 transition1Id = "transition1";
+	address assignee1 = 0x1040e6521541daB4E7ee57F21226dD17Ce9F0Fb7;
+	address assignee2 = 0x58fd1799aa32deD3F6eac096A1dC77834a446b9C;
+	address assignee3 = 0x68112f9380f75a13f6Ce2d5923F1dB8386EF1339;
+	address assignee4 = 0x776FDe59876aAB7D654D656e654Ed9876574c54c;
+	address author = 0x9d7fDE63776AaB9E234d656E654ED9876574C54C;
+	bytes32 participantId1 = "Participant1";
+
+	bytes32 pId;
+	bytes32 pInterface;
+	bytes32 modelId;
+
+	bytes32 EMPTY = "";
+
+	/**
+	 * @dev 
+	 */
+	function testProcessDefinition() external returns (uint, string) {
+	
+		// re-usable test variables	
+		uint error;
+		address newAddress;
+
+		ProcessModel pm = new DefaultProcessModel("testModel", "Test Model", [1,0,0], author, false, EMPTY, EMPTY);
+		(error, newAddress) = pm.createProcessDefinition("p1");
+		ProcessDefinition pd = ProcessDefinition(newAddress);
+		
+		// setup
+		if (pm.getProcessDefinition("p1") != address(pd)) return (BaseErrors.INVALID_STATE(), "Returned ProcessDefinition address does not match.");
+
+		// test process interface handling
+		error = pd.addProcessInterfaceImplementation(pm, "AgreementFormation");
+		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return (BaseErrors.INVALID_STATE(), "Expected error for adding non-existent process interface.");
+		error = pm.addProcessInterface("AgreementFormation");
+		if (error != BaseErrors.NO_ERROR()) return (error, "Unable to add process interface Formation to model");
+		error = pm.addProcessInterface("AgreementExecution");
+		if (error != BaseErrors.NO_ERROR()) return (error, "Unable to add process interface Execution to model");
+		error = pd.addProcessInterfaceImplementation(pm, "AgreementFormation");
+		if (error != BaseErrors.NO_ERROR()) return (error, "Unable to add valid process interface Formation to process definition.");
+		error = pd.addProcessInterfaceImplementation(pm, "AgreementExecution");
+		if (error != BaseErrors.NO_ERROR()) return (error, "Unable to add valid process interface Execution to process definition.");
+		if (pd.getNumberOfImplementedProcessInterfaces() != 2) return (BaseErrors.INVALID_STATE(), "Number of implemented interfaces should be 2");
+		(pId, pInterface, modelId) = pm.getProcessDefinitionData(pd);
+		if (pId != "p1") return (BaseErrors.INVALID_STATE(), "Expected process definition id to equal p1");
+		if (pInterface != "AgreementFormation") return (BaseErrors.INVALID_STATE(), "Expected process definition interface to equal AgreementFormation");
+
+		bool valid;
+		bytes32 errorMsg;
+
+		// test activity creation
+
+		// Invalid participant
+		error = pd.createActivityDefinition("activity999", BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, "fakeParticipantXYZ", false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return (BaseErrors.INVALID_STATE(), "Creating activity with unknown participant should fail");
+
+		error = pm.addParticipant(participantId1, assignee1, EMPTY, EMPTY, 0x0);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Unable to add a valid participant");
+
+		error = pd.createActivityDefinition("activity999", BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, participantId1, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.INVALID_PARAM_VALUE()) return (BaseErrors.INVALID_STATE(), "Expected INVALID_PARAM_VALUE for non-USER activity with specified assignee");
+		error = pd.createActivityDefinition("activity999", BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NULL_PARAM_NOT_ALLOWED()) return (BaseErrors.INVALID_STATE(), "Expected NULL_PARAM_NOT_ALLOWED for TaskType.USER activity without an assignee");
+
+		// Activity 1
+		error = pd.createActivityDefinition(activity1Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, "app1", EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating activity1 failed");
+
+		(valid, errorMsg) = pd.validate();
+		if (!valid) return (BaseErrors.INVALID_STATE(), "The process definition has a single user task and should be valid");
+		if (pd.getStartActivity() != activity1Id) return (BaseErrors.INVALID_STATE(), "Start activity should be activity1 after first validation");
+		error = pd.createActivityDefinition(activity1Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, false, "app1", EMPTY, EMPTY);
+		if (error != BaseErrors.RESOURCE_ALREADY_EXISTS()) return (error, "Expected RESOURCE_ALREADY_EXISTS for duplicate activity1 creation");
+
+		// Activity 2
+		error = pd.createActivityDefinition(activity2Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, "app1", EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating activity2 failed");
+		if (pd.getNumberOfActivities() != 2) return (BaseErrors.INVALID_STATE(), "The process should have two activity definitions at this point");
+
+		(valid, errorMsg) = pd.validate();
+		if (valid) return (BaseErrors.INVALID_STATE(), "The process definition has duplicate start activities and should not be valid");
+		
+		// Scenario 1: Sequential Process
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), "blablaActivity", activity2Id))
+			return (BaseErrors.INVALID_STATE(), "Expected REVERT when creating transition for non-existent source element");
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), activity1Id, "blablaActivity"))
+			return (BaseErrors.INVALID_STATE(), "Expected REVERT when creating transition for non-existent target element");
+		error = pd.createTransition(activity1Id, activity2Id);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating transition activity1 -> activity2 failed");
+
+		(valid, errorMsg) = pd.validate();
+		if (!valid) return (BaseErrors.INVALID_STATE(), bytes32ToString(errorMsg)); // should be valid at this point
+		if (pd.getStartActivity() != activity1Id) return (BaseErrors.INVALID_STATE(), "Start activity should still be activity1");
+
+		// Scenario 2: XOR Split
+		// create gateway to allow valid setup
+		pd.createGateway("gateway1", BpmModel.GatewayType.XOR);
+		(valid, errorMsg) = pd.validate();
+		if (valid) return (BaseErrors.INVALID_STATE(), "The process definition has an unreachable gateway and should not be valid");
+
+		// Activity 3
+		error = pd.createActivityDefinition(activity3Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating activity3 failed");
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), activity1Id, activity3Id))
+			return (BaseErrors.INVALID_STATE(), "Expected REVERT when attempting to overwrite existing outgoing transition");
+		// Activity 4
+		error = pd.createActivityDefinition(activity4Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating activity4 failed");
+
+		// check transition condition failure
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "fakeXX", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+			return (BaseErrors.INVALID_STATE(), "Adding condition for non-existent gateway should fail");
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", "fakeXX", EMPTY, EMPTY, 0x0, 0, 0x0))
+			return (BaseErrors.INVALID_STATE(), "Adding condition for non-existent activity should fail");
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+			return (BaseErrors.INVALID_STATE(), "Adding condition for non-existent transition connection should fail");
+
+		pd.createTransition(activity2Id, "gateway1");
+		pd.createTransition("gateway1", activity3Id);
+		pd.createTransition("gateway1", activity4Id);
+
+		// test transition condition failure when adding condition on default transition
+		pd.setDefaultTransition("gateway1", activity3Id);
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+			return (BaseErrors.INVALID_STATE(), "Adding condition for the default transition shoudl fail");
+
+		// test transition condition success with activity4
+		if (!address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity4Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+			return (BaseErrors.INVALID_STATE(), "Adding condition on valid transition should succeed");
+
+		//TODO missing test if condition gets deleted when setting activity4 as the default transition
+
+		// check transitions on gateways
+		bytes32[] memory inputs;
+		bytes32[] memory outputs;
+		bytes32 defaultOutput;
+		(inputs, outputs, , defaultOutput) = pd.getGatewayGraphDetails("gateway1");
+		if (inputs.length != 1) return (BaseErrors.INVALID_STATE(), "XOR SPLIT gateway should have 1 incoming transitions");
+		if (outputs.length != 2) return (BaseErrors.INVALID_STATE(), "XOR SPLIT gateway should have 2 outgoing transitions");
+		if (defaultOutput != activity3Id) return (BaseErrors.INVALID_STATE(), "activity3 should be set as default transition");
+
+		(valid, errorMsg) = pd.validate();
+		if (!valid) return (BaseErrors.INVALID_STATE(), bytes32ToString(errorMsg)); // process definition should be valid at this point
+
+		// Scenario 3: XOR Join
+		pd.createGateway("gateway2", BpmModel.GatewayType.XOR);
+		// Activity 5
+		error = pd.createActivityDefinition(activity5Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return (error, "Creating activity5 failed");
+		pd.createTransition(activity3Id, "gateway2");
+		pd.createTransition(activity4Id, "gateway2");
+		pd.createTransition("gateway2", activity5Id);
+
+		(valid, errorMsg) = pd.validate();
+		if (!valid) return (BaseErrors.INVALID_STATE(), bytes32ToString(errorMsg)); // should be valid at this point
+
+		bytes32[] memory activityIds = pd.getActivitiesForParticipant(participantId1);
+		if (activityIds.length != 1)
+			return (BaseErrors.INVALID_STATE(), "There should be 1 activity using participant1 as assignee");
+		if (pd.getActivitiesForParticipant(participantId1)[0] != activity1Id)
+			return (BaseErrors.INVALID_STATE(), "getActivitiesForParticipant should return activity1 for participant1");
+
+		return (BaseErrors.NO_ERROR(), SUCCESS);
+	}
+
+	/**
+	 * @dev Tests the setup and resolution of transition conditions via the ProcessDefinition
+	 */
+	function testTransitionConditionResolution() external returns (string) {
+
+		// re-usable variables for return values
+		uint error;
+		address addr;
+
+		ProcessModel pm = new DefaultProcessModel("conditionsModel", "Conditions Model", [1,0,0], author, false, EMPTY, EMPTY);
+		(error, addr) = pm.createProcessDefinition("p1");
+		ProcessDefinition pd = ProcessDefinition(addr);
+
+		pd.createActivityDefinition(activity1Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activity2Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activity3Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createGateway(transition1Id, BpmModel.GatewayType.XOR);
+		pd.createTransition(activity1Id, transition1Id);
+		pd.createTransition(transition1Id, activity2Id);
+		pd.createTransition(transition1Id, activity3Id);
+
+		pd.createTransitionConditionForAddress(transition1Id, activity2Id, "buyer", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), this);
+		pd.createTransitionConditionForUint(transition1Id, activity3Id, "elevation", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.LTE), 500);
+
+		// this is the DataStorage used for resolving conditions
+		TestData dataStorage = new TestData();
+		
+		if (pd.resolveTransitionCondition(transition1Id, activity2Id, dataStorage)) return "The condition for transition1/activity2 should be false as the data is not set";
+		dataStorage.setDataValueAsAddress("buyer", this);
+		if (!pd.resolveTransitionCondition(transition1Id, activity2Id, dataStorage)) return "The condition for transition1/activity2 should be true after data is set";
+		dataStorage.setDataValueAsUint("elevation", 2200);
+		if (pd.resolveTransitionCondition(transition1Id, activity3Id, dataStorage)) return "The condition for transition1/activity3 should be false";
+
+		return SUCCESS;
+	}
+
+	function bytes32ToString(bytes32 x) internal pure returns (string) {
+	    bytes memory bytesString = new bytes(32);
+	    uint charCount = 0;
+	    for (uint j = 0; j < 32; j++) {
+	        byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
+	        if (char != 0) {
+	            bytesString[charCount] = char;
+	            charCount++;
+	        }
+	    }
+	    bytes memory bytesStringTrimmed = new bytes(charCount);
+	    for (j = 0; j < charCount; j++) {
+	        bytesStringTrimmed[j] = bytesString[j];
+	    }
+	    return string(bytesStringTrimmed);
+	}
+}
+
+contract TestApplication {
+	
+	bool public success;
+	
+	function doSomething() external {
+		success = true;
+	}
+}
+
+/**
+ * Helper contract to provide a DataStorage location
+ */
+contract TestData is AbstractDataStorage {}

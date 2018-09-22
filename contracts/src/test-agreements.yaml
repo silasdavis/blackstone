@@ -1,0 +1,463 @@
+jobs:
+
+# Libraries
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+- name: TypeUtilsAPI
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsAPI
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+- name: MappingsLib
+  deploy:
+    contract: MappingsLib.bin
+    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+
+- name: DataStorageUtils
+  deploy:
+    contract: DataStorageUtils.bin
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsAPI
+
+- name: ERC165Utils
+  deploy:
+    contract: ERC165Utils.bin
+
+- name: BpmModelLib
+  deploy:
+    contract: bpm-model/BpmModelLib.sol
+    libraries: ErrorsLib:$ErrorsLib, DataStorageUtils:$DataStorageUtils
+
+- name: BpmRuntimeLib
+  deploy:
+    contract: bpm-runtime/BpmRuntimeLib.sol
+    instance: BpmRuntimeLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+
+- name: AgreementsAPI
+  deploy:
+    contract: AgreementsAPI.bin
+    libraries: ERC165Utils:$ERC165Utils
+
+- name: IsoCountries
+  deploy:
+    contract: IsoCountries100.bin
+    instance: IsoCountries100
+    libraries: ErrorsLib:$ErrorsLib
+
+# ArchetypeRegistryTest
+- name: ArchetypeRegistryTest
+  deploy:
+    contract: ArchetypeRegistryTest.bin
+    instance: ArchetypeRegistryTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
+
+- name: setIsoCountries
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: setIsoCountries
+    data: [$IsoCountries]
+
+- name: getIsoCountries
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: getIsoCountries
+
+- name: assertIsoCountries
+  assert:
+    key: $getIsoCountries
+    relation: eq
+    val: $IsoCountries
+
+- name: testArchetypeCreation
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: testArchetypeCreation
+
+- name: assertArchetypeCreation
+  assert:
+    key: $testArchetypeCreation
+    relation: eq
+    val: success
+
+- name: testArchetypePackages
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: testArchetypePackages
+
+- name: assertArchetypePackages
+  assert:
+    key: $testArchetypePackages
+    relation: eq
+    val: success
+
+- name: testArchetypeSuccessor
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: testArchetypeSuccessor
+
+- name: assertArchetypeSuccessor
+  assert:
+    key: $testArchetypeSuccessor
+    relation: eq
+    val: success
+
+- name: testGoverningArchetypes
+  call:
+    destination: $ArchetypeRegistryTest
+    bin: ArchetypeRegistryTest
+    function: testGoverningArchetypes
+
+- name: assertGoverningArchetypes
+  assert:
+    key: $testGoverningArchetypes
+    relation: eq
+    val: success
+
+# ActiveAgreementTest
+- name: ActiveAgreementTest
+  deploy:
+    contract: ActiveAgreementTest.bin
+    instance: ActiveAgreementTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+
+- name: testActiveAgreementSetup
+  call:
+    destination: $ActiveAgreementTest
+    bin: ActiveAgreementTest
+    function: testActiveAgreementSetup
+
+- name: assertActiveAgreementSetup
+  assert:
+    key: $testActiveAgreementSetup.0
+    relation: eq
+    val: 1
+
+- name: testActiveAgreementSigning
+  call:
+    destination: $ActiveAgreementTest
+    bin: ActiveAgreementTest
+    function: testActiveAgreementSigning
+
+- name: assertActiveAgreementSigning
+  assert:
+    key: $testActiveAgreementSigning.0
+    relation: eq
+    val: 1
+
+- name: testActiveAgreementCancellation
+  call:
+    destination: $ActiveAgreementTest
+    bin: ActiveAgreementTest
+    function: testActiveAgreementCancellation
+
+- name: assertActiveAgreementCancellation
+  assert:
+    key: $testActiveAgreementCancellation.0
+    relation: eq
+    val: 1
+
+
+# ActiveAgreementRegistryTest
+- name: ActiveAgreementRegistryTest
+  deploy:
+    contract: ActiveAgreementRegistryTest.bin
+    instance: ActiveAgreementRegistryTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+
+- name: testActiveAgreementRegistry
+  call:
+    destination: $ActiveAgreementRegistryTest
+    bin: ActiveAgreementRegistryTest
+    function: testActiveAgreementRegistry
+
+- name: assertActiveAgreementRegistry
+  assert:
+    key: $testActiveAgreementRegistry.0
+    relation: eq
+    val: 1
+
+- name: testAgreementCollections
+  call:
+    destination: $ActiveAgreementRegistryTest
+    bin: ActiveAgreementRegistryTest
+    function: testAgreementCollections
+
+- name: assertAgreementCollections
+  assert:
+    key: $testAgreementCollections.0
+    relation: eq
+    val: 1
+
+- name: testGoverningAgreements
+  call:
+    destination: $ActiveAgreementRegistryTest
+    bin: ActiveAgreementRegistryTest
+    function: testGoverningAgreements
+
+- name: assertGoverningAgreements
+  assert:
+    key: $testGoverningAgreements
+    relation: eq
+    val: success
+
+#####
+# ActiveAgreementWorkflowTest
+########################################################################
+- name: DOUG
+  deploy:
+    contract: TestDoug.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+
+# Create all dependent services for this test and register in DOUG
+- name: ApplicationRegistry
+  deploy:
+    contract: DefaultApplicationRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ApplicationRegistryDb
+  deploy:
+    contract: ApplicationRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ChangeAppRegistryDbOwnership
+  call:
+    destination: $ApplicationRegistryDb
+    bin: ApplicationRegistryDb
+    function: transferSystemOwnership
+    data: [$ApplicationRegistry]
+
+- name: SetAppRegistryDb
+  call:
+    destination: $ApplicationRegistry
+    bin: DefaultApplicationRegistry
+    function: acceptDatabase
+    data: [$ApplicationRegistryDb]
+
+- name: AssertAppRegistryDb
+  assert:
+    key: $SetAppRegistryDb
+    relation: eq
+    val: "true"
+
+- name: DeployApplicationRegistry
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: deployContract
+    data: [ApplicationRegistry, $ApplicationRegistry]
+
+- name: ArchetypeRegistry
+  deploy:
+    contract: DefaultArchetypeRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ArchetypeRegistryDb
+  deploy:
+    contract: ArchetypeRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ChangeArchetypeRegistryDbOwnership
+  call:
+    destination: $ArchetypeRegistryDb
+    bin: ArchetypeRegistryDb
+    function: transferSystemOwnership
+    data: [$ArchetypeRegistry]
+
+- name: SetArchetypeRegistryDb
+  call:
+    destination: $ArchetypeRegistry
+    bin: DefaultArchetypeRegistry
+    function: acceptDatabase
+    data: [$ArchetypeRegistryDb]
+
+- name: AssertArchetypeRegistryDb
+  assert:
+    key: $SetArchetypeRegistryDb
+    relation: eq
+    val: "true"
+
+- name: DeployArchetypeRegistry
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: deployContract
+    data: [ArchetypeRegistry, $ArchetypeRegistry]
+
+- name: ParticipantsManager
+  deploy:
+    contract: DefaultParticipantsManager.bin
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib
+
+- name: ParticipantsManagerDb
+  deploy:
+    contract: ParticipantsManagerDb.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ChangeParticipantsManagerDbOwnership
+  call:
+    destination: $ParticipantsManagerDb
+    bin: ParticipantsManagerDb
+    function: transferSystemOwnership
+    data: [$ParticipantsManager]
+
+- name: SetParticipantsManagerDb
+  call:
+    destination: $ParticipantsManager
+    bin: DefaultParticipantsManager
+    function: acceptDatabase
+    data: [$ParticipantsManagerDb]
+
+- name: AssertParticipantsManagerDb
+  assert:
+    key: $SetParticipantsManagerDb
+    relation: eq
+    val: "true"
+
+- name: DeployParticipantsManager
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: deployContract
+    data: [ParticipantsManager, $ParticipantsManager]
+
+- name: ProcessModelRepositoryDb
+  deploy:
+    contract: ProcessModelRepositoryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ProcessModelRepository
+  deploy: 
+    contract: DefaultProcessModelRepository.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: ChangeRepositoryDbOwnership
+  call:
+    destination: $ProcessModelRepositoryDb
+    bin: ProcessModelRepositoryDb
+    function: transferSystemOwnership
+    data: [$ProcessModelRepository]
+
+- name: SetRepositoryDb
+  call:
+    destination: $ProcessModelRepository
+    bin: DefaultProcessModelRepository
+    function: acceptDatabase
+    data: [$ProcessModelRepositoryDb]
+
+- name: AssertRepositoryDb
+  assert:
+    key: $SetRepositoryDb
+    relation: eq
+    val: "true"
+
+- name: DeployProcessModelRepository
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: deployContract
+    data: [ProcessModelRepository, $ProcessModelRepository]
+
+- name: BpmService
+  deploy:
+    contract: bpm-runtime/DefaultBpmService.sol
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+
+- name: BpmServiceDb
+  deploy:
+    contract: bpm-runtime/BpmServiceDb.sol
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+
+- name: ChangeBpmServiceDbOwnership
+  call:
+    destination: $BpmServiceDb
+    bin: BpmServiceDb
+    function: transferSystemOwnership
+    data: [$BpmService]
+
+- name: SetBpmServiceDb
+  call:
+    destination: $BpmService
+    bin: DefaultBpmService
+    function: acceptDatabase
+    data: [$BpmServiceDb]
+
+- name: AssertBpmServiceDb
+  assert:
+    key: $SetBpmServiceDb
+    relation: eq
+    val: "true"
+
+- name: DeployBpmService
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: deployContract
+    data: [BpmService, $BpmService]
+
+# TESTS
+- name: ActiveAgreementWorkflowTest
+  deploy:
+    contract: ActiveAgreementWorkflowTest.bin
+    instance: ActiveAgreementWorkflowTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, , BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+
+# IMPORTANT: Surrender TestDoug's system ownership to the test contract in order to deploy application contracts from within the test
+- name: ChangeTestDougSystemOwnership
+  call:
+    destination: $DOUG
+    bin: TestDoug
+    function: transferSystemOwnership
+    data: [$ActiveAgreementWorkflowTest]
+
+- name: setDougInTest
+  call:
+    destination: $ActiveAgreementWorkflowTest
+    bin: ActiveAgreementWorkflowTest
+    function: setDoug
+    data: [$DOUG]
+
+- name: testAddressScopeTransfer
+  call:
+    destination: $ActiveAgreementWorkflowTest
+    bin: ActiveAgreementWorkflowTest
+    function: testAddressScopeTransfer
+
+- name: assertAddressScopeTransfer
+  assert:
+    key: $testAddressScopeTransfer
+    relation: eq
+    val: success
+
+- name: testExecutedAgreementWorkflow
+  call:
+    destination: $ActiveAgreementWorkflowTest
+    bin: ActiveAgreementWorkflowTest
+    function: testExecutedAgreementWorkflow
+
+- name: assertExecutedAgreementWorkflow
+  assert:
+    key: $testExecutedAgreementWorkflow.0
+    relation: eq
+    val: 1
+
+- name: testCanceledAgreementWorkflow
+  call:
+    destination: $ActiveAgreementWorkflowTest
+    bin: ActiveAgreementWorkflowTest
+    function: testCanceledAgreementWorkflow
+
+- name: assertCanceledAgreementWorkflow
+  assert:
+    key: $testCanceledAgreementWorkflow.0
+    relation: eq
+    val: 1

@@ -1,0 +1,31 @@
+jobs:
+  - name: ArchetypeRegisterInterface
+    build:
+      contract: agreements/ArchetypeRegistry.sol
+  - name: AgreementPartyAccountInterface
+    build:
+      contract: agreements/AgreementPartyAccount.sol
+  - name: Archetype
+    build:
+      contract: agreements/Archetype.sol
+  - name: ArchetypeRegistry
+    build:
+      contract: agreements/DefaultArchetypeRegistry.sol
+  - name: ArchetypeRegistryDb
+    build:
+      contract: agreements/ArchetypeRegistryDb.sol
+  - name: ActiveAgreementInterface
+    build:
+      contract: agreements/ActiveAgreement.sol
+  - name: ActiveAgreementRegistryInterface
+    build:
+      contract: agreements/ActiveAgreementRegistry.sol
+  - name: ActiveAgreementRegistry
+    build:
+      contract: agreements/DefaultActiveAgreementRegistry.sol
+  - name: ActiveAgreementRegistryDb
+    build:
+      contract: agreements/ActiveAgreementRegistryDb.sol
+  - name: ParameterTypesAccess
+    build:
+      contract: agreements/ParameterTypesAccess.sol

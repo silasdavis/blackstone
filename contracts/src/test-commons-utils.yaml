@@ -1,0 +1,216 @@
+
+jobs:
+
+#####
+# Libraries
+
+- name: TypeUtilsAPI
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsAPI
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+#####
+# TypeUtils Test
+- name: TypeUtilsLibTest
+  deploy:
+    contract: TypeUtilsTest.bin
+    instance: TypeUtilsTest
+    libraries: TypeUtilsAPI:$TypeUtilsAPI
+
+# contentLength bytes32
+- name: testLengthBytes32
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testLengthBytes32
+
+- name: assertLengthBytes32
+  assert:
+    key: $testLengthBytes32
+    relation: eq
+    val: success
+
+# isEmpty
+- name: testIsEmpty
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testIsEmpty
+
+- name: assertIsEmpty
+  assert:
+    key: $testIsEmpty
+    relation: eq
+    val: success
+
+# uint -> bytes32
+- name: testUintToBytes32
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testUintToBytes32
+
+- name: assertUintToBytes32
+  assert:
+    key: $testUintToBytes32
+    relation: eq
+    val: success
+
+# address -> bytes
+# Commented due to https://github.com/eris-ltd/eris-db/issues/474  
+# - name: testAddressToBytes
+#     call:
+#       destination: $TypeUtilsLibTest
+#       function: testAddressToBytes
+#       data: [$TypeUtilsLibTest]
+# 
+# - name: assertAddressToBytes
+#     assert:
+#       key: $testAddressToBytes
+#       relation: eq
+#       val: $TypeUtilsLibTest
+
+# bytes32 -> string
+# Commented due to https://github.com/eris-ltd/eris-db/issues/474  
+# - name: testBytes32ToString
+#     call:
+#       destination: $TypeUtilsLibTest
+#       function: testBytes32ToString
+#       data: [Rumpelstiltskin]
+# 
+# - name: assertBytes32ToString
+#     assert:
+#       key: $testBytes32ToString
+#       relation: eq
+#       val: Rumpelstiltskin
+
+# string -> bytes32
+# Commented due to https://github.com/eris-ltd/eris-db/issues/474  
+- name: testStringToBytes32
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testStringToBytes32
+
+- name: assertStringToBytes32
+  assert:
+    key: $testStringToBytes32
+    relation: eq
+    val: success
+
+# Commented due to https://github.com/eris-ltd/eris-db/issues/474  
+# - name: testConcatBytes
+#     call:
+#       destination: $TypeUtilsLibTest
+#       function: testConcatBytes
+#       data: ["Hello ", "World"]
+# 
+# - name: assertConcatBytes
+#     assert:
+#       key: $testConcatBytes
+#       relation: eq
+#       val: "Hello World"
+
+#####
+# ArrayUtils Test
+- name: ArrayUtilsLibTest
+  deploy:
+    contract: ArrayUtilsTest.bin
+    instance: ArrayUtilsTest
+    libraries: ArrayUtilsAPI:$ArrayUtilsAPI
+
+- name: testContainsBytes32
+  call:
+    destination: $ArrayUtilsLibTest
+    bin: ArrayUtilsTest
+    function: testContainsBytes32
+
+- name: assertContainsBytes32
+  assert:
+    key: $testContainsBytes32
+    relation: eq
+    val: success
+
+#####
+# DataTypesAccess Test
+- name: DataTypesAccessTest
+  deploy:
+    contract: DataTypesAccessTest.bin
+    instance: DataTypesAccessTest
+
+- name: testDataTypesAccess
+  call:
+    destination: $DataTypesAccessTest
+    bin: DataTypesAccessTest
+    function: testDataTypesAccess
+
+- name: assertDataTypesAccess
+  assert:
+    key: $testDataTypesAccess
+    relation: eq
+    val: success
+
+- name: DataTypesAccess
+  deploy:
+    contract: DataTypesAccess.bin
+    instance: DataTypesAccess
+    libraries: DataTypes:$DataTypes
+
+# Index: 20, DataType: 52, Label: 3 Bytes
+
+- name: getDataTypeAtIndex20
+  call:
+    destination: $DataTypesAccess
+    bin: DataTypesAccess
+    function: getDataTypeAtIndex
+    data: [20]
+
+- name: assertDataTypeAtIndex20
+  assert:
+    key: $getDataTypeAtIndex20.0
+    relation: eq
+    val: 52
+
+- name: getDataTypeDetailsAtIndex20
+  call:
+    destination: $DataTypesAccess
+    bin: DataTypesAccess
+    function: getDataTypeDetails
+    data: [$getDataTypeAtIndex20.0]
+
+- name: assertDataTypeDetailsAtIndex20
+  assert:
+    key: $getDataTypeDetailsAtIndex20
+    relation: eq
+    val: 3 Bytes
+
+# Index: 43, DataType: 117, Label: Array of 128-bit Signed Integers
+
+- name: getDataTypeAtIndex43
+  call:
+    destination: $DataTypesAccess
+    bin: DataTypesAccess
+    function: getDataTypeAtIndex
+    data: [43]
+
+- name: assertDataTypeAtIndex43
+  assert:
+    key: $getDataTypeAtIndex43.0
+    relation: eq
+    val: 117
+
+- name: getDataTypeDetailsAtIndex43
+  call:
+    destination: $DataTypesAccess
+    bin: DataTypesAccess
+    function: getDataTypeDetails
+    data: [$getDataTypeAtIndex43.0]
+
+- name: assertDataTypeDetailsAtIndex43
+  assert:
+    key: $getDataTypeDetailsAtIndex43
+    relation: eq
+    val: Array of 128-bit Signed Integers

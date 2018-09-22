@@ -1,0 +1,59 @@
+
+jobs:
+
+##########
+# Base Test
+- name: BaseTest
+  deploy:
+    contract: BaseTest.bin
+    instance: BaseTest
+
+- name: testNamedElement
+  call:
+    destination: $BaseTest
+    bin: BaseTest
+    function: testNamedElement
+
+- name: assertNamedElement
+  assert:
+    key: $testNamedElement
+    relation: eq
+    val: success
+
+#####
+# Versioned Test
+- name: VersionedTest
+  deploy:
+    contract: VersionedTest.bin
+    instance: all
+
+- name: runVersionedTest
+  call:
+    destination: $VersionedTest
+    bin: VersionedTest
+    function: testCompare
+
+- name: assertVersionedTest
+  assert:
+    key: $runVersionedTest
+    relation: eq
+    val: success
+
+#####
+# Errors Test
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+- name: getRuntimeError
+  call:
+    destination: $ErrorsLib
+    bin: ErrorsLib
+    function: format
+    data: ["", "Test", "should return runtime err"]
+
+- name: assertRuntimeError
+  assert:
+    key: $getRuntimeError
+    relation: eq
+    val: "ERR500::Test::should return runtime err"

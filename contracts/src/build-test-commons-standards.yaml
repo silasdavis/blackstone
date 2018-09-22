@@ -1,0 +1,25 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: IsoCountries100
+    build:
+      contract: commons-standards/IsoCountries100.sol
+  - name: IsoCurrencies100
+    build:
+      contract: commons-standards/IsoCurrencies100.sol
+  - name: ERC165Utils
+    build:
+      contract: commons-standards/ERC165Utils.sol
+  - name: ERC165Test
+    build:
+      contract: commons-standards/test/ERC165Test.sol
+      instance: ERC165Test
+  - name: IsoCountriesTest
+    build:
+      contract: commons-standards/test/IsoCountriesTest.sol
+      instance: IsoCountriesTest
+  - name: IsoCurrenciesTest
+    build:
+      contract: commons-standards/test/IsoCurrenciesTest.sol
+      instance: IsoCurrenciesTest

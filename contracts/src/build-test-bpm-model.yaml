@@ -1,0 +1,32 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsImpl
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsImpl
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: DefaultProcessModelRepository
+    build:
+      contract: bpm-model/DefaultProcessModelRepository.sol
+  - name: ProcessModelRepositoryDb
+    build:
+      contract: bpm-model/ProcessModelRepositoryDb.sol
+  - name: ProcessModelInterface
+    build:
+      contract: bpm-model/ProcessModel.sol
+  - name: ProcessModelRepositoryTest
+    build:
+      contract: bpm-model/test/ProcessModelRepositoryTest.sol
+  - name: ProcessModelTest
+    build:
+      contract: bpm-model/test/ProcessModelTest.sol
+  - name: ProcessDefinitionTest
+    build:
+      contract: bpm-model/test/ProcessDefinitionTest.sol
+      instance: ProcessDefinitionTest

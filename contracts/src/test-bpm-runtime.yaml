@@ -1,0 +1,340 @@
+jobs:
+
+##########
+# Libraries
+
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+- name: TypeUtilsImpl
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsImpl
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+- name: MappingsLib
+  deploy:
+    contract: MappingsLib.bin
+    libraries: TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl
+
+- name: DataStorageUtils
+  deploy:
+    contract: DataStorageUtils.bin
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsImpl
+
+- name: BpmModelLib
+  deploy:
+    contract: bpm-model/BpmModelLib.sol
+    libraries: ErrorsLib:$ErrorsLib, DataStorageUtils:$DataStorageUtils
+
+- name: ERC165Utils
+  deploy:
+    contract: ERC165Utils.bin
+
+- name: BpmRuntimeLib
+  deploy:
+    contract: bpm-runtime/BpmRuntimeLib.sol
+    instance: BpmRuntimeLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+
+##########
+# Service Upgradeability Tests
+
+- name: ServiceUpgradeabilityTest
+  deploy:
+    contract: ServiceUpgradeabilityTest.bin
+    instance: ServiceUpgradeabilityTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: testServiceUpgradeability
+  call:
+    destination: $ServiceUpgradeabilityTest
+    bin: ServiceUpgradeabilityTest
+    function: testServiceUpgradeability
+
+- name: assertServiceUpgradeability
+  assert:
+    key: $testServiceUpgradeability.0
+    relation: eq
+    val: 1
+
+##########
+# ApplicationRegistry Tests
+
+- name: ApplicationRegistryTest
+  deploy:
+    contract: ApplicationRegistryTest.bin
+    instance: ApplicationRegistryTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: testApplicationRegistry
+  call:
+    destination: $ApplicationRegistryTest
+    bin: ApplicationRegistryTest
+    function: testApplicationRegistry
+
+- name: assertApplicationRegistry
+  assert:
+    key: $testApplicationRegistry.0
+    relation: eq
+    val: 1
+
+##########
+# BPM Tests
+
+# SETUP
+- name: ProcessModelRepositoryDb
+  deploy:
+    contract: ProcessModelRepositoryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib
+
+- name: ProcessModelRepository
+  deploy:
+    contract: DefaultProcessModelRepository.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: ChangeRepositoryDbOwnership
+  call:
+    destination: $ProcessModelRepositoryDb
+    bin: ProcessModelRepositoryDb
+    function: transferSystemOwnership
+    data: [$ProcessModelRepository]
+
+- name: SetRepositoryDb
+  call:
+    destination: $ProcessModelRepository
+    bin: DefaultProcessModelRepository
+    function: acceptDatabase
+    data: [$ProcessModelRepositoryDb]
+
+- name: AssertRepositoryDb
+  assert:
+    key: $SetRepositoryDb
+    relation: eq
+    val: "true"
+
+- name: ApplicationRegistryDb
+  deploy:
+    contract: ApplicationRegistryDb.bin
+    instance: ApplicationRegistryDb
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ApplicationRegistry
+  deploy:
+    contract: DefaultApplicationRegistry.bin
+    instance: DefaultApplicationRegistry
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ChangeAppRegistryDbOwnership
+  call:
+    destination: $ApplicationRegistryDb
+    bin: ApplicationRegistryDb
+    function: transferSystemOwnership
+    data: [$ApplicationRegistry]
+
+- name: SetAppRegistryDb
+  call:
+    destination: $ApplicationRegistry
+    bin: DefaultApplicationRegistry
+    function: acceptDatabase
+    data: [$ApplicationRegistryDb]
+
+- name: AssertAppRegistryDb
+  assert:
+    key: $SetAppRegistryDb
+    relation: eq
+    val: "true"
+
+# TESTS
+- name: BpmServiceTest
+  deploy:
+    contract: BpmServiceTest.bin
+    instance: BpmServiceTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+
+- name: setAppRegistry
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: setApplicationRegistry
+    data: [$ApplicationRegistry]
+
+- name: setProcessModelRepository
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: setProcessModelRepository
+    data: [$ProcessModelRepository]
+
+- name: testProcessGraphSequential
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphSequential
+
+- name: assertProcessGraphSequential
+  assert:
+    key: $testProcessGraphSequential
+    relation: eq
+    val: success
+
+- name: testProcessGraphParallelGateway
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphParallelGateway
+
+- name: assertProcessGraphParallelGateway
+  assert:
+    key: $testProcessGraphParallelGateway
+    relation: eq
+    val: success
+
+- name: testProcessGraphExclusiveGateway
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphExclusiveGateway
+
+- name: assertProcessGraphExclusiveGateway
+  assert:
+    key: $testProcessGraphExclusiveGateway
+    relation: eq
+    val: success
+
+- name: testProcessGraphExclusiveGatewayWithDefault
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphExclusiveGatewayWithDefault
+
+- name: assertProcessGraphExclusiveGatewayWithDefault
+  assert:
+    key: $testProcessGraphExclusiveGatewayWithDefault
+    relation: eq
+    val: success
+
+- name: testProcessGraphMultiGateway
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphMultiGateway
+
+- name: assertProcessGraphMultiGateway
+  assert:
+    key: $testProcessGraphMultiGateway
+    relation: eq
+    val: success
+
+- name: testProcessGraphCreation
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphCreation
+
+- name: assertProcessGraphCreation
+  assert:
+    key: $testProcessGraphCreation
+    relation: eq
+    val: success
+
+- name: testInternalProcessExecution
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testInternalProcessExecution
+
+- name: assertInternalProcessExecution
+  assert:
+    key: $testInternalProcessExecution.0
+    relation: eq
+    val: 1
+
+- name: testGatewayRouting
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testGatewayRouting
+
+- name: assertGatewayRouting
+  assert:
+    key: $testGatewayRouting
+    relation: eq
+    val: success
+
+- name: testSequentialServiceApplications
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testSequentialServiceApplications
+
+- name: assertSequentialServiceApplications
+  assert:
+    key: $testSequentialServiceApplications.0
+    relation: eq
+    val: 1
+
+- name: testParticipantResolution
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testParticipantResolution
+
+- name: assertParticipantResolution
+  assert:
+    key: $testParticipantResolution.0
+    relation: eq
+    val: 1
+
+- name: testSequentialProcessWithUserTask
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testSequentialProcessWithUserTask
+
+- name: assertSequentialProcessWithUserTask
+  assert:
+    key: $testSequentialProcessWithUserTask.0
+    relation: eq
+    val: 1
+
+- name: testProcessAbort
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessAbort
+
+- name: assertProcessAbort
+  assert:
+    key: $testProcessAbort.0
+    relation: eq
+    val: 1
+
+- name: testMultiInstanceUserTask
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testMultiInstanceUserTask
+
+- name: assertMultiInstanceUserTask
+  assert:
+    key: $testMultiInstanceUserTask.0
+    relation: eq
+    val: 1
+
+## NOTE: subprocesses currently not yet supported. Tests are failing
+
+# - name: testSubprocesses
+#   call:
+#     destination: $BpmServiceTest
+#     bin: BpmServiceTest
+#     function: testSubprocesses
+
+# - name: assertSubprocesses
+#   assert:
+#     key: $testSubprocesses.0
+#     relation: eq
+#     val: 1

@@ -1,0 +1,37 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: AbstractAddressScopes
+    build:
+      contract: commons-collections/AbstractAddressScopes.sol
+  - name: AddressScopes
+    build:
+      contract: commons-collections/AddressScopes.sol
+  - name: DataStorageUtils
+    build:
+      contract: commons-collections/DataStorageUtils.sol
+  - name: MappingsLibTest
+    build:
+      contract: commons-collections/test/MappingsLibTest.sol
+  - name: DataStorageTest
+    build:
+      contract: commons-collections/test/DataStorageTest.sol
+      instance: DataStorageTest
+  - name: VersionLinkedTest
+    build:
+      contract: commons-collections/test/VersionLinkedTest.sol
+      instance: VersionLinkedTest
+  - name: VersionLinkedAppendOnlyTest
+    build:
+      contract: commons-collections/test/VersionLinkedAppendOnlyTest.sol
+      instance: VersionLinkedAppendOnlyTest

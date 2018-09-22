@@ -1,0 +1,134 @@
+jobs:
+
+#####
+# Retrieve DOUG
+#####
+- name: DOUG
+  query-name:
+      name: DOUG
+      field: data
+
+#####
+# Retrieve Library Addresses
+#####
+- name: ErrorsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [ErrorsLib]
+
+- name: TypeUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [TypeUtils]
+
+- name: ArrayUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [ArrayUtils]
+
+- name: MappingsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [MappingsLib]
+
+- name: BpmRuntimeLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [BpmRuntimeLib]
+
+- name: DataStorageUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [DataStorageUtils]
+
+#####
+# Applications
+#
+# ApplicationTypes Enum: {0=EVENT, 1=SERVICE, 2=WEB}
+#####
+
+- name: ApplicationRegistry
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookupContract
+    data: [ApplicationRegistry]
+
+- name: AgreementSignatureCheck
+  deploy:
+    contract: AgreementSignatureCheck.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, TypeUtilsAPI:$TypeUtils, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils
+
+- name: registerApplicationAgreementSignatureCheck
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addApplication
+    data: ["AgreementSignatureCheck", 2, $AgreementSignatureCheck, "", "SigningWebFormWithSignatureCheck"]
+
+- name: addAgreementSignatureCheckAccessPoint
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["AgreementSignatureCheck", "agreement", 59, 0]
+
+- name: registerWebAppApprovalForm
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addApplication
+    data: ["WebAppApprovalForm", 2, "0000000000000000000000000000000000000000", "", "TaskApprovalForm"]
+
+- name: addWebAppApprovalFormOutAccessPoint1
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["WebAppApprovalForm", "writeName", 2, 1]
+
+- name: addWebAppApprovalFormInAccessPoint1
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["WebAppApprovalForm", "readName", 2, 0]
+
+- name: addWebAppApprovalFormOutAccessPoint2
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["WebAppApprovalForm", "writeApproved", 1, 1]
+
+- name: addWebAppApprovalFormInAccessPoint2
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["WebAppApprovalForm", "readApproved", 1, 0]
+
+- name: DeployAgreementSignatureCheck
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: deployContract
+    data: [AgreementSignatureCheck, $AgreementSignatureCheck]
+
+- name: AssertAgreementSignatureCheckDeployment
+  assert:
+    key: $DeployAgreementSignatureCheck
+    relation: eq
+    val: "true"

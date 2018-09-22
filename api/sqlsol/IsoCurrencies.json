@@ -1,0 +1,14 @@
+{
+  "initSeq": {
+    "currency": {
+      "deserialize": "getCurrencyAtIndex",
+      "len": { "call": "getNumberOfCurrencies", "field": "size" }
+    }
+  },
+  "tables": {
+    "CURRENCIES": {
+      "call": "getCurrencyData",
+      "keys": ["currency"]
+    }
+  }
+}

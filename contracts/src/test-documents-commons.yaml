@@ -1,0 +1,175 @@
+jobs:
+
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+##########
+# AbstractDocument Tests
+
+- name: AbstractDocumentTest
+  deploy:
+    contract: AbstractDocumentTest.bin
+    instance: AbstractDocumentTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: testDocumentCreation
+  call:
+    destination: $AbstractDocumentTest
+    bin: AbstractDocumentTest
+    function: testDocumentCreation
+
+- name: assertDocumentCreation
+  assert:
+    key: $testDocumentCreation
+    relation: eq
+    val: success
+
+- name: testDocumentVersioning
+  call:
+    destination: $AbstractDocumentTest
+    bin: AbstractDocumentTest
+    function: testDocumentVersioning
+
+- name: assertDocumentVersioning
+  assert:
+    key: $testDocumentVersioning
+    relation: eq
+    val: success
+
+##########
+# DefaultDocument Tests
+
+- name: DefaultDocumentTest
+  deploy:
+    contract: DefaultDocumentFunctionsTest.bin
+    instance: DefaultDocumentFunctionsTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: callPubCanAddVersion
+  call:
+    destination: $DefaultDocumentTest
+    bin: DefaultDocumentFunctionsTest
+    function: pubCanAddVersion
+
+- name: assertPubCanAddVersion
+  assert:
+    key: $callPubCanAddVersion
+    relation: eq
+    val: success
+
+##########
+# Agreement Tests
+
+- name: AgreementTest
+  deploy:
+    contract: AgreementTest.bin
+    instance: all
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: testModifiers
+  call:
+    destination: $AgreementTest
+    bin: AgreementTest
+    function: testModifiers
+
+- name: assertModifiers
+  assert:
+    key: $testModifiers
+    relation: eq
+    val: success
+
+- name: testSignatoryManagement
+  call:
+    destination: $AgreementTest
+    bin: AgreementTest
+    function: testSignatoryManagement
+
+- name: assertSignatoryManagement
+  assert:
+    key: $testSignatoryManagement
+    relation: eq
+    val: success
+
+- name: testVersionSigning
+  call:
+    destination: $AgreementTest
+    bin: AgreementTest
+    function: testVersionSigning
+
+# Test various versioning and signing sequences. Return when the agreement is fully confirmed in order to test
+# functions from here that return strings
+- name: assertVersionSigning
+  assert:
+    key: $testVersionSigning
+    relation: eq
+    val: success
+
+- name: confirmedAgreement
+  query-contract:
+    destination: $AgreementTest
+    bin: AgreementTest
+    function: confirmedAgreement
+
+- name: confirmedVersion
+  query-contract:
+    destination: $confirmedAgreement
+    bin: Agreement
+    function: getConfirmedVersion
+
+- name: testConfirmedVersion
+  query-contract:
+    destination: $confirmedAgreement
+    bin: Agreement
+    function: isConfirmedVersion
+    data: [$confirmedVersion]
+
+- name: assertConfirmedVersion
+  assert:
+    key: $testConfirmedVersion
+    relation: eq
+    val: "true"
+
+# test getEndorsedVersion(address) to return the confirmed version.
+# Note: this can only be done from an external client like EPM due to the string return type
+- name: signatory1
+  query-contract:
+    destination: $AgreementTest
+    bin: AgreementTest
+    function: getSignatory
+    data: [0]
+
+- name: getSig1Version
+  query-contract:
+    destination: $confirmedAgreement
+    bin: Agreement
+    function: getEndorsedVersion
+    data: [$signatory1]
+
+- name: assertSig1Version
+  assert:
+    key: $getSig1Version
+    relation: eq
+    val: $confirmedVersion
+
+##########
+# Use Cases Tests
+
+- name: UseCaseTest
+  deploy:
+    contract: UseCaseTest.bin
+    instance: UseCaseTest
+    libraries: ErrorsLib:$ErrorsLib
+
+## MSA Use Case
+- name: testMSA
+  call:
+    destination: $UseCaseTest
+    bin: UseCaseTest
+    function: testMasterServiceAgreement
+
+- name: assertMSA
+  assert:
+    key: $testMSA
+    relation: eq
+    val: success

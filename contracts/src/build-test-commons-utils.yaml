@@ -1,0 +1,19 @@
+jobs:
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: TypeUtilsLibTest
+    build:
+      contract: commons-utils/test/TypeUtilsTest.sol
+  - name: ArrayUtilsLibTest
+    build:
+      contract: commons-utils/test/ArrayUtilsTest.sol
+  - name: DataTypesAccessTest
+    build:
+      contract: commons-utils/test/DataTypesAccessTest.sol
+  - name: DataTypesAccess
+    build:
+      contract: commons-utils/DataTypesAccess.sol

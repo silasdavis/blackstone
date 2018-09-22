@@ -1,0 +1,42 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: ERC165Utils
+    build:
+      contract: commons-standards/ERC165Utils.sol
+  - name: UpgradeableTest
+    build:
+      contract: commons-management/test/UpgradeableTest.sol
+      instance: all
+  - name: ContractManagerTest
+    build:
+      contract: commons-management/test/ContractManagerTest.sol
+      instance: all
+  - name: DougTest
+    build:
+      contract: commons-management/test/DougTest.sol
+  - name: DougProxyTest
+    build:
+      contract: commons-management/test/DougProxyTest.sol
+  - name: ContractManagerDb
+    build:
+      contract: commons-management/ContractManagerDb.sol
+  - name: ContractManager
+    build:
+      contract: commons-management/DefaultContractManager.sol
+  - name: DOUG
+    build:
+      contract: commons-management/DefaultDoug.sol
+  - name: DougProxy
+    build:
+      contract: commons-management/DougProxy.sol

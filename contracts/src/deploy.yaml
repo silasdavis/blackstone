@@ -1,0 +1,26 @@
+jobs:
+
+# Order is important! BPM module must be deployed before Agreements due to injection dependencies!
+- name: DOUG
+  meta:
+    file: deploy-DOUG.yaml
+
+- name: Ecosystem
+  meta:
+    file: deploy-module-Ecosystem.yaml
+
+- name: BPM
+  meta:
+    file: deploy-module-BPM.yaml
+
+- name: Agreements
+  meta:
+    file: deploy-module-Agreements.yaml
+
+- name: Standards
+  meta:
+    file: deploy-module-Standards.yaml
+
+- name: Data
+  meta:
+    file: deploy-init-data.yaml

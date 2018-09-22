@@ -1,0 +1,76 @@
+jobs:
+  - name: ErrorsLib
+    build:
+      contract: commons-base/ErrorsLib.sol
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: DataStorageUtils
+    build:
+      contract: commons-collections/DataStorageUtils.sol
+  - name: ERC165Utils
+    build:
+      contract: commons-standards/ERC165Utils.sol
+  - name: BpmRuntimeLib
+    build:
+      contract: bpm-runtime/BpmRuntimeLib.sol
+  - name: AgreementsAPI
+    build:
+      contract: agreements/AgreementsAPI.sol
+  - name: IsoCountries
+    build:
+      contract: commons-standards/IsoCountries100.sol
+  - name: ArchetypeRegistryTest
+    build:
+      contract: agreements/test/ArchetypeRegistryTest.sol
+  - name: ActiveAgreementTest
+    build:
+      contract: agreements/test/ActiveAgreementTest.sol
+      instance: ActiveAgreementTest
+  - name: ActiveAgreementRegistryTest
+    build:
+      contract: agreements/test/ActiveAgreementRegistryTest.sol
+      instance: ActiveAgreementRegistryTest
+  - name: DOUG
+    build:
+      contract: commons-management/TestDoug.sol
+  - name: ApplicationRegistry
+    build:
+      contract: bpm-runtime/DefaultApplicationRegistry.sol
+  - name: ApplicationRegistryDb
+    build:
+      contract: bpm-runtime/ApplicationRegistryDb.sol
+  - name: ArchetypeRegistry
+    build:
+      contract: agreements/DefaultArchetypeRegistry.sol
+  - name: ArchetypeRegistryDb
+    build:
+      contract: agreements/ArchetypeRegistryDb.sol
+  - name: ParticipantsManager
+    build:
+      contract: commons-auth/DefaultParticipantsManager.sol
+  - name: ParticipantsManagerDb
+    build:
+      contract: commons-auth/ParticipantsManagerDb.sol
+  - name: ProcessModelRepositoryDb
+    build:
+      contract: bpm-model/ProcessModelRepositoryDb.sol
+  - name: ProcessModelRepository
+    build:
+      contract: bpm-model/DefaultProcessModelRepository.sol
+  - name: BpmService
+    build:
+      contract: bpm-runtime/DefaultBpmService.sol
+  - name: BpmServiceDb
+    build:
+      contract: bpm-runtime/BpmServiceDb.sol
+  - name: ActiveAgreementWorkflowTest
+    build:
+      contract: agreements/test/ActiveAgreementWorkflowTest.sol
+      instance: ActiveAgreementWorkflowTest

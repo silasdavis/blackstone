@@ -1,0 +1,14 @@
+jobs:
+  - name: TypeUtilsAPI
+    build:
+      contract: commons-utils/TypeUtilsImpl.sol
+  - name: ArrayUtilsAPI
+    build:
+      contract: commons-utils/ArrayUtilsImpl.sol
+  - name: MappingsLib
+    build:
+      contract: commons-collections/MappingsLib.sol
+  - name: PubSubTest
+    build:
+      contract: commons-events/test/PubSubTest.sol
+      instance: PubSubTest

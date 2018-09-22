@@ -1,0 +1,277 @@
+
+jobs:
+
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+- name: TypeUtilsAPI
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsAPI
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+- name: MappingsLib
+  deploy:
+    contract: MappingsLib.bin
+    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+
+##########
+# SecureNativeAuthorizations Tests
+
+# - name: SecureNativeAuthorizationsTest
+#   deploy:
+#     contract: SecureNativeAuthorizationsTest.sol
+#     instance: all
+
+# - name: permitSetBase
+#   permission:
+#     action: setBase
+#     target: $SecureNativeAuthorizationsTest
+#     permission: setBase
+#     value: "true"
+
+# - name: callTestFunctionsSNAT
+#   call:
+#     destination: $SecureNativeAuthorizationsTest
+#     bin: SecureNativeAuthorizationsTest
+#     function: testFunctions
+
+# - name: assertTestFunctionsSNAT
+#   assert:
+#     key: $callTestFunctionsSNAT
+#     relation: eq
+#     val: success
+
+##########
+# ChainAuthorizations Tests
+
+# - name: ChainAuthorizationsTest
+#   deploy:
+#     contract: ChainAuthorizationsTest.sol
+#     instance: all
+
+# - name: callGetTestedContractCAT
+#   call:
+#     destination: $ChainAuthorizationsTest
+#     bin: ChainAuthorizationsTest
+#     function: getTestedContract
+
+# - name: permitAddRole
+#   permission:
+#     action: setBase
+#     target: $callGetTestedContractCAT
+#     permission: addRole
+#     value: "true"
+
+# - name: permitRemoveRole
+#   permission:
+#     action: setBase
+#     target: $callGetTestedContractCAT
+#     permission: removeRole
+#     value: "true"
+
+# - name: callTestFunctionsCAT
+#   call:
+#     destination: $ChainAuthorizationsTest
+#     bin: ChainAuthorizationsTest
+#     function: testFunctions
+
+# - name: assertTestFunctionsCAT
+#   assert:
+#     key: $callTestFunctionsCAT
+#     relation: eq
+#     val: success
+
+# ##########
+# # AuthorizationsManager Tests
+
+# - name: AuthorizationsManagerTest
+#   deploy:
+#     contract: AuthorizationsManagerTest.bin
+#     instance: AuthorizationsManagerTest
+#     libraries: MappingsLib:$MappingsLib
+
+# - name: callGetChainAuthorizations
+#   call:
+#     destination: $AuthorizationsManagerTest
+#     bin: AuthorizationsManagerTest
+#     function: getChainAuthorizations
+
+# - name: permitAddRole
+#   permission:
+#     action: setBase
+#     target: $callGetChainAuthorizations
+#     permission: addRole
+#     value: "true"
+
+# - name: permitRemoveRole
+#   permission:
+#     action: setBase
+#     target: $callGetChainAuthorizations
+#     permission: removeRole
+#     value: "true"
+
+# - name: callTestFunctionsAMT
+#   call:
+#     destination: $AuthorizationsManagerTest
+#     bin: AuthorizationsManagerTest
+#     function: testFunctions
+
+# - name: assertTestFunctionsAMT
+#   assert:
+#     key: $callTestFunctionsAMT
+#     relation: eq
+#     val: success
+
+##########
+# ParticipantsManager Tests
+
+- name: ParticipantsManagerTest
+  deploy:
+    contract: ParticipantsManagerTest.bin
+    instance: ParticipantsManagerTest
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ParticipantsManager
+  deploy:
+    contract: DefaultParticipantsManager.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ParticipantsManagerDb
+  deploy:
+    contract: ParticipantsManagerDb.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ChangeParticipantsManagerDbOwnership
+  call:
+    destination: $ParticipantsManagerDb
+    bin: ParticipantsManagerDb
+    function: transferSystemOwnership
+    data: [$ParticipantsManager]
+
+- name: SetParticipantsManagerDb
+  call:
+    destination: $ParticipantsManager
+    bin: DefaultParticipantsManager
+    function: acceptDatabase
+    data: [$ParticipantsManagerDb]
+
+- name: AssertParticipantsManagerDb
+  assert:
+    key: $SetParticipantsManagerDb
+    relation: eq
+    val: "true"
+
+- name: setParticipantsManagerInTest
+  call:
+    destination: $ParticipantsManagerTest
+    bin: ParticipantsManagerTest
+    function: setParticipantsManager
+    data: [$ParticipantsManager]
+
+- name: testUserAccountSecurity
+  call:
+    destination: $ParticipantsManagerTest
+    bin: ParticipantsManagerTest
+    function: testUserAccountSecurity
+
+- name: assertUserAccountSecurity
+  assert:
+    key: $testUserAccountSecurity
+    relation: eq
+    val: success
+
+- name: testParticipantsManager
+  call:
+    destination: $ParticipantsManagerTest
+    bin: ParticipantsManagerTest
+    function: testParticipantsManager
+
+- name: assertParticipantsManager
+  assert:
+    key: $testParticipantsManager
+    relation: eq
+    val: success
+
+- name: testOrganizationsManagement
+  call:
+    destination: $ParticipantsManagerTest
+    bin: ParticipantsManagerTest
+    function: testOrganizationsManagement
+
+- name: assertOrganizationsManagement
+  assert:
+    key: $testOrganizationsManagement
+    relation: eq
+    val: success
+
+##########
+# Organization Creation Tests
+
+- name: Organization1
+  deploy:
+    contract: DefaultOrganization.bin
+    instance: DefaultOrganization
+    libraries: MappingsLib:$MappingsLib
+    data:
+      - [$defaultAddr, "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000", "0000000000000000000000000000000000000000"]
+
+- name: organization1ApproversSize
+  query-contract:
+    destination: $Organization1
+    bin: DefaultOrganization
+    function: getNumberOfApprovers
+
+- name: assertOrganization1ApproversSize
+  assert:
+    key: $organization1ApproversSize
+    relation: eq
+    val: 1
+
+- name: organization1Approver1
+  query-contract:
+    destination: $Organization1
+    bin: DefaultOrganization
+    function: getApproverAtIndex
+    data: [0]
+
+- name: assertOrganization1Approver1d
+  assert:
+    key: $organization1Approver1
+    relation: eq
+    val: $defaultAddr
+
+##########
+# Ecosystem Tests
+
+- name: EcosystemTest
+  deploy:
+    contract: EcosystemTest.bin
+    libraries: ErrorsLib:$ErrorsLib,MappingsLib:$MappingsLib
+
+- name: testEcosystemLifecycle
+  call:
+    destination: $EcosystemTest
+    bin: EcosystemTest
+    function: testEcosystemLifecycle
+
+- name: assertEcosystemLifecycle
+  assert:
+    key: $testEcosystemLifecycle
+    relation: eq
+    val: success
+
+- name: testEcosystemRegistry
+  call:
+    destination: $EcosystemTest
+    bin: EcosystemTest
+    function: testEcosystemRegistry
+
+- name: assertEcosystemLifecycle
+  assert:
+    key: $testEcosystemRegistry
+    relation: eq
+    val: success

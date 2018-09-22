@@ -1,0 +1,38 @@
+
+##########
+# Libraries
+jobs:
+
+- name: TypeUtilsAPI
+  deploy:
+    contract: TypeUtilsImpl.bin
+
+- name: ArrayUtilsAPI
+  deploy:
+    contract: ArrayUtilsImpl.bin
+
+- name: MappingsLib
+  deploy:
+    contract: MappingsLib.bin
+    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+
+#####
+# PubSub Test
+#####
+- name: PubSubTest
+  deploy:
+    contract: PubSubTest.bin
+    instance: PubSubTest
+    libraries: MappingsLib:$MappingsLib
+
+- name: runPubSubTest
+  call:
+    destination: $PubSubTest
+    bin: PubSubTest
+    function: testPubSub
+
+- name: assertPubSubTest
+  assert:
+    key: $runPubSubTest
+    relation: eq
+    val: success

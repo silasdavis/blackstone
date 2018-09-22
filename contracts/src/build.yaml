@@ -1,0 +1,69 @@
+jobs:
+- name: DOUG
+  meta:
+    file: build-DOUG.yaml
+
+- name: init-data
+  meta:
+    file: build-init-data.yaml
+
+- name: module-Agreements
+  meta:
+    file: build-module-Agreements.yaml
+
+- name: module-BPM
+  meta:
+    file: build-module-BPM.yaml
+
+- name: module-Ecosystem
+  meta:
+    file: build-module-Ecosystem.yaml
+
+- name: module-Standards
+  meta:
+    file: build-module-Standards.yaml
+
+- name: test-agreements
+  meta:
+    file: build-test-agreements.yaml
+
+- name: test-bpm-model
+  meta:
+    file: build-test-bpm-model.yaml
+
+- name: test-bpm-runtime
+  meta:
+    file: build-test-bpm-runtime.yaml
+
+- name: test-commons-auth
+  meta:
+    file: build-test-commons-auth.yaml
+
+- name: test-commons-base
+  meta:
+    file: build-test-commons-base.yaml
+
+- name: test-commons-collections
+  meta:
+    file: build-test-commons-collections.yaml
+
+- name: test-commons-events
+  meta:
+    file: build-test-commons-events.yaml
+
+- name: test-commons-management
+  meta:
+    file: build-test-commons-management.yaml
+
+- name: test-commons-standards
+  meta:
+    file: build-test-commons-standards.yaml
+
+- name: test-commons-utils
+  meta:
+    file: build-test-commons-utils.yaml
+
+- name: test-documents-commons
+  meta:
+    file: build-test-documents-commons.yaml
+

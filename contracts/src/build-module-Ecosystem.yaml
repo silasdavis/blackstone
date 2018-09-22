@@ -1,0 +1,28 @@
+jobs:
+  - name: Ecosystem
+    build:
+      contract: commons-auth/Ecosystem.sol
+  - name: DefaultEcosystem
+    build:
+      contract: commons-auth/DefaultEcosystem.sol
+  - name: EcosystemRegistry
+    build:
+      contract: commons-auth/EcosystemRegistry.sol
+  - name: DefaultEcosystemRegistry
+    build:
+      contract: commons-auth/DefaultEcosystemRegistry.sol
+  - name: EcosystemRegistryDb
+    build:
+      contract: commons-auth/EcosystemRegistryDb.sol
+  - name: Organization
+    build:
+      contract: commons-auth/Organization.sol
+  - name: ParticipantsManager
+    build:
+      contract: commons-auth/ParticipantsManager.sol
+  - name: DefaultParticipantsManager
+    build:
+      contract: commons-auth/DefaultParticipantsManager.sol
+  - name: ParticipantsManagerDb
+    build:
+      contract: commons-auth/ParticipantsManagerDb.sol

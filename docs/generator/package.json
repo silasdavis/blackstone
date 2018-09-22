@@ -1,0 +1,19 @@
+{
+  "name": "agreements-network-docs",
+  "version": "1.0.0",
+  "description": "Agreements Network REST API",
+  "main": "index.js",
+  "dependencies": {
+    "json2md": "^1.6.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Monax",
+  "license": "ISC",
+  "apidoc": {
+    "title": "Custom apiDoc browser title",
+    "url": "https://api.github.com/v1"
+  }
+}

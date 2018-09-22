@@ -1,0 +1,207 @@
+
+jobs:
+
+#####
+# Libraries
+
+- name: ERC165Utils
+  deploy:
+    contract: ERC165Utils.bin
+
+- name: ErrorsLib
+  deploy:
+    contract: ErrorsLib.bin
+
+#####
+# Contracts
+
+- name: IsoCountries100
+  deploy:
+    contract: IsoCountries100.bin
+    instance: IsoCountries100
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: IsoCurrencies100
+  deploy:
+    contract: IsoCurrencies100.bin
+    instance: IsoCurrencies100
+    libraries: ErrorsLib:$ErrorsLib
+
+#####
+# ERC Standards
+- name: ERC165Test
+  deploy:
+    contract: ERC165Test.bin
+    instance: ERC165Test
+    libraries: ERC165Utils:$ERC165Utils
+
+- name: testERC165
+  call:
+    destination: $ERC165Test
+    bin: ERC165Test
+    function: testERC165
+
+- name: assertERC165Test
+  assert:
+    key: $testERC165.0
+    relation: eq
+    val: 1
+
+#####
+# IsoCountries Test
+- name: IsoCountriesTest
+  deploy:
+    contract: IsoCountriesTest.bin
+    instance: IsoCountriesTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: TestIsoCountries
+  call:
+    destination: $IsoCountriesTest
+    bin: IsoCountriesTest
+    function: testIsoCountries
+
+- name: AssertIsoCountriesTestSuccess
+  assert:
+    key: $TestIsoCountries
+    relation: eq
+    val: success
+
+- name: getNumberOfCountries
+  call:
+    destination: $IsoCountries100
+    bin: IsoCountries100
+    function: getNumberOfCountries
+
+- name: AssertNumberOfCountries
+  assert:
+    key: $getNumberOfCountries
+    relation: eq
+    val: 246
+
+- name: getCountryAtIndex
+  call:
+    destination: $IsoCountries100
+    bin: IsoCountries100
+    function: getCountryAtIndex
+    data: [232]
+
+- name: AssertCountryAtIndex
+  assert:
+    key: $getCountryAtIndex
+    relation: eq
+    val: "US"
+
+- name: getCountryData
+  call:
+    destination: $IsoCountries100
+    bin: IsoCountries100
+    function: getCountryData
+    data: ["US"]
+
+- name: AssertCountryAlpha2
+  assert:
+    key: $getCountryData.alpha2
+    relation: eq
+    val: "US"
+
+- name: AssertCountryAlpha3
+  assert:
+    key: $getCountryData.alpha3
+    relation: eq
+    val: "USA"
+  
+- name: AssertCountryM49
+  assert:
+    key: $getCountryData.m49
+    relation: eq
+    val: "840"
+
+- name: AssertCountryName
+  assert:
+    key: $getCountryData.name
+    relation: eq
+    val: "United States of America"
+
+- name: getRegionAtIndex
+  call:
+    destination: $IsoCountries100
+    bin: IsoCountries100
+    function: getRegionAtIndex
+    data: ["US", 1]
+
+- name: getRegionData
+  call: 
+    destination: $IsoCountries100
+    bin: IsoCountries100
+    function: getRegionData
+    data: ["US", $getRegionAtIndex]
+
+- name: AssertRegionCountry
+  assert:
+    key: $getRegionData.alpha2
+    relation: eq
+    val: "US"
+
+- name: AssertRegionCode2
+  assert:
+    key: $getRegionData.code2
+    relation: eq
+    val: "AK"
+
+- name: AssertRegionCode3
+  assert:
+    key: $getRegionData.code3
+    relation: eq
+    val: ""
+
+- name: AssertRegionName
+  assert:
+    key: $getRegionData.name
+    relation: eq
+    val: "Alaska"
+
+####
+# IsoCurrencies Test
+- name: IsoCurrenciesTest
+  deploy:
+    contract: IsoCurrenciesTest.bin
+    instance: IsoCurrenciesTest
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: TestIsoCurrencies
+  call:
+    destination: $IsoCurrenciesTest
+    bin: IsoCurrenciesTest
+    function: testIsoCurrencies
+
+- name: AssertIsoCurrenciesTestSuccess
+  assert:
+    key: $TestIsoCurrencies
+    relation: eq
+    val: success
+
+- name: getCurrencyData
+  call:
+    destination: $IsoCurrencies100
+    bin: IsoCurrencies100
+    function: getCurrencyData
+    data: ["USD"]
+
+- name: AssertCurrencyAlpha3
+  assert:
+    key: $getCurrencyData.alpha3
+    relation: eq
+    val: "USD"
+
+- name: AssertCurrencyM49
+  assert:
+    key: $getCurrencyData.m49
+    relation: eq
+    val: "840"
+
+- name: AssertCurrencyName
+  assert:
+    key: $getCurrencyData.name
+    relation: eq
+    val: "United States dollar"

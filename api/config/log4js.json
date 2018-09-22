@@ -1,0 +1,35 @@
+{
+  "loggers" : [
+    {
+      "name": "monax",
+      "level": "INFO",
+      "category": "monax"
+    }
+  ],
+  "appenders": {
+    "out": {
+      "type": "stdout",
+      "layout": {
+        "type": "colored"
+      }
+    }
+  },
+  "categories": {
+    "default": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "monax": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "monax.sqlsol": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "agreements": {
+      "appenders": ["out"],
+      "level": "INFO"
+    }
+  }
+}

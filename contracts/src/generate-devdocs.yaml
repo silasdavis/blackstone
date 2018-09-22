@@ -1,0 +1,704 @@
+jobs:
+
+- name: EventListener
+  build:
+    contract: commons-events/EventListener.sol
+    binpath: ../../docs/docdev/commons-events
+    instance: all
+
+- name: EventEmitter
+  build:
+    contract: commons-events/EventEmitter.sol
+    binpath: ../../docs/docdev/commons-events
+    instance: all
+
+- name: DefaultEventEmitter
+  build:
+    contract: commons-events/DefaultEventEmitter.sol
+    binpath: ../../docs/docdev/commons-events
+    instance: all
+
+- name: AbstractEventListener
+  build:
+    contract: commons-events/AbstractEventListener.sol
+    binpath: ../../docs/docdev/commons-events
+    instance: all
+
+- name: AbstractNamedElement
+  build:
+    contract: commons-base/AbstractNamedElement.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: BaseErrors
+  build:
+    contract: commons-base/BaseErrors.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: Bytes32Identifiable
+  build:
+    contract: commons-base/Bytes32Identifiable.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: Destructible
+  build:
+    contract: commons-base/Destructible.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: Named
+  build:
+    contract: commons-base/Named.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: NamedElement
+  build:
+    contract: commons-base/NamedElement.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: Owned
+  build:
+    contract: commons-base/Owned.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: StorageDefOwner
+  build:
+    contract: commons-base/StorageDefOwner.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: OwnerTransferable
+  build:
+    contract: commons-base/OwnerTransferable.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: SystemOwned
+  build:
+    contract: commons-base/SystemOwned.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: StorageDefSystemOwner
+  build:
+    contract: commons-base/StorageDefSystemOwner.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: SystemOwnerTransferable
+  build:
+    contract: commons-base/SystemOwnerTransferable.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: Versioned
+  build:
+    contract: commons-base/Versioned.sol
+    binpath: ../../docs/docdev/commons-base
+    instance: all
+
+- name: AbstractUpgradeable
+  build:
+    contract: commons-management/AbstractUpgradeable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: AbstractDbUpgradeable
+  build:
+    contract: commons-management/AbstractDbUpgradeable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: ContractChangeListener
+  build:
+    contract: commons-management/ContractChangeListener.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: ContractLocator
+  build:
+    contract: commons-management/ContractLocator.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: ContractLocatorEnabled
+  build:
+    contract: commons-management/ContractLocatorEnabled.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: ContractManager
+  build:
+    contract: commons-management/ContractManager.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: ContractManagerDb
+  build:
+    contract: commons-management/ContractManagerDb.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DbInterchangeable
+  build:
+    contract: commons-management/DbInterchangeable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DefaultContractManager
+  build:
+    contract: commons-management/DefaultContractManager.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DefaultDoug
+  build:
+    contract: commons-management/DefaultDoug.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DelegateProxy
+  build:
+    contract: commons-management/DelegateProxy.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DOUG
+  build:
+    contract: commons-management/DOUG.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: DougProxy
+  build:
+    contract: commons-management/DougProxy.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: Migratable
+  build:
+    contract: commons-management/Migratable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: OwnedDelegateProxy
+  build:
+    contract: commons-management/OwnedDelegateProxy.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: StorageDefDatabase
+  build:
+    contract: commons-management/StorageDefDatabase.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: StorageDefProxied
+  build:
+    contract: commons-management/StorageDefProxied.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: StorageDefUpgradeOwner
+  build:
+    contract: commons-management/StorageDefUpgradeOwner.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: TestDoug
+  build:
+    contract: commons-management/TestDoug.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: Upgradeable
+  build:
+    contract: commons-management/Upgradeable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: UpgradeOwned
+  build:
+    contract: commons-management/UpgradeOwned.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: UpgradeOwnerTransferable
+  build:
+    contract: commons-management/UpgradeOwnerTransferable.sol
+    binpath: ../../docs/docdev/commons-management
+    instance: all
+
+- name: BpmModel
+  build:
+    contract: bpm-model/BpmModel.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: BpmModelLib
+  build:
+    contract: bpm-model/BpmModelLib.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: ProcessDefinition
+  build:
+    contract: bpm-model/ProcessDefinition.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: ProcessModel
+  build:
+    contract: bpm-model/ProcessModel.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: ProcessModelRepository
+  build:
+    contract: bpm-model/ProcessModelRepository.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: ProcessModelRepositoryDb
+  build:
+    contract: bpm-model/ProcessModelRepositoryDb.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: DefaultProcessDefinition
+  build:
+    contract: bpm-model/DefaultProcessDefinition.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: DefaultProcessModel
+  build:
+    contract: bpm-model/DefaultProcessModel.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: DefaultProcessModelRepository
+  build:
+    contract: bpm-model/DefaultProcessModelRepository.sol
+    binpath: ../../docs/docdev/bpm-model
+    instance: all
+
+- name: AgreementsAPI
+  build:
+    contract: agreements/AgreementsAPI.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ActiveAgreement
+  build:
+    contract: agreements/ActiveAgreement.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ActiveAgreementRegistry
+  build:
+    contract: agreements/ActiveAgreementRegistry.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ActiveAgreementRegistryDb
+  build:
+    contract: agreements/ActiveAgreementRegistryDb.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: AgreementPartyAccount
+  build:
+    contract: agreements/AgreementPartyAccount.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: AgreementPartyProxy
+  build:
+    contract: agreements/AgreementPartyProxy.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: AgreementSignatureCheck
+  build:
+    contract: agreements/AgreementSignatureCheck.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: Archetype
+  build:
+    contract: agreements/Archetype.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ArchetypeRegistry
+  build:
+    contract: agreements/ArchetypeRegistry.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ArchetypeRegistryDb
+  build:
+    contract: agreements/ArchetypeRegistryDb.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: DefaultActiveAgreement
+  build:
+    contract: agreements/DefaultActiveAgreement.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: DefaultActiveAgreementRegistry
+  build:
+    contract: agreements/DefaultActiveAgreementRegistry.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: DefaultArchetype
+  build:
+    contract: agreements/DefaultArchetype.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: DefaultArchetypeRegistry
+  build:
+    contract: agreements/DefaultArchetypeRegistry.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ParameterTypesAccess
+  build:
+    contract: agreements/ParameterTypesAccess.sol
+    binpath: ../../docs/docdev/agreements
+    instance: all
+
+- name: ArrayUtilsAPI
+  build:
+    contract: commons-utils/ArrayUtilsAPI.sol
+    binpath: ../../docs/docdev/commons-utils
+    instance: all
+
+- name: TypeUtilsAPI
+  build:
+    contract: commons-utils/TypeUtilsAPI.sol
+    binpath: ../../docs/docdev/commons-utils
+    instance: all
+
+- name: DataTypes
+  build:
+    contract: commons-utils/DataTypes.sol
+    binpath: ../../docs/docdev/commons-utils
+    instance: all
+
+- name: DataTypesAccess
+  build:
+    contract: commons-utils/DataTypesAccess.sol
+    binpath: ../../docs/docdev/commons-utils
+    instance: all
+
+- name: AbstractDocument
+  build:
+    contract: documents-commons/AbstractDocument.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: Agreement
+  build:
+    contract: documents-commons/Agreement.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: DefaultDocument
+  build:
+    contract: documents-commons/DefaultDocument.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: Document
+  build:
+    contract: documents-commons/Document.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: Documents
+  build:
+    contract: documents-commons/Documents.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: Signable
+  build:
+    contract: documents-commons/Signable.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: Mappings
+  build:
+    contract: commons-collections/Mappings.sol
+    binpath: ../../docs/docdev/documents-commons
+    instance: all
+
+- name: MappingsLib
+  build:
+    contract: commons-collections/MappingsLib.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: DataStorageUtils
+  build:
+    contract: commons-collections/DataStorageUtils.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: DataStorage
+  build:
+    contract: commons-collections/DataStorage.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: AbstractDataStorage
+  build:
+    contract: commons-collections/AbstractDataStorage.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: VersionLinked
+  build:
+    contract: commons-collections/VersionLinked.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: VersionLinkedAppendOnly
+  build:
+    contract: commons-collections/VersionLinkedAppendOnly.sol
+    binpath: ../../docs/docdev/commons-collections
+    instance: all
+
+- name: AbstractERC165
+  build:
+    contract: commons-standards/AbstractERC165.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: ERC165
+  build:
+    contract: commons-standards/ERC165.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: ERC165Utils
+  build:
+    contract: commons-standards/ERC165Utils.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: IsoCountries
+  build:
+    contract: commons-standards/IsoCountries.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: IsoCountries100
+  build:
+    contract: commons-standards/IsoCountries100.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: IsoCurrencies
+  build:
+    contract: commons-standards/IsoCurrencies.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: IsoCurrencies100
+  build:
+    contract: commons-standards/IsoCurrencies100.sol
+    binpath: ../../docs/docdev/commons-standards
+    instance: all
+
+- name: ParticipantsManager
+  build:
+    contract: commons-auth/ParticipantsManager.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: ParticipantsManagerDb
+  build:
+    contract: commons-auth/ParticipantsManagerDb.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: AuthorizationsManager
+  build:
+    contract: commons-auth/AuthorizationsManager.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: AuthorizationsRepository
+  build:
+    contract: commons-auth/AuthorizationsRepository.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: ClientRegistry
+  build:
+    contract: commons-auth/ClientRegistry.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: DefaultParticipantsManager
+  build:
+    contract: commons-auth/DefaultParticipantsManager.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: DefaultEcosystem
+  build:
+    contract: commons-auth/DefaultEcosystem.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: DefaultOrganization
+  build:
+    contract: commons-auth/DefaultOrganization.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: DefaultUserAccount
+  build:
+    contract: commons-auth/DefaultUserAccount.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: Ecosystem
+  build:
+    contract: commons-auth/Ecosystem.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: EcosystemDb
+  build:
+    contract: commons-auth/EcosystemDb.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: Organization
+  build:
+    contract: commons-auth/Organization.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: UserAccount
+  build:
+    contract: commons-auth/UserAccount.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: Governance
+  build:
+    contract: commons-auth/Governance.sol
+    binpath: ../../docs/docdev/commons-auth
+    instance: all
+
+- name: AbstractProcessStateChangeEmitter
+  build:
+    contract: bpm-runtime/AbstractProcessStateChangeEmitter.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: Application
+  build:
+    contract: bpm-runtime/Application.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: ApplicationRegistry
+  build:
+    contract: bpm-runtime/ApplicationRegistry.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: ApplicationRegistryDb
+  build:
+    contract: bpm-runtime/ApplicationRegistryDb.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: DefaultApplicationRegistry
+  build:
+    contract: bpm-runtime/DefaultApplicationRegistry.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: BpmRuntime
+  build:
+    contract: bpm-runtime/BpmRuntime.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: BpmRuntimeLib
+  build:
+    contract: bpm-runtime/BpmRuntimeLib.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: BpmServiceDb
+  build:
+    contract: bpm-runtime/BpmServiceDb.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: BpmService
+  build:
+    contract: bpm-runtime/BpmService.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: DefaultBpmService
+  build:
+    contract: bpm-runtime/DefaultBpmService.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: ProcessInstance
+  build:
+    contract: bpm-runtime/ProcessInstance.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: ProcessStateChangeEmitter
+  build:
+    contract: bpm-runtime/ProcessStateChangeEmitter.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: ProcessStateChangeListener
+  build:
+    contract: bpm-runtime/ProcessStateChangeListener.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: DefaultProcessInstance
+  build:
+    contract: bpm-runtime/DefaultProcessInstance.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: WorkflowProxy
+  build:
+    contract: bpm-runtime/WorkflowProxy.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+
+- name: WorkflowUserAccount
+  build:
+    contract: bpm-runtime/WorkflowUserAccount.sol
+    binpath: ../../docs/docdev/bpm-runtime
+    instance: all
+

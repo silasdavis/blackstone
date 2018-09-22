@@ -1,0 +1,74 @@
+pragma solidity ^0.4.23;
+
+/**
+ * @title Errors Library
+ * @dev Provides basic error codes and allows for creating error messages in a standardized format
+ */
+library ErrorsLib {
+
+    function DELIMITER() internal pure returns (string) {
+        return "::";
+    }
+
+    // HTTP-error-inspired error codes (400-600 range)
+    function UNAUTHORIZED() internal pure returns (string) {
+        return "ERR403";
+    }
+
+    function RESOURCE_NOT_FOUND() internal pure returns (string) {
+        return "ERR404";
+    }
+
+    function RESOURCE_ALREADY_EXISTS() internal pure returns (string) {
+        return "ERR409";
+    }
+
+    function INVALID_INPUT() internal pure returns (string) {
+        return "ERR422";
+    }
+
+    function RUNTIME_ERROR() internal pure returns (string) {
+        return "ERR500";
+    }
+
+    // Data- / State-related errors (600-700 range)
+    function INVALID_STATE() internal pure returns (string) {
+        return "ERR600";
+    }
+
+    function INVALID_PARAMETER_STATE() internal pure returns (string) {
+        return "ERR601";
+    }
+
+    function OVERWRITE_NOT_ALLOWED() internal pure returns (string) {
+        return "ERR610";
+    }
+
+    function NULL_PARAMETER_NOT_ALLOWED() internal pure returns (string) {
+        return "ERR611";
+    }
+
+    function DEPENDENCY_NOT_FOUND() internal pure returns (string) {
+        return "ERR704";
+    }
+
+    /**
+     * @dev Format the provided parameters into an error string
+     */
+    function format(string _code, string _location, string _message) public pure returns (string) {
+        if (bytes(_code).length == 0) {
+            _code = RUNTIME_ERROR();
+        }
+        return string(abi.encodePacked(_code, DELIMITER(), _location, DELIMITER(), _message));
+    }
+
+    /**
+     * @dev Wrapper function around a revert that avoids assembling the error message if the condition is false.
+     * This function is meant to replace require(condition, ErrorsLib.format(...)) to avoid the cost of assembling an error string before the condition is checked.
+     */
+    function revertIf(bool _condition, string _code, string _location, string _message) public pure {
+        if (_condition) {
+            revert(format(_code, _location, _message));
+        }
+    }
+}
