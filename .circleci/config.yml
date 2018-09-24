@@ -113,7 +113,7 @@ workflows:
       - test_api:
           requires:
             - cache_api
-            - compile solidity
+            - compile_solidity
           filters:
             branches:
               ignore: master
