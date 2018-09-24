@@ -82,7 +82,7 @@ jobs:
 
   deploy_platform:
     docker:
-      image: appropriate/curl
+      - image: appropriate/curl
     steps:
       - run:
           name: Trigger upgrade
