@@ -1,5 +1,5 @@
-FROM ethereum/solc:0.4.24 as solc-builder
-FROM quay.io/monax/burrow:0.21.0-dev-2018-08-27-700d9bda
+FROM ethereum/solc:0.4.25 as solc-builder
+FROM hyperledger/burrow:0.22.0
 USER root
 
 RUN apk add --update --no-cache bash curl jq

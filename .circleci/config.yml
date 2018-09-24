@@ -1,0 +1,130 @@
+api_def: &api_def
+  docker:
+    - image: quay.io/monax/build:latest
+  working_directory: ~/blackstone
+
+web_def: &web_def
+  docker:
+    - image: quay.io/monax/build:latest
+  environment:
+    IMAGE_API: quay.io/monax/blackstone
+    IMAGE_CONTRACTS: quay.io/monax/blackstone_contracts
+    HOARD_VERSION: &hoard 1.1.3
+
+version: 2
+jobs:
+
+  cache_api:
+    <<: *api_def
+    steps:
+      - checkout
+      - run:
+          name: Install npm
+          command: |
+            cd ./api/
+            npm install
+      - save_cache:
+          paths: ./api/node_modules/
+          key: api_node_mod
+      - store_artifacts:
+          path: ./api/node_modules/
+
+  compile_solidity:
+    <<: *web_def
+    steps:
+      - checkout
+      - run: burrow deploy --file build.yaml --dir ./contracts/src
+      - store_artifacts:
+          path: ./contracts/src/bin
+          destination: burrow
+
+  test_contracts:
+    <<: *api_def
+    steps:
+      - checkout
+      - run: ./test/test_contracts.sh
+      - store_artifacts:
+          path: ./burrow.log
+          destination: burrow
+      - store_artifacts:
+          path: ./test-contracts-jobs.log
+          destination: burrow
+      - store_artifacts:
+          path: ./test-contracts.log
+          destination: burrow
+
+  test_api:
+    <<: *api_def
+    docker:
+      - image: quay.io/monax/hoard:*hoard
+      - image: postgres:9-alpine
+    environment:
+      POSTGRES_USER: blackstone_development
+      POSTGRES_PASSWORD: blackstone_development
+    steps:
+      - checkout
+      - run: ./test/test_api.sh
+      - store_artifacts:
+          path: ./burrow.log
+          destination: api
+
+  build_docs:
+    <<: *api_def
+    steps:
+      - checkout
+      - run: ./docs/generate.sh
+      - store_artifacts:
+          path: bundle_cache
+      - store_artifacts:
+          path: build
+      - store_artifacts:
+          path: docs
+
+  deploy_platform:
+    docker:
+      image: appropriate/curl
+    steps:
+      - run:
+          name: Trigger upgrade
+          command: |
+            set -x
+            curl \
+              --request POST \
+              --form token=$PLATFORM_DEPLOY_KEY \
+              --form ref=master \
+              --form "variables[BUILD_REFSPEC]=$CIRCLE_BRANCH" \
+              $PLATFORM_DEPLOY_URL/trigger/pipeline
+
+workflows:
+  version: 2
+  test_and_deploy:
+    jobs:
+      - cache_api:
+          filters:
+            branches:
+              ignore: master
+      - compile_solidity
+      - test_contracts:
+          requires:
+            - compile_solidity
+          filters:
+            branches:
+              ignore: master
+      - test_api:
+          requires:
+            - cache_api
+            - compile solidity
+          filters:
+            branches:
+              ignore: master
+      - build_docs:
+          filters:
+            branches:
+              only:
+                - master
+      - deploy_platform:
+          filters:
+            branches:
+              only:
+                - master
+                - develop
