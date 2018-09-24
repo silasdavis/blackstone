@@ -1,12 +1,14 @@
 api_def: &api_def
-  machine: true
+  docker:
+    - image: quay.io/monax/build:latest
   working_directory: ~/blackstone
 
 web_def: &web_def
   docker:
-    - image: quay.io/monax/build:early-compile
+    - image: quay.io/monax/build:latest
   environment:
-    CI_REGISTRY_IMAGE: quay.io/monax/api
+    IMAGE_API: quay.io/monax/blackstone
+    IMAGE_CONTRACTS: quay.io/monax/blackstone_contracts
     HOARD_VERSION: &hoard 1.1.3
 
 version: 2
@@ -66,39 +68,6 @@ jobs:
           path: ./burrow.log
           destination: api
 
-  build_develop:
-    <<: *api_def
-    docker:
-      image: docker:latest
-      image: docker:dind
-    steps:
-      - &add_ssh_key
-        add_ssh_keys:
-          fingerprints:
-            - " 3f:1d:3c:7c:a2:3b:f3:57:16:fe:c5:2d:48:6f:38:03"
-      - checkout
-      - run:
-          name: Setup docker
-          command: |
-            docker info
-            docker login -u ${DOCKER_USER} -p ${DOCKER_PASS} quay.io
-            docker pull $CI_REGISTRY_IMAGE/api:build_cache_$CIRCLE_BRANCH || true
-      - run:
-          name: Build API from cache and contracts
-          command: |
-            docker build \
-              --pull \
-              --cache-from $CI_REGISTRY_IMAGE/api:build_cache_$CIRCLE_BRANCH \
-              --tag $CI_REGISTRY_IMAGE/api:build_cache_$CIRCLE_BRANCH \
-              --tag $CI_REGISTRY_IMAGE/api:$CIRCLE_BRANCH ./api
-            docker build \
-              --pull \
-              --cache-from $CI_REGISTRY_IMAGE/contracts:build_cache_$CIRCLE_BRANCH \
-              --tag $CI_REGISTRY_IMAGE/contracts:build_cache_$CIRCLE_BRANCH \
-              --tag $CI_REGISTRY_IMAGE/contracts:$CIRCLE_BRANCH ./contracts
-            docker push $CI_REGISTRY_IMAGE/api
-            docker push $CI_REGISTRY_IMAGE/contracts
-
   build_docs:
     <<: *api_def
     steps:
@@ -121,10 +90,10 @@ jobs:
             set -x
             curl \
               --request POST \
-              --form token=e2fba58e92a8552123843b43623b21 \
+              --form token=$PLATFORM_DEPLOY_KEY \
               --form ref=master \
               --form "variables[BUILD_REFSPEC]=$CIRCLE_BRANCH" \
-              https://code.monax.io/api/v4/projects/182/trigger/pipeline
+              $PLATFORM_DEPLOY_URL/trigger/pipeline
 
 workflows:
   version: 2
@@ -148,12 +117,6 @@ workflows:
           filters:
             branches:
               ignore: master
-      - build_develop:
-          filters:
-            branches:
-              only:
-                - master
-                - develop
       - build_docs:
           filters:
             branches:
