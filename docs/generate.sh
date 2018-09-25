@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
+export CI_PROJECT_DIR=`pwd`
 
-eval $(ssh-agent -s)
-echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
-mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh
-echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 git config --global user.name "Billings, a Bot"
 git config --global user.email "billings@monax.io"
 
@@ -31,5 +28,5 @@ apidocjs-markdown \
 
 cd ../docs.agreements.network
 git add -A :/
-git commit -m "Automatic docs generation from AN build $CI_COMMIT_SHA" || true
+git commit -m "Automatic docs generation from AN build $CIRCLE_SHA1" || true
 git push
