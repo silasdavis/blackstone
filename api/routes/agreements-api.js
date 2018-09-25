@@ -235,7 +235,7 @@ module.exports = (app) => {
 }
 
 *
-* @apiSuccess {json} The address of the created Archetype
+* @apiSuccess {String} The address of the created Archetype
 * @apiSuccessExample {json} Success-Response:
 {
   "address": "6EDC6101F0B64156ED867BAE925F6CD240635656"
@@ -418,7 +418,7 @@ module.exports = (app) => {
     "active": true
   }
 *
-* @apiSuccess {json} The id of the created Archetype Package
+* @apiSuccess {String} The id of the created Archetype Package
 * @apiSuccessExample {json} Success-Response:
   {
     "id": "7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD"
@@ -648,14 +648,9 @@ module.exports = (app) => {
     }
   *
   *
-  @apiSuccess {
-    json
-  }
-  The address of the created Agreement *
-    @apiSuccessExample {
-      json
-    }
-  Success - Response: {
+  @apiSuccess {String} The address of the created Agreement *
+  @apiSuccessExample {json} Success Object
+  {
     "address": "6EDC6101F0B64156ED867BAE925F6CD240635656"
   }
 *
