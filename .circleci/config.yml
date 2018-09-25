@@ -61,8 +61,6 @@ jobs:
           POSTGRES_USER: blackstone_development
           POSTGRES_PASSWORD: blackstone_development
     working_directory: ~/blackstone
-    environment:
-      CI_PROJECT_DIR: ~/blackstone
     steps:
       - checkout
       - attach_workspace:
