@@ -3,7 +3,6 @@ defaults: &defaults
     - image: quay.io/monax/build:latest
   working_directory: ~/blackstone
   environment:
-    CI_PROJECT_DIR: ~/blackstone
     IMAGE_API: quay.io/monax/blackstone
 
 version: 2

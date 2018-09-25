@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export CI_PROJECT_DIR=`pwd`
 
 git config --global user.name "Billings, a Bot"
 git config --global user.email "billings@monax.io"
