@@ -438,7 +438,7 @@ const getTasksByUserAddress = userAddress => new Promise((resolve, reject) => {
 });
 
 const getModels = author => new Promise((resolve, reject) => {
-  const queryString = `SELECT modelAddress, id, name, author, isPrivate AS private, active, diagramAddress, diagramSecret, versionMajor, versionMinor, versionPatch FROM process_models WHERE private = 0 OR author = '${author}'`;
+  const queryString = `SELECT modelAddress, id, name, author, isPrivate, active, diagramAddress, diagramSecret, versionMajor, versionMinor, versionPatch FROM process_models WHERE isPrivate = 0 OR author = '${author}'`;
   contracts.cache.db.all(queryString, (err, data) => {
     if (err) return reject(boom.badImplementation(`Failed to get process model(s): ${err}`));
     return resolve(data);
@@ -458,7 +458,7 @@ const getApplications = () => new Promise((resolve, reject) => {
 const getProcessDefinitions = (author, interfaceId) => new Promise((resolve, reject) => {
   let hexInterfaceId = Buffer.from(interfaceId || '').toString('hex');
   hexInterfaceId = rightPad(hexInterfaceId.toUpperCase(), 32);
-  const queryString = 'SELECT pd.id as processDefinitionId, pd.processDefinitionAddress AS address, pd.modelAddress, pd.interfaceId, pm.id as modelId, pm.diagramAddress, pm.diagramSecret, pm.isPrivate AS private, pm.author ' +
+  const queryString = 'SELECT pd.id as processDefinitionId, pd.processDefinitionAddress AS address, pd.modelAddress, pd.interfaceId, pm.id as modelId, pm.diagramAddress, pm.diagramSecret, pm.isPrivate, pm.author ' +
     'FROM process_definitions pd JOIN process_models pm ' +
     'ON pd.modelAddress = pm.modelAddress ' +
     `WHERE pm.isPrivate = 0 OR pm.author = '${author}' ${(interfaceId ? `AND interfaceId = '${hexInterfaceId}'` : '')}`;
@@ -469,7 +469,7 @@ const getProcessDefinitions = (author, interfaceId) => new Promise((resolve, rej
 });
 
 const getProcessDefinitionData = address => new Promise((resolve, reject) => {
-  const queryString = 'SELECT pd.id as processDefinitionId, pd.processDefinitionAddress AS address, pd.modelAddress, pd.interfaceId, pm.diagramAddress, pm.diagramSecret, pm.isPrivate AS private, pm.author, pm.id as modelId ' +
+  const queryString = 'SELECT pd.id as processDefinitionId, pd.processDefinitionAddress AS address, pd.modelAddress, pd.interfaceId, pm.diagramAddress, pm.diagramSecret, pm.isPrivate, pm.author, pm.id as modelId ' +
       'FROM process_definitions pd JOIN process_models pm ' +
       'ON pd.modelAddress = pm.modelAddress WHERE pd.processDefinitionAddress = ?;';
   contracts.cache.db.get(queryString, address, (err, data) => {
@@ -479,7 +479,7 @@ const getProcessDefinitionData = address => new Promise((resolve, reject) => {
 });
 
 const getProcessModelData = address => new Promise((resolve, reject) => {
-  const queryString = 'SELECT modelAddress, id, name, author, isPrivate AS private, active, diagramAddress, diagramSecret, versionMajor, versionMinor, versionPatch FROM process_models pm ' +
+  const queryString = 'SELECT modelAddress, id, name, author, isPrivate, active, diagramAddress, diagramSecret, versionMajor, versionMinor, versionPatch FROM process_models pm ' +
                         'WHERE pm.modelAddress = ?;';
   contracts.cache.db.get(queryString, address, (err, data) => {
     if (err) return reject(boom.badImplementation(`Failed to get process model: ${err}`));

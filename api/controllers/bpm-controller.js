@@ -347,7 +347,7 @@ const getDefinition = asyncMiddleware(async (req, res) => {
   const processDefn = await sqlCache.getProcessDefinitionData(req.params.address);
   const profileData = await sqlCache.getProfile(req.user.address);
   if (!processDefn) throw boom.notFound(`Data for process definition ${req.params.address} not found`);
-  if (processDefn.private &&
+  if (processDefn.isPrivate &&
     processDefn.author !== req.user.address &&
     !profileData.find(({ organization }) => organization === processDefn.author)) {
     throw boom.forbidden('You are not authorized to view process details from this private model');
@@ -374,7 +374,7 @@ const getModelDiagram = asyncMiddleware(async (req, res) => {
   const model = await sqlCache.getProcessModelData(req.params.address);
   if (!model) throw boom.notFound(`Data for process model ${req.params.address} not found`);
   const profileData = await sqlCache.getProfile(req.user.address);
-  if (model.private &&
+  if (model.isPrivate &&
     model.author !== req.user.address &&
     !profileData.find(({ organization }) => organization === model.author)) {
     throw boom.forbidden('You are not authorized to view this private model');
@@ -581,7 +581,7 @@ const createModelFromBpmn = asyncMiddleware(async (req, res) => {
   const hoardRef = await pushModelXmlToHoard(rawXml);
   response.model.address = await contracts.createProcessModel(model.id, model.name, model.version, model.author, model.private, hoardRef.address, hoardRef.secretKey);
   response.processes = await addProcessesToModel(response.model.address, processes);
-  response.processes = response.processes.map(_proc => Object.assign(_proc, { private: model.private, author: model.author }));
+  response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));
   response.parsedDiagram = parsedResponse;
   return res.status(200).json(response);
 });
