@@ -3,11 +3,11 @@ defaults: &defaults
     - image: quay.io/monax/build:latest
   working_directory: ~/blackstone
   environment:
+    CI_PROJECT_DIR: ~/blackstone
     IMAGE_API: quay.io/monax/blackstone
 
 version: 2
 jobs:
-
   cache_contracts:
     <<: *defaults
     steps:
@@ -17,7 +17,6 @@ jobs:
           root: ./contracts/src/
           paths:
             - bin
-
   cache_api:
     <<: *defaults
     steps:
@@ -39,7 +38,6 @@ jobs:
           root: ./api/
           paths:
             - node_modules
-
   test_contracts:
     <<: *defaults
     steps:
@@ -53,7 +51,6 @@ jobs:
           path: ./test-contracts-jobs.log
       - store_artifacts:
           path: ./test-contracts.log
-
   test_api:
     docker:
       - image: quay.io/monax/build:latest
@@ -65,6 +62,8 @@ jobs:
           POSTGRES_USER: blackstone_development
           POSTGRES_PASSWORD: blackstone_development
     working_directory: ~/blackstone
+    environment:
+      CI_PROJECT_DIR: ~/blackstone
     steps:
       - checkout
       - attach_workspace:
@@ -75,13 +74,14 @@ jobs:
       - run: ./test/test_api.sh
       - store_artifacts:
           path: ./burrow.log
-
   deploy_docs:
     <<: *defaults
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - run: ./docs/generate.sh
-
   deploy_platform:
     docker:
       - image: appropriate/curl
