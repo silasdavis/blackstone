@@ -1,88 +1,90 @@
-api_def: &api_def
+defaults: &defaults
   docker:
     - image: quay.io/monax/build:latest
   working_directory: ~/blackstone
-
-web_def: &web_def
-  docker:
-    - image: quay.io/monax/build:latest
   environment:
     IMAGE_API: quay.io/monax/blackstone
-    IMAGE_CONTRACTS: quay.io/monax/blackstone_contracts
-    HOARD_VERSION: &hoard 1.1.3
 
 version: 2
 jobs:
 
-  cache_api:
-    <<: *api_def
+  cache_contracts:
+    <<: *defaults
     steps:
       - checkout
+      - run: burrow deploy --file build.yaml --dir ./contracts/src
+      - persist_to_workspace:
+          root: ./contracts/src/
+          paths:
+            - bin
+
+  cache_api:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - api-{{ checksum "api/package-lock.json" }}
+            - api
       - run:
           name: Install npm
           command: |
             cd ./api/
             npm install
       - save_cache:
-          paths: ./api/node_modules/
-          key: api_node_mod
-      - store_artifacts:
-          path: ./api/node_modules/
-
-  compile_solidity:
-    <<: *web_def
-    steps:
-      - checkout
-      - run: burrow deploy --file build.yaml --dir ./contracts/src
-      - store_artifacts:
-          path: ./contracts/src/bin
-          destination: burrow
+          key: api-{{ checksum "api/package-lock.json" }}
+          paths:
+            - api/node_modules/
+      - persist_to_workspace:
+          root: ./api/
+          paths:
+            - node_modules
 
   test_contracts:
-    <<: *api_def
+    <<: *defaults
     steps:
       - checkout
+      - attach_workspace:
+          at: contracts/src
       - run: ./test/test_contracts.sh
       - store_artifacts:
           path: ./burrow.log
-          destination: burrow
       - store_artifacts:
           path: ./test-contracts-jobs.log
-          destination: burrow
       - store_artifacts:
           path: ./test-contracts.log
-          destination: burrow
 
   test_api:
-    <<: *api_def
     docker:
-      - image: quay.io/monax/hoard:*hoard
+      - image: quay.io/monax/build:latest
+      - image: quay.io/monax/hoard:1.1.3
+        name: hoard
       - image: postgres:9-alpine
-    environment:
-      POSTGRES_USER: blackstone_development
-      POSTGRES_PASSWORD: blackstone_development
+        name: postgres
+        environment:
+          POSTGRES_USER: blackstone_development
+          POSTGRES_PASSWORD: blackstone_development
+    working_directory: ~/blackstone
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp
+      - run: |
+          mv /tmp/bin ./contracts/src/.
+          mv /tmp/node_modules ./api/.
       - run: ./test/test_api.sh
       - store_artifacts:
           path: ./burrow.log
-          destination: api
 
-  build_docs:
-    <<: *api_def
+  deploy_docs:
+    <<: *defaults
     steps:
       - checkout
       - run: ./docs/generate.sh
-      - store_artifacts:
-          path: bundle_cache
-      - store_artifacts:
-          path: build
-      - store_artifacts:
-          path: docs
 
   deploy_platform:
     docker:
-      image: appropriate/curl
+      - image: appropriate/curl
     steps:
       - run:
           name: Trigger upgrade
@@ -99,25 +101,28 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
+      - cache_contracts:
+          filters:
+            branches:
+              ignore: master
       - cache_api:
           filters:
             branches:
               ignore: master
-      - compile_solidity
       - test_contracts:
           requires:
-            - compile_solidity
+            - cache_contracts
           filters:
             branches:
               ignore: master
       - test_api:
           requires:
             - cache_api
-            - compile solidity
+            - cache_contracts
           filters:
             branches:
               ignore: master
-      - build_docs:
+      - deploy_docs:
           filters:
             branches:
               only:
