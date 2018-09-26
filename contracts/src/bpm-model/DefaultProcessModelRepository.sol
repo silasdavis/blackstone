@@ -38,7 +38,7 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	function createProcessModel(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress) {
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress) {
 		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _hoardAddress, _hoardSecret);
 		error = addModel(pm);
 		if (error != BaseErrors.NO_ERROR())
@@ -141,7 +141,7 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 	 * @return diagramAddress - the HOARD address of the model diagram file
 	 * @return diagramSecret - the HOARD secret of the model diagram file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, bytes32 name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret) {
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret) {
 		ProcessModel m = DefaultProcessModel(_model);
 		id = m.getId();
 		name = m.getName();

@@ -95,7 +95,7 @@ contract ActiveAgreementWorkflowTest {
 		address addr;
 
 		// make an agreement with fields of type address and add role qualifiers. Note: archetype is not used, so setting address to 'this'
-		ActiveAgreement agreement = new DefaultActiveAgreement(this, "RoleQualifierAgreement", this, EMPTY, EMPTY, EMPTY, EMPTY, 8, false, parties, governingAgreements);
+		ActiveAgreement agreement = new DefaultActiveAgreement(this, "RoleQualifierAgreement", this, EMPTY, EMPTY, false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender
@@ -220,13 +220,13 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype("TestArchetype", this, "description", 10, false, true, formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, "TestArchetype", this, "description", formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//
 		// AGREEMENT
 		//
-		address agreement = agreementRegistry.createAgreement(addr, "TestAgreement", this, EMPTY, EMPTY, EMPTY, EMPTY, 8, false, parties, EMPTY, governingAgreements);
+		address agreement = agreementRegistry.createAgreement(addr, "TestAgreement", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements);
 		// Org2 has a department, so we're setting the additional context on the agreement
 		ActiveAgreement(agreement).setAddressScope(address(org2), DATA_FIELD_AGREEMENT_PARTIES, departmentId1, EMPTY, EMPTY, 0x0);
 		//TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
@@ -354,7 +354,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype("TestArchetype", this, "description", 10, false, true, formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, "TestArchetype", this, "description", formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//
@@ -362,9 +362,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		address agreement1;
 		address agreement2;
-		agreement1 = agreementRegistry.createAgreement(addr, "TestAgreement1", this, EMPTY, EMPTY, EMPTY, EMPTY, 8, false, parties, EMPTY, governingAgreements);
+		agreement1 = agreementRegistry.createAgreement(addr, "TestAgreement1", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements);
 		if (agreement1 == 0x0) return "Unexpected error creating agreement1";
-		agreement2 = agreementRegistry.createAgreement(addr, "TestAgreement2", this, EMPTY, EMPTY, EMPTY, EMPTY, 8, false, parties, EMPTY, governingAgreements);
+		agreement2 = agreementRegistry.createAgreement(addr, "TestAgreement2", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements);
 		if (agreement2 == 0x0) return "Unexpected error creating agreement2";
 
 		//

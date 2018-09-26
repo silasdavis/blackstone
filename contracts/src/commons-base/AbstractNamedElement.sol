@@ -9,14 +9,14 @@ import "commons-base/NamedElement.sol";
 contract AbstractNamedElement is NamedElement {
 	
 	bytes32 id;
-	bytes32 name;
+	string name;
 	
 	/**
 	 * @dev Creates a new AbstractNamedElement with the specified ID and name
 	 * @param _id the ID
 	 * @param _name the name 
 	 */
-	constructor(bytes32 _id, bytes32 _name) public {
+	constructor(bytes32 _id, string _name) public {
 		id = _id;
 		name = _name;
 	}
@@ -33,7 +33,7 @@ contract AbstractNamedElement is NamedElement {
 	 * @dev Returns the name of this contract.
 	 * @return the bytes32 name
 	 */
-	function getName() external view returns (bytes32) {
+	function getName() external view returns (string) {
 		return name;
 	}
 	

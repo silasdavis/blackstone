@@ -64,9 +64,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @param _creator address
 	 * @param _hoardAddress Address of agreement params in hoard
 	 * @param _hoardSecret Secret for hoard retrieval
-	 * @param _eventLogHoardAddress Address of events log in hoard
-	 * @param _eventLogHoardSecret Secret for hoard retrieval
-	 * @param _maxNumberOfEvents Max number of events allowed
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
@@ -80,13 +77,10 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	function createAgreement(
 		address _archetype,
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
+		bytes32 _hoardSecret,
 		bool _isPrivate, 
 		address[] _parties, 
 		bytes32 _collectionId, 
@@ -94,7 +88,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		external returns (address activeAgreement)
 	{
 		validateAgreementRequirements(_archetype, _name, _governingAgreements);
-		activeAgreement = new DefaultActiveAgreement(_archetype, _name, _creator, _hoardAddress, _hoardSecret, _eventLogHoardAddress, _eventLogHoardSecret, _maxNumberOfEvents, _isPrivate, _parties, _governingAgreements);
+		activeAgreement = new DefaultActiveAgreement(_archetype, _name, _creator, _hoardAddress, _hoardSecret, _isPrivate, _parties, _governingAgreements);
 		register(activeAgreement, _name, _governingAgreements);
 		if (_collectionId != "") addAgreementToCollection(_collectionId, activeAgreement);
 	}
@@ -102,8 +96,8 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	/**
 	 * @dev Validates agreement creation requirements
 	 */
-	function validateAgreementRequirements(address _archetype, bytes32 _name, address[] _governingAgreements)	internal {
-		ErrorsLib.revertIf(_name == "" || _archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Agreement name and Archetype address are required");
+	function validateAgreementRequirements(address _archetype, string _name, address[] _governingAgreements)	internal {
+		ErrorsLib.revertIf(bytes(_name).length == 0 || _archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Agreement name and Archetype address are required");
 		validateGoverningAgreements(_archetype, _governingAgreements);
 		ErrorsLib.revertIf(!Archetype(_archetype).isActive(), ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.createAgreement", "Archetype must be active");
 	}
@@ -168,6 +162,14 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		for (uint i = 0; i < _agreements.length; i++) {
 			delete duplicateMap[_agreements[i]];
 		}
+	}
+
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(address _agreement, uint32 _maxNumberOfEvents) external {
+		ActiveAgreement(_agreement).setMaxNumberOfEvents(_maxNumberOfEvents);
+		emit UpdateActiveAgreements(TABLE_AGREEMENTS, _agreement);
 	}
 
 	/**
@@ -333,7 +335,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @param _governingAgreements governing agreements
 	 * @return a return code indicating success or failure
 	 */
-	function register(address _activeAgreement, bytes32 _name, address[] _governingAgreements) internal {
+	function register(address _activeAgreement, string _name, address[] _governingAgreements) internal {
 		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(_activeAgreement, _name);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.register", "Active Agreement already exists");
 		ActiveAgreement agreement = ActiveAgreement(_activeAgreement);
@@ -434,7 +436,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	function getActiveAgreementData(address _activeAgreement) external view returns (
 		address archetype,
-		bytes32 name,
+		string name,
 		address creator,
 		bytes32 hoardAddress,
 		bytes32 hoardSecret,
@@ -448,7 +450,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	) {
 		name = ActiveAgreementRegistryDb(database).getActiveAgreementName(_activeAgreement);
 
-		if (name != "") {
+		if (bytes(name).length != 0) {
 			archetype = ActiveAgreement(_activeAgreement).getArchetype();
 			creator = ActiveAgreement(_activeAgreement).getCreator();
 			hoardAddress = ActiveAgreement(_activeAgreement).getHoardAddress();
@@ -608,7 +610,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @return agreementName name of agreement
 	 * @return archetype address of archetype
 	 */
-	function getAgreementDataInCollection(bytes32 /*_id*/, address _agreement) external view returns (bytes32 agreementName, address archetype) {
+	function getAgreementDataInCollection(bytes32 /*_id*/, address _agreement) external view returns (string agreementName, address archetype) {
 		agreementName = DefaultActiveAgreement(_agreement).getName();
 		archetype = DefaultActiveAgreement(_agreement).getArchetype();
 	}
@@ -637,7 +639,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @param _governingAgreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (bytes32 name) {
+	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name) {
 		return ActiveAgreement(_agreement).getGoverningAgreementData(_governingAgreement);
 	}
 

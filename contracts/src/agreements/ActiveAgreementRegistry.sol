@@ -27,9 +27,6 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _creator address
 	 * @param _hoardAddress Address of agreement params in hoard
 	 * @param _hoardSecret Secret for hoard retrieval
-	 * @param _eventLogHoardAddress Address of events log in hoard
-	 * @param _eventLogHoardSecret Secret for hoard retrieval
-	 * @param _maxNumberOfEvents Max number of events allowed
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
@@ -43,18 +40,20 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 */
 	function createAgreement(
 		address _archetype,
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
-		bool _isPrivate, 
+		bytes32 _hoardSecret,
+		bool _isPrivate,
 		address[] _parties, 
 		bytes32 _collectionId, 
 		address[] _governingAgreements) 
 		external returns (address activeAgreement);
+
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(address _agreement, uint32 _maxNumberOfEvents) external;
 
 	/**
 	 * @dev Adds an agreement to given collection
@@ -136,7 +135,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, bytes32 name, address creator, bytes32 hoardAddress, bytes32 hoardSecret, bytes32 eventLogHoardAddress, bytes32 eventLogHoardSecret, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, bytes32 hoardAddress, bytes32 hoardSecret, bytes32 eventLogHoardAddress, bytes32 eventLogHoardSecret, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -248,7 +247,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return agreementName name of agreement
 	 * @return archetype address of archetype
 	 */
-	function getAgreementDataInCollection(bytes32 _id, address _agreement) external view returns (bytes32 agreementName, address archetype);	
+	function getAgreementDataInCollection(bytes32 _id, address _agreement) external view returns (string agreementName, address archetype);	
 
 	/**
 	 * @dev Returns the number governing agreements for given agreement
@@ -270,5 +269,5 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _governingAgreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (bytes32 name);
+	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name);
 }

@@ -26,7 +26,7 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	function createProcessModel(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress);
 
 	/**
 	 * @dev Adds the given ProcessModel to this repository.
@@ -84,7 +84,7 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @return diagramAddress - the HOARD address of the model diagram file
 	 * @return diagramSecret - the HOARD secret of the model diagram file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, bytes32 name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret);
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret);
 
 	/**
 	 * @dev Returns the process definition address when the model ID and process definition ID are provided

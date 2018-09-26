@@ -46,12 +46,12 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
-		bytes32 _name, 
-		address _author, 
-		string _description, 
-		uint _price, 
+		uint32 _price, 
 		bool _isPrivate, 
 		bool _active, 
+		string _name,
+		address _author, 
+		string _description,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
@@ -59,7 +59,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		external returns (address archetype)
 	{
 		validateArchetypeRequirements(_name, _author, _formationProcess, _executionProcess, _governingArchetypes);
-		archetype = new DefaultArchetype(_name, _author, _description, _price, _isPrivate, _active, _formationProcess, _executionProcess, _governingArchetypes);
+		archetype = new DefaultArchetype(_price, _isPrivate, _active, _name, _author, _description,  _formationProcess, _executionProcess, _governingArchetypes);
 		registerArchetype(archetype, _name);
 		for (uint i = 0; i < _governingArchetypes.length; i++) {
 			emit UpdateGoverningArchetypes(TABLE_GOVERNING_ARCHETYPES, archetype, _governingArchetypes[i]);
@@ -67,13 +67,19 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		if (_packageId != "") addArchetypeToPackage(_packageId, archetype);
 	}
 
-	function validateArchetypeRequirements(bytes32 _name, address _author, address _formationProcess, address _executionProcess, address[] _governingArchetypes) internal {
-		ErrorsLib.revertIf(_name == "" || _author == 0x0 || _formationProcess == 0x0 || _executionProcess == 0x0,
+	function validateArchetypeRequirements(string _name, address _author, address _formationProcess, address _executionProcess, address[] _governingArchetypes) internal {
+		validateArchetypeProperties(_name, _author);
+		ErrorsLib.revertIf(_formationProcess == 0x0 || _executionProcess == 0x0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name, author address, formation and execution process definitions are required");
 		verifyNoDuplicates(_governingArchetypes);
 	}
 
-	function registerArchetype(address _archetype, bytes32 _name) internal {
+	function validateArchetypeProperties(string _name, address _author) internal {
+		ErrorsLib.revertIf(bytes(_name).length == 0 || _author == 0x0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name, author address, formation and execution process definitions are required");
+	}
+
+	function registerArchetype(address _archetype, string _name) internal {
 		uint error = ArchetypeRegistryDb(database).addArchetype(_archetype, _name);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), 
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultArchetypeRegistry.createArchetype", "Archetype already exists");
@@ -274,26 +280,22 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		* @return active bool
 		* @return isPrivate bool
 		* @return successor address
-		* @return formationProcessId
 		* @return formationProcessDefinition
-		* @return executionProcessId
 		* @return executionProcessDefinition
 		*/
 	function getArchetypeData(address _archetype) external view returns (
-		bytes32 name,
+		string name,
 		string description,
-		uint price,
+		uint32 price,
 		address author,
 		bool active,
 		bool isPrivate,
 		address successor,
-		bytes32 formationProcessId,
 		address formationProcessDefinition,
-		bytes32 executionProcessId,
 		address executionProcessDefinition
 	) {
 		name = ArchetypeRegistryDb(database).getArchetypeName(_archetype);
-		if (name != "") {
+		if (bytes(name).length != 0) {
 			description = Archetype(_archetype).getDescription();
 			price = Archetype(_archetype).getPrice();
 			author = Archetype(_archetype).getAuthor();
@@ -301,9 +303,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 			isPrivate = Archetype(_archetype).isPrivate();
 			successor = Archetype(_archetype).getSuccessor();
 			formationProcessDefinition = Archetype(_archetype).getFormationProcessDefinition();
-			formationProcessId = ProcessDefinition(formationProcessDefinition).getId();
 			executionProcessDefinition = Archetype(_archetype).getExecutionProcessDefinition();
-			executionProcessId = ProcessDefinition(executionProcessDefinition).getId();
 		}
 	}
 
@@ -330,7 +330,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 	 * @param _archetype archetype
 	 * @param _price price
 	 */
-	function setArchetypePrice(address _archetype, uint _price) external {
+	function setArchetypePrice(address _archetype, uint32 _price) external {
 		Archetype(_archetype).setPrice(_price);
 		emit UpdateArchetypes(TABLE_ARCHETYPES, _archetype);
 	}
@@ -438,7 +438,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 	 * @param _archetype address of archetype
 	 * @return archetypeName name of archetype
 	 */
-	function getArchetypeDataInPackage(bytes32 /*_id*/, address _archetype) external view returns (bytes32 archetypeName) {
+	function getArchetypeDataInPackage(bytes32 /*_id*/, address _archetype) external view returns (string archetypeName) {
 		return DefaultArchetype(_archetype).getName();
 	}
 	
@@ -578,7 +578,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 	 * @param _governingArchetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (bytes32 name) {
+	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (string name) {
 		return Archetype(_archetype).getGoverningArchetypeData(_governingArchetype);
 	}
 
