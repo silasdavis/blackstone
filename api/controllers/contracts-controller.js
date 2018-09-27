@@ -526,6 +526,25 @@ const setMaxNumberOfEvents = (agreementAddress, maxNumberOfEvents) => new Promis
     });
 });
 
+const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) => {
+  log.trace(`Adding scopes to agreement ${agreementAddr} parameters: ${JSON.stringify(parameters)}`);
+  const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddr);
+  const promises = parameters.map(({ name, value, scope }) => new Promise((resolve, reject) => {
+    agreement.setAddressScope(value, name, scope, "", "", "0x0", (err) => {
+      if (err) {
+        return reject(boomify(err, `Failed to add scope ${scope} to address ${value} in context ${name}`));
+      }
+      return resolve();
+    });
+  }));
+  try {
+    await Promise.all(promises);
+  } catch (err) {
+    if (boom.isBoom(err)) throw err;
+    throw boom.badImplementation(err);
+  }
+};
+
 const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((resolve, reject) => {
   log.trace(`Updating event log hoard reference for agreement at ${agreementAddress} with new hoard reference ${JSON.stringify(hoardRef)}`);
   appManager
@@ -1198,6 +1217,7 @@ module.exports = {
   addArchetypeToPackage,
   createAgreement,
   setMaxNumberOfEvents,
+  setAddressScopeForAgreementParameters,
   updateAgreementEventLog,
   cancelAgreement,
   createAgreementCollection,
