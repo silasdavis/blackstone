@@ -114,6 +114,7 @@ const dependencies = {
         break;
       case 'Model':
         if ('active' in element) element.active = element.active === 1;
+        element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Region':
         element.country = global.hexToString(element.country);
@@ -125,7 +126,7 @@ const dependencies = {
         if (element.processDefinitionId != null) element.processDefinitionId = global.hexToString(element.processDefinitionId);
         if (element.interfaceId != null) element.interfaceId = global.hexToString(element.interfaceId);
         if (element.modelId != null) element.modelId = global.hexToString(element.modelId);
-        // Nothing yet
+        element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Task':
         if (element.activityId) element.activityId = global.hexToString(element.activityId);
