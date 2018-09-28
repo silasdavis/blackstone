@@ -109,7 +109,7 @@ jobs:
       - run:
           name: "Update AN Info"
           command: |
-            if [ $CIRCLE_BRANCH != "master" ]; then CHAIN_INFO="${CHAIN_INFO}-dev"
+            if [ $CIRCLE_BRANCH != "master" ]; then CHAIN_INFO="${CHAIN_INFO}-dev"; fi
             CHAIN_OUT_DIR="${CHAIN_INFO_HOST}/${CHAIN_INFO}"
             CHAIN_INFO_URL="https://${CHAIN_INFO_HOST}/${CHAIN_INFO}"
             git config --global user.name "Billings, a Bot"
