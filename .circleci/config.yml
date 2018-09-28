@@ -102,7 +102,8 @@ jobs:
       CHAIN_INFO: "t5"
       CHAIN_INFO_HOST: "info.agreements.network"
     steps:
-      <<: *add_ssh_key
+      - checkout
+      - <<: *add_ssh_key
       - attach_workspace:
           at: /tmp
       - run:
