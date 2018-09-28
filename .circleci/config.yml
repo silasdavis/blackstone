@@ -152,9 +152,8 @@ workflows:
                 - master
       - update_info:
           requires:
-            - cache_contracts
-            # - test_api
-            # - test_contracts
+            - test_api
+            - test_contracts
           filters:
             branches:
               only:
