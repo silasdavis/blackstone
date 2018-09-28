@@ -121,7 +121,7 @@ jobs:
             while read -r abi; do
               echo "${CHAIN_INFO_URL}/abi/${abi}.bin" >> ${CHAIN_OUT_DIR}/abi-new.csv
               mv /tmp/bin/${abi}.bin ${CHAIN_OUT_DIR}/abi/.
-            done < /tmp/bin/abi.csv
+            done < ./contracts/abi.csv
             mv ${CHAIN_OUT_DIR}/abi-new.csv ${CHAIN_OUT_DIR}/abi.csv
             for spec in /tmp/sqlsol/*; do
               mv $spec ${CHAIN_OUT_DIR}/specs/.
