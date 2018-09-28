@@ -37,6 +37,7 @@ jobs:
           root: ./api/
           paths:
             - node_modules
+            - sqlsol
   test_contracts:
     <<: *defaults
     steps:
@@ -75,7 +76,8 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - add_ssh_keys:
+      - &add_ssh_key
+        add_ssh_keys:
           fingerprints:
             - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - run: ./docs/generate.sh
@@ -93,6 +95,41 @@ jobs:
               --form ref=master \
               --form "variables[BUILD_REFSPEC]=$CIRCLE_BRANCH" \
               $PLATFORM_DEPLOY_URL/trigger/pipeline
+  update_info:
+    docker:
+      - image: alpine/git
+    environment:
+      CHAIN_INFO: "t5"
+      CHAIN_INFO_HOST: "info.agreements.network"
+    steps:
+      <<: *add_ssh_key
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: "Update AN Info"
+          command: |
+            if [ $CIRCLE_BRANCH != "master" ]; then CHAIN_INFO="${CHAIN_INFO}-dev"
+            CHAIN_OUT_DIR="${CHAIN_INFO_HOST}/${CHAIN_INFO}"
+            CHAIN_INFO_URL="https://${CHAIN_INFO_HOST}/${CHAIN_INFO}"
+            git config --global user.name "Billings, a Bot"
+            git config --global user.email "billings@monax.io"
+            git clone git@github.com:agreements-network/info $CHAIN_INFO_HOST
+            mkdir -p ${CHAIN_OUT_DIR}
+            mkdir -p ${CHAIN_OUT_DIR}/abi
+            mkdir -p ${CHAIN_OUT_DIR}/specs
+            while read -r abi; do
+              echo "${CHAIN_INFO_URL}/abi/${abi}.bin" >> ${CHAIN_OUT_DIR}/abi-new.csv
+              mv /tmp/bin/${abi}.bin ${CHAIN_OUT_DIR}/abi/.
+            done < /tmp/bin/abi.csv
+            mv ${CHAIN_OUT_DIR}/abi-new.csv ${CHAIN_OUT_DIR}/abi.csv
+            for spec in /tmp/sqlsol/*; do
+              mv $spec ${CHAIN_OUT_DIR}/specs/.
+            done
+            cd ${CHAIN_INFO_HOST}
+            git add -A :/
+            git commit -m "Automatic info generation from AN build on `date`" || true
+            git push
+            sleep 60 # allow time for GH pages to render
 
 workflows:
   version: 2
@@ -112,10 +149,20 @@ workflows:
             branches:
               only:
                 - master
+      - update_info:
+          requires:
+            - test_api
+            - test_contracts
+          filters:
+            branches:
+              only:
+                - master
+                - develop
       - deploy_platform:
           requires:
             - test_api
             - test_contracts
+            - update_info
           filters:
             branches:
               only:
