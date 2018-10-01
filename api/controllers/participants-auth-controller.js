@@ -12,17 +12,18 @@ const pool = require(`${global.__common}/postgres-db`);
 const analytics = new Analytics(global.__settings.monax.analyticsID);
 
 const login = (req, res, next) => {
-  if (!req.body.user || !req.body.password) {
+  if ((!req.body.username && !req.body.email) || !req.body.password) {
     return next(boom.badRequest('Username or password not supplied'));
   }
-  return passport.authenticate('local-login', { session: false }, (err, user, info) => {
-    if (err) return next(boom.badImplementation(`Failed to login user ${req.body.user}: ${err}`));
+  const strategy = req.body.username ? 'username-login' : 'email-login';
+  return passport.authenticate(strategy, { session: false }, (err, user, info) => {
+    if (err) return next(boom.badImplementation(`Failed to login user ${req.body.username || req.body.email}: ${err}`));
     if (!user || !user.address) {
       return next(boom.unauthorized(info.message));
     }
     const userData = {
       address: user.address,
-      id: req.body.user,
+      id: user.username,
       createdAt: user.createdAt,
     };
     analytics.identify({
@@ -35,7 +36,7 @@ const login = (req, res, next) => {
       event: 'Logged in',
       userId: userData.id,
     });
-    log.info(`${req.body.user} logged in successfully`);
+    log.info(`${user.username} logged in successfully`);
     return res
       .cookie(global.__settings.monax.cookie.name, user.token, {
         secure: global.__settings.monax.cookie.secure,

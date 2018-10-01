@@ -459,7 +459,7 @@ module.exports = (app) => {
   * @apiBodyParameter {Boolean} isProducer Set to true to create a producer account instead of a consumer account (optional)
   * @apiBodyParameter {json} Param Object
   {
-  "user": "username_id-123",
+  "username": "username_id-123",
   "email": "myemail@mycompany.com",
   "password": "superhardtoguess",
   "isProducer": false
@@ -490,7 +490,7 @@ module.exports = (app) => {
    * @apiBodyParameter {String} password The user's password
    * @apiBodyParameter {json} Param Object
    {
-  "user": "username/id",
+  "username": "username/id",
   "password": "superhardtoguess"
   }
   *

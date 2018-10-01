@@ -38,13 +38,13 @@ before(function (done) {
 });
 
 const credentials = {
-  user: rid(10, 'aA0'),
+  username: rid(10, 'aA0'),
   password: 'IREALLYLOVEBOATS',
   email: `${rid(10, 'aA0')}@test.com`
 }
 
 const baduser = {
-  user: 'Bob',
+  username: 'Bob',
   password: 'Thisdoesntmatteryet'
 }
 
@@ -195,7 +195,7 @@ describe('User Profile', () => {
           if (err) return done(err)
           res.body.should.be.a('object')
           res.body.address.toUpperCase().should.equal(userData.address)
-          res.body.id.should.equal(credentials.user.toLowerCase())
+          res.body.id.should.equal(credentials.username.toLowerCase())
           res.body.email.should.equal(credentials.email.toLowerCase())
           res.body.firstName.should.equal(newProfileInfo.firstName)
           res.body.lastName.should.equal(newProfileInfo.lastName)
@@ -253,22 +253,22 @@ describe('Organizations', () => {
     name: 'Accounting Department',
   };
   const approver = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'approver',
   };
   const accountant = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'accountant',
   };
   const employee = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'employee',
   };
   const nonEmployee = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'nonemployee',
   };
@@ -347,7 +347,7 @@ describe('Organizations', () => {
                 res.body.users[0].address.should.exist;
                 res.body.users[0].address.should.equal(approver.address);
                 res.body.users[0].id.should.exist;
-                res.body.users[0].id.should.equal(approver.user.toLowerCase());
+                res.body.users[0].id.should.equal(approver.username.toLowerCase());
                 done();
               });
           }, 2000);
