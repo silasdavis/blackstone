@@ -380,6 +380,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
     throw boom.badImplementation(`No formation process found for archetype ${req.body.archetype}`);
   }
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
+  await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));
   log.debug(`Process Instance Address: ${piAddress}`);
   analytics.track({
     event: 'Agreement created',
