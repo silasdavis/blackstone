@@ -205,7 +205,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
   const { error, value } = Joi.validate(body, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
-    user: id, email, password, isProducer,
+    username: id, email, password, isProducer,
   } = value;
   // check if email is registered in pg
   const { rows } = await pool.query({

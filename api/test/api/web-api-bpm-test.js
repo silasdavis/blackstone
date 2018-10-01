@@ -36,7 +36,7 @@ var hoardRef = { address: null, secretKey: null };
 describe(':: HOARD ::', () => {
   it('Should upload a real file to hoard', async () => {
     let hoardUser = {
-      user: `hoard${rid(5, 'aA0')}`,
+      username: `hoard${rid(5, 'aA0')}`,
       password: 'hoarduser',
       email: `${rid(10, 'aA0')}@test.com`
     };
@@ -66,17 +66,17 @@ describe(':: HOARD ::', () => {
 
 describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::', () => {
   let signer = {
-    user: `signer${rid(5, 'aA0')}`,
+    username: `signer${rid(5, 'aA0')}`,
     password: 'signer',
     email: `${rid(10, 'aA0')}@test.com`,
   };
   let receiver = {
-    user: `receiver${rid(5, 'aA0')}`,
+    username: `receiver${rid(5, 'aA0')}`,
     password: 'eteUser2',
     email: `${rid(10, 'aA0')}@test.com`,
   };
   let confirmer = {
-    user: `confirmer${rid(5, 'aA0')}`,
+    username: `confirmer${rid(5, 'aA0')}`,
     password: 'eteUser2',
     email: `${rid(10, 'aA0')}@test.com`,
   };
@@ -360,12 +360,12 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
   let xml = api.generateModelXml(model.id, model.filePath);
   expect(xml).to.exist;
   const user1 = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     password: 'eteUser1',
     email: `${rid(10, 'aA0')}@test.com`,
   };
   const user2 = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     password: 'eteUser2',
     email: `${rid(10, 'aA0')}@test.com`,
   };
@@ -512,13 +512,13 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
 
 describe(':: DATA MAPPING TEST ::', () => {
   let manager = {
-    user: `manager${rid(5, 'aA0')}`,
+    username: `manager${rid(5, 'aA0')}`,
     password: 'manager',
     email: `manager${rid(3, 'aA0')}@test.com`,
   };
 
   let admin = {
-    user: `admin${rid(5, 'aA0')}`,
+    username: `admin${rid(5, 'aA0')}`,
     password: 'administrator',
     email: `admin${rid(3, 'aA0')}@test.com`,
   };
@@ -846,12 +846,12 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
   let xml = api.generateModelXml(model.id, model.filePath);
   expect(xml).to.exist;
   const user1 = {
-    user: rid(8, 'aA0'),
+    username: rid(8, 'aA0'),
     password: 'archUser1',
     email: `${rid(8, 'aA0')}@test.com`,
   };
   const user2 = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     password: 'archeUser2',
     email: `${rid(10, 'aA0')}@test.com`,
   };
@@ -1123,7 +1123,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 describe(':: Governing Archetypes and Agreements ::', () => {
   const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
   const user1 = {
-    user: rid(8, 'aA0'),
+    username: rid(8, 'aA0'),
     password: 'archUser1',
     email: `${rid(8, 'aA0')}@test.com`,
   };
