@@ -10,17 +10,17 @@ import "agreements/Agreements.sol";
 
 contract ArchetypeRegistryDb is SystemOwned {
 
-  using MappingsLib for Mappings.AddressBytes32Map;
+  using MappingsLib for Mappings.AddressStringMap;
   using ArrayUtilsAPI for address[];
 
-  Mappings.AddressBytes32Map archetypes;
+  Mappings.AddressStringMap archetypes;
   Agreements.ArchetypePackageMap packages;
 
   constructor() public {
     systemOwner = msg.sender;
   }
 
-  function addArchetype(address _archetype, bytes32 _name) external pre_onlyBySystemOwner returns (uint error) {
+  function addArchetype(address _archetype, string _name) external pre_onlyBySystemOwner returns (uint error) {
     error = archetypes.insert(_archetype, _name);
   }
 
@@ -36,7 +36,7 @@ contract ArchetypeRegistryDb is SystemOwned {
     (error, archetype) = archetypes.keyAtIndex(_index);
   }
 
-  function getArchetypeName(address _archetype) external view returns (bytes32 name) {
+  function getArchetypeName(address _archetype) external view returns (string name) {
     return archetypes.get(_archetype);
   }
 

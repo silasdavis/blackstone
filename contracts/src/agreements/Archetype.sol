@@ -47,13 +47,13 @@ contract Archetype is Named {
 	 * @dev Gets price
 	 * @return price
 	 */
-	function getPrice() external view returns (uint);
+	function getPrice() external view returns (uint32);
 
 	/**
 	 * @dev Sets price
 	 * @param _price price of archetype
 	 */
-	function setPrice(uint _price) external;
+	function setPrice(uint32 _price) external;
 
 	/**
 	 * @dev Gets Author
@@ -144,7 +144,7 @@ contract Archetype is Named {
 	 * @param _archetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype) external view returns (bytes32 archetypeName);
+	function getGoverningArchetypeData(address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Returns all governing archetype address for this archetype

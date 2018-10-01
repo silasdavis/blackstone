@@ -49,6 +49,12 @@ library Mappings {
         address[] keys;
     }
 
+    /// @dev Address to String
+    struct AddressStringMap {
+        mapping (address => StringElement) rows;
+        address[] keys;
+    }
+
     /// @dev Address to Bool
     struct AddressBoolMap {
         mapping (address => BoolElement) rows;

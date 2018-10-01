@@ -55,7 +55,6 @@ const dependencies = {
         element.accessPointId = global.hexToString(element.accessPointId);
         break;
       case 'Archetype':
-        element.name = global.hexToString(element.name);
         if (Object.prototype.hasOwnProperty.call(element, 'active')) element.active = parseInt(element.active, 10) !== 0;
         if (Object.prototype.hasOwnProperty.call(element, 'isPrivate')) element.isPrivate = parseInt(element.isPrivate, 10) !== 0;
         if (!_.isEmpty(element.description)) element.description = _.unescape(element.description);
@@ -71,7 +70,6 @@ const dependencies = {
         element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Agreement':
-        element.name = global.hexToString(element.name);
         element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Application':

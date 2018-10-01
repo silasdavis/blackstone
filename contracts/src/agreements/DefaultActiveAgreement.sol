@@ -22,14 +22,14 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	using MappingsLib for Mappings.Bytes32Bytes32Map;
 
 	address archetype;
-	bytes32 name;
+	string name;
 	address creator;
 	bool privateFlag;
 	bytes32 hoardAddress;
 	bytes32 hoardSecret;
 	bytes32 eventLogHoardAddress;
 	bytes32 eventLogHoardSecret;
-	uint maxNumberOfEvents;
+	uint32 maxNumberOfEvents;
 	address[] parties;
 	Agreements.LegalState legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 	mapping(address => Agreements.Signature) signatures;
@@ -43,22 +43,16 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _creator the account that created this agreement
 	 * @param _hoardAddress the address of the prose document in Hoard
 	 * @param _hoardSecret the secret to accessing the prose document in Hoard
-	 * @param _eventLogHoardAddress the address of the event log document in Hoard
-	 * @param _eventLogHoardSecret the secret to accessing the event log document in Hoard
-	 * @param _maxNumberOfEvents the maximum number of events that can be logged to the agreement
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 */
 	constructor(
 		address _archetype, 
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
+		bytes32 _hoardSecret,
 		bool _isPrivate, 
 		address[] _parties, 
 		address[] _governingAgreements) public 
@@ -68,9 +62,6 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		creator = _creator;
 		hoardAddress = _hoardAddress;
 		hoardSecret = _hoardSecret;
-		eventLogHoardAddress = _eventLogHoardAddress;
-		eventLogHoardSecret = _eventLogHoardSecret;
-		maxNumberOfEvents = _maxNumberOfEvents;
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
@@ -98,7 +89,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _agreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement) external view returns (bytes32 agreementName) {
+	function getGoverningAgreementData(address _agreement) external view returns (string agreementName) {
 		return ActiveAgreement(_agreement).getName();
 	}
 
@@ -106,7 +97,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @dev Gets name
 	 * @return name name
 	 */
-	function getName() public view returns (bytes32) {
+	function getName() public view returns (string) {
 		return name;
 	}
 
@@ -152,6 +143,13 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 */
 	function getHoardSecret() external view returns (bytes32){
 		return hoardSecret;
+	}
+
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external {
+		maxNumberOfEvents = _maxNumberOfEvents;
 	}
 
 	/**

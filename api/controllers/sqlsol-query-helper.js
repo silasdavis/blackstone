@@ -135,14 +135,15 @@ const getArchetypeData = (queryParams, userAccount) => new Promise((resolve, rej
 
 const getArchetypeDataWithProcessDefinitions = (archetypeAddress, userAccount) => new Promise((resolve, reject) => {
   const queryString =
-      'SELECT a.*, ' +
-      'd.modelId as formationModelId, e.modelId as executionModelId, ' +
-      'd.modelAddress as formationModelAddress, e.modelAddress as executionModelAddress ' +
-      'FROM ARCHETYPES a ' +
-      'LEFT JOIN process_definitions d ON a.formationProcessDefinition = d.processDefinitionAddress ' +
-      'LEFT JOIN process_definitions e ON a.executionProcessDefinition = e.processDefinitionAddress ' +
-      'WHERE address = ? ' +
-      `AND (a.isPrivate = 0 OR a.author = '${userAccount}')`;
+    'SELECT a.*, ' +
+    'd.modelId as formationModelId, e.modelId as executionModelId, ' +
+    'd.modelAddress as formationModelAddress, e.modelAddress as executionModelAddress, ' +
+    'd.id as formationProcessId, e.id as executionProcessId ' +
+    'FROM ARCHETYPES a ' +
+    'LEFT JOIN process_definitions d ON a.formationProcessDefinition = d.processDefinitionAddress ' +
+    'LEFT JOIN process_definitions e ON a.executionProcessDefinition = e.processDefinitionAddress ' +
+    'WHERE address = ? ' +
+    `AND (a.isPrivate = 0 OR a.author = '${userAccount}')`;
   contracts.cache.db.all(queryString, archetypeAddress, (err, data) => {
     if (err) return reject(boom.badImplementation(`Failed to get archetype data: ${err}`));
     return resolve(data[0]);

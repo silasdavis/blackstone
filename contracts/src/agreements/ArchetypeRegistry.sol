@@ -35,33 +35,17 @@ contract ArchetypeRegistry is Upgradeable {
 	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
-		bytes32 _name, 
-		address _author, 
-		string _description, 
-		uint _price, 
+		uint32 _price, 
 		bool _isPrivate, 
 		bool _active, 
+		string _name,
+		address _author, 
+		string _description,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
 		address[] _governingArchetypes) 
 		external returns (address archetype);
-
-	// /**
-	//  * @dev Detects if governing archetypes array has duplicates and returns true/false accordingly.
-	//  * Also returns the true count of governing archetypes in the array, since the array is a static array of length 100.
-	//  * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	//  * @param _archetypes the address[100] array of governing archetypes
-	//  * @return bool indicating if there are duplicates
-	//  * @return uint count of unique governing archetypes (0 if there are duplicates)
-	//  */
-	// function hasDuplicates(address[100] _archetypes) internal returns (bool, uint);
-
-	// /**
-	//  * @dev Clears the temporary mapping that is used to check for duplicate governing archetypes
-	//  * @param _archetypes the address[100] array of governing archetypes
-	//  */
-	// function clearDuplicateMap (address[100] _archetypes) internal;
 
 	/**
 	 * @dev Adds archetype to package
@@ -157,22 +141,18 @@ contract ArchetypeRegistry is Upgradeable {
 		* @return active bool
 		* @return isPrivate bool
 		* @return successor address
-		* @return formationProcessId
 		* @return formationProcessDefinition
-		* @return executionProcessId
 		* @return executionProcessDefinition
 		*/
 	function getArchetypeData(address _archetype) external view returns (
-		bytes32 name,
+		string name,
 		string description,
-		uint price,
+		uint32 price,
 		address author,
 		bool active,
 		bool isPrivate,
 		address successor,
-		bytes32 formationProcessId,
 		address formationProcessDefinition,
-		bytes32 executionProcessId,
 		address executionProcessDefinition
 	);
 
@@ -193,7 +173,7 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _archetype archetype
 	 * @param _price price
 	 */
-	function setArchetypePrice(address _archetype, uint _price) external;
+	function setArchetypePrice(address _archetype, uint32 _price) external;
 
 	/**
 	 * @dev Adds a new archetype package
@@ -266,7 +246,7 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _archetype address of archetype
 	 * @return archetypeName name of archetype
 	 */
-	function getArchetypeDataInPackage(bytes32 _id, address _archetype) external view returns (bytes32 archetypeName);
+	function getArchetypeDataInPackage(bytes32 _id, address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Determines whether given archetype address is in the package identified by the packageId
@@ -369,5 +349,5 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _governingArchetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (bytes32 name);
+	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (string name);
 }

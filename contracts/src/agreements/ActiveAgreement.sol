@@ -37,7 +37,7 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 * @param _agreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement) external view returns (bytes32 agreementName);
+	function getGoverningAgreementData(address _agreement) external view returns (string agreementName);
 
 	/**
 	 * @dev Gets number of parties
@@ -58,6 +58,10 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 */
 	function getArchetype() external view returns (address);
 
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external;
 
 	/**
 	 * @dev Returns the Hoard Address

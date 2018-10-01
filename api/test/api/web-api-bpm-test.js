@@ -858,25 +858,33 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
   it('Should register users', async () => {
     // REGISTER USERS
-    let registerResult1 = await api.registerUser(user1);
-    let registerResult2 = await api.registerUser(user2);
-    user1.address = registerResult1.address;
-    user2.address = registerResult2.address;
-    expect(user1.address).to.exist
-    expect(user2.address).to.exist
+    try {
+      let registerResult1 = await api.registerUser(user1);
+      let registerResult2 = await api.registerUser(user2);
+      user1.address = registerResult1.address;
+      user2.address = registerResult2.address;
+      expect(user1.address).to.exist
+      expect(user2.address).to.exist
+    } catch (err) {
+      throw err;
+    }
   }).timeout(5000);
 
   it('Should login users', (done) => {
     // LOGIN USERS
-    setTimeout(async () => {
-      let loginResult1 = await api.loginUser(user1);
-      let loginResult2 = await api.loginUser(user2);
-      expect(loginResult1.token).to.exist;
-      expect(loginResult2.token).to.exist;
-      user1.token = loginResult1.token;
-      user2.token = loginResult2.token;
-      done();
-    }, 3000);
+    setTimeout(async () => { 
+      try {
+        let loginResult1 = await api.loginUser(user1);
+        let loginResult2 = await api.loginUser(user2);
+        expect(loginResult1.token).to.exist;
+        expect(loginResult2.token).to.exist;
+        user1.token = loginResult1.token;
+        user2.token = loginResult2.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 5000);
   }).timeout(10000);
 
   it('Should deploy model', async () => {

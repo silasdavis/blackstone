@@ -233,12 +233,12 @@ const createArchetype = (type) => {
   return new Promise((resolve, reject) => {
     log.trace(`Creating archetype with: ${JSON.stringify(archetype)}`);
     appManager.contracts['ArchetypeRegistry'].factory.createArchetype(
-      global.stringToHex(archetype.name),
-      archetype.author,
-      archetype.description,
       archetype.price,
       archetype.isPrivate,
       archetype.active,
+      archetype.name,
+      archetype.author,
+      archetype.description,
       archetype.formationProcessDefinition,
       archetype.executionProcessDefinition,
       archetype.packageId,
@@ -495,9 +495,6 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
     creator,
     hoardAddress,
     hoardSecret,
-    eventLogHoardAddress,
-    eventLogHoardSecret,
-    maxNumberOfEvents,
     parties,
     collectionId,
     governingAgreements,
@@ -506,8 +503,7 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreement(archetype, global.stringToHex(name), creator, hoardAddress,
-      hoardSecret, eventLogHoardAddress, eventLogHoardSecret, maxNumberOfEvents, isPrivate,
+    .factory.createAgreement(archetype, name, creator, hoardAddress, hoardSecret, isPrivate,
       parties, collectionId, governingAgreements, (error, data) => {
         if (error || !data.raw) {
           return reject(boomify(error, `Failed to create agreement ${agreement.name} from archetype at ${agreement.archetype}`));
@@ -517,8 +513,21 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
       });
 });
 
+const setMaxNumberOfEvents = (agreementAddress, maxNumberOfEvents) => new Promise((resolve, reject) => {
+  log.trace(`Setting max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}`);
+  appManager
+    .contracts['ActiveAgreementRegistry']
+    .factory.setMaxNumberOfEvents(agreementAddress, maxNumberOfEvents, (error) => {
+      if (error) {
+        return reject(boom.badImplementation(`Failed to set max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}: ${error}`));
+      }
+      log.info(`Set max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}`);
+      return resolve();
+    });
+});
+
 const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((resolve, reject) => {
-  log.trace(`Updating event log hoard reference for agreement ${agreementAddress} with new hoard reference ${JSON.stringify(hoardRef)}`);
+  log.trace(`Updating event log hoard reference for agreement at ${agreementAddress} with new hoard reference ${JSON.stringify(hoardRef)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
     .factory.setEventLogReference(agreementAddress, hoardRef.address, hoardRef.secretKey, (error) => {
@@ -1188,6 +1197,7 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
+  setMaxNumberOfEvents,
   updateAgreementEventLog,
   cancelAgreement,
   createAgreementCollection,

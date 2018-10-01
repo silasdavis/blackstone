@@ -86,8 +86,8 @@ const getArchetype = asyncMiddleware(async (req, res) => {
       modelAddress: data.executionModelAddress,
       processDefinitionId: data.executionProcessId,
     }]);
-  data.formationProcessName = formationProcess[0].name;
-  data.executionProcessName = executionProcess[0].name;
+  data.formationProcessName = formationProcess[0].processName;
+  data.executionProcessName = executionProcess[0].processName;
   delete data.formationModelId;
   delete data.formationProcessId;
   delete data.executionModelId;
@@ -256,7 +256,7 @@ const deactivateArchetypePackage = asyncMiddleware(async (req, res) => {
 
 const getArchetypePackages = asyncMiddleware(async (req, res) => {
   let packages = await sqlCache.getArchetypePackages(req.query, req.user.address);
-  packages = packages.map((pkg) => format('Archetype Package', pkg));
+  packages = packages.map(pkg => format('Archetype Package', pkg));
   res.status(200).json(packages);
 });
 
@@ -266,7 +266,7 @@ const getArchetypePackage = asyncMiddleware(async (req, res) => {
   if (!archPackage) throw boom.notFound(`Archetype Package with id ${package_key} not found or user has insufficient privileges`);
   const archetypes = await sqlCache.getArchetypesInPackage(package_key);
   archPackage.archetypes = archetypes.map(elem => ({
-    name: global.hexToString(elem.name),
+    name: elem.name,
     address: elem.address,
     active: Boolean(elem.active),
   }));
@@ -331,6 +331,9 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   const password = req.body.password || null;
   const parameters = req.body.parameters || [];
   const parties = req.body.parties || [];
+  const hoardRef = {};
+  hoardRef.address = req.body.eventLogHoardAddress || '';
+  hoardRef.secretKey = req.body.eventLogHoardSecret || '';
   parameters.forEach((param) => {
     if (parseInt(param.type, 10) === PARAM_TYPE.SIGNING_PARTY) parties.push(param.value);
   });
@@ -342,9 +345,6 @@ const createAgreement = asyncMiddleware(async (req, res) => {
     parties,
     hoardAddress: '',
     hoardSecret: '',
-    eventLogHoardAddress: req.body.eventLogHoardAddress || '',
-    eventLogHoardSecret: req.body.eventLogHoardSecret || '',
-    maxNumberOfEvents: parseInt(req.body.maxNumberOfEvents, 10),
     collectionId: req.body.collectionId,
     governingAgreements: req.body.governingAgreements || [],
   };
@@ -372,6 +372,8 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   //     log.debug('Request to create new agreement: ' + agreement.name);
 
   const agreementAddress = await contracts.createAgreement(agreement);
+  await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
+  await contracts.updateAgreementEventLog(agreementAddress, hoardRef);
   await setAgreementParameters(agreementAddress, req.body.archetype, parameters);
   const { formation } = await contracts.getArchetypeProcesses(req.body.archetype);
   if (!formation) {
@@ -454,8 +456,8 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   const parameters = await getAgreementParameters(addr, null);
   const parties = await sqlCache.getAgreementParties(addr);
   Object.assign(retData, format('Agreement', data));
-  retData.parameters = parameters.map((param) => format('Parameter Value', param));
-  retData.parties = parties.map((party) => format('Parameter Value', party));
+  retData.parameters = parameters.map(param => format('Parameter Value', param));
+  retData.parties = parties.map(party => format('Parameter Value', party));
   const governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
   retData.governingAgreements = governingAgreements.map(agreement => format('Agreement', agreement));
   delete retData.hoardAddress;
@@ -554,7 +556,7 @@ const getAgreementCollection = asyncMiddleware(async (req, res) => {
       };
     }
     if (agreementAddress) {
-      const agrName = global.hexToString(agreementName);
+      const agrName = agreementName;
       collection.agreements.push({
         address: agreementAddress, name: agrName, archetype,
       });

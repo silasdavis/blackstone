@@ -35,7 +35,7 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	constructor(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret)
+	constructor(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret)
 		Versioned(_version[0], _version[1], _version[2])
 		AbstractNamedElement(_id, _name) public {
 		hoardAddress = _hoardAddress;

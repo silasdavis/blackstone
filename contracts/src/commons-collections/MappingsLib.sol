@@ -19,6 +19,7 @@ import "commons-collections/Mappings.sol";
  * - Bytes32AddressArrayMap: bytes32 -> address[]
  * - Bytes32Bytes32Map:      bytes32 -> bytes32 
  * - AddressBytes32Map:      address -> bytes32
+ * - AddressStringMap:       address -> string
  * - AddressBoolMap:         address -> bool
  * - AddressBytes32ArrayMap: address -> bytes32[]
  * - AddressAddressMap:      address -> address
@@ -915,6 +916,146 @@ library MappingsLib {
         if (error != BaseErrors.NO_ERROR()) { return; }
         value = get(_map, key);
     }
+
+    /**
+     * ---------> AddressStringMap <---------
+     */
+
+    /**
+     * @dev Inserts the given value at the specified key in the provided map, but only
+     * if the key does not exist, yet. The `insert` function essentially behaves like a database insert
+     * in that it avoids entering duplicate keys. In most cases you'd want to use `insertOrUpdate(...)`
+     *
+     * @param _map the AddressMap
+     * @param _key the key
+     * @param _value the value
+     * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_ALREADY_EXISTS
+     */
+    function insert(Mappings.AddressStringMap storage _map, address _key, string _value) public returns (uint)
+    {
+        if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
+        insertOrUpdate(_map, _key, _value);
+        return BaseErrors.NO_ERROR();
+    }
+
+    /**
+     * @dev Inserts or updates the given value at the specified key in the provided map.
+     *
+     * @param _map the AddressMap
+     * @param _key the key
+     * @param _value the value
+     * @return the size of the map after the operation
+     */
+    function insertOrUpdate(Mappings.AddressStringMap storage _map, address _key, string _value) public returns (uint)
+    {
+        if (_map.rows[_key].exists) {
+            _map.rows[_key].value = _value;
+        } else {
+            _map.rows[_key].keyIdx = (_map.keys.push(_key)-1);
+            _map.rows[_key].value = _value;
+            _map.rows[_key].exists = true;
+        }
+        return _map.keys.length;
+    }
+
+    /**
+     * @dev Removes the entry registered at the specified key in the provided map.
+     * @dev the _map.keys array may get re-ordered by this operation: unless the removed entry was
+     * the last element in the map's keys, the last key will be moved into the void position created
+     * by the removal.
+     *
+     * @param _map the AddressMap
+     * @param _key the key
+     * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_NOT_FOUND.
+     */
+    function remove(Mappings.AddressStringMap storage _map, address _key) public returns (uint) {
+        if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
+        address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
+        if (swapKey != 0x0) {
+            _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx;
+        }
+        delete _map.rows[_key];
+        return BaseErrors.NO_ERROR();
+     }
+
+    /**
+     * @dev Removes all entries stored in the map.
+     * @param _map the map
+     * @return the number of removed entries
+     */
+    function clear(Mappings.AddressStringMap storage _map) public returns (uint) {
+        uint l = _map.keys.length;
+        for(uint i = 0; i < l; i++) {
+            delete _map.rows[_map.keys[i]];
+        }
+        _map.keys.length = 0;
+        return l;
+    }
+
+    /**
+     * @dev Convenience function to return the row[_key].exists value.
+     * @return true if the map contains valid values at the specified key, false otherwise.
+     */
+    function exists(Mappings.AddressStringMap storage _map, address _key) public view returns (bool) {
+        return _map.rows[_key].exists;
+    }
+
+    /**
+     * @return the value registered at the specified key, or an empty string if it doesn't exist
+     */
+    function get(Mappings.AddressStringMap storage _map, address _key) public view returns (string) {
+        return _map.rows[_key].value;
+    }
+
+    /**
+     * @return the index of the given key or int_constant uint(-1) if the key does not exist
+     */
+    function keyIndex(Mappings.AddressStringMap storage _map, address _key) public view returns (uint) {
+        if (!_map.rows[_key].exists) { return uint(-1); }
+        return _map.rows[_key].keyIdx;
+    }
+
+    /**
+     * @dev Retrieves the key at the given index, if it exists.
+     *
+     * @param _map the map
+     * @param _index the index
+     * @return (BaseErrors.NO_ERROR(), key) or (BaseErrors.INDEX_OUT_OF_BOUNDS(), "")
+     */
+    function keyAtIndex(Mappings.AddressStringMap storage _map, uint _index) public view returns (uint, address) {
+        return Mappings.keyAtIndex(_map.keys, _index);
+    }
+
+    /**
+     * @dev Retrieves the key at the given index position and the index of the next artifact.
+     *
+     * @param _map the map
+     * @param _index the index
+     * @return error BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS()
+     * @return key the key or ""
+     * @return nextindex the next index if there is one or 0
+     */
+    function keyAtIndexHasNext(Mappings.AddressStringMap storage _map, uint _index) public view returns (uint error, address key, uint nextIndex) {
+        (error, key) = keyAtIndex(_map, _index);
+        if (++_index < _map.keys.length) {
+            nextIndex = _index;
+        }
+    }
+
+    /**
+     * @dev Retrieves the value at the given index position and the index of the next address.
+     *
+     * @param _map the map
+     * @param _index the index
+     * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value, and nextIndex
+     */
+    function valueAtIndexHasNext(Mappings.AddressStringMap storage _map, uint _index) public view returns (uint error, string value, uint nextIndex) {
+        address key;
+        (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
+        if (error != BaseErrors.NO_ERROR()) { return; }
+        value = get(_map, key);
+    }
+
 
     /**
      * ---------> AddressBoolMap <---------

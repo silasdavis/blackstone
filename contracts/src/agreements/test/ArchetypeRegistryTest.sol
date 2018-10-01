@@ -21,7 +21,7 @@ contract ArchetypeRegistryTest {
 	ArchetypeRegistryDb registryDb = new ArchetypeRegistryDb();
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
 
-	bytes32 name = "archetype name";
+	string name = "archetype name";
 	string description = "this string description is more than thirty-two characters";
 	bytes32 documentName = "documentName";
 	bytes32 hoardAddress = "hoardAddress";
@@ -88,7 +88,7 @@ contract ArchetypeRegistryTest {
 			return "Creating archetype with empty author expected to fail with NULL_PARAM_NOT_ALLOWED";
 		}
 
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (archetype == 0x0) return "Archetype address is empty after creation";
 
 		if (registry.getArchetypesSize() != 1) return "Exp. 1";
@@ -168,10 +168,10 @@ contract ArchetypeRegistryTest {
 
 		address successor;
 
-		droneArchetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		droneArchetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == 0x0) return "droneArchetype address empty after creation";
 
-		droneArchetype2 = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		droneArchetype2 = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype2 == 0x0) return "droneArchetype2 address empty after creation";
 
 		registry.setArchetypeSuccessor(droneArchetype, droneArchetype2, falseAddress);
@@ -187,7 +187,7 @@ contract ArchetypeRegistryTest {
 		uint error;
 		bool active;
 	
-		droneArchetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		droneArchetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == 0x0) return "droneArchetype address empty after creation";
 
 		if (address(registry).call(bytes4(keccak256(abi.encodePacked("addArchetypeToPackage(bytes32,address)"))), fakePackageId, droneArchetype)) {
@@ -223,7 +223,7 @@ contract ArchetypeRegistryTest {
 		if (registry.getNumberOfArchetypesInPackage(dronePackageId) != 1) return "Drone package should have 1 archetype";
 		if (registry.getArchetypeAtIndexInPackage(dronePackageId, 0) != droneArchetype) return "Archetype at index 0 should match droneArchetype";
 
-		droneArchetype2 = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, dronePackageId, addrArrayWithDupes);
+		droneArchetype2 = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, dronePackageId, addrArrayWithDupes);
 
 		if (registry.getNumberOfArchetypesInPackage(dronePackageId) != 2) return "Drone package should have 2 archetypes";
 		if (registry.getArchetypeAtIndexInPackage(dronePackageId, 1) != droneArchetype2) return "Archetype at index 1 should match droneArchetype2";
@@ -233,16 +233,16 @@ contract ArchetypeRegistryTest {
 
 	function testGoverningArchetypes() external returns (string) {
 		address archetype;
-		bytes32 employmentArchName = "Employment Archetype";
+		string memory employmentArchName = "Employment Archetype";
 
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithDupes.push(archetype);
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithDupes.push(archetype);
 		addrArrayWithDupes.push(archetype); // duplicate
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithDupes.push(archetype);
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithDupes.push(archetype);
 		
 		if (address(registry).call(bytes4(keccak256(abi.encodePacked(
@@ -251,26 +251,26 @@ contract ArchetypeRegistryTest {
 				return "Creating archetype with duplicate governing archetypes should fail";
 		}
 
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithoutDupes.push(archetype);
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithoutDupes.push(archetype);
-		archetype = registry.createArchetype(name, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, addrArrayWithoutDupes);
+		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithoutDupes);
 		if (archetype == 0x0) return "Archetype with no duplicate gov archetypes has no address";
 
 		// Create employment archetype
-		employmentArchetype = registry.createArchetype(employmentArchName, falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, ndaGovArchetypes);
+		employmentArchetype = registry.createArchetype(10, false, true, employmentArchName, falseAddress, description, falseAddress, falseAddress, EMPTY, ndaGovArchetypes);
 		if (archetype == 0x0) return "Employment archetype created with no errors, but empty address returned";
 
 		ndaGovArchetypes.push(employmentArchetype);
 
 		// Create NDA Archetype with employment archetype as its governing archetype
-		ndaArchetype = registry.createArchetype("NDA Archetype", falseAddress, description, 10, false, true, falseAddress, falseAddress, EMPTY, ndaGovArchetypes);
+		ndaArchetype = registry.createArchetype(10, false, true, "NDA Archetype", falseAddress, description, falseAddress, falseAddress, EMPTY, ndaGovArchetypes);
 		if (archetype == 0x0) return "NDA archetype creation returned empty address";
 
 		if (registry.getNumberOfGoverningArchetypes(ndaArchetype) != 1) return "ndaArchetype should have 1 governing archetype";
 		if (registry.getGoverningArchetypeAtIndex(ndaArchetype, 0) != employmentArchetype) return "ndaArchetype's governing archetype should be set to employmentArchetype";
-		if (registry.getGoverningArchetypeData(ndaArchetype, employmentArchetype) != employmentArchName) return "ndaArchetype's governing archetype name should be correct";
+		if (bytes(registry.getGoverningArchetypeData(ndaArchetype, employmentArchetype)).length != bytes(employmentArchName).length) return "ndaArchetype's governing archetype name should be correct";
 		
 		return SUCCESS;
 	}

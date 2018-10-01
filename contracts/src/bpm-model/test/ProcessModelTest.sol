@@ -13,6 +13,7 @@ contract ProcessModelTest {
 	bytes32 participant2Id = "Participant2";
 	address participant1Address = 0x776FDe59876aAB7D654D656e654Ed9876574c54c;
 	address author = 0x9d7fDE63776AaB9E234d656E654ED9876574C54C;
+	string modelName = "Test Model";
 
 	bytes32 EMPTY = "";
 
@@ -23,7 +24,7 @@ contract ProcessModelTest {
 
 		ProcessModel pm = new DefaultProcessModel("testModel", "Test Model", [1,2,3], author, false, "hoardAddress", "hoardSecret");
 		if (pm.getId() != "testModel") return "ProcessModel ID not set correctly";
-		if (pm.getName() != "Test Model") return "ProcessModel Name not set correctly";
+		if (bytes(pm.getName()).length != bytes(modelName).length) return "ProcessModel Name not set correctly";
 		if (pm.getAuthor() != author) return "ProcessModel Author not set correctly";
 		if (pm.isPrivate() != false) return "ProcessModel expected to be public";
 		if (pm.major() != 1 || pm.minor() != 2 || pm.patch() != 3) return "ProcessModel Version not set correctly";

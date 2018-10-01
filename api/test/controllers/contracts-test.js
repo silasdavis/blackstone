@@ -152,9 +152,6 @@ describe('CONTRACTS', () => {
     values: [],
     hoardAddress: 'hoardAddress',
     hoardSecret: 'hoardSecret',
-    eventLogHoardAddress: 0x0,
-    eventLogHoardSecret: 0x0,
-    maxNumberOfEvents: 5,
     governingAgreements: []
   }
 
@@ -327,7 +324,7 @@ describe('CONTRACTS', () => {
       try {
         let res = await sqlCache.getArchetypesInPackage(arch.packageId)
         expect(res.length).to.equal(1)
-        expect(global.hexToString(res[0].name)).to.equal(arch.name)
+        expect(res[0].name).to.equal(arch.name)
         expect(res[0].address).to.equal(archAddress)
         done()
       } catch (err) {
