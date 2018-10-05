@@ -902,7 +902,7 @@ contract BpmServiceTest {
 		address addr;
 		bool valid;
 		bytes32 errorMsg;
-		address[10] memory emptyAddressArray;
+		address[] memory emptyAddressArray;
 
 		TestBpmService service = getNewTestBpmService();
 
@@ -1123,7 +1123,7 @@ contract BpmServiceTest {
 		TestBpmService service = getNewTestBpmService();
 
 		TestData dataStorage = new TestData();
-		address[100] memory signatories;
+		address[] memory signatories = new address[](2);
 		signatories[0] = address(proxy1);
 		signatories[1] = address(proxy2);
 		dataStorage.setDataValueAsAddressArray("SIGNATORIES", signatories);
