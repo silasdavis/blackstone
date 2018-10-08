@@ -17,7 +17,13 @@ contract Organization is EventEmitter, ERC165 {
 
 	bytes32 public constant DEFAULT_DEPARTMENT_ID = "DEFAULT_DEPARTMENT";
 	
-	function addDepartment(bytes32 _id, string _name) public returns (uint error);
+	/**
+	 * @dev Adds the department with the specified ID and name to this Organization.
+	 * @param _id the department ID (must be unique)
+	 * @param _name the name/label for the department
+	 * @return true if the department was added successfully, false otherwise
+	 */
+	function addDepartment(bytes32 _id, string _name) public returns (bool);
 
 	function getNumberOfDepartments() external view returns (uint size);
 

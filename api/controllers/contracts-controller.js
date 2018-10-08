@@ -530,9 +530,9 @@ const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) 
   log.trace(`Adding scopes to agreement ${agreementAddr} parameters: ${JSON.stringify(parameters)}`);
   const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddr);
   const promises = parameters.map(({ name, value, scope }) => new Promise((resolve, reject) => {
-    agreement.setAddressScope(value, name, scope, '', '', '0x0', (err) => {
-      if (err) {
-        return reject(boomify(err, `Failed to add scope ${scope} to address ${value} in context ${name}`));
+    agreement.setAddressScope(value, name, scope, '', '', '0x0', (error) => {
+      if (error) {
+        return reject(boomify(error, `Failed to add scope ${scope} to address ${value} in context ${name}`));
       }
       return resolve();
     });
@@ -561,9 +561,9 @@ const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((res
 const cancelAgreement = (userAddr, agreementAddr) => new Promise((resolve, reject) => {
   const userAccount = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.AGREEMENT_PARTY_ACCOUNT, userAddr);
   log.trace(`Canceling agreement at address ${agreementAddr}, by user at address: ${userAddr}`);
-  userAccount.cancelAgreement(agreementAddr, (err) => {
-    if (err) {
-      return reject(boomify(err, `Failed to cancel agreement at ${agreementAddr}`));
+  userAccount.cancelAgreement(agreementAddr, (error) => {
+    if (error) {
+      return reject(boomify(error, `Failed to cancel agreement at ${agreementAddr}`));
     }
     log.info(`Agreement at ${agreementAddr} canceled by user at ${userAddr}`);
     return resolve();
@@ -591,9 +591,9 @@ const addAgreementToCollection = (collectionId, agreement) => new Promise((resol
   log.trace(`Adding agreement at ${agreement} to collection ${collectionId}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.addAgreementToCollection(collectionId, agreement, (err) => {
-      if (err) {
-        return reject(boomify(err, `Failed to add agreement at ${agreement} to collection ${collectionId}`));
+    .factory.addAgreementToCollection(collectionId, agreement, (error) => {
+      if (error) {
+        return reject(boomify(error, `Failed to add agreement at ${agreement} to collection ${collectionId}`));
       }
       log.info(`Added agreement at ${agreement} to collection with id ${collectionId}`);
       return resolve();
@@ -673,9 +673,9 @@ const createDepartment = (organization, { id, name }) => new Promise((resolve, r
   const orgContract = getOrganization(organization);
   orgContract.addDepartment(id, name, (error, data) => {
     if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to add department to organization at ${organization}`));
+      return reject(boom.badImplementation(`Failed to add department to organization at ${organization}: ${error}`));
     }
-    if (parseInt(data.raw[0], 10) === 1002) {
+    if (data.raw[0] === false) {
       return reject(boom.badRequest(`Department with id ${id} already exists in organization at ${organization}`));
     }
     log.info(`Department ${id} added to organization at ${organization}`);
@@ -688,7 +688,7 @@ const removeDepartment = (organization, depId) => new Promise((resolve, reject) 
   const orgContract = getOrganization(organization);
   orgContract.removeDepartment(depId, (error, data) => {
     if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to remove department from organization at ${organization}`));
+      return reject(boom.badImplementation(`Failed to remove department from organization at ${organization}: ${error}`));
     }
     if (data.raw[0] === false) {
       return reject(boom.badRequest(`Department ${depId} does not exist in organization ${organization}`));
@@ -703,7 +703,7 @@ const addDepartmentUser = (organization, depId, userAccount) => new Promise((res
   const orgContract = getOrganization(organization);
   orgContract.addUserToDepartment(userAccount, depId, (error, data) => {
     if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to add user ${userAccount} to department ${depId} in organization ${organization}`));
+      return reject(boom.badImplementation(`Failed to add user ${userAccount} to department ${depId} in organization ${organization}: ${error}`));
     }
     if (data.raw[0] === false) {
       return reject(boom.badRequest(`User ${userAccount} already belongs to department ${depId} or ${depId} does not exist`));
@@ -718,7 +718,7 @@ const removeDepartmentUser = (organization, depId, userAccount) => new Promise((
   const orgContract = getOrganization(organization);
   orgContract.removeUserFromDepartment(userAccount, depId, (error, data) => {
     if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to remove user ${userAccount} from department ${depId} in organization ${organization}`));
+      return reject(boom.badImplementation(`Failed to remove user ${userAccount} from department ${depId} in organization ${organization}: ${error}`));
     }
     if (data.raw[0] === false) {
       return reject(boom.badRequest(`User ${userAccount} is not a member of department ${depId}`));

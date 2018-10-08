@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
-import "commons-base/BaseErrors.sol";
+import "commons-base/ErrorsLib.sol";
+import "commons-utils/ArrayUtilsAPI.sol";
 import "commons-standards/AbstractERC165.sol";
 import "commons-events/DefaultEventEmitter.sol";
 
@@ -14,6 +15,9 @@ import "commons-auth/UserAccount.sol";
  */
 contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC165 {
 	
+	using MappingsLib for Mappings.AddressBoolMap;
+	using ArrayUtilsAPI for address[];
+
     bytes32 constant EVENT_UPDATE_ORGANIZATION_USER = "UpdateOrganizationUser";
     bytes32 constant EVENT_REMOVE_ORGANIZATION_USER = "RemoveOrganizationUser";
     bytes32 constant EVENT_UPDATE_ORGANIZATION_DEPARTMENT = "UpdateOrganizationDepartment";
@@ -21,14 +25,23 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
     bytes32 constant EVENT_UPDATE_DEPARTMENT_USER = "UpdateDepartmentUser";
     bytes32 constant EVENT_REMOVE_DEPARTMENT_USER = "RemoveDepartmentUser";
 
-	using MappingsLib for Mappings.AddressBoolMap;
-
 	Governance.Organization self;
 
 	// The approvers list is intended to be used as a "board" or admin permission list to make changes to this organization
 	address[] approvers;
 	Mappings.AddressBoolMap users;
 	string public defaultDepartmentName = "Default";
+
+	/**
+	 * @dev Modifier to guard functions only accessible by one of the approvers.
+	 * REVERTS if:
+	 * - msg.sender is not a registered approver
+	 */
+	modifier pre_onlyByApprovers() {
+		ErrorsLib.revertIf(!approvers.contains(msg.sender),
+			ErrorsLib.UNAUTHORIZED(), "DefaultOrganization.pre_onlyByApprovers", "msg.sender ist not a recognized approver of this organization");
+		_;
+	}
 
 	/**
 	 * @dev Creates a new DefaultOrganization with the provided list of initial approvers.
@@ -54,16 +67,22 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
 		addInterfaceSupport(ERC165_ID_Organization);
 	}
 
-	function addDepartment(bytes32 _id, string _name) public returns (uint error) {
+	/**
+	 * @dev Adds the department with the specified ID and name to this Organization.
+	 * @param _id the department ID (must be unique)
+	 * @param _name the name/label for the department
+	 * @return true if the department was added successfully, false otherwise (e.g. if the ID already exists)
+	 */
+	function addDepartment(bytes32 _id, string _name) public returns (bool) {
 		if (self.departments[_id].exists) {
-			return BaseErrors.RESOURCE_ALREADY_EXISTS();
+			return false;
 		}
 		self.departments[_id].keyIdx = self.departmentKeys.push(_id)-1;
 		self.departments[_id].id = _id;
 		self.departments[_id].name = _name;
 		self.departments[_id].exists = true;
 		emitEvent(EVENT_UPDATE_ORGANIZATION_DEPARTMENT, this, _id);
-		return BaseErrors.NO_ERROR();
+		return true;
 	}
 
 	function getNumberOfDepartments() external view returns (uint size) {
