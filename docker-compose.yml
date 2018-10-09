@@ -4,6 +4,8 @@ services:
     image: quay.io/monax/hoard:1.1.3
   postgres:
     image: postgres:9-alpine
+    ports:
+    - "5432:5432"
     environment:
       POSTGRES_USER: blackstone_development
       POSTGRES_PASSWORD: blackstone_development
@@ -23,9 +25,12 @@ services:
     - --log-level
     - debug
     - --spec-file
-    - /config/EventSpec.json.test
+    - /config/Tables.spec
+    - --abi-dir
+    - /abi/
     volumes:
     - ./api/sqlsol:/config
+    - ./contracts/src/bin:/abi
     depends_on:
     - postgres
     - chain
