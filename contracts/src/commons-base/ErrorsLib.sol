@@ -6,6 +6,8 @@ pragma solidity ^0.4.23;
  */
 library ErrorsLib {
 
+    event LogError(bytes32 indexed eventId, string code, string location, string message);
+
     function DELIMITER() internal pure returns (string) {
         return "::";
     }
@@ -54,6 +56,10 @@ library ErrorsLib {
 
     /**
      * @dev Format the provided parameters into an error string
+     * @param _code an error code
+     * @param _location a string identifying to origin of the error
+     * @param _message an error message
+     * @return a concatenated string consisting of the three parameters delimited by the DELIMITER()
      */
     function format(string _code, string _location, string _message) public pure returns (string) {
         if (bytes(_code).length == 0) {
@@ -65,10 +71,25 @@ library ErrorsLib {
     /**
      * @dev Wrapper function around a revert that avoids assembling the error message if the condition is false.
      * This function is meant to replace require(condition, ErrorsLib.format(...)) to avoid the cost of assembling an error string before the condition is checked.
+     * @param _code an error code
+     * @param _location a string identifying to origin of the error
+     * @param _message an error message
      */
-    function revertIf(bool _condition, string _code, string _location, string _message) public pure {
+    function revertIf(bool _condition, string _code, string _location, string _message) public {
         if (_condition) {
+            logError("AN://transaction-rollback", _code, _location, _message);
             revert(format(_code, _location, _message));
         }
+    }
+
+    /**
+     * @dev Logs an error event
+     * @param _eventId the identifier to use for the indexed event ID
+     * @param _code an error code
+     * @param _location a string identifying to origin of the error
+     * @param _message an error message
+     */
+    function logError(bytes32 _eventId, string _code, string _location, string _message) public {
+        emit LogError(_eventId, _code, _location, _message);
     }
 }
