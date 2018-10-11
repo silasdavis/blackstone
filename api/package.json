@@ -27,7 +27,7 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
-    "@monax/burrow": "^0.20.5",
+    "@monax/burrow": "^0.20.7",
     "@sendgrid/mail": "^6.2.1",
     "async": "^2.1.4",
     "bcryptjs": "^2.4.3",
