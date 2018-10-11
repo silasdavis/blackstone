@@ -19,6 +19,7 @@ contract UserAccountTest {
 		uint testState = 42;
 		bytes32 testKey = "myKey";
 		TestService testService = new TestService();
+		bool success;
 
 		UserAccount account = new DefaultUserAccount("userId77", this, 0x0);
 		UserAccount externalAccount = new DefaultUserAccount("userId14", msg.sender, 0x0);
@@ -28,15 +29,18 @@ contract UserAccountTest {
 		// *IMPORTANT*: the use of the abi.encode function for this call is extremely important since sending the parameters individually via call(bytes4, args...)
 		// has known problems encoding the dynamic-size parameters correctly, see https://github.com/ethereum/solidity/issues/2884
 		if (address(account).call(bytes4(keccak256("forwardCall(address,bytes)")), abi.encode(address(0), payload))) 
-			return "Forwarding a call to an empty address should fail";
-		if (address(account).call(bytes4(keccak256("forwardCall(address,bytes)")), abi.encode(address(testService), abi.encodeWithSignature("fakeFunction(bytes32)", testState))))
-			return "Forwarding a call to a non-existent function should fail";		
+			return "Forwarding a call to an empty address should revert";
+		(success, ) = account.forwardCall(address(testService), abi.encodeWithSignature("fakeFunction(bytes32)", testState));
+		if (success)
+			return "Forwarding a call to a non-existent function should return false";
 		// unauthorized accounts (not owner)
 		if (address(externalAccount).call(bytes4(keccak256(abi.encodePacked("forwardCall(address,bytes)"))), abi.encode(address(testService), payload)))
 			return "Forwarding a call from an unauthorized address should fail";
 
 		// test successful invocation
-		bytes memory returnData = account.forwardCall(address(testService), payload);
+		bytes memory returnData;
+		(success, returnData) = account.forwardCall(address(testService), payload);
+		if (!success) return "Forwarding a call from an authorized address with correct payload should return true";
 		if (testService.currentEntity() != address(this)) return "The testService should show this address as the current entity";
 		if (testService.currentState() != testState) return "The testService should have the testState set";
 		if (testService.currentKey() != testKey) return "The testService should have the testKey set";

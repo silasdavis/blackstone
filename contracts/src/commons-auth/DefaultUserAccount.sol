@@ -63,28 +63,29 @@ contract DefaultUserAccount is UserAccount {
      * @param _target the address to call
      * @param _payload the function payload consisting of the 4-bytes function hash and the abi-encoded function parameters which is typically created by
      * calling abi.encodeWithSelector(bytes4, args...) or abi.encodeWithSignature(signatureString, args...) 
-     * @return the bytes returned from calling the target function, if successful (NOTE: this is currently not supported, yet, and the returnData will always be empty)
+     * @return success - whether the forwarding call returned normally
+     * @return returnData - the bytes returned from calling the target function, if successful (NOTE: this is currently not supported, yet, and the returnData will always be empty)
      * REVERTS if:
      * - the target address is empty (0x0)
-     * - any problem occurs when calling the target function, e.g. the function does not exist or the called function throws/reverts
      */
     function forwardCall(address _target, bytes _payload)
         external
         pre_onlyAuthorizedCallers
-        returns (bytes returnData)
+        returns (bool success, bytes returnData)
     {
         ErrorsLib.revertIf(_target == address(0), 
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");
-        ErrorsLib.revertIf(!_target.call(_payload), 
-            ErrorsLib.RUNTIME_ERROR(), "DefaultUserAccount.forwardCall", "Unhandled exception in forward call with payload");
-        // TODO: the following section should store the bytes returned from the call into the returnData, but the returndatasize is always 0
-        uint returnSize;
-        assembly {
-            returnSize := returndatasize
-        }
-        returnData = new bytes(returnSize);
-        assembly {
-            returndatacopy(add(returnData, 0x20), 0, returnSize)
+        success = _target.call(_payload);
+        if (success) {
+            // TODO: the following section should store the bytes returned from the call into the returnData, but the returndatasize is always 0
+            uint returnSize;
+            assembly {
+                returnSize := returndatasize
+            }
+            returnData = new bytes(returnSize);
+            assembly {
+                returndatacopy(add(returnData, 0x20), 0, returnSize)
+            }
         }
     }
 
