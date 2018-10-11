@@ -405,7 +405,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
 const _generateParamGetterPromises = (agreementAddr, agreementParams, reqParams) => {
   const promises = [];
   const invalidParams = [];
-  reqParams.forEach((name) => {
+  reqParams.forEach(({ name }) => {
     const matchingParam = agreementParams.filter(item => name === item.name)[0];
     if (matchingParam) {
       const getterFunction = dataStorage.agreementDataGetters[`${matchingParam.parameterType}`];
@@ -428,7 +428,7 @@ const getAgreementParameters = async (agreementAddr, reqParams) => {
     const params = reqParams || [];
     if (params.length === 0) {
       agreementParams.forEach((param) => {
-        params.push(param.name);
+        params.push(param);
       });
     }
     const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams, params);
@@ -436,7 +436,7 @@ const getAgreementParameters = async (agreementAddr, reqParams) => {
       return reject(boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`));
     }
     return Promise.all(promises)
-      .then(results => resolve(results))
+      .then(results => resolve(results.map(({ name, value }, i) => ({ name, value, type: params[i].parameterType }))))
       .catch(err => reject(boom.badImplementation(`Failed to get agreement parameters: ${err}`)));
   });
 };
@@ -460,6 +460,9 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   const parameters = await getAgreementParameters(addr, null);
   const parties = await sqlCache.getAgreementParties(addr);
   Object.assign(retData, format('Agreement', data));
+  const password = req.query.password || null;
+  const documentMetadata = await sqlCache.getArchetypeDocuments(retData.archetype);
+  retData.documents = await getDocumentsFromHoard(documentMetadata, password);
   retData.parameters = parameters.map(param => format('Parameter Value', param));
   retData.parties = parties.map(party => format('Parameter Value', party));
   const governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);

@@ -279,10 +279,12 @@ const getAgreements = (queryParams, forCurrentUser, userAccount) => new Promise(
 });
 
 const getAgreementData = (agreementAddress, userAccount) => new Promise((resolve, reject) => {
-  const queryString = `SELECT a.address, a.*, ac.collectionId FROM agreements a 
-      LEFT JOIN agreement_to_collection ac ON a.address = ac.agreementAddress 
-      LEFT JOIN agreements_to_parties ap ON a.address = ap.address 
-      WHERE a.address = ? AND (a.isPrivate = 0 OR ${currentUserAgreements(userAccount)})`;
+  const queryString = `SELECT a.address, a.*, ac.collectionId, 
+    arch.formationProcessDefinition, arch.executionProcessDefinition FROM agreements a 
+    LEFT JOIN agreement_to_collection ac ON a.address = ac.agreementAddress 
+    LEFT JOIN agreements_to_parties ap ON a.address = ap.address 
+    JOIN archetypes arch ON a.archetype = arch.address 
+    WHERE a.address = ? AND (a.isPrivate = 0 OR ${currentUserAgreements(userAccount)})`;
   contracts.cache.db.get(queryString, agreementAddress, (err, data) => {
     if (err) return reject(boom.badImplementation(`Failed to get agreement data: ${err}`));
     return resolve(data);
