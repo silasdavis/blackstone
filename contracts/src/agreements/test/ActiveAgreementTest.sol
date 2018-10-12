@@ -2,8 +2,9 @@ pragma solidity ^0.4.23;
 
 import "commons-base/BaseErrors.sol";
 import "commons-auth/DefaultOrganization.sol";
+import "commons-auth/UserAccount.sol";
+import "commons-auth/DefaultUserAccount.sol";
 
-import "agreements/AgreementPartyAccount.sol";
 import "agreements/Agreements.sol";
 import "agreements/AgreementsAPI.sol";
 import "agreements/DefaultActiveAgreement.sol";
@@ -26,8 +27,8 @@ contract ActiveAgreementTest {
 
 	string agreementName = "active agreement name";
 	bytes32 bogusId = "bogus";
-	TestSigner signer1 = new TestSigner("signer1");
-	TestSigner signer2 = new TestSigner("signer2");
+	UserAccount signer1;
+	UserAccount signer2;
 
 	address[] parties;
 	address[] bogusArray = [0xCcD5bA65282C3dafB69b19351C7D5B77b9fDDCA6, 0x5e3621030C9E0aCbb417c8E63f0824A8215a8958, 0x8A8318bdCfFf8c83C4Da727AEEE9483806689cCF, 0x1915FBC9C4A2E610012150D102D1a916C78Aa44f];
@@ -39,7 +40,9 @@ contract ActiveAgreementTest {
 	function testActiveAgreementSetup() external returns (string) {
 
 		address result;
-	  ActiveAgreement agreement;
+		ActiveAgreement agreement;
+		signer1 = new DefaultUserAccount("signer1", this, address(0));
+		signer2 = new DefaultUserAccount("signer2", this, address(0));
 
 		// set up the parties.
 		delete parties;
@@ -73,8 +76,10 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementSigning() external returns (string) {
 
-		uint error;
+		bool success;
 	  	ActiveAgreement agreement;
+		signer1 = new DefaultUserAccount("signer1", this, address(0));
+		signer2 = new DefaultUserAccount("signer2", this, address(0));
 
 		// set up the parties.
 		// Signer1 is a direct signer
@@ -100,7 +105,8 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED";
 
 		// Signing with Signer1 as party
-		signer1.signAgreement(agreement);
+		(success, ) = signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		if (!success) return "Signing the agreement via signer1 should be successful";
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer1";
 		(signee, timestamp) = agreement.getSignatureDetails(signer1);
 		if (signee != address(signer1)) return "Signee for signer1 should be signer1";
@@ -109,7 +115,8 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED after signer1";
 
 		// Signing with Signer2 via the organization
-		signer2.signAgreement(agreement);
+		(success, ) = signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		if (!success) return "Signing the agreement via signer2 should be successful";
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer2";
 		if (agreement.isSignedBy(org1)) return "Agreement should NOT be signed by org1";
 		(signee, timestamp) = agreement.getSignatureDetails(org1);
@@ -126,8 +133,11 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementCancellation() external returns (string) {
 
+		bool success;
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
+		signer1 = new DefaultUserAccount("signer1", this, address(0));
+		signer2 = new DefaultUserAccount("signer2", this, address(0));
 
 		// set up the parties.
 		delete parties;
@@ -145,16 +155,21 @@ contract ActiveAgreementTest {
 		if (agreement2.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should NOT be CANCELED";
 
 		// Agreement1 is canceled during formation
-		signer2.cancelAgreement(agreement1);
+		(success, ) = signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
+		if (!success) return "Canceling agreement1 via signer2 should be successful";
 		if (agreement1.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should be CANCELED after unilateral cancellation in formation";
 
 		// Agreement2 is canceled during execution
-		signer1.signAgreement(agreement2);
-		signer2.signAgreement(agreement2);
+		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		if (!success) return "Signing agreement2 via signer1 should be successful";
+		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		if (!success) return "Signing agreement2 via signer2 should be successful";
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreemen2 legal state should be EXECUTED after parties signed";
-		signer1.cancelAgreement(agreement2);
+		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
+		if (!success) return "Canceling agreement2 via signer1 should be successful";
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement2 legal state should still be EXECUTED after unilateral cancellation";
-		signer2.cancelAgreement(agreement2);
+		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
+		if (!success) return "Canceling agreement2 via signer2 should be successful";
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should be CANCELED after bilateral cancellation";
 
 		return SUCCESS;
@@ -162,10 +177,3 @@ contract ActiveAgreementTest {
 
 }
 
-contract TestSigner is AgreementPartyAccount {
-
-	constructor(bytes32 _id) public AgreementPartyAccount(_id, msg.sender, 0x0) {
-
-	}
-
-}

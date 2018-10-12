@@ -269,17 +269,6 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 */
 	 function setEventLogReference(address _activeAgreement, bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external;
 
-	 /**
- 	 * @dev Creates a AgreementPartyAccount with the specified parameters and adds it to the ParticipantsManager
- 	 * @param _accountsManager the ParticipantsManager address
-	 * @param _id an identifier for the user
-	 * @param _owner the owner of the user account
-	 * @param _ecosystem the address of an Ecosystem to which the user account is connected
-	 * @return an error code indicating success or failure
-	 * @return userAccount user account address, or 0x0 if not successful
-	 */
-	function createUserAccount(address _accountsManager, bytes32 _id, address _owner, address _ecosystem) external returns (uint error, address userAccount);
-
 	/**
 	 * @dev Creates a new agreement collection
 	 * @param _name name
