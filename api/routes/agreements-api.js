@@ -572,39 +572,63 @@ module.exports = (app) => {
  * @apiSuccess {String} collectionId Id of the collection the agreement belongs to
  * @apiSuccess {Object[]} parties An array of objects with each party member's address,
  * user id or organization name, signature timestamp, and address of the user that has signed for the party
- * @apiSuccess {Object[]} parameters The "parameter-name" and values of the parameters.
+ * @apiSuccess {Object[]} parameters An array of objects with each parameter's name, value, and data type
  * @apiSuccess {Object[]} governingAgreements An array of the governing agreements with the `address`, `name`, and `isPrivate` value of each
  * @apiSuccessExample {json} Success Object
-       {
-         "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
-         "name": "Agreement",
-         "archetype": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
-         "isPrivate": false,
-         "eventLogHoardAddress": "0000000000000000000000000000000000000000000000000000000000000000",
-         "eventLogHoardSecret": "0000000000000000000000000000000000000000000000000000000000000000",
-         "maxNumberOfEvents": 0,
-         "legalState": 1,
-         "formationProcessInstance": "413AC7610E6A4E0ACEB29596FFC52D243A2E7CD7",
-         "executionProcessInstance": "0000000000000000000000000000000000000000",
-         "collectionId": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
-         "parties": [
-           "address": "A072341D3BBD4FDD3CD5D0EBADB0EB37887E3311",
-           "organizationName": "Drones Delight"
-           "signatureTimestamp": 1529588821427,
-           "completedBy": "BE98345FEDCD465D0EBADB0EB3789F234ECBD"
-         ],
-         "parameters": {
-           "parameterName": "parameterValue",
-           ...
-         },
-        "governingAgreements": [
-            {
-                "address": "B3AEAD4717EFF80BDDF5E22110521029A8460FFB",
-                "name": "Governing Agreement",
-                "isPrivate": false
-            }
-        ]
+  {
+    "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
+    "name": "Agreement",
+    "archetype": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
+    "isPrivate": false,
+    "eventLogHoardAddress": "0000000000000000000000000000000000000000000000000000000000000000",
+    "eventLogHoardSecret": "0000000000000000000000000000000000000000000000000000000000000000",
+    "maxNumberOfEvents": 0,
+    "legalState": 1,
+    "formationProcessInstance": "413AC7610E6A4E0ACEB29596FFC52D243A2E7CD7",
+    "executionProcessInstance": "0000000000000000000000000000000000000000",
+    "formationProcessDefinition": "65BF0FB03BA5C140B1584A290B157F8907B8FEBE",
+    "executionProcessDefinition": "E6534E45E2B26AF4FBB64E42CE7FC66688696483",
+    "collectionId": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
+    "parties": [
+        {
+          "address": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
+          "signatureTimestamp": 1539260590000,
+          "signedBy": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
+          "id": "jsmith"
+        }
+    ],
+    "documents": [
+      {
+        "name": "Template1.docx",
+        "hoardAddress": "1385440DD77393038D465314BB565D3FE8B7DE2A97D122DDF4CBDB979716828E",
+        "secretKey": "06B35F914EF79D3FE890693D5F8AF4CC58674CEB729F5B29DF1166FAD9DE4A63"
+      },
+      {
+        "name": "Template2.md",
+        "hoardAddress": "3133B11EB8D09DA7945A3ADBD452A6D8FF46F92C51BE003E9FC09D12EB6E5886",
+        "secretKey": "E00F74690D64089AD7012C4C3B4DE5AC478D8660D85F7C3888E057256177FB04"
+      },
+    ],
+    "parameters": [
+      {
+        "name": "Signatory",
+        "value": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
+        "type": 8
+      },
+      {
+        "name": "User",
+        "value": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
+        "type": 6
       }
+    ],
+    "governingAgreements": [
+      {
+        "address": "B3AEAD4717EFF80BDDF5E22110521029A8460FFB",
+        "name": "Governing Agreement",
+        "isPrivate": false
+      }
+    ]
+  }
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
