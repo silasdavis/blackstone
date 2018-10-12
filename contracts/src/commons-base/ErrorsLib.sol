@@ -75,9 +75,9 @@ library ErrorsLib {
      * @param _location a string identifying to origin of the error
      * @param _message an error message
      */
-    function revertIf(bool _condition, string _code, string _location, string _message) public {
+    function revertIf(bool _condition, string _code, string _location, string _message) public pure {
         if (_condition) {
-            logError("AN://transaction-rollback", _code, _location, _message);
+            // logError("AN://transaction-rollback", _code, _location, _message);
             revert(format(_code, _location, _message));
         }
     }
