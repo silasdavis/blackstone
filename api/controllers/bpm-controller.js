@@ -420,31 +420,39 @@ const addTransitionsFromBpmn = (pdAddress, transitions) => {
       throw boom
         .badRequest(`Transition source and target IDs are required for transition id ${transition.id} in process definition at ${pdAddress}`);
     }
-    if (transition.condition) {
-      const transitionPromise = contracts.createTransition(pdAddress, transition.source, transition.target)
-        .then(() => {
-          contracts.createTransitionCondition(
-            pdAddress,
-            transition.condition.dataType,
-            transition.source,
-            transition.target,
-            transition.condition.lhDataPath,
-            transition.condition.lhDataStorageId,
-            0x0,
-            transition.condition.operator,
-            transition.condition.rhValue,
-          );
-        });
-      transitionPromises.push(transitionPromise);
-    } else {
-      transitionPromises.push(contracts.createTransition(pdAddress, transition.source, transition.target));
-    }
+    transitionPromises.push(contracts.createTransition(pdAddress, transition.source, transition.target));
   });
   // TODO - Implemented chaining of individual promises in the loop above. - this seems to have solved the out of sequence creation of transitions and transition conditions
   // Need to keep an eye out for the time being to ensure we don't get such failure with the above strategy
   return Promise.all(transitionPromises)
     .then(() => Promise.resolve())
-    .catch(err => Promise.reject(boom.badImplementation(`Failed to create transition(s) and condition(s): ${err.stack}`)));
+    .catch(err => Promise.reject(boom.badImplementation(`Failed to create transition(s): ${err.stack}`)));
+};
+
+const addTransitionConditionsFromBpmn = (pdAddress, transitions) => {
+  const conditionPromises = [];
+  transitions.forEach((transition) => {
+    if (transition.condition) {
+      conditionPromises.push(
+        contracts.createTransitionCondition(
+          pdAddress,
+          transition.condition.dataType,
+          transition.source,
+          transition.target,
+          transition.condition.lhDataPath,
+          transition.condition.lhDataStorageId,
+          0x0,
+          transition.condition.operator,
+          transition.condition.rhValue,
+        ),
+      );
+    }
+  });
+  // TODO - Implemented chaining of individual promises in the loop above. - this seems to have solved the out of sequence creation of transitions and transition conditions
+  // Need to keep an eye out for the time being to ensure we don't get such failure with the above strategy
+  return Promise.all(conditionPromises)
+    .then(() => Promise.resolve())
+    .catch(err => Promise.reject(boom.badImplementation(`Failed to create condition(s): ${err.stack}`)));
 };
 
 const addBpmnGateways = (pdAddress, gateways) => {
@@ -537,6 +545,7 @@ const addProcessToModel = (pmAddress, pd) => new Promise(async (resolve, reject)
     await addBpmnGateways(proc.address, pd.xorGateways);
     await addBpmnGateways(proc.address, pd.andGateways);
     await addTransitionsFromBpmn(proc.address, pd.transitions);
+    await addTransitionConditionsFromBpmn(proc.address, pd.transitions);
     await setDefaultTransitions(proc.address, pd.defaultTransitions);
     await contracts.isValidProcess(proc.address);
     await contracts.getStartActivity(proc.address);
