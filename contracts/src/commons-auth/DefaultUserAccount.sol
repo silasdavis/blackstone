@@ -75,16 +75,18 @@ contract DefaultUserAccount is UserAccount {
     {
         ErrorsLib.revertIf(_target == address(0), 
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");
-        success = _target.call(_payload);
+        bytes memory data = _payload;
+        assembly {
+            success := call(gas, _target, 0, add(data, 0x20), mload(data), 0, 0)
+        }
         if (success) {
-            // TODO: the following section should store the bytes returned from the call into the returnData, but the returndatasize is always 0
             uint returnSize;
             assembly {
                 returnSize := returndatasize
             }
-            returnData = new bytes(returnSize);
+            returnData = new bytes(returnSize); // allocates a new byte array with the right size
             assembly {
-                returndatacopy(add(returnData, 0x20), 0, returnSize)
+                returndatacopy(add(returnData, 0x20), 0, returnSize) // copies the returned bytes from the function call into the return variable
             }
         }
     }

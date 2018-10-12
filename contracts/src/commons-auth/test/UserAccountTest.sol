@@ -45,10 +45,14 @@ contract UserAccountTest {
 		if (testService.currentState() != testState) return "The testService should have the testState set";
 		if (testService.currentKey() != testKey) return "The testService should have the testKey set";
 		if (testService.lastCaller() != address(account)) return "The testService should show the UserAccount as the last caller";
-		// TODO the returnData is always empty and cannot be tested. See TODO in DefaultUserAccount.forwardCall
+		if (returnData.length != 32) return "ReturnData should be of size 32";
 		// TODO ability to decode return data via abi requires 0.5.0.
-		// (bytes32 message) = abi.decode(returnData,(bytes32));
-		// if (message != testService.getSuccessMessage()) return "The function return data should match the service success message";
+		// (bytes32 returnMessage) = abi.decode(returnData,(bytes32));
+		bytes32 returnMessage;
+		assembly {
+    	    returnMessage := mload(add(returnData, 32))
+    	}
+		if (returnMessage != testService.getSuccessMessage()) return "The function return data should match the service success message";
 
 		return SUCCESS;
 	}
