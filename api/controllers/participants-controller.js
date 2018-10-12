@@ -1,7 +1,6 @@
 const boom = require('boom');
 const bcrypt = require('bcryptjs');
 const Joi = require('joi');
-const Analytics = require('analytics-node');
 const _ = require('lodash');
 
 const {
@@ -15,7 +14,6 @@ const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
 const pool = require(`${global.__common}/postgres-db`);
-const analytics = new Analytics(global.__settings.monax.analyticsID);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const sqlCache = require('./sqlsol-query-helper');
@@ -232,14 +230,6 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
   // insert in user db
   const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5)';
   await pool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
-  analytics.identify({
-    userId: id,
-    traits: { userContract: address },
-  });
-  analytics.track({
-    event: 'Signed up',
-    userId: id,
-  });
   return res.status(200).json({ address, id });
 });
 

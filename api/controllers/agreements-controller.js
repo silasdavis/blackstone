@@ -1,7 +1,6 @@
 const path = require('path');
 const boom = require('boom');
 const Joi = require('joi');
-const Analytics = require('analytics-node');
 const _ = require('lodash');
 const pgCache = require('./postgres-cache-helper');
 
@@ -26,8 +25,6 @@ const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements');
 const sqlCache = require('./sqlsol-query-helper');
 const { PARAMETER_TYPE: PARAM_TYPE, AGREEMENT_PARTIES } = global.__monax_constants;
-
-const analytics = new Analytics(global.__settings.monax.analyticsID);
 
 const getArchetypes = asyncMiddleware(async (req, res) => {
   const retData = [];
@@ -158,15 +155,6 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   if (type.jurisdictions) {
     await contracts.addJurisdictions(archetypeAddress, type.jurisdictions);
   }
-
-  analytics.track({
-    event: 'Archetype created',
-    userId: req.user.id,
-    properties: {
-      userContract: req.user.address,
-      archetypeContract: archetypeAddress,
-    },
-  });
 
   return res
     .status(200)
@@ -463,17 +451,6 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   }
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
   log.debug(`Process Instance Address: ${piAddress}`);
-  analytics.track({
-    event: 'Agreement created',
-    userId: req.user.id,
-    properties: {
-      userContract: agreement.creator,
-      archetypeContract: agreement.archetype,
-      agreementContract: agreementAddress,
-      agreementName: agreement.name,
-      agreementParties: JSON.stringify(agreement.parties),
-    },
-  });
   res
     .status(200)
     .set('content-type', 'application/json')

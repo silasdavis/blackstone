@@ -29,7 +29,6 @@
   "dependencies": {
     "@monax/burrow": "^0.20.5",
     "@sendgrid/mail": "^6.2.1",
-    "analytics-node": "^3.3.0",
     "async": "^2.1.4",
     "bcryptjs": "^2.4.3",
     "binstring": "^0.2.1",
