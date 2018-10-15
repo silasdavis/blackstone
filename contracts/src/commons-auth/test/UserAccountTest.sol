@@ -6,8 +6,11 @@ import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
 
 contract UserAccountTest {
-	
+
+	using TypeUtilsAPI for bytes;
+
 	string constant SUCCESS = "success";
+	string longString = "longString";
 
 	string testServiceFunctionSig = "serviceInvocation(address,uint256,bytes32)";
 
@@ -48,11 +51,13 @@ contract UserAccountTest {
 		if (returnData.length != 32) return "ReturnData should be of size 32";
 		// TODO ability to decode return data via abi requires 0.5.0.
 		// (bytes32 returnMessage) = abi.decode(returnData,(bytes32));
-		bytes32 returnMessage;
-		assembly {
-    	    returnMessage := mload(add(returnData, 32))
-    	}
-		if (returnMessage != testService.getSuccessMessage()) return "The function return data should match the service success message";
+		if (returnData.toBytes32() != testService.getSuccessMessage()) return "The function return data should match the service success message";
+
+		// test different input/return data
+		payload = abi.encodeWithSignature("isStringLonger5(string)", longString);
+		(success, returnData) = account.forwardCall(address(testService), payload);
+		if (!success) return "isStringLonger5 invocation should succeed";
+		if (returnData[31] != 1) return "isStringLonger5 should return true for longString"; // boolean is left-padded, so the value is at the end of the bytes
 
 		return SUCCESS;
 	}
@@ -77,6 +82,13 @@ contract TestService {
 		lastCaller = msg.sender;
 		return "congrats";
 	}
+
+	function isStringLonger5(string _string) public pure returns (bool) {
+		if (bytes(_string).length > 5)
+			return true;
+		else
+			return false;
+	} 
 
 	function getSuccessMessage() public pure returns (bytes32) {
 		return "congrats";	

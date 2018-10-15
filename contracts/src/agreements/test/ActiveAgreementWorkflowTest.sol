@@ -254,20 +254,20 @@ contract ActiveAgreementWorkflowTest {
 			return "Retrieving IN data via the application should REVERT while the user is still the performer";
 
 		// test fail on invalid user
-		(success , returnData) = nonPartyAccount.forwardCall(bpmService.getProcessInstanceForActivity(pi.getActivityInstanceAtIndex(0)), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
-		// if (returnData.toInteger != BaseErrors.INVALID_ACTOR()) return "Attempting to complete the Sign activity with an unassigned user should fail.";
+		(success , returnData) = nonPartyAccount.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempting to complete the Sign activity with an unassigned user should fail.";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after wrong user attempt";
 		// test fail on unsigned agreement
-		( , returnData) = userAccount1.forwardCall(bpmService.getProcessInstanceForActivity(pi.getActivityInstanceAtIndex(0)), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
-		// if (returnData.toInteger != BaseErrors.RUNTIME_ERROR()) return "Attempting to complete the Sign activity without signing the agreement should fail";
+		( , returnData) = userAccount1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		if (returnData.toUint() != BaseErrors.RUNTIME_ERROR()) return "Attempting to complete the Sign activity without signing the agreement should fail";
 		( , , , addr, , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after completion attempt without signing";
 		if (addr != address(userAccount1)) return "userAccount1 should still be the performer of activity1 even after completion failed";
 
 		// test successful completion
 		userAccount1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		(success, ) = userAccount1.forwardCall(bpmService.getProcessInstanceForActivity(pi.getActivityInstanceAtIndex(0)), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		(success, ) = userAccount1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
 		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user1";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 1 in Formation Process should be completed";
@@ -277,7 +277,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// complete the missing signatures and tasks
 		userAccount2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		(success, ) = userAccount2.forwardCall(bpmService.getProcessInstanceForActivity(pi.getActivityInstanceAtIndex(1)), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), bpmService));
+		(success, ) = userAccount2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), bpmService));
 		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user2 in org1";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 2 in Formation Process should be completed";
@@ -289,7 +289,7 @@ contract ActiveAgreementWorkflowTest {
 		if (pi.resolveAddressScope(address(org2), activityId1, pi) != departmentId1) return "Org2 in context of activity1 should show the additional department scope";
 		// check upfront if the user/org/department context is authorized which is used in the following activity completion
 		if (!org2.authorizeUser(userAccount3, departmentId1)) return "User3 should be authorized for dep1 in org2";
-		(success, ) = userAccount3.forwardCall(bpmService.getProcessInstanceForActivity(pi.getActivityInstanceAtIndex(2)), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(2), bpmService));
+		(success, ) = userAccount3.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(2), bpmService));
 		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user3 in org2";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 3 in Formation Process should be completed";

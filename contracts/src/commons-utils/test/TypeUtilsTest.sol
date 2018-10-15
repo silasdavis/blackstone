@@ -9,6 +9,7 @@ contract TypeUtilsTest {
 	using TypeUtilsAPI for bytes32;
 	using TypeUtilsAPI for string;
 	using TypeUtilsAPI for address;
+	using TypeUtilsAPI for bytes;
 
 	function testLengthBytes32() external pure returns (string) {
 		bytes32 b = "Hello World";
@@ -64,9 +65,29 @@ contract TypeUtilsTest {
 		s = "  blanks and underscores __";
 		if (s.toBytes32() != "  blanks and underscores __") { return "Converting string '  blanks and underscores __' to bytes32 failed."; }
 		s = "This text is longer then 32 ASCII characters and should be cut off.";
-		if (s.toBytes32() != "This text is longer then 32 ASCI") { return "Converting string string longer then 32 chars to bytes32 failed."; }
+		if (s.toBytes32() != "This text is longer then 32 ASCI") { return "Converting string longer then 32 chars to bytes32 failed."; }
 		
 		return "success";
 	}
-	
+
+	function testBytesToBytes32() external pure returns (string) {
+		bytes memory b = "blabla";
+		if (b.toBytes32() != "blabla") { return "Converting bytes 'blabla' to bytes32 failed."; }
+		b = "123 Pelham 100%";
+		if (b.toBytes32() != "123 Pelham 100%") { return "Converting bytes '123 Pelham 100%' to bytes32 failed."; }
+		b = "  blanks and underscores __";
+		if (b.toBytes32() != "  blanks and underscores __") { return "Converting bytes '  blanks and underscores __' to bytes32 failed."; }
+		b = "This text is longer then 32 ASCII characters and should be cut off.";
+		if (b.toBytes32() != "This text is longer then 32 ASCI") { return "Converting bytes longer then 32 chars to bytes32 failed."; }
+		
+		return "success";
+	}
+
+	function testBytesToUint() external pure returns (string) {
+		uint number = 928349;
+		bytes memory b = abi.encode(number);
+		if (b.toUint() != number) { return "Converting bytes to number should return same value"; }
+		
+		return "success";
+	}
 }

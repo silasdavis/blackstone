@@ -42,4 +42,19 @@ library TypeUtilsAPI {
      */
     function toBytes32(string s) public pure returns (bytes32 result);
 
+    /**
+     * @dev Converts the given bytes to bytes32. If the bytes are longer than
+     * 32, it will be truncated.
+     * @param b a byte[]
+     * @return the bytes32 representation
+     */
+    function toBytes32(bytes b) public pure returns (bytes32 result);
+
+    /**
+     * @dev Converts the given bytes into the corresponding uint representation
+     * @param b a byte[]
+     * @return the uint representation
+     */
+	function toUint(bytes b) public pure returns (uint256 number);
+
 }

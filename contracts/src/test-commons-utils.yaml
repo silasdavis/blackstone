@@ -85,6 +85,32 @@ jobs:
     relation: eq
     val: success
 
+# bytes -> bytes32
+- name: testBytesToBytes32
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testBytesToBytes32
+
+- name: assertBytesToBytes32
+  assert:
+    key: $testBytesToBytes32
+    relation: eq
+    val: success
+
+# bytes -> uint
+- name: testBytesToUint
+  call:
+    destination: $TypeUtilsLibTest
+    bin: TypeUtilsTest
+    function: testBytesToUint
+
+- name: assertBytesToUint
+  assert:
+    key: $testBytesToUint
+    relation: eq
+    val: success
+
 #####
 # ArrayUtils Test
 - name: ArrayUtilsLibTest
