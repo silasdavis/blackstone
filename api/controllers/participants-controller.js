@@ -212,7 +212,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
     text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
     values: [email, id],
   });
-  if (rows[0]){
+  if (rows[0]) {
     if (rows[0].email === email.toLowerCase()) {
       throw boom.badData(`Email ${email} already registered`);
     } else if (rows[0].username === id.toLowerCase()) {
@@ -229,7 +229,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
 
-  // insert/update in user db
+  // insert in user db
   const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5)';
   await pool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
   analytics.identify({

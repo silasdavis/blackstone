@@ -38,7 +38,7 @@ const getUsers = queryParams => new Promise((resolve, reject) => {
   contracts.cache.db.all(queryString, async (err, data) => {
     if (err) return reject(boom.badImplementation(`Failed to get users: ${err}`));
     try {
-      return resolve(await setUserIds(data, 'User'));
+      return resolve(await setUserIds(data, true, 'User'));
     } catch (userIdErr) {
       return reject(boom.badImplementation(`Failed to get users: ${userIdErr}`));
     }
