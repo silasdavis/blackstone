@@ -291,10 +291,13 @@ const dependencies = {
     };
   },
 
-  setUserIds: (users, ...formats) => new Promise((resolve, reject) => {
+  setUserIds: (users, registeredUsersOnly, ...formats) => new Promise((resolve, reject) => {
+    const text = `SELECT username AS id, address FROM users 
+    WHERE address = ANY ($1)
+    ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
     try {
       pool.query({
-        text: 'SELECT username AS id, address FROM users WHERE address = ANY ($1)',
+        text,
         values: [users.map(user => user.address)],
       }, (err, res) => {
         if (err) reject(boom.badImplementation(err));
@@ -304,12 +307,12 @@ const dependencies = {
         });
         const _users = users.map((_user) => {
           let user = Object.assign({}, _user);
-          user.id = userIds[user.address] || '';
+          user.id = userIds[user.address];
           formats.forEach((format) => {
             user = dependencies.format(format, user);
           });
           return user;
-        });
+        }).filter(({ id }) => id);
         resolve(_users);
       });
     } catch (err) {

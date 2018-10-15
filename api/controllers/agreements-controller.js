@@ -14,6 +14,9 @@ const {
   asyncMiddleware,
   getBooleanFromString,
 } = require(`${global.__common}/controller-dependencies`);
+const pool = require(`${global.__common}/postgres-db`);
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
 const archetypeSchema = require(`${global.__schemas}/archetype`);
@@ -289,6 +292,64 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   res.sendStatus(200);
 });
 
+const createOrFindAccountsWithEmails = async (params) => {
+  const newParams = {
+    notAccountOrEmail: [],
+    withEmail: [],
+    forExistingUser: [],
+    forNewUser: [],
+  };
+  params.forEach((param) => {
+    if (param.type !== PARAM_TYPE.USER_ORGANIZATION && param.type !== PARAM_TYPE.SIGNING_PARTY) {
+      // Ignore non-account parameters
+      newParams.notAccountOrEmail.push({ ...param });
+    } else if (/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)) {
+      // Select parameters with email values
+      newParams.withEmail.push({ ...param });
+    } else {
+      // Ignore parameters with non-email values
+      newParams.notAccountOrEmail.push({ ...param });
+    }
+  });
+  const client = await pool.connect();
+  try {
+    if (newParams.withEmail.length) {
+      const { rows } = await client.query({
+        text: `SELECT LOWER(email) AS email, address FROM users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
+        values: newParams.withEmail.map(({ value }) => value),
+      });
+      // Find existing accounts with given emails
+      newParams.forExistingUser = rows.map(({ email, address }) => {
+        const paramWithEmail = newParams.withEmail.find(param => param.value.toLowerCase() === email);
+        return { ...paramWithEmail, value: address };
+      });
+      // Select users that need to be created
+      newParams.forNewUser = newParams.withEmail.filter(param => !newParams.forExistingUser.find(({ name }) => param.name === name));
+      const createNewUserPromises = newParams.forNewUser.map(async (param) => {
+        // Create user on chain
+        const address = await contracts.createUser({ id: param.value });
+        const password = crypto.randomBytes(32).toString('hex');
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+        // Create user in db
+        const queryString = `INSERT INTO users(
+          address, username, email, password_digest, is_producer, external_user
+        ) VALUES(
+          $1, $2, $3, $4, $5, $6
+        );`;
+        await client.query({ text: queryString, values: [address, param.value, param.value, hash, false, true] });
+        return { ...param, value: address };
+      });
+      newParams.forNewUser = await Promise.all(createNewUserPromises);
+    }
+    // Return all parameters
+    return newParams.notAccountOrEmail.concat(newParams.forExistingUser).concat(newParams.forNewUser);
+  } catch (err) {
+    if (boom.isBoom(err)) throw err;
+    throw boom.badImplementation(err);
+  }
+};
+
 const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agreementParams) => {
   const promises = [];
   const invalidParams = [];
@@ -329,7 +390,8 @@ const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
 
 const createAgreement = asyncMiddleware(async (req, res) => {
   const password = req.body.password || null;
-  const parameters = req.body.parameters || [];
+  let parameters = req.body.parameters || [];
+  parameters = await createOrFindAccountsWithEmails(parameters);
   const parties = req.body.parties || [];
   const hoardRef = {};
   hoardRef.address = req.body.eventLogHoardAddress || '';
