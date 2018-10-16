@@ -12,6 +12,7 @@ const server = require(__common + '/aa-web-api');
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests');
 const pool = require(__common + '/postgres-db');
+const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);
 
@@ -1238,4 +1239,214 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     data = await api.createAgreement(ndaAgreement, user1.token);
     expect(String(data.address).match(/[0-9A-Fa-f]{40}/)).to.exist;
   }).timeout(10000);
+});
+
+describe(':: External Users ::', () => {
+  let externalUser1 = {
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+  let externalUser2 = {
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+  let registeredUser = {
+    username: `registeredUser${rid(5, 'aA0')}`,
+    password: 'registeredUser',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+
+  let formation = {
+    filePath: 'test/data/inc-formation.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Formation'
+  }
+  let execution = {
+    filePath: 'test/data/inc-execution.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Execution'
+  }
+
+  let archetype = {
+    name: 'Incorporation Archetype',
+    description: 'Incorporation Archetype',
+    price: 10,
+    isPrivate: 1,
+    active: 1,
+    parameters: [
+      { type: 8, name: 'External1Uppercase' },
+      { type: 6, name: 'External2' },
+      { type: 6, name: 'External1Lowercase' },
+      { type: 8, name: 'RegisteredNormal' },
+      { type: 6, name: 'RegisteredByEmail' },
+    ],
+    documents: [{
+      name: 'doc1.md',
+      hoardAddress: '0x0',
+      secretKey: '0x0',
+    }],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  }
+
+  let agreement = {
+    name: 'external users agreement',
+    archetype: '',
+    isPrivate: false,
+    parameters: [],
+    hoardAddress: '',
+    hoardSecret: '',
+    eventLogHoardAddress: '',
+    eventLogHoardSecret: '',
+    maxNumberOfEvents: 0,
+    governingAgreements: []
+  }
+
+  it('Should register user', async () => {
+    // REGISTER USER
+    const registerResult = await api.registerUser(registeredUser);
+    registeredUser.address = registerResult.address;
+    expect(registeredUser.address).to.exist
+  }).timeout(5000);
+
+  it('Should login user', (done) => {
+    // LOGIN USER
+    setTimeout(async () => {
+      try {
+        const loginResult = await api.loginUser(registeredUser);
+        expect(loginResult.token).to.exist;
+        registeredUser.token = loginResult.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let formXml = api.generateModelXml(formation.id, formation.filePath);
+    let formationDeploy = await api.createAndDeployModel(formXml, registeredUser.token);
+    expect(formationDeploy).to.exist;
+    Object.assign(formation, formationDeploy.model);
+    Object.assign(formation.process, formationDeploy.processes[0]);
+    archetype.formationProcessDefinition = formation.process.address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    let execXml = api.generateModelXml(execution.id, execution.filePath);
+    let executionDeploy = await api.createAndDeployModel(execXml, registeredUser.token);
+    expect(executionDeploy).to.exist;
+    Object.assign(execution, executionDeploy.model);
+    Object.assign(execution.process, executionDeploy.processes[0]);
+    archetype.executionProcessDefinition = execution.process.address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(30000);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        archetype.documents[0].hoardAddress = hoardRef.address;
+        archetype.documents[0].secretKey = hoardRef.secretKey;
+        Object.assign(archetype, await api.createArchetype(archetype, registeredUser.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should create an angreement with emails in the user/org/signatory parameters', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        /**
+         * Should be able to use an email address for a user/org/sig agreement parameter
+         * Should create a new user and use their address when given an unknown email address
+         * Should use the address of the user with the given email when given a known email address
+         * Should be able to accept the same email address for multiple parameters without errors
+         * Should be able to handle email addresses in different cAsEs
+        */
+        agreement.parameters.push({ name: 'External1Uppercase', type: 8, value: externalUser1.email.toUpperCase() });
+        agreement.parameters.push({ name: 'External2', type: 6, value: externalUser2.email });
+        agreement.parameters.push({ name: 'External1Lowercase', type: 6, value: externalUser1.email.toLowerCase() });
+        agreement.parameters.push({ name: 'RegisteredNormal', type: 6, value: registeredUser.address });
+        agreement.parameters.push({ name: 'RegisteredByEmail', type: 6, value: registeredUser.email.toLowerCase() });
+        agreement.hoardAddress = hoardRef.address;
+        agreement.hoardSecret = hoardRef.secretKey;
+        Object.assign(agreement, await api.createAgreement(agreement, registeredUser.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should create new users when an unknown email is given', done => {
+    // CHECK USER CREATION
+    setTimeout(async () => {
+      try {
+        const user1 = await contracts.getUserById(externalUser1.email.toLowerCase());
+        const user2 = await contracts.getUserById(externalUser2.email.toLowerCase());
+        expect(user1).to.be.a('object');
+        expect(user2).to.be.a('object');
+        expect(/[0-9A-Fa-f]{40}/.test(user1.address)).to.be.true;
+        expect(/[0-9A-Fa-f]{40}/.test(user2.address)).to.be.true;
+        externalUser1.address = user1.address;
+        externalUser2.address = user2.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should not create multiple users for the same email address (case insensitive)', done => {
+    // CHECK USER CREATION
+    setTimeout(async () => {
+      try {
+        await assert.isRejected(contracts.getUserById(externalUser1.email.toUpperCase()));
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  let parameters;
+
+  it('Should use the address of the already registered user when a known email address is given', done => {
+    // CHECK AGREEMENT PARAMETERS
+    setTimeout(async () => {
+      try {
+       ( { parameters } = await api.getAgreement(agreement.address, registeredUser.token));
+        expect(parameters.find(({ name }) => name === 'RegisteredByEmail').value).to.equal(registeredUser.address);
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should use the addresses of new users for unknown email addresses', done => {
+    // CHECK AGREEMENT PARAMETERS
+    setTimeout(async () => {
+      try {
+        expect(parameters.find(({ name }) => name === 'External1Uppercase').value).to.equal(externalUser1.address);
+        expect(parameters.find(({ name }) => name === 'External2').value).to.equal(externalUser2.address);
+        expect(parameters.find(({ name }) => name === 'External1Lowercase').value).to.equal(externalUser1.address);
+        expect(parameters.find(({ name }) => name === 'External1Uppercase').value).to.equal(externalUser1.address);
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
 });
