@@ -1179,12 +1179,19 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     expect(user1.address).to.exist;
   }).timeout(5000);
 
-  it('Should login user1', async () => {
+  it('Should login user1', done => {
     // LOGIN USER
-    let loginResult1 = await api.loginUser(user1);
-    expect(loginResult1.token).to.exist;
-    user1.token = loginResult1.token;
-  }).timeout(5000);
+    setTimeout(async () => {
+      try {
+        let loginResult1 = await api.loginUser(user1);
+        expect(loginResult1.token).to.exist;
+        user1.token = loginResult1.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 5000);
+  }).timeout(10000);
 
   it('Should deploy model', done => {
     // DEPLOY MODEL

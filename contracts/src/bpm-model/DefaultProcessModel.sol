@@ -55,6 +55,13 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		newAddress = new DefaultProcessDefinition(_id, this);
 		error = processDefinitions.insert(_id, newAddress);
 		emitEvent("UPDATE_PROCESS_DEFINITION", newAddress);
+		emit LogProcessDefinitionCreation(
+			EVENT_ID_PROCESS_DEFINITION,
+			newAddress,
+			_id,
+			bytes32(""),
+			ProcessModel(this).getId()
+		);
 	}
 	
 	/**

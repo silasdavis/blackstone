@@ -19,11 +19,27 @@ contract BpmService is Upgradeable {
 	event UpdateProcessData(string name, address key1, bytes32 key2);
 	event UpdateProcessInstanceAddressScopes(string name, address key1, bytes32 key2);
 
-    /**
-     * @dev Gets the ProcessModelRepository address for this BpmService
-     * @return the address of the repository
-     */
-    function getProcessModelRepository() external view returns (ProcessModelRepository);
+	event LogProcessInstanceCreation(
+		bytes32 indexed eventId,
+		address processAddress,
+		address processDefinition,
+		uint8 state,
+		address startedBy
+	);
+
+	event LogProcessInstanceStateUpdate(
+		bytes32 indexed eventId,
+		address processAddress,
+		uint8 state
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_INSTANCE = "AN://process/instance";
+
+	/**
+		* @dev Gets the ProcessModelRepository address for this BpmService
+		* @return the address of the repository
+		*/
+	function getProcessModelRepository() external view returns (ProcessModelRepository);
 
 	/**
 	 * @dev Returns a reference to the ApplicationRegistry currently used by this BpmService
@@ -305,5 +321,11 @@ contract BpmService is Upgradeable {
 	 * @param _dataId - the ID of the data entry
 	 */
 	function fireProcessDataUpdateEvent(address _piAddress, bytes32 _dataId) external;
+
+	/**
+	 * @dev Emits a state change event for the process instance
+	 * @param _processInstance address of process intance
+	 */
+  function emitProcessStateChangeEvent(address _processInstance) external;
 
 }

@@ -284,7 +284,7 @@
         "name": "country",
         "type": "bytes2",
         "primary": true,
-        "hexToString": true
+        "bytesToString": true
       },
       "region": {
         "name": "region",
@@ -310,6 +310,151 @@
       "governingArchetypeName": {
         "name": "governingArchetypeName",
         "type": "string"
+      }
+    }
+  },
+  {
+    "TableName": "ACTIVITY_INSTANCES",
+    "Filter": "Log1Text = 'AN://activity/instance'",
+    "Columns": {
+      "activityInstanceId": {
+        "name": "activityInstanceId",
+        "type": "bytes32",
+        "primary": true
+      },
+      "activityId": {
+        "name": "activityId",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "processInstance": {
+        "name": "processInstance",
+        "type": "address"
+      },
+      "created": {
+        "name": "created",
+        "type": "uint"
+      },
+      "completed": {
+        "name": "completed",
+        "type": "uint"
+      },
+      "performer": {
+        "name": "performer",
+        "type": "address"
+      },
+      "completedBy": {
+        "name": "completedBy",
+        "type": "address"
+      },
+      "state": {
+        "name": "state",
+        "type": "uint8"
+      }
+    }
+  },
+  {
+    "TableName": "PROCESS_INSTANCES",
+    "Filter": "Log1Text = 'AN://process/instance'",
+    "Columns": {
+      "processAddress": {
+        "name": "processAddress",
+        "type": "address",
+        "primary": true
+      },
+      "processDefinition": {
+        "name": "processDefinition",
+        "type": "address"
+      },
+      "state": {
+        "name": "state",
+        "type": "uint8"
+      },
+      "startedBy": {
+        "name": "startedBy",
+        "type": "address"
+      }
+    }
+  },
+  {
+    "TableName": "ACTIVITY_DEFINITIONS",
+    "Filter": "Log1Text = 'AN://activity/definition'",
+    "Columns": {
+      "activityDefinitionId": {
+        "name": "activityDefinitionId",
+        "type": "bytes32",
+        "primary": true,
+        "bytesToString": true
+      },
+      "modelAddress": {
+        "name": "modelAddress",
+        "type": "address"
+      },
+      "processDefinitionAddress": {
+        "name": "processDefinitionAddress",
+        "type": "address"
+      },
+      "activityType": {
+        "name": "activityType",
+        "type": "uint8"
+      },
+      "taskType": {
+        "name": "taskType",
+        "type": "uint8"
+      },
+      "taskBehavior": {
+        "name": "taskBehavior",
+        "type": "uint8"
+      },
+      "assignee": {
+        "name": "assignee",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "multiInstance": {
+        "name": "multiInstance",
+        "type": "bool"
+      },
+      "application": {
+        "name": "application",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "subProcessModelId": {
+        "name": "subProcessModelId",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "subProcessDefinitionId": {
+        "name": "subProcessDefinitionId",
+        "type": "bytes32",
+        "bytesToString": true
+      }
+    }
+  },
+  {
+    "TableName": "PROCESS_DEFINITIONS",
+    "Filter": "Log1Text = 'AN://process/definition'",
+    "Columns": {
+      "processDefinitionAddress": {
+        "name": "processDefinitionAddress",
+        "type": "address",
+        "primary": true
+      },
+      "id": {
+        "name": "id",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "interfaceId": {
+        "name": "interfaceId",
+        "type": "bytes32",
+        "bytesToString": true
+      },
+      "modelId": {
+        "name": "modelId",
+        "type": "bytes32",
+        "bytesToString": true
       }
     }
   }

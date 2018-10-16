@@ -12,6 +12,30 @@ import "bpm-model/ProcessModel.sol";
  */
 contract ProcessDefinition is Bytes32Identifiable {
 
+	event LogProcessDefinitionInterfaceIdUpdate(
+		bytes32 indexed eventId,
+		address processDefinitionAddress,
+		bytes32 interfaceId
+	);
+
+	event LogActivityDefinitionCreation(
+		bytes32 indexed eventId,
+		address modelAddress,
+		address processDefinitionAddress,
+		bytes32 activityDefinitionId,
+		uint8 activityType,
+		uint8 taskType,
+		uint8 taskBehavior,
+		bytes32 assignee,
+		bool multiInstance,
+		bytes32 application,
+		bytes32 subProcessModelId,
+		bytes32 subProcessDefinitionId
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_DEFINITION = "AN://process/definition";
+	bytes32 public constant EVENT_ID_ACTIVITY_DEFINITION = "AN://activity/definition";
+
 	/**
 	 * @dev Creates a new activity definition with the specified parameters.
 	 * @param _id the activity ID

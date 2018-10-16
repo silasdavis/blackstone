@@ -14,6 +14,7 @@ const Hoard = require('../hoard/index.js');
 const hoard = new Hoard.Client(global.__settings.monax.hoard);
 
 const seeds = require(`${global.__data}/seeds`);
+const pool = require(`${global.__common}/postgres-db`);
 
 (function startApp() {
   const log = logger.getLogger('agreements.web');
@@ -58,7 +59,7 @@ const seeds = require(`${global.__data}/seeds`);
   app.use('/healthcheck', require('express-healthcheck')());
 
   // Allow text for query and bpmn/model routes
-  app.use(['/query', '/bpm/process-models'], bodyParser.text({
+  app.use(['/query', '/pg-query', '/bpm/process-models'], bodyParser.text({
     type: '*/*',
   }));
 
@@ -97,6 +98,14 @@ const seeds = require(`${global.__data}/seeds`);
       return next();
     });
   });
+
+  // // PG-SQL TEST ROUTE
+  // app.post('/pg-query', (req, res, next) => {
+  //   log.info(req.body);
+  //   pool.query(req.body, [])
+  //     .then(response => res.status(200).json(response.rows))
+  //     .catch(err => next(err));
+  // });
 
   // DEMO SEED ROUTES
   app.post('/seeds/users', (req, res, next) => {

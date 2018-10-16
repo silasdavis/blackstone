@@ -12,6 +12,16 @@ import "bpm-model/BpmModel.sol";
  */
 contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 
+	event LogProcessDefinitionCreation(
+		bytes32 indexed eventId,
+		address processDefinitionAddress,
+		bytes32 id,
+		bytes32 interfaceId,
+		bytes32 modelId
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_DEFINITION = "AN://process/definition";
+
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel
 	 * @param _id the process ID
