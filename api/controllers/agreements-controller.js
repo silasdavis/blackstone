@@ -318,33 +318,49 @@ const createOrFindAccountsWithEmails = async (params) => {
         text: `SELECT LOWER(email) AS email, address FROM users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
         values: newParams.withEmail.map(({ value }) => value),
       });
-      // Find existing accounts with given emails
-      newParams.forExistingUser = rows.map(({ email, address }) => {
-        const paramWithEmail = newParams.withEmail.find(param => param.value.toLowerCase() === email);
-        return { ...paramWithEmail, value: address };
+      newParams.forNewUser = {};
+      newParams.withEmail.forEach((param) => {
+        const emailAddr = param.value.toLowerCase();
+        const existingUser = rows.find(({ email }) => emailAddr === email);
+        if (existingUser) {
+          // Use existing accounts info if email already registered
+          newParams.forExistingUser.push({ ...param, value: existingUser.address });
+        } else if (newParams.forNewUser[emailAddr]) {
+          // Consolidate users that need to be registered into obj in case the same email was entered for multiple parameters
+          // Also save the parameters that each email was used for
+          newParams.forNewUser[emailAddr].push(param);
+        } else {
+          newParams.forNewUser[emailAddr] = [param];
+        }
       });
-      // Select users that need to be created
-      newParams.forNewUser = newParams.withEmail.filter(param => !newParams.forExistingUser.find(({ name }) => param.name === name));
-      const createNewUserPromises = newParams.forNewUser.map(async (param) => {
+      const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
         // Create user on chain
-        const address = await contracts.createUser({ id: param.value });
+        const address = await contracts.createUser({ id: email });
         const password = crypto.randomBytes(32).toString('hex');
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
         // Create user in db
         const queryString = `INSERT INTO users(
           address, username, email, password_digest, is_producer, external_user
-        ) VALUES(
-          $1, $2, $3, $4, $5, $6
-        );`;
-        await client.query({ text: queryString, values: [address, param.value, param.value, hash, false, true] });
-        return { ...param, value: address };
+          ) VALUES(
+            $1, $2, $3, $4, $5, $6
+            );`;
+        await client.query({ text: queryString, values: [address, email, email, hash, false, true] });
+        return { email, address };
       });
-      newParams.forNewUser = await Promise.all(createNewUserPromises);
+      const newUsers = await Promise.all(createNewUserPromises);
+      newParams.forNewUser = Object.keys(newParams.forNewUser).reduce((acc, emailAddr) => {
+        const { address } = newUsers.find(({ email }) => email === emailAddr);
+        const newUserParams = newParams.forNewUser[emailAddr].map(param => ({ ...param, value: address }));
+        return acc.concat(newUserParams);
+      }, []);
     }
+    // Release client
+    client.release();
     // Return all parameters
     return newParams.notAccountOrEmail.concat(newParams.forExistingUser).concat(newParams.forNewUser);
   } catch (err) {
+    client.release();
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
   }
