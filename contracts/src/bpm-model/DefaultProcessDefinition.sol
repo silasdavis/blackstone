@@ -131,6 +131,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 		graphElements.rows[_id].activity.subProcessDefinitionId = _subProcessDefinitionId;
 		graphElements.rows[_id].exists = true;
 		model.fireActivityDefinitionUpdateEvent(_id);
+		emit LogActivityDefinitionCreation(
+			EVENT_ID_ACTIVITY_DEFINITION,
+			address(model),
+			address(this),
+			_id,
+			uint8(_activityType),
+			uint8(_taskType),
+			uint8(_behavior),
+			_assignee,
+			_multiInstance,
+			_application,
+			_subProcessModelId,
+			_subProcessDefinitionId
+		);
 		return BaseErrors.NO_ERROR();
 	}
 
@@ -242,6 +256,11 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 		processInterfaces.rows[key].value = BpmModel.ProcessInterface({model: pm, interfaceId: _interfaceId});
 		processInterfaces.rows[key].exists = true;
 		model.fireProcessDefinitionUpdateEvent();
+		emit LogProcessDefinitionInterfaceIdUpdate(
+			EVENT_ID_PROCESS_DEFINITION,
+			address(this),
+			_interfaceId
+		);
 	}
 
 	/**

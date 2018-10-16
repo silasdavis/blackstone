@@ -24,6 +24,55 @@ import "bpm-runtime/TransitionConditionResolver.sol";
  */
 library BpmRuntimeLib {
 
+    event LogActivityInstanceCreation(
+        bytes32 indexed eventId,
+        address processInstance,
+        bytes32 activityInstanceId,
+        bytes32 activityId,
+        uint created,
+        uint completed,
+        address performer,
+        address completedBy,
+        uint8 state
+    );
+
+    event LogActivityInstanceStateUpdate(
+        bytes32 indexed eventId,
+        bytes32 activityInstanceId,
+        uint8 state
+    );
+
+    event LogActivityInstancePerformerUpdate(
+        bytes32 indexed eventId,
+        bytes32 activityInstanceId,
+        address performer
+    );
+
+    event LogActivityInstanceStateAndPerformerUpdate(
+        bytes32 indexed eventId,
+        bytes32 activityInstanceId,
+        address performer,
+        uint8 state
+    );
+
+    event LogActivityInstanceStateAndTimestampUpdate(
+        bytes32 indexed eventId,
+        bytes32 activityInstanceId,
+        uint completed,
+        uint8 state
+    );
+
+    event LogActivityInstanceCompletion(
+        bytes32 indexed eventId,
+        bytes32 activityInstanceId,
+        address completedBy,
+        uint completed,
+        address performer,
+        uint8 state
+    );
+    
+    bytes32 public constant EVENT_ID_ACTIVITY_INSTANCE = "AN://activity/instance";
+
     function getERC165IdOrganization() internal pure returns (bytes4) {
         return (bytes4(keccak256(abi.encodePacked("addUser(address)"))) ^ 
                 bytes4(keccak256(abi.encodePacked("removeUser(address)"))) ^
@@ -47,6 +96,17 @@ library BpmRuntimeLib {
             _map.rows[_value.id].exists = true;
         }
         return _map.keys.length;
+    }
+
+    function emitAICompletionEvent(bytes32 _aiId, address _completedBy, uint _completed, address _performer, BpmRuntime.ActivityInstanceState _state) internal {
+        emit LogActivityInstanceCompletion(
+            EVENT_ID_ACTIVITY_INSTANCE,
+            _aiId,
+            _completedBy,
+            _completed,
+            _performer,
+            uint8(_state)
+        );
     }
 
     /**
@@ -85,12 +145,24 @@ library BpmRuntimeLib {
                 if (_activityInstance.state == BpmRuntime.ActivityInstanceState.CREATED &&
                     (BpmModel.TaskBehavior(behavior) != BpmModel.TaskBehavior.SEND)) {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
+                        emit LogActivityInstanceStateUpdate(
+                            EVENT_ID_ACTIVITY_INSTANCE,
+                            _activityInstance.id,
+                            uint8(_activityInstance.state)
+                        );
                 }
                 // in all other cases it is completed
                 else {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                     _activityInstance.completedBy = msg.sender;
                     _activityInstance.completed = block.timestamp;
+                    emitAICompletionEvent(
+                        _activityInstance.id,
+                        _activityInstance.completedBy,
+                        _activityInstance.completed,
+                        0x0,
+                        BpmRuntime.ActivityInstanceState.COMPLETED
+                    );
                 }
             }
             // ### USER ###
@@ -103,6 +175,11 @@ library BpmRuntimeLib {
                     // TODO require(_activityInstance.performer != 0x0)
                     // USER tasks are always suspended to wait for external completion
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        uint8(_activityInstance.state)
+                    );
                 }
                 // A SUSPENDED user task can be completed by the task performer resulting in the invocation of an application, if one was set for the activity
                 else if (_activityInstance.state == BpmRuntime.ActivityInstanceState.SUSPENDED) {
@@ -125,6 +202,12 @@ library BpmRuntimeLib {
                                 _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                                 // if the application prevented activity completion, return performing rights back to the user
                                 _activityInstance.performer = taskPerformer;
+                                emit LogActivityInstanceStateAndPerformerUpdate(
+                                    EVENT_ID_ACTIVITY_INSTANCE,
+                                    _activityInstance.id,
+                                    _activityInstance.performer,
+                                    uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)
+                                );
                                 return;
                             }
                         }
@@ -137,6 +220,13 @@ library BpmRuntimeLib {
                     _activityInstance.performer = 0x0;
                     _activityInstance.completedBy = taskPerformer;
                     _activityInstance.completed = block.timestamp;
+                    emitAICompletionEvent(
+                        _activityInstance.id,
+                        _activityInstance.completedBy,
+                        _activityInstance.completed,
+                        0x0,
+                        BpmRuntime.ActivityInstanceState.COMPLETED
+                    );
                 }
             }
             // ### SERVICE ###
@@ -154,15 +244,32 @@ library BpmRuntimeLib {
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.APPLICATION;
                 error = invokeApplication(_activityInstance, _rootDataStorage, application, msg.sender, _processDefinition, _service.getApplicationRegistry());
                 _activityInstance.performer = 0x0;
-
+                emit LogActivityInstanceStateAndPerformerUpdate(
+                    EVENT_ID_ACTIVITY_INSTANCE,
+                    _activityInstance.id,
+                    _activityInstance.performer,
+                    uint8(BpmRuntime.ActivityInstanceState.APPLICATION)
+                );
                 if (error != BaseErrors.NO_ERROR()) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
+                    );
                     return;
                 }
                 
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                 _activityInstance.completedBy = _activityInstance.performer;
                 _activityInstance.completed = block.timestamp;
+                emitAICompletionEvent(
+                    _activityInstance.id,
+                    _activityInstance.completedBy,
+                    _activityInstance.completed,
+                    0x0,
+                    BpmRuntime.ActivityInstanceState.COMPLETED
+                );
             }
             // ### EVENT ###
             else if (taskType == uint8(BpmModel.TaskType.EVENT)) {
@@ -187,10 +294,21 @@ library BpmRuntimeLib {
                         BpmModel.TaskBehavior(behavior) == BpmModel.TaskBehavior.SENDRECEIVE) {
                         // for the synchronous part of the event, the state is set to APPLICATION to allow IN mappings to be executed
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.APPLICATION;
+                        emit LogActivityInstanceStateUpdate(
+                            EVENT_ID_ACTIVITY_INSTANCE,
+                            _activityInstance.id,
+                            uint8(_activityInstance.state)
+                        );
                         error = invokeApplication(_activityInstance, _rootDataStorage, application, msg.sender, _processDefinition, _service.getApplicationRegistry());
                         if (error != BaseErrors.NO_ERROR()) {
                             _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                             _activityInstance.performer = 0x0;
+                            emit LogActivityInstanceStateAndPerformerUpdate(
+                                EVENT_ID_ACTIVITY_INSTANCE,
+                                _activityInstance.id,
+                                _activityInstance.performer,
+                                uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
+                            );
                             return;
                         }
                     }
@@ -198,12 +316,24 @@ library BpmRuntimeLib {
                     // Depending on the TaskBehavior, the AI is either suspended (async) or completed (fire-and-forget event)
                     if (BpmModel.TaskBehavior(behavior) != BpmModel.TaskBehavior.SEND) {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
+                        emit LogActivityInstanceStateUpdate(
+                            EVENT_ID_ACTIVITY_INSTANCE,
+                            _activityInstance.id,
+                            uint8(_activityInstance.state)
+                        );
                     }
                     else {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                         _activityInstance.completedBy = _activityInstance.performer;
                         _activityInstance.performer = 0x0;
                         _activityInstance.completed = block.timestamp;
+                        emitAICompletionEvent(
+                            _activityInstance.id,
+                            _activityInstance.completedBy,
+                            _activityInstance.completed,
+                            0x0,
+                            BpmRuntime.ActivityInstanceState.COMPLETED
+                        );
                     }
                 }
                 // A SUSPENDED event task can only be completed by the performing application
@@ -215,6 +345,13 @@ library BpmRuntimeLib {
                     _activityInstance.completedBy = _activityInstance.performer;
                     _activityInstance.performer = 0x0;
                     _activityInstance.completed = block.timestamp;
+                    emitAICompletionEvent(
+                        _activityInstance.id,
+                        _activityInstance.completedBy,
+                        _activityInstance.completed,
+                        0x0,
+                        BpmRuntime.ActivityInstanceState.COMPLETED
+                    );
                 }
             }
             else {
@@ -229,15 +366,31 @@ library BpmRuntimeLib {
                 // TODO assert(subProcessDefinition != 0x0)
                 if (subProcessDefinition == 0x0) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        uint8(_activityInstance.state)
+                    );
                     return BaseErrors.RESOURCE_NOT_FOUND();
                 }
                 // change the state of this AI *before* entering into the subprocess! If the subprocess completes within the same call, it will attempt to complete this activity.
                 if (BpmModel.TaskBehavior(behavior) == BpmModel.TaskBehavior.SEND) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                     _activityInstance.completed = block.timestamp;
+                    emit LogActivityInstanceStateAndTimestampUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        _activityInstance.completed,
+                        uint8(BpmRuntime.ActivityInstanceState.COMPLETED)
+                    );
                 }
                 else {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        uint8(_activityInstance.state)
+                    );
                 }
                 // pass a reference to this activity instance to the subprocess
                 ProcessInstance subProcess; // TODO stack too deep problems = _service.createSubProcess(subProcessDefinition, msg.sender, _activityInstance.id);
@@ -245,6 +398,11 @@ library BpmRuntimeLib {
                 error = _service.startProcessInstance(subProcess);
                 if (error != BaseErrors.NO_ERROR()) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        _activityInstance.id,
+                        uint8(_activityInstance.state)
+                    );
                     return;
                 }
             }
@@ -254,6 +412,12 @@ library BpmRuntimeLib {
                 // would be good to capture the subprocess address as the completedBy here!
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                 _activityInstance.completed = block.timestamp;
+                emit LogActivityInstanceStateAndTimestampUpdate(
+                    EVENT_ID_ACTIVITY_INSTANCE,
+                    _activityInstance.id,
+                    _activityInstance.completed,
+                    uint8(BpmRuntime.ActivityInstanceState.COMPLETED)
+                );
             }
         }
         else {
@@ -358,6 +522,7 @@ library BpmRuntimeLib {
         }
         else if (completed) {
             _processInstance.state = BpmRuntime.ProcessInstanceState.COMPLETED;
+            _service.emitProcessStateChangeEvent(_processInstance.addr);
             ProcessInstance(_processInstance.addr).notifyProcessStateChange();
             // check if the process is the subprocess of another process
             if (_processInstance.subProcessActivityInstance != "") {
@@ -402,6 +567,11 @@ library BpmRuntimeLib {
             else {
                 _activityInstance.performer = (dataPath == "") ? targetAddress : DataStorage(targetAddress).getDataValueAsAddress(dataPath);
             }
+            emit LogActivityInstancePerformerUpdate(
+                EVENT_ID_ACTIVITY_INSTANCE,
+                _activityInstance.id,
+                _activityInstance.performer
+            );
         }
         return (_activityInstance.performer != 0x0);
     }
@@ -562,16 +732,28 @@ library BpmRuntimeLib {
      */
     function createActivityInstance(BpmRuntime.ProcessInstance storage _processInstance, bytes32 _activityId, uint _index) public returns (bytes32 aiId) {
         aiId = keccak256(abi.encodePacked(_processInstance.addr, _activityId, _processInstance.activities.keys.length));
+        uint created = block.timestamp;
         BpmRuntime.ActivityInstance memory ai = BpmRuntime.ActivityInstance({id: aiId,
                                                                              activityId: _activityId,
                                                                              processInstance: _processInstance.addr,
                                                                              multiInstanceIndex: _index,
                                                                              state: BpmRuntime.ActivityInstanceState.CREATED,
-                                                                             created: block.timestamp,
+                                                                             created: created,
                                                                              performer: 0x0,
                                                                              completed: 0,
                                                                              completedBy: 0x0});
         insertOrUpdate(_processInstance.activities, ai);
+        emit LogActivityInstanceCreation(
+            EVENT_ID_ACTIVITY_INSTANCE,
+            _processInstance.addr,
+            aiId,
+            _activityId,
+            created,
+            0,
+            0x0,
+            0x0,
+            uint8(BpmRuntime.ActivityInstanceState.CREATED)
+        );
     }
 
     /**
@@ -589,10 +771,16 @@ library BpmRuntimeLib {
                 if (_processInstance.activities.rows[activityInstanceId].value.state != BpmRuntime.ActivityInstanceState.COMPLETED) {
                     _processInstance.activities.rows[activityInstanceId].value.state = BpmRuntime.ActivityInstanceState.ABORTED;
                     _service.fireActivityUpdateEvent(_processInstance.addr, activityInstanceId);
+                    emit LogActivityInstanceStateUpdate(
+                        EVENT_ID_ACTIVITY_INSTANCE,
+                        activityInstanceId,
+                        uint8(BpmRuntime.ActivityInstanceState.ABORTED)
+                    );
                 }
             }
             clear(_processInstance.graph);
             _processInstance.state = BpmRuntime.ProcessInstanceState.ABORTED;
+            _service.emitProcessStateChangeEvent(_processInstance.addr);
         }
     }
 

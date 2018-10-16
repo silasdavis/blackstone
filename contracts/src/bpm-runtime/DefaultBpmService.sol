@@ -155,6 +155,11 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         }
         error = _pi.execute(this);
         emit UpdateProcesses(TABLE_PROCESS_INSTANCES, _pi);
+        emit LogProcessInstanceStateUpdate(
+            EVENT_ID_PROCESS_INSTANCE,
+            address(_pi),
+            _pi.getState()
+        );
     }
 
 	/**
@@ -175,6 +180,13 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultBpmService.createDefaultProcessInstance", "ProcessDefinition is NULL");
         processInstance = new DefaultProcessInstance(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
         processInstance.transferOwnership(msg.sender);
+        emit LogProcessInstanceCreation(
+            EVENT_ID_PROCESS_INSTANCE,
+            processInstance,
+            ProcessInstance(processInstance).getProcessDefinition(),
+            ProcessInstance(processInstance).getState(),
+            ProcessInstance(processInstance).getStartedBy()
+        );
     }
 
 	/**
@@ -623,4 +635,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         emit UpdateProcessData(TABLE_PROCESS_DATA, _piAddress, _dataId);
     }
 
+    /**
+     * @dev Emits a state change event for the process instance
+     * @param _processInstance address of process intance
+     */
+    function emitProcessStateChangeEvent(address _processInstance) external {
+        emit LogProcessInstanceStateUpdate(
+            EVENT_ID_PROCESS_INSTANCE,
+            _processInstance,
+            ProcessInstance(_processInstance).getState()
+        );
+    }
 }
