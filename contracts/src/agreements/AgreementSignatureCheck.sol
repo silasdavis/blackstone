@@ -16,9 +16,12 @@ contract AgreementSignatureCheck is ContractLocatorEnabled, Application {
     /**
      * @dev Treats the provided DataStorage as the agreement and checks if the TX performer has applied a signature.
      * The function will REVERT if the presence of the signature could not be established.
-     * @param _txPerformer the address performing the transaction
+     * param _processInstance the address of the ProcessInstance
+     * @param _activityInstanceId the ID of an ActivityInstance
+     * param _activityId the ID of the activity definition
+     * @param _txPerformer the address which started the process transaction
      */
-    function complete(bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
+    function complete(address, bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
         address agreement = bpmService.getActivityInDataAsAddress(_activityInstanceId, "agreement");
         require(agreement != 0x0);
         require(ActiveAgreement(agreement).isSignedBy(_txPerformer));

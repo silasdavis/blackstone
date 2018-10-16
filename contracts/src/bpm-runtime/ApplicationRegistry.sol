@@ -9,7 +9,7 @@ import "commons-management/Upgradeable.sol";
  */
 contract ApplicationRegistry is Upgradeable {
 
-	bytes4 public constant DEFAULT_COMPLETION_FUNCTION = bytes4(keccak256(abi.encodePacked("complete(bytes32,bytes32,address)")));
+	bytes4 public constant DEFAULT_COMPLETION_FUNCTION = bytes4(keccak256(abi.encodePacked("complete(address,bytes32,bytes32,address)")));
 
 	event UpdateApplications(string table, bytes32 key1);
 	event UpdateApplicationAccessPoints(string table, bytes32 key1, bytes32 key2);
