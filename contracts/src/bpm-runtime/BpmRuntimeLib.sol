@@ -644,7 +644,7 @@ library BpmRuntimeLib {
 
         //TODO should we give an Application the BpmService (or better ApplicationService) via the complete function?
 
-        if (!appAddress.call(completionFunction, _activityInstance.id, _activityInstance.activityId, (_txPerformer == 0x0 ? msg.sender : _txPerformer)))
+        if (!appAddress.call(completionFunction, _activityInstance.processInstance, _activityInstance.id, _activityInstance.activityId, (_txPerformer == 0x0 ? msg.sender : _txPerformer)))
             return BaseErrors.RUNTIME_ERROR();
         return BaseErrors.NO_ERROR();
     }

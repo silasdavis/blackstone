@@ -2,3 +2,7 @@ jobs:
   - name: AgreementSignatureCheck
     build:
       contract: agreements/AgreementSignatureCheck.sol
+
+  - name: TotalCounterCheck
+    build:
+      contract: active-agreements/TotalCounterCheck.sol

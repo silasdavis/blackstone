@@ -88,6 +88,6 @@ contract ApplicationRegistryTest {
 
 contract TestApplication is Application {
 
-	function complete(bytes32, bytes32, address) public {
+	function complete(address, bytes32, bytes32, address) public {
 	}
 }

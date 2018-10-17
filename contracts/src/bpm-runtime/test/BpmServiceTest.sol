@@ -1383,7 +1383,7 @@ contract FailureServiceApplication is Application {
 	bool public fail = true;
 
 	// completion function that cannot be invoked two times in the same process without resetting the app
-	function complete(bytes32, bytes32, address) public {
+	function complete(address, bytes32, bytes32, address) public {
 		require(!fail);
 		// TODO get/set IN/OUT data to test performer access
 	}
@@ -1412,7 +1412,7 @@ contract EventApplication is Application {
 	}
 
 	// the completion function should have access to the IN data mappings, so we're saving the age field here for later verification
-	function complete(bytes32 _aiId, bytes32, address) public {
+	function complete(address, bytes32 _aiId, bytes32, address) public {
 		activityInstanceId = _aiId;
 		ageDuringCompletion = retrieveInDataAge();
 		greetingDuringCompletion = retrieveInDataGreeting();

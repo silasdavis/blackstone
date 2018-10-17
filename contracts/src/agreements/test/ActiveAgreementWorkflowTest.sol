@@ -452,9 +452,9 @@ contract TestSignatureCheck is AgreementSignatureCheck {
 		return bpmService;
 	}
 
-	function complete(bytes32 _aiId, bytes32 _aId, address _txPerformer) public {
+	function complete(address _pi, bytes32 _aiId, bytes32 _aId, address _txPerformer) public {
 		lastAgreement = bpmService.getActivityInDataAsAddress(_aiId, "agreement");
-		super.complete(_aiId, _aId, _txPerformer);
+		super.complete(_pi, _aiId, _aId, _txPerformer);
 	}
 
 }

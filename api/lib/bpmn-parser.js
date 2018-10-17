@@ -106,9 +106,10 @@ const validateProcess = (process, dataStoreFields) => {
       // test if transition conditions only exist on outgoing transitions of xor gateways
       const sourceXorGateways = process.xorGateways.filter(gw => gw.id === transition.source);
       const sourceAndGateways = process.andGateways.filter(gw => gw.id === transition.source);
-      if (!process.activityMap[transition.target]) {
-        validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an incoming transition of an activity`);
-      }
+      // TODO commented out due to false validation errors on transition with condition between two XOR gateways
+      // if (!process.activityMap[transition.target]) {
+      //   validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an incoming transition of an activity`);
+      // }
       if (sourceXorGateways.length !== 1 && sourceAndGateways.length !== 0) {
         validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an outgoing transition of an XOR gateway`);
       }
