@@ -118,6 +118,41 @@ const populateProcessNames = processDefinitions => new Promise((resolve, reject)
     .catch(err => reject(err));
 });
 
+const getActivityData = async (aiId, userAddress) => {
+  try {
+    const data = await pool.query({
+      text: 'SELECT * FROM activity_view WHERE activity_instance_id = $1 AND performer = $2',
+      values: [aiId, userAddress],
+    });
+    return data.rows[0];
+  } catch (err) {
+    throw boom.notFound(`Activity instance not found in view: ${err.stack}`);
+  }
+};
+
+// Temporary workaround to force activity_details cache update
+// upon pending user task creation
+pool.connect((err, client, release) => {
+  if (err) throw boom.badImplementation(`Error connecting to db: ${err.stack}`);
+  client.on('notification', (msg) => {
+    setTimeout(async () => {
+      const ai = JSON.parse(msg.payload);
+      if (isNaN(ai.performer) && parseInt(ai.state, 10) === 4) { // pending task for user
+        const aiData = await getActivityData(ai.activityinstanceid, ai.performer);
+        if (aiData) {
+          populateTaskNames([{
+            modelId: aiData.model_id,
+            processDefinitionId: aiData.process_id,
+            modelAddress: aiData.model_address,
+            activityId: aiData.activity_id,
+          }]);
+        }
+      }
+    }, 5000);
+  });
+  client.query(`LISTEN ${global.__monax_constants.NOTIFICATION.ACTIVITY_INSTANCE_STATE_CHANGED}`);
+});
+
 module.exports = {
   populateTaskNames,
   populateProcessNames,
