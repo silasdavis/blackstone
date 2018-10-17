@@ -139,11 +139,13 @@ pool.connect((err, client, release) => {
       const ai = JSON.parse(msg.payload);
       if (isNaN(ai.performer) && parseInt(ai.state, 10) === 4) { // pending task for user
         const aiData = await getActivityData(ai.activityinstanceid, ai.performer);
-        if (aiData) {
+        let pdData;
+        if (aiData && aiData.process_definition) pdData = await sqlCache.getProcessDefinitionData(aiData.process_definition);
+        if (aiData && aiData.model_id && aiData.process_id && pdData && pdData.modelAddress && aiData.activity_id) {
           populateTaskNames([{
             modelId: aiData.model_id,
             processDefinitionId: aiData.process_id,
-            modelAddress: aiData.model_address,
+            modelAddress: pdData.modelAddress,
             activityId: aiData.activity_id,
           }]);
         }
