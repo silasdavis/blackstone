@@ -90,10 +90,10 @@ contract AbstractAddressScopes is AddressScopes {
             return addressScopes[key].scope.fixedScope;
         }
         else if (addressScopes[key].scope.conditionalScope.exists) {
-			// If the ConditionalData does not point to a DataStorage by address, the second parameter (DataStorage) is required for resolution
+			// If the ConditionalData does not point to a DataStorage by address, the second function parameter (DataStorage) is required for resolution
 			if (addressScopes[key].scope.conditionalScope.dataStorage == address(0)) {
 				ErrorsLib.revertIf(address(_dataStorage) == address(0),
-					ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "AbstractAddressScopes.getScope", "The DataStorage parameter is required for a ConditionalData scope without a fixed dataStorage address");
+					ErrorsLib.INVALID_INPUT(), "AbstractAddressScopes.getScope", "The DataStorage parameter is required for a ConditionalData scope without a fixed dataStorage address");
 			}
             (address targetDataStorage, bytes32 dataPath) = addressScopes[key].scope.conditionalScope.resolveDataLocation(_dataStorage);
 			return DataStorage(targetDataStorage).getDataValueAsBytes32(dataPath);
