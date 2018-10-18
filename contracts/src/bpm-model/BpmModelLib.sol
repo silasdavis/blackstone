@@ -13,6 +13,8 @@ import "bpm-model/BpmModel.sol";
  */
 library BpmModelLib {
 
+    using DataStorageUtils for DataStorageUtils.ConditionalData;
+
     /**
      * @dev Ensures that either an rhPrimitive or an rhData exists in the condition.
      * This modifier prevents accidentally working with a default return value for comparisons.
@@ -30,7 +32,7 @@ library BpmModelLib {
      * @return true if the condition evaluated to true, false otherwise
      */
     function resolve(BpmModel.TransitionCondition storage _condition, address _dataStorage) public view returns (bool) {
-        (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.lhData, _dataStorage);
+        (address dataStorage, bytes32 dataPath) = _condition.lhData.resolveDataLocation(DataStorage(_dataStorage));
         // the left-hand side of the expression determines the data type being used to compare
         uint8 dataType = DataStorage(dataStorage).getDataType(dataPath);
         if (dataType == DataTypes.BOOL()) {
@@ -54,34 +56,6 @@ library BpmModelLib {
     }
 
     /**
-     * @dev Returns the resolved location of the data specified by the data mapping for the specified ActivityInstance.
-     * REVERTS if:
-     * - the provided ConditionalData cannot be resolved to a DataStorage address
-     * @param _conditionalData the DataStorageUtils.ConditionalData to resolve
-     * @param _dataStorage a DataStorage address to use for resolving any ID references
-     * @return dataStorage - the address of a DataStorage that contains the requested data. Default is the ProcessInstance itself, if none other specified
-     * @return dataPath - the ID with which the data can be retrieved
-     */
-    function resolveConditionalDataLocation(DataStorageUtils.ConditionalData storage _conditionalData, address _dataStorage) public view returns (address dataStorage, bytes32 dataPath) {
-        dataPath = _conditionalData.dataPath;
-        if (_conditionalData.dataStorage != 0x0) {
-            dataStorage = _conditionalData.dataStorage;
-            return;
-        }
-        // at this point we need to rely on the second parameter _dataStorage
-        ErrorsLib.revertIf(_dataStorage == 0x0,
-            ErrorsLib.INVALID_STATE(), "BpmModelLib.resolveConditionalDataLocation", "Unable to determine a DataStorage address based on the provided parameters");
-        if (_conditionalData.dataStorageId != "") {
-            // retrieve the target by looking for the dataStorageId in the context of the provided dataStorage
-            dataStorage = DataStorage(_dataStorage).getDataValueAsAddress(_conditionalData.dataStorageId);
-        }
-        else {
-            // if no dataStorage location is configured, the provided dataStorage is used
-            dataStorage = _dataStorage;
-        }
-    }
-
-    /**
      * @dev Resolves the given TransitionCondition value as a bool using the provided DataStorage.
      * REVERTS: if the given condition does not have a right-hand side value (conditional or primitive)
      * @param _condition a BpmModel.TransitionCondition
@@ -97,7 +71,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.boolValue;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsBool(dataPath);
         }
     }
@@ -118,7 +92,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.addressValue;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsAddress(dataPath);
         }
     }
@@ -139,7 +113,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.bytes32Value;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsBytes32(dataPath);
         }
     }
@@ -160,7 +134,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.stringValue;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsString(dataPath);
         }
     }
@@ -181,7 +155,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.uintValue;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsUint(dataPath);
         }
     }
@@ -202,7 +176,7 @@ library BpmModelLib {
             return _condition.rhPrimitive.intValue;
         }
         else {
-            (address dataStorage, bytes32 dataPath) = resolveConditionalDataLocation(_condition.rhData, _dataStorage);
+            (address dataStorage, bytes32 dataPath) = _condition.rhData.resolveDataLocation(DataStorage(_dataStorage));
             return DataStorage(dataStorage).getDataValueAsInt(dataPath);
         }
     }

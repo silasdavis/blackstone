@@ -258,7 +258,14 @@ const getTransitionFromNode = (node) => {
       properties.rhValue === undefined
     ) {
       throw boom.badData(`Invalid expression for transition ${node.id}. ` +
-        '"lhDataPath", "lhDataStorageId", "operator" and "rhValue" are required fields.');
+        '"lhDataPath", "lhDataStorageId", "operator" and "rhValue" are required fields.'); // TODO instead of rhValue (fixed), an rhDataStorageId and rhDataPath are also valid. The if statement needs work to support this
+    }
+    // check if dataStorageIds are set and replace reserved DataStorage ID for PROCESS_INSTANCE with an empty string, if detected
+    if (properties.lhDataStorageId === BPMN_DATASTORAGEID_PROCESS_INSTANCE) {
+      properties.lhDataStorageId = '';
+    }
+    if (properties.rhDataStorageId === BPMN_DATASTORAGEID_PROCESS_INSTANCE) {
+      properties.rhDataStorageId = '';
     }
     transition.condition = properties;
   }

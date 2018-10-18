@@ -27,6 +27,10 @@ jobs:
     build:
       contract: commons-collections/test/DataStorageTest.sol
       instance: DataStorageTest
+  - name: DataStorageUtilsTest
+    build:
+      contract: commons-collections/test/DataStorageUtilsTest.sol
+      instance: DataStorageUtilsTest
   - name: VersionLinkedTest
     build:
       contract: commons-collections/test/VersionLinkedTest.sol

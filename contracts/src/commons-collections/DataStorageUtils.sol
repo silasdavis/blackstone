@@ -277,10 +277,14 @@ library DataStorageUtils {
   }
 
   /**
-   * @dev Resolves the location of a ConditionalData against the provided DataStorage.
+   * @dev Resolves the location of a ConditionalData against the provided DataStorage. This function is guaranteed to return a data location
+   * consisting of an address/path combination. If that is not possible, the functions reverts.
+   * REVERTS if: 
+   * - the DataStorage address cannot be determined and is empty
    * @param _conditionalData a ConditionalData with instructions how to find the desired data
    * @param _dataStorage a DataStorage contract to use as a basis for the resolution
-   * @return the address of a DataStorage and a dataPath are returned that pinpoint the resolved data location
+   * @return dataStorage - the address of a DataStorage that contains the requested data or 0x0 if a dataStorageId was provided that has no value in the 
+   * @return dataPath - the ID with which the data can be retrieved from the DataStorage
    */
   function resolveDataLocation(ConditionalData storage _conditionalData, DataStorage _dataStorage)
     public view
@@ -288,18 +292,20 @@ library DataStorageUtils {
   {
     dataPath = _conditionalData.dataPath;
     dataStorage = resolveDataStorageAddress(_conditionalData.dataStorageId, _conditionalData.dataStorage, _dataStorage);
+    ErrorsLib.revertIf(dataStorage == address(0),
+      ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveDataLocation", "Unable to determine a DataStorage address from the given ConditionalData");
   }
 
   /**
    * @dev Returns the address location of a DataStorage contract using the provided information.
-   * This is the most basic routine to determine from where to retrieve a data value and uses the same attributes
+   * This is the most basic routine to determine from where to retrieve a data value. It uses the same attributes
    * that are encoded in a ConditionalData struct, therefore supporting the handling of ConditionalData structs.
    * The rules of resolving the location are as follows:
    * 1. If an absolute location in the form of a dataStorage address is available, this address is returned
-   * 2. If a dataStorageId is provided, it's used as a dataPath to retrieve and return an address from the optional DataStorage parameter.
+   * 2. If a dataStorageId is provided, it's used as a dataPath to retrieve and return an address from the DataStorage parameter.
    * 3. In all other cases, the optional DataStorage parameter is returned.
    * REVERTS if:
-   * - for steps 2 and 3 the DataStorage parameter is empty
+   * - for step 2 the DataStorage parameter is empty
    * @param _dataStorageId a path by which an address can be retrieved from a DataStorage
    * @param _dataStorage the absolute address of a DataStorage
    * @param _refDataStorage an optional DataStorge required to determine an address, if no absolute address was provided
@@ -312,14 +318,14 @@ library DataStorageUtils {
     if (_dataStorage != address(0)) {
       return _dataStorage;
     }
-    else {
+    else if (_dataStorageId != "") {
       // All resolutions henceforth require the DataStorage parameter
       ErrorsLib.revertIf(address(_refDataStorage) == address(0),
-        ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DataStorageUtils.resolveDataStorageAddress", "The DataStorage parameter is required for resolving the address.");
-      if (_dataStorageId != "") {
-        return DataStorage(_refDataStorage).getDataValueAsAddress(_dataStorageId);
-      }
-        return _refDataStorage;
+        ErrorsLib.INVALID_INPUT(), "DataStorageUtils.resolveDataStorageAddress", "The DataStorage parameter is required for resolving an address referenced as dataStorageId.");
+      return DataStorage(_refDataStorage).getDataValueAsAddress(_dataStorageId);
+    }
+    else {
+      return _refDataStorage;
     }
   }
 

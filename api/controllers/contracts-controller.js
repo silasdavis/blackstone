@@ -936,9 +936,9 @@ const getTransitionConditionFunctionByDataType = (processAddress, dataType) => {
 };
 
 const createTransitionCondition = (processAddress, dataType, gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, value) => new Promise((resolve, reject) => {
-  log.trace(`Creating transition condition with data: ${JSON.stringify({
+  log.debug('Creating transition condition with data: %s', JSON.stringify({
     processAddress, dataType, gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, value,
-  })}`);
+  }));
   const createFunction = getTransitionConditionFunctionByDataType(processAddress, dataType);
   createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, value, (error) => {
     if (error) {
