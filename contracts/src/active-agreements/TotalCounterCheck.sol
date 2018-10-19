@@ -13,11 +13,12 @@ contract TotalCounterCheck is ContractLocatorEnabled, Application {
 
     /**
      * @dev Increases a counter and writes result back. Also compares counter to total and set boolean output if total reached.
+     * param _processInstance the address of the ProcessInstance in which context this application is invoked
      * @param _activityInstanceId the ID of an ActivityInstance
      * param _activityId the ID of the activity definition
-     * @param _txPerformer the address which started the process transaction
+     * param _txPerformer the address which started the process transaction
      */
-    function complete(address, bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
+    function complete(address, bytes32 _activityInstanceId, bytes32, address) public {
         uint current = bpmService.getActivityInDataAsUint(_activityInstanceId, "numberIn");
         uint total = bpmService.getActivityInDataAsUint(_activityInstanceId, "totalIn");
         current++;
