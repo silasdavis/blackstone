@@ -29,6 +29,7 @@ import "agreements/AgreementSignatureCheck.sol";
 contract ActiveAgreementWorkflowTest {
 
 	using TypeUtilsAPI for bytes32;
+	using TypeUtilsAPI for bytes;
 
 	string constant EMPTY_STRING = "";
 
