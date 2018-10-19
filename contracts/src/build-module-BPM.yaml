@@ -8,9 +8,6 @@ jobs:
   - name: ProcessModelRepositoryInterface
     build:
       contract: bpm-model/ProcessModelRepository.sol
-  - name: WorkflowUserAccountInterface
-    build:
-      contract: bpm-runtime/WorkflowUserAccount.sol
   - name: ProcessModelRepository
     build:
       contract: bpm-model/DefaultProcessModelRepository.sol

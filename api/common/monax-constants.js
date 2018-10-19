@@ -2,7 +2,6 @@ const MONAX_BUNDLES = {
   AGREEMENTS: {
     contracts: {
       ACTIVE_AGREEMENT: 'ActiveAgreement',
-      AGREEMENT_PARTY_ACCOUNT: 'AgreementPartyAccount',
       ARCHETYPE: 'Archetype',
     },
   },
@@ -12,14 +11,10 @@ const MONAX_BUNDLES = {
       PROCESS_MODEL: 'ProcessModel',
     },
   },
-  BPM_RUNTIME: {
-    contracts: {
-      WORKFLOW_USER_ACCOUNT: 'WorkflowUserAccount',
-    },
-  },
   COMMONS_AUTH: {
     contracts: {
       ECOSYSTEM: 'Ecosystem',
+      USER_ACCOUNT: 'UserAccount',
     },
   },
   PARTICIPANTS_MANAGER: {
