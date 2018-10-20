@@ -86,6 +86,34 @@ const getContract = (abiPath, contractName, contractAddress) => {
   return db.burrow.contracts.new(abi, null, contractAddress);
 };
 
+// shortcut functions to retrieve often needed objects and services
+const getBpmService = () => appManager.contracts['BpmService'].address;
+const getUserAccount = userAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
+const getOrganization = orgAddress => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
+
+/**
+ * Returns a promise to call the forwardCall function of the given userAddress to invoke the function encoded in the given payload on the provided target address and return the result bytes representation
+ * The 'payload' parameter must be the output of calling the 'encode(...)' function on a contract's function. E.g. <contract>.<function>.encode(param1, param2)
+ */
+const callOnBehalfOf = (userAddress, targetAddress, payload) => new Promise((resolve, reject) => {
+  const actingUser = getUserAccount(userAddress);
+  const newPayload = payload.toString('hex'); // Because the payload runs through another conversion when calling the forwardCall function, it needs to be input as a hex-encoded string to be turned into a proper bytes object again
+  log.debug('Calling target %s on behalf of user %s with payload: %s', targetAddress, userAddress, newPayload);
+  actingUser.forwardCall(targetAddress, newPayload, (error, data) => {
+    if (error) {
+      return reject(boom.badImplementation(`Unexpected error in forwardCall function at user ${userAddress} attempting to call target ${targetAddress}: ${error}`));
+    }
+    if (!data.raw) {
+      return reject(boom.badImplementation(`The forwardCall function from user ${userAddress} to target ${targetAddress} returned no data!`));
+    }
+    log.debug('ReturnData from forwardCall: %s', data.values.returnData);
+    if (data.values.success === false) {
+      return reject(boom.badRequest(`Exception thrown in forwarded call from ${userAddress} to contract ${targetAddress}: ${data.values.returnData}`));
+    }
+    return resolve(data.values.returnData);
+  });
+});
+
 const createEcosystem = name => new Promise((resolve, reject) => {
   log.trace(`Creating new Ecosystem with name ${name}`);
   appManager.contracts['EcosystemRegistry'].factory.createEcosystem(name, (err, data) => {
@@ -194,12 +222,6 @@ const initCache = () => {
   });
   return Promise.all(cachePromises);
 };
-
-const getBpmService = () => appManager.contracts['BpmService'].address;
-
-const getWorkflowUserAccount = userAddr => getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.WORKFLOW_USER_ACCOUNT, userAddr);
-
-const getOrganization = orgAddr => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddr);
 
 /**
  * Creates a promise to create a new organization and add to Accounts Manager.
@@ -558,18 +580,6 @@ const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((res
     });
 });
 
-const cancelAgreement = (userAddr, agreementAddr) => new Promise((resolve, reject) => {
-  const userAccount = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.AGREEMENT_PARTY_ACCOUNT, userAddr);
-  log.trace(`Canceling agreement at address ${agreementAddr}, by user at address: ${userAddr}`);
-  userAccount.cancelAgreement(agreementAddr, (error) => {
-    if (error) {
-      return reject(boomify(error, `Failed to cancel agreement at ${agreementAddr}`));
-    }
-    log.info(`Agreement at ${agreementAddr} canceled by user at ${userAddr}`);
-    return resolve();
-  });
-});
-
 const createAgreementCollection = (name, author, collectionType, packageId) => new Promise((resolve, reject) => {
   log.trace(`Adding agreement collection ${name} with type ${collectionType} ` +
     `and packageId ${packageId} created by user at ${author}`);
@@ -602,19 +612,15 @@ const addAgreementToCollection = (collectionId, agreement) => new Promise((resol
 
 const createUser = user => new Promise((resolve, reject) => {
   log.trace(`Creating a new user with ID: ${user.id}`);
-  const accountsManager = appManager.contracts['ParticipantsManager'].address;
-  const idHex = global.stringToHex(user.id);
+  const idHex = global.stringToHex(user.id); //TODO this should get hashed here to produce a globally unique key for this user, e.g. hash(userId, ecosystemAddress). Currently the userId passed to createUserAccount gets hashed again in the smart contract!
   appManager
-    .contracts['ActiveAgreementRegistry']
-    .factory.createUserAccount(accountsManager, idHex, '0x0', appManager.ecosystemAddress, (error, data) => {
+    .contracts['ParticipantsManager']
+    .factory.createUserAccount(idHex, '0x0', appManager.ecosystemAddress, (error, data) => {
       if (error || !data.raw) {
         return reject(boom.badImplementation(`Failed to create user ${user.id}: ${error}`));
       }
-      if (parseInt(data.raw[0], 10) !== 1) {
-        return reject(boom.badImplementation(`Error code creating new user with id ${user.id}: ${data.raw[0]}`));
-      }
-      log.info(`Created new user ${user.id} at address ${data.raw[1]}`);
-      return resolve(data.raw[1]);
+      log.info(`Created new user ${user.id} at address ${data.raw[0]}`);
+      return resolve(data.raw[0]);
     });
 });
 
@@ -638,94 +644,100 @@ const getUserById = userId => new Promise((resolve, reject) => {
     });
 });
 
-const addUserToOrganization = (userAccount, organization) => new Promise((resolve, reject) => {
-  log.trace(`Adding user ${userAccount} to organization ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.addUser(userAccount, (error, data) => {
-    if (error || !data.raw) {
-      return reject(boom.badImplementation(`Failed to add user at ${userAccount} to organization at ${organization}: ${error}`));
-    }
-    if (data.raw[0] !== true) {
-      return reject(boom.badImplementation(`Expected addUser ${userAccount} to ${organization} to return true`));
-    }
-    log.info(`User at ${userAccount} added to organization at ${organization}`);
-    return resolve();
-  });
+const addUserToOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Adding user %s to organization %s', userAddress, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.addUser.encode(userAddress);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('User %s successfully added to organization %s', userAddress, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to add user ${userAddress} to organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding addUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const removeUserFromOrganization = (userAccount, organization) => new Promise((resolve, reject) => {
-  log.trace(`Removing user ${userAccount} from organization ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.removeUser(userAccount, (error, data) => {
-    if (error || !data.raw) {
-      return reject(boom.badImplementation(`Failed to remove user at ${userAccount} from organization at ${organization}: ${error}`));
-    }
-    if (data.raw[0] === false) {
-      return reject(boom.badRequest(`${userAccount} not a member of ${organization}`));
-    }
-    log.info(`User at ${userAccount} removed from organization at ${organization}`);
-    return resolve();
-  });
+const removeUserFromOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Removing user %s from organization %s', userAddress, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.removeUser.encode(userAddress);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('User %s successfully removed from organization %s', userAddress, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to remove user ${userAddress} to organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const createDepartment = (organization, { id, name }) => new Promise((resolve, reject) => {
-  log.trace(`Creating department ${id} with name ${name} under organization at ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.addDepartment(id, name, (error, data) => {
-    if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to add department to organization at ${organization}: ${error}`));
-    }
-    if (data.raw[0] === false) {
-      return reject(boom.badRequest(`Department with id ${id} already exists in organization at ${organization}`));
-    }
-    log.info(`Department ${id} added to organization at ${organization}`);
-    return resolve();
-  });
+const createDepartment = (organizationAddress, { id, name }, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Creating department ID %s with name %s in organization %s', id, name, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.addDepartment.encode(id, name);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('Department ID %s successfully created in organization %s', id, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to create department ID ${id} in organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding createDepartment request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const removeDepartment = (organization, depId) => new Promise((resolve, reject) => {
-  log.trace(`Removing department ${depId} from organization at ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.removeDepartment(depId, (error, data) => {
-    if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to remove department from organization at ${organization}: ${error}`));
-    }
-    if (data.raw[0] === false) {
-      return reject(boom.badRequest(`Department ${depId} does not exist in organization ${organization}`));
-    }
-    log.info(`Department ${depId} removed from organization at ${organization}`);
-    return resolve();
-  });
+const removeDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Removing department %s from organization %s', id, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.removeDepartment.encode(id);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('Department ID %s successfully removed from organization %s', id, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to remove department ID ${id} in organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartment request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const addDepartmentUser = (organization, depId, userAccount) => new Promise((resolve, reject) => {
-  log.trace(`Adding user ${userAccount} to department ${depId} under organization at ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.addUserToDepartment(userAccount, depId, (error, data) => {
-    if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to add user ${userAccount} to department ${depId} in organization ${organization}: ${error}`));
-    }
-    if (data.raw[0] === false) {
-      return reject(boom.badRequest(`User ${userAccount} already belongs to department ${depId} or ${depId} does not exist`));
-    }
-    log.info(`User ${userAccount} added to department ${depId} in organization at ${organization}`);
-    return resolve();
-  });
+const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Adding user %s to department ID in organization %s', userAddress, depId, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.addUserToDepartment.encode(userAddress, depId);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('User %s successfully added to department ID %s in organization %s', userAddress, depId, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to add user ${userAddress} to department ID ${depId} in organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding addDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const removeDepartmentUser = (organization, depId, userAccount) => new Promise((resolve, reject) => {
-  log.trace(`Removing user ${userAccount} from department ${depId} under organization at ${organization}`);
-  const orgContract = getOrganization(organization);
-  orgContract.removeUserFromDepartment(userAccount, depId, (error, data) => {
-    if (error || !data || !data.raw) {
-      return reject(boom.badImplementation(`Failed to remove user ${userAccount} from department ${depId} in organization ${organization}: ${error}`));
-    }
-    if (data.raw[0] === false) {
-      return reject(boom.badRequest(`User ${userAccount} is not a member of department ${depId}`));
-    }
-    log.info(`User ${userAccount} removed from department ${depId} in organization at ${organization}`);
-    return resolve();
-  });
+const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Removing user %s from department ID %s in organization %s', userAddress, depId, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.removeUserFromDepartment.encode(userAddress, depId);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload)
+    .then((returnData) => {
+      // const decoded = organization.addUser.decode(returnData);
+      if (Boolean(parseInt(returnData, 10)) === true) {
+        log.info('User %s successfully removed from department ID %s in organization %s', userAddress, depId, organizationAddress);
+        return resolve();
+      }
+      return reject(boom.badImplementation(`Failed to remove user ${userAddress} from department ID ${depId} in organization ${organizationAddress}!: ${returnData}`));
+    })
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
 const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate, hoardAddress, hoardSecret) => new Promise((resolve, reject) => {
@@ -963,51 +975,81 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
   });
 });
 
-const signAgreementByUser = (userAddr, agreementAddr) => new Promise((resolve, reject) => {
-  log.trace(`Signing agreement at address ${agreementAddr} by user at address ${userAddr}`);
-  const userAccount = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.AGREEMENT_PARTY_ACCOUNT, userAddr);
-  userAccount.signAgreement(agreementAddr, (err) => {
-    if (err) {
-      return reject(boomify(err, `Failed to sign agreement ${agreementAddr} by user at ${userAccount}`));
-    }
-    log.info(`Agreement at ${agreementAddr} signed by user at ${userAddr}`);
+const signAgreement = (actingUserAddress, agreementAddress) => new Promise(async (resolve, reject) => {
+  log.trace('Signing agreement %s by user %s', agreementAddress, actingUserAddress);
+  try {
+    const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+    const payload = agreement.sign.encode();
+    await callOnBehalfOf(actingUserAddress, agreementAddress, payload);
+    log.info('Agreement %s signed by user %s', agreementAddress, actingUserAddress);
     return resolve();
-  });
+  } catch (error) {
+    return reject(boom.badImplementation(`Error forwarding sign request via acting user ${actingUserAddress} to agreement ${agreementAddress}! Error: ${error}`));
+  }
 });
 
-const getCompletionFunctionByParamType = (userAddr, dataType) => {
-  const userAccount = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.WORKFLOW_USER_ACCOUNT, userAddr);
-  if (!dataType) return userAccount.completeActivity;
-  const completionFunctions = {};
-  completionFunctions[`${DATA_TYPES.BOOLEAN}`] = userAccount.completeActivityWithBoolData;
-  completionFunctions[`${DATA_TYPES.STRING}`] = userAccount.completeActivityWithStringData;
-  completionFunctions[`${DATA_TYPES.BYTES32}`] = userAccount.completeActivityWithBytes32Data;
-  completionFunctions[`${DATA_TYPES.UINT}`] = userAccount.completeActivityWithUintData;
-  completionFunctions[`${DATA_TYPES.INT}`] = userAccount.completeActivityWithIntData;
-  completionFunctions[`${DATA_TYPES.ADDRESS}`] = userAccount.completeActivityWithAddressData;
-  return completionFunctions[dataType];
-};
-
-const completeActivityByUser = (userAddr, activityInstanceId, dataMappingId = null, dataType = null, value = null) => new Promise(async (resolve, reject) => {
-  const bpmService = appManager.contracts['BpmService'].address;
-  log.trace(`Completing task ${activityInstanceId} by user at address ${userAddr}`);
-  const completionFunction = getCompletionFunctionByParamType(userAddr, dataType);
+const cancelAgreement = (actingUserAddress, agreementAddress) => new Promise(async (resolve, reject) => {
+  log.trace('Canceling agreement %s by user %s', agreementAddress, actingUserAddress);
   try {
-    let data;
-    if (dataMappingId) {
-      data = await completionFunction(activityInstanceId, bpmService, dataMappingId, value);
-    } else {
-      data = await completionFunction(activityInstanceId, bpmService);
-    }
-    if (!data.raw) return reject(boom.badImplementation(`Failed to complete activity ${activityInstanceId} by user at ${userAddr}`));
-    if (parseInt(data.raw[0], 10) === 1001) return reject(boom.notFound(`No activity instance found with id ${activityInstanceId}`));
-    if (parseInt(data.raw[0], 10) === 4103) return reject(boom.forbidden('User not authorized to complete activity'));
-    if (parseInt(data.raw[0], 10) !== 1) return reject(boom.badImplementation(`Error code completing activity ${activityInstanceId} by user at ${userAddr}: ${data.raw[0]}`));
-    log.info(`Activity ${activityInstanceId} completed by user ar ${userAddr}`);
+    const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+    const payload = agreement.cancel.encode();
+    await callOnBehalfOf(actingUserAddress, agreementAddress, payload);
+    log.info('Agreement %s canceled by user %s', agreementAddress, actingUserAddress);
     return resolve();
-  } catch (err) {
-    return reject(boom.badImplementation(`Failed to complete activity ${activityInstanceId} by user at ${userAddr}: ${err}`));
+  } catch (error) {
+    return reject(boom.badImplementation(`Error forwarding cancel request via acting user ${actingUserAddress} to agreement ${agreementAddress}! Error: ${error}`));
   }
+});
+
+const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId = null, dataType = null, value = null) => new Promise(async (resolve, reject) => {
+  log.trace('Completing task %s by user %s', activityInstanceId, actingUserAddress);
+  try {
+    const bpmService = appManager.contracts['BpmService'];
+    const piAddress = await bpmService.factory.getProcessInstanceForActivity(activityInstanceId).then(data => data.raw[0]);
+    log.trace('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
+    let payload;
+    if (dataMappingId) {
+      switch (dataType) {
+        case DATA_TYPES.BOOLEAN:
+          payload = bpmService.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+          break;
+        case DATA_TYPES.STRING:
+          payload = bpmService.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+          break;
+        case DATA_TYPES.BYTES32:
+          payload = bpmService.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+          break;
+        case DATA_TYPES.UINT:
+          payload = bpmService.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+          break;
+        case DATA_TYPES.INT:
+          payload = bpmService.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+          break;
+        case DATA_TYPES.ADDRESS:
+          payload = bpmService.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+          break;
+        default:
+          return reject(boom.badImplementation(`Unsupported dataType parameter ${dataType}`));
+      }
+      log.trace('Setting OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
+      await callOnBehalfOf(actingUserAddress, bpmService.address, payload);
+    }
+    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
+    payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
+    const returnData = await callOnBehalfOf(actingUserAddress, piAddress, payload);
+
+    // const decoded = processInstance.completeActivity.decode(returnData);
+    const errorCode = parseInt(returnData, 2);
+    if (errorCode !== 1) {
+      log.warn('Completing activity instance ID %s by user %s returned error code: %d', activityInstanceId, actingUserAddress, errorCode);
+    }
+    if (errorCode === 1001) return reject(boom.notFound(`No activity instance found with ID ${activityInstanceId}`));
+    if (errorCode === 4103) return reject(boom.forbidden(`User ${actingUserAddress} not authorized to complete activity ID ${activityInstanceId}`));
+    if (errorCode !== 1) return reject(boom.badImplementation(`Error code returned from completing activity ${activityInstanceId} by user ${actingUserAddress}: ${errorCode}`));
+  } catch (error) {
+    return reject(boom.badImplementation(`Error completing activity instance ID ${activityInstanceId} by user ${actingUserAddress}! Error: ${error}`));
+  }
+  return resolve();
 });
 
 const getModelAddressFromId = (modelId) => {
@@ -1211,7 +1253,6 @@ module.exports = {
   boomify,
   getContract,
   BpmService: getBpmService,
-  WorkflowUserAccount: getWorkflowUserAccount,
   createOrganization,
   createArchetype,
   isActiveArchetype,
@@ -1254,8 +1295,8 @@ module.exports = {
   createTransition,
   setDefaultTransition,
   createTransitionCondition,
-  completeActivityByUser,
-  signAgreementByUser,
+  completeActivity,
+  signAgreement,
   getModelAddressFromId,
   getProcessDefinitionAddress,
   isValidProcess,

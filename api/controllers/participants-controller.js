@@ -115,7 +115,7 @@ const createOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
-  await contracts.addUserToOrganization(req.params.userAddress, req.params.address);
+  await contracts.addUserToOrganization(req.params.userAddress, req.params.address, req.user.address);
   return res.status(200).send();
 });
 
@@ -124,7 +124,7 @@ const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
-  await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address);
+  await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address, req.user.address);
   return res.status(200).send();
 });
 
@@ -140,7 +140,7 @@ const createDepartment = asyncMiddleware(async (req, res) => {
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to create departments');
   }
-  await contracts.createDepartment(address, { id, name });
+  await contracts.createDepartment(address, { id, name },req.user.address);
   // Optionally also add users in the same request
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user));
   await Promise.all(addUserPromises)
@@ -157,7 +157,7 @@ const removeDepartment = asyncMiddleware(async (req, res) => {
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove departments');
   }
-  await contracts.removeDepartment(address, id);
+  await contracts.removeDepartment(address, id, req.user.address);
   res.status(200).send();
 });
 
@@ -168,7 +168,7 @@ const addDepartmentUsers = asyncMiddleware(async (req, res) => {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
   }
   const { users } = req.body;
-  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user));
+  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
     .then(() => res.status(200).send())
     .catch((err) => {
@@ -183,7 +183,7 @@ const removeDepartmentUser = asyncMiddleware(async (req, res) => {
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
   }
-  await contracts.removeDepartmentUser(address, id, userAddress);
+  await contracts.removeDepartmentUser(address, id, userAddress, req.user.address);
   res.status(200).send();
 });
 

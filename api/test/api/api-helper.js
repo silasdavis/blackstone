@@ -326,7 +326,7 @@ module.exports = (server) => {
           .set('Cookie', [`access_token=${token}`])
           .end((err, res) => {
             if (err) return reject(err);
-            if (res.status !== 200) return reject(new Error('set data value NOT OK'));
+            if (res.status !== 200) return reject(new Error('Error retrieving ActivityInstance'));
             return resolve(res.body);
           });
       });
@@ -341,7 +341,7 @@ module.exports = (server) => {
           .send({value})
           .end((err, res) => {
             if (err) return reject(err);
-            if (res.status !== 200) return reject(new Error('set data value NOT OK'));
+            if (res.status !== 200) return reject(new Error('setActivityDataValue value NOT OK'));
             return resolve();
           });
       });
@@ -356,7 +356,7 @@ module.exports = (server) => {
           .send(data)
           .end((err, res) => {
             if (err) return reject(err);
-            if (res.status !== 200) return reject(new Error('set data value NOT OK'));
+            if (res.status !== 200) return reject(new Error('setActivityDataValues value NOT OK'));
             return resolve();
           });
       });
@@ -370,7 +370,7 @@ module.exports = (server) => {
           .set('Cookie', [`access_token=${token}`])
           .end((err, res) => {
             if (err) return reject(err);
-            if (res.status !== 200) return reject(new Error('set data value NOT OK'));
+            if (res.status !== 200) return reject(new Error('getActivityDataValue value NOT OK'));
             return resolve(res.body);
           });
       });
@@ -384,7 +384,7 @@ module.exports = (server) => {
           .set('Cookie', [`access_token=${token}`])
           .end((err, res) => {
             if (err) return reject(err);
-            if (res.status !== 200) return reject(new Error('set data value NOT OK'));
+            if (res.status !== 200) return reject(new Error('getActivityDataValues NOT OK'));
             return resolve(res.body);
           });
       });

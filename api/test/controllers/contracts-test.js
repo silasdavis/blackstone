@@ -424,7 +424,7 @@ describe('CONTRACTS', () => {
 
   // TODO - Fails, needs some digging
   // it('Should complete activity by user', async () => {
-  //   return assert.isFulfilled(contracts.completeActivityByUser(pAccount.address, aiId));
+  //   return assert.isFulfilled(contracts.completeActivity(pAccount.address, aiId));
   // }).timeout(10000);
 
   it('Should cancel an agreement', async () => {

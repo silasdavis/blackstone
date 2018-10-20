@@ -571,7 +571,7 @@ const signAgreement = asyncMiddleware(async (req, res) => {
   if (!req.params.address) throw boom.badRequest('Agreement address required');
   const userAddr = req.user.address;
   const agreementAddr = req.params.address;
-  await contracts.signAgreementByUser(userAddr, agreementAddr);
+  await contracts.signAgreement(userAddr, agreementAddr);
   log.debug(`Signed agreement ${agreementAddr} by user ${userAddr}`);
   res.status(200).send();
 });

@@ -289,16 +289,16 @@ const completeActivity = asyncMiddleware(async (req, res) => {
       // are carried out as part of a single transaction in solidity
       // via the appropriately mapped function in
       // contracts-controller.js::getCompletionFunctionByParamType
-      await contracts.completeActivityByUser(userAddr, activityInstanceId,
+      await contracts.completeActivity(userAddr, activityInstanceId,
         preparedData[0].id, preparedData[0].dataType, preparedData[0].value);
     } else {
       // in case of multiple data mappings, they are written as a series of promises
       // and then the activity is completed as a separate transaction
       await writeDataForActivity(userAddr, activityInstanceId, preparedData);
-      await contracts.completeActivityByUser(userAddr, activityInstanceId);
+      await contracts.completeActivity(userAddr, activityInstanceId);
     }
   } else {
-    await contracts.completeActivityByUser(userAddr, activityInstanceId);
+    await contracts.completeActivity(userAddr, activityInstanceId);
   }
   return res.sendStatus(200);
 });
@@ -310,8 +310,8 @@ const signAndCompleteActivity = asyncMiddleware(async (req, res) => {
   const id = req.params.activityInstanceId;
   const agreementAddr = req.params.agreementAddress;
   const userAddr = req.user.address;
-  await contracts.signAgreementByUser(userAddr, agreementAddr);
-  await contracts.completeActivityByUser(userAddr, id);
+  await contracts.signAgreement(userAddr, agreementAddr);
+  await contracts.completeActivity(userAddr, id);
   return res.sendStatus(200);
 });
 

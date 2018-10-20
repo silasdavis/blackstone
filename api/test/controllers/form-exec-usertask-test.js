@@ -310,11 +310,11 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should sign agreement by buyer', async () => {
-    await assert.isFulfilled(contracts.signAgreementByUser(buyer.address, agreement.address))
+    await assert.isFulfilled(contracts.signAgreement(buyer.address, agreement.address))
   }).timeout(10000)
 
   it('Should complete task by buyer', async () => {
-    await assert.isFulfilled(contracts.completeActivityByUser(buyer.address, aiId))
+    await assert.isFulfilled(contracts.completeActivity(buyer.address, aiId))
   }).timeout(10000)
 
   it('Should confirm NO pending user task for buyer', done => {
@@ -340,7 +340,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should complete task by seller', async () => {
-    await assert.isFulfilled(contracts.completeActivityByUser(seller.address, aiId))
+    await assert.isFulfilled(contracts.completeActivity(seller.address, aiId))
   }).timeout(10000)
 
   it('Should confirm NO pending user task for seller', done => {
