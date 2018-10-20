@@ -11,6 +11,11 @@ const MONAX_BUNDLES = {
       PROCESS_MODEL: 'ProcessModel',
     },
   },
+  BPM_RUNTIME: {
+    contracts: {
+      PROCESS_INSTANCE: 'ProcessInstance',
+    },
+  },
   COMMONS_AUTH: {
     contracts: {
       ECOSYSTEM: 'Ecosystem',
