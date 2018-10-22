@@ -223,7 +223,7 @@ contract ParticipantsManagerTest {
         if (!org1.removeUserFromDepartment(user1, dep1Id)) return "Failed removing user1 from dep1";
         if (org1.getDepartmentUserAtIndex(dep1Id, 0) != address(user2)) return "Expected department user at idx 0 to be user2 after removing user1";        
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected 1 department user in dep1 after removing user1";
-        if (org1.addUserToDepartment(user2, dep1Id) != false) return "Expected attempt to re-add user2 to dep1 to return false";
+        if (org1.addUserToDepartment(user2, dep1Id) != true) return "Expected attempt to re-add user2 to dep1 to return true";
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected re-adding user2 to dep1 to not change number of department users";
 
 		// 0x0 address for non-existent index

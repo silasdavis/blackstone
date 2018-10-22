@@ -160,12 +160,14 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
 	}
 
 	/**
-	 * @dev Adds the specified user to this organization if they do not already exist within it.
+	 * @dev Adds the specified user to this organization. This function guarantees that the user is part of this organization, if it returns true.
 	 * @param _userAccount the user to add
-	 * @return true if successfully added, false otherwise (e.g. if the user was already part of this organization)
+	 * @return true if the user is successfully added to the organization, false otherwise (e.g. if the user account address was empty)
 	 */
     function addUser(address _userAccount) public returns (bool) {
-		if (!users.exists(_userAccount)) {
+		if (_userAccount == address(0))
+			return false;
+		if(!users.exists(_userAccount)) {
 			users.insert(_userAccount, true);
 			emitEvent(EVENT_UPDATE_ORGANIZATION_USER, this, _userAccount);
 		}
@@ -175,19 +177,21 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
 	/**
 	 * @dev Adds the specified user to the organization if they aren't already registered, then adds the user to the department if they aren't already in it.
 	 * An empty department ID will result in the user being added to the default department.
+	 * This function guarantees that the user is both a member of the organization as well as the specified department, if it returns true.
 	 * @param _userAccount the user to add
 	 * @param _department department id to which the user should be added
-	 * @return true if successfully added, false otherwise (e.g. if the department does not exist or if the user had already been added)
+	 * @return true if successfully added, false otherwise (e.g. if the department does not exist or if the user account address is empty)
 	 */
 	function addUserToDepartment(address _userAccount, bytes32 _department) external returns (bool) {
 		bytes32 targetDepartment = (_department == "") ? DEFAULT_DEPARTMENT_ID : _department;
-		if (!self.departments[targetDepartment].exists ||
-			self.departments[targetDepartment].users.exists(_userAccount)) {
+		if (!self.departments[targetDepartment].exists || _userAccount == address(0)) {
 			return false;
 		}
 		addUser(_userAccount);
-		self.departments[targetDepartment].users.insert(_userAccount, true);
-		emitEvent(EVENT_UPDATE_DEPARTMENT_USER, this, targetDepartment, _userAccount);
+		if (!self.departments[targetDepartment].users.exists(_userAccount)) {
+			self.departments[targetDepartment].users.insert(_userAccount, true);
+			emitEvent(EVENT_UPDATE_DEPARTMENT_USER, this, targetDepartment, _userAccount);
+		}
 		return true;
 	}
 
