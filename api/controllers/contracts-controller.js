@@ -87,7 +87,8 @@ const getContract = (abiPath, contractName, contractAddress) => {
 };
 
 // shortcut functions to retrieve often needed objects and services
-const getBpmService = () => appManager.contracts['BpmService'].address;
+// Note: contracts need to be loaded before invoking these functions. see load() function
+const getBpmService = () => appManager.contracts['BpmService'];
 const getUserAccount = userAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
 const getOrganization = orgAddress => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
 
@@ -97,11 +98,10 @@ const getOrganization = orgAddress => getContract(global.__abi, global.__monax_b
  */
 const callOnBehalfOf = (userAddress, targetAddress, payload) => new Promise((resolve, reject) => {
   const actingUser = getUserAccount(userAddress);
-  const newPayload = payload.toString('hex'); // Because the payload runs through another conversion when calling the forwardCall function, it needs to be input as a hex-encoded string to be turned into a proper bytes object again
-  log.debug('Calling target %s on behalf of user %s with payload: %s', targetAddress, userAddress, newPayload);
-  actingUser.forwardCall(targetAddress, newPayload, (error, data) => {
+  log.debug('Calling target %s on behalf of user %s with payload: %s', targetAddress, userAddress, payload);
+  actingUser.forwardCall(targetAddress, payload, (error, data) => {
     if (error) {
-      return reject(boom.badImplementation(`Unexpected error in forwardCall function at user ${userAddress} attempting to call target ${targetAddress}: ${error}`));
+      return reject(boom.badImplementation(`Unexpected error in forwardCall function on user ${userAddress} attempting to call target ${targetAddress}: ${error}`));
     }
     if (!data.raw) {
       return reject(boom.badImplementation(`The forwardCall function from user ${userAddress} to target ${targetAddress} returned no data!`));
@@ -650,8 +650,8 @@ const addUserToOrganization = (userAddress, organizationAddress, actingUserAddre
   const payload = organization.addUser.encode(userAddress);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.addUser.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('User %s successfully added to organization %s', userAddress, organizationAddress);
         return resolve();
       }
@@ -666,8 +666,8 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
   const payload = organization.removeUser.encode(userAddress);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.removeUser.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('User %s successfully removed from organization %s', userAddress, organizationAddress);
         return resolve();
       }
@@ -682,8 +682,8 @@ const createDepartment = (organizationAddress, { id, name }, actingUserAddress) 
   const payload = organization.addDepartment.encode(id, name);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.addDepartment.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('Department ID %s successfully created in organization %s', id, organizationAddress);
         return resolve();
       }
@@ -698,8 +698,8 @@ const removeDepartment = (organizationAddress, id, actingUserAddress) => new Pro
   const payload = organization.removeDepartment.encode(id);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.removeDepartment.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('Department ID %s successfully removed from organization %s', id, organizationAddress);
         return resolve();
       }
@@ -714,8 +714,8 @@ const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAd
   const payload = organization.addUserToDepartment.encode(userAddress, depId);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.addUserToDepartment.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('User %s successfully added to department ID %s in organization %s', userAddress, depId, organizationAddress);
         return resolve();
       }
@@ -730,8 +730,8 @@ const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUse
   const payload = organization.removeUserFromDepartment.encode(userAddress, depId);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
-      // const decoded = organization.addUser.decode(returnData);
-      if (Boolean(parseInt(returnData, 10)) === true) {
+      const data = organization.removeUserFromDepartment.decode(returnData);
+      if (data.raw[0].valueOf() === true) {
         log.info('User %s successfully removed from department ID %s in organization %s', userAddress, depId, organizationAddress);
         return resolve();
       }
@@ -1038,8 +1038,8 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
     const returnData = await callOnBehalfOf(actingUserAddress, piAddress, payload);
 
-    // const decoded = processInstance.completeActivity.decode(returnData);
-    const errorCode = parseInt(returnData, 2);
+    const data = processInstance.completeActivity.decode(returnData);
+    const errorCode = data.raw[0].valueOf();
     if (errorCode !== 1) {
       log.warn('Completing activity instance ID %s by user %s returned error code: %d', activityInstanceId, actingUserAddress, errorCode);
     }
@@ -1252,7 +1252,7 @@ module.exports = {
   cache,
   boomify,
   getContract,
-  BpmService: getBpmService,
+  getBpmService,
   createOrganization,
   createArchetype,
   isActiveArchetype,
@@ -1310,4 +1310,5 @@ module.exports = {
   getArchetypeProcesses,
   getActivityInstanceData,
   getActiveAgreementData,
+  callOnBehalfOf,
 };
