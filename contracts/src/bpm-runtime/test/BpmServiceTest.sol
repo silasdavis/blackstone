@@ -472,6 +472,105 @@ contract BpmServiceTest {
 	}
 
 	/**
+	 * @dev Tests a process graph containing a looping pattern based on a condition
+	 * using artificial activities between the gateways.
+	 */
+	function testProcessGraphConditionalLoop() external returns (string) {
+
+		//                               
+		// Graph: activity1 -> XOR JOIN ->  -------- activity2 -------> activity3 ------> XOR SPLIT -> activity5
+		//                        |                                                          |
+		//                         \<---------------------- activity4 <---------------------/
+		
+
+		graph.clear();
+
+		// add places
+		graph.addActivity(activityId1);
+		graph.addActivity(activityId2);
+		graph.addActivity(activityId3);
+		graph.addActivity(activityId4);
+		graph.addActivity(activityId5);
+
+		// add transitions
+		graph.addTransition(transitionId1, BpmRuntime.TransitionType.XOR);
+		graph.addTransition(transitionId2, BpmRuntime.TransitionType.XOR);
+	
+		// add connections
+		graph.connect(activityId1, BpmModel.ModelElementType.ACTIVITY, transitionId1, BpmModel.ModelElementType.GATEWAY);
+		graph.connect(transitionId1, BpmModel.ModelElementType.GATEWAY, activityId2, BpmModel.ModelElementType.ACTIVITY);
+		graph.connect(activityId2, BpmModel.ModelElementType.ACTIVITY, activityId3, BpmModel.ModelElementType.ACTIVITY);
+		graph.connect(activityId3, BpmModel.ModelElementType.ACTIVITY, transitionId2, BpmModel.ModelElementType.GATEWAY);
+		graph.connect(transitionId2, BpmModel.ModelElementType.GATEWAY, activityId5, BpmModel.ModelElementType.ACTIVITY);
+		graph.connect(transitionId2, BpmModel.ModelElementType.GATEWAY, activityId4, BpmModel.ModelElementType.ACTIVITY);
+		graph.connect(activityId4, BpmModel.ModelElementType.ACTIVITY, transitionId1, BpmModel.ModelElementType.GATEWAY);
+
+		// Test graph connectivity
+		if (graph.activityKeys.length != 5) return "There should be 5 activities in the graph";
+		if (graph.transitionKeys.length != 3) return "There should be 3 transitions in the graph including one artificial transition to connect two activities ";
+		if (graph.activities[activityId1].node.inputs.length != 0) return "activity1 should have 0 in arcs";
+		if (graph.activities[activityId1].node.outputs.length != 1) return "activity1 should have 1 out arcs";
+		if (graph.transitions[transitionId1].node.inputs.length != 2) return "transition1 should have 2 in arcs";
+		if (graph.transitions[transitionId1].node.outputs.length != 1) return "transition1 should have 1 out arcs";
+		if (graph.activities[activityId2].node.inputs.length != 1) return "activity2 should have 1 in arcs";
+		if (graph.activities[activityId2].node.outputs.length != 1) return "activity2 should have 1 out arcs";
+		if (graph.activities[activityId3].node.inputs.length != 1) return "activity3 should have 1 in arcs";
+		if (graph.activities[activityId3].node.outputs.length != 1) return "activity3 should have 1 out arcs";
+		if (graph.activities[activityId4].node.inputs.length != 1) return "activity4 should have 1 in arcs";
+		if (graph.activities[activityId4].node.outputs.length != 1) return "activity4 should have 1 out arcs";
+		if (graph.transitions[transitionId2].node.inputs.length != 1) return "transition3 should have 1 in arcs";
+		if (graph.transitions[transitionId2].node.outputs.length != 2) return "transition3 should have 2 out arcs";
+		if (graph.activities[activityId5].node.inputs.length != 1) return "activity5 should have 1 in arcs";
+		if (graph.activities[activityId5].node.outputs.length != 0) return "activity5 should have 0 out arcs";
+
+		TestConditionResolver resolver = new TestConditionResolver();
+		resolver.addCondition(transitionId2, activityId4, true);
+		resolver.addCondition(transitionId2, activityId5, false);
+		graph.processInstance = address(resolver); // the simple test implementation of a resolver is used here
+		graph.activities[activityId1].done = true; // start execution by marking 1st activity done
+
+		if (graph.isTransitionEnabled(transitionId1) == false) return "Transition1 should be enabled";
+		if (graph.isTransitionEnabled(transitionId2) == true) return "Transition2 should not be enabled at graph start";
+
+		// Before 1st iteration
+		if (graph.activities[activityId2].done) return "State1: activity2 should have 0 completion markers";
+		if (graph.activities[activityId3].done) return "State1: activity3 should have 0 completion markers";
+
+		graph.execute();
+
+		if (graph.isTransitionEnabled(transitionId1) == true) return "Transition1 should have fired and not be enabled anymore";
+		if (graph.activities[activityId1].done) return "State2: activity1 should have 0 completion markers";
+		if (graph.activities[activityId2].ready == false) return "State2: activity2 should have 1 activation markers";
+		if (graph.activities[activityId3].ready == true) return "State2: activity3 should have 0 activation markers";
+
+		// execute twice to move to activity4
+		graph.activities[activityId2].ready = false;
+		graph.activities[activityId2].done = true;
+		graph.execute();
+		graph.activities[activityId3].ready = false;
+		graph.activities[activityId3].done = true;
+		graph.execute();
+
+		if (graph.activities[activityId4].ready == false) return "State3: activity4 should have 1 activation markers";
+		if (graph.activities[activityId2].ready == true) return "State3: activity2 should have 0 activation markers before second activation";
+		if (graph.activities[activityId2].done == true) return "State3: activity2 should have 0 completion markers before second activation";
+		if (graph.activities[activityId3].ready == true) return "State3: activity3 should have 0 activation markers before second activation";
+		if (graph.activities[activityId3].done == true) return "State3: activity3 should have 0 completion markers before second activation";
+
+		graph.activities[activityId4].ready = false;
+		graph.activities[activityId4].done = true;
+		graph.execute();
+
+		if (graph.activities[activityId4].done == true) return "State4: activity4 should have 0 completion markers after initiating second turn";
+		if (graph.activities[activityId2].ready == false) return "State4: activity2 should have 1 activation markers on second activation";
+		if (graph.activities[activityId2].done == true) return "State3: activity2 should have 0 completion markers on second activation";
+		if (graph.activities[activityId3].ready == true) return "State3: activity3 should have 0 activation markers before second activation";
+		if (graph.activities[activityId3].done == true) return "State3: activity3 should have 0 completion markers before second activation";
+
+		return SUCCESS;
+	}
+
+	/**
 	 * @dev Tests the creation and configuration of a process instance from a process definition, specifically the tranlation into a BpmRuntime.ProcessGraph
 	 */
 	function testProcessGraphCreation() external returns (string) {
@@ -713,6 +812,131 @@ contract BpmServiceTest {
 				xorPathCorrect = true;
 		}
 		if (!xorPathCorrect) return "The XOR split should have invoked activity3 due to a satisfied transition condition";
+
+		return SUCCESS;
+	}
+
+	/**
+	 * @dev Tests a conditional looping implementation (see also loop graph test)
+	 */
+	function testConditionalLoopRoute() external returns (string) {
+
+		//                               
+		// Graph: activity1 -> XOR JOIN ->  -------- activity2  ------> XOR SPLIT -> activity4
+		//                        |                                        |
+		//                         \<--------------- activity3 <----------/
+
+		// re-usable variables for return values
+		uint error;
+		address addr;
+		bytes32 activityId;
+		uint8 state;
+
+		(error, addr) = repository.createProcessModel("loopingModel", "Looping Model", [1,0,0], modelAuthor, false, EMPTY, EMPTY);
+		if (addr == 0x0) return "Unable to create a ProcessModel";
+		ProcessModel pm = ProcessModel(addr);
+
+		(error, addr) = pm.createProcessDefinition("LoopingPD");
+		if (addr == 0x0) return "Unable to create a ProcessDefinition";
+		ProcessDefinition pd = ProcessDefinition(addr);
+
+		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId2, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId3, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId4, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createGateway(transitionId1, BpmModel.GatewayType.XOR);
+		pd.createGateway(transitionId2, BpmModel.GatewayType.XOR);
+		pd.createTransition(activityId1, transitionId1);
+		pd.createTransition(transitionId1, activityId2);
+		pd.createTransition(activityId2, transitionId2);
+		pd.createTransition(transitionId2, activityId3);
+		pd.createTransition(transitionId2, activityId4);
+ 		pd.createTransition(activityId3, transitionId1);
+		pd.createTransitionConditionForBool(transitionId2, activityId4, "PaymentsMade", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), true);
+		pd.setDefaultTransition(transitionId2, activityId3);
+		
+		// Validate to set the start activity and enable runtime configuration
+		(bool valid, bytes32 errorMsg) = pd.validate();
+		if (!valid) return errorMsg.toString();
+
+		TestBpmService service = getNewTestBpmService();
+		service.setProcessModelRepository(repository);
+		service.setApplicationRegistry(applicationRegistry);
+
+		// Start first process instance with Payments Made uninitialized
+		ProcessInstance pi = new DefaultProcessInstance(pd, this, EMPTY);
+		graph.configure(pi);
+
+		// inspect the process graph
+		if (graph.activityKeys.length != 4) return "There should be 4 activities in the ProcessGraph";
+		if (graph.transitionKeys.length != 2) return "There should be 2 transitions in the ProcessGraph";
+		if (!graph.activities[activityId1].exists) return "Activity1 not found in graph.";
+		if (!graph.activities[activityId2].exists) return "Activity2 not found in graph.";
+		if (!graph.activities[activityId3].exists) return "Activity3 not found in graph.";
+		if (!graph.activities[activityId4].exists) return "Activity4 not found in graph.";
+		if (!graph.transitions[transitionId1].exists) return "Transition1 not found in graph.";
+		if (graph.transitions[transitionId1].transitionType != BpmRuntime.TransitionType.XOR) return "Transition1 should be of type XOR.";
+		if (!graph.transitions[transitionId2].exists) return "Transition2 not found in graph.";
+		if (graph.transitions[transitionId2].transitionType != BpmRuntime.TransitionType.XOR) return "Transition2 should be of type XOR.";
+
+		if (graph.activities[activityId1].node.inputs.length != 0) return "Activity1 should have no inputs.";
+		if (graph.activities[activityId1].node.outputs.length != 1) return "Activity1 should have 1 outputs.";
+		if (graph.transitions[transitionId1].node.inputs.length != 2) return "Transition1 should have 2 inputs.";
+		if (graph.transitions[transitionId1].node.outputs.length != 1) return "Transition1 should have 1 inputs.";
+		if (graph.activities[activityId2].node.inputs.length != 1) return "Activity2 should have 1 inputs.";
+		if (graph.activities[activityId2].node.outputs.length != 1) return "Activity2 should have 1 outputs.";
+		if (graph.transitions[transitionId2].node.inputs.length != 1) return "Transition2 should have 1 inputs.";
+		if (graph.transitions[transitionId2].node.outputs.length != 2) return "Transition2 should have 2 inputs.";
+		if (graph.activities[activityId3].node.inputs.length != 1) return "Activity3 should have 1 inputs.";
+		if (graph.activities[activityId3].node.outputs.length != 1) return "Activity3 should have 1 outputs.";
+		if (graph.activities[activityId4].node.inputs.length != 1) return "Activity4 should have 1 inputs.";
+		if (graph.activities[activityId4].node.outputs.length != 0) return "Activity4 should have 0 outputs.";
+
+		// start the process execution
+		service.addProcessInstance(pi);
+		TestData dataStorage = new TestData();
+		pi.setDataValueAsAddress("agreement", dataStorage);
+	
+		// verify expected routing decisions ahead of start
+		if (pi.resolveTransitionCondition(transitionId2, activityId4)) return "TransitionCondition to activity4 should be false with default value";
+
+		error = service.startProcessInstance(pi);
+		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start of p1";
+		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "p1 should be active";
+
+		if (pi.getNumberOfActivityInstances() != 2) return "There should be 2 AIs total in pi after start";
+
+		pi.completeActivity(pi.getActivityInstanceAtIndex(1), service);
+		if (pi.getNumberOfActivityInstances() != 3) return "There should be 3 AIs total in pi after activity2 first completion";
+		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
+		if (activityId != activityId3) return "Process should be in activity3 in first round";
+		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "activity3 should be suspended";
+
+		pi.completeActivity(pi.getActivityInstanceAtIndex(2), service);
+		if (pi.getNumberOfActivityInstances() != 4) return "There should be 4 AIs total in pi after activity3 first completion";
+		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(3));
+		if (activityId != activityId2) return "Process should be in activity2 in second round";
+		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "activity2 should be suspended";
+
+		pi.completeActivity(pi.getActivityInstanceAtIndex(3), service);
+		if (pi.getNumberOfActivityInstances() != 5) return "There should be 5 AIs total in pi after activity2 second completion";
+		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(4));
+		if (activityId != activityId3) return "Process should be in activity3 in second round";
+		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "activity3 should be suspended";
+
+		pi.completeActivity(pi.getActivityInstanceAtIndex(4), service);
+		if (pi.getNumberOfActivityInstances() != 6) return "There should be 6 AIs total in pi after activity3 second completion";
+		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(5));
+		if (activityId != activityId2) return "Process should be in activity2 in third round";
+		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "activity2 should be suspended";
+
+		dataStorage.setDataValueAsBool("PaymentsMade", true); // exit condition
+
+		pi.completeActivity(pi.getActivityInstanceAtIndex(5), service);
+		if (pi.getNumberOfActivityInstances() != 7) return "There should be 5 AIs total in pi after activity2 second completion";
+		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(6));
+		if (activityId != activityId4) return "Process should be in activity4 at end";
+		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "activity4 should be completed";
 
 		return SUCCESS;
 	}

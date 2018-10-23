@@ -229,6 +229,18 @@ jobs:
     relation: eq
     val: success
 
+- name: testProcessGraphConditionalLoop
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testProcessGraphConditionalLoop
+
+- name: assertProcessGraphConditionalLoop
+  assert:
+    key: $testProcessGraphConditionalLoop
+    relation: eq
+    val: success
+
 - name: testProcessGraphCreation
   call:
     destination: $BpmServiceTest
@@ -262,6 +274,18 @@ jobs:
 - name: assertGatewayRouting
   assert:
     key: $testGatewayRouting
+    relation: eq
+    val: success
+
+- name: testConditionalLoopRoute
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testConditionalLoopRoute
+
+- name: assertConditionalLoopRoute
+  assert:
+    key: $testConditionalLoopRoute
     relation: eq
     val: success
 
