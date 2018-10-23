@@ -2,14 +2,12 @@ const sendgrid = require('@sendgrid/mail');
 const crypto = require('crypto');
 const passport = require('passport');
 const bcrypt = require('bcryptjs');
-const Analytics = require('analytics-node');
 const boom = require('boom');
 
 const { asyncMiddleware } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.auth');
 const pool = require(`${global.__common}/postgres-db`);
-const analytics = new Analytics(global.__settings.monax.analyticsID);
 
 const login = (req, res, next) => {
   if ((!req.body.username && !req.body.email) || !req.body.password) {
@@ -26,16 +24,6 @@ const login = (req, res, next) => {
       id: user.username,
       createdAt: user.createdAt,
     };
-    analytics.identify({
-      userId: userData.id,
-      traits: {
-        userContract: userData.address,
-      },
-    });
-    analytics.track({
-      event: 'Logged in',
-      userId: userData.id,
-    });
     log.info(`${user.username} logged in successfully`);
     return res
       .cookie(global.__settings.monax.cookie.name, user.token, {
