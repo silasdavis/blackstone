@@ -448,8 +448,10 @@ library BpmRuntimeLib {
         for (uint i=0; i<_processInstance.graph.activityKeys.length; i++) {
             activityId = _processInstance.graph.activityKeys[i];
             if (_processInstance.graph.activities[activityId].ready) {
-                // remove the activation trigger
+                // remove the activation trigger and multi-instance information (in case this node in the graph has been run before)
                 _processInstance.graph.activities[activityId].ready = false;
+                if (_processInstance.graph.activities[activityId].instancesCompleted > 0)
+                    _processInstance.graph.activities[activityId].instancesCompleted = 0;
 
                 // some activities in the graph might not be represented by elements in the ProcessDefinition, e.g. to support
                 // gateways in sequence. These activities simply move the activation markers.
