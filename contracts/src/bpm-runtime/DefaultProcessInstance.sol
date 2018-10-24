@@ -152,13 +152,26 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
     }
 
     /**
-     * @dev Resolves the transition condition identified by the given source and target using the data contained in this ProcessInstance
-     * @param _sourceId the ID of a model element that is the source element of a transition
-     * @param _targetId the ID of a model element that is the target element of a transition
+     * @dev Resolves the transition condition identified by the given source and target using the data contained in this ProcessInstance.
+     * Both source and target IDs are identifiers from the ProcessGraph and the function therefore takes into account that the target ID
+     * could belong to an artificial activity (place) that was inserted to support to successive gateways. If this situation is detected,
+     * this function will attempt to determine the correct target ID which was used in the ProcessDefinition (which usually is the transition element following the specified target).
+     * @param _sourceId the ID of a graph element that is the source element of a transition (the source always corresponds to a gateway ID in the ProcessDefinition)
+     * @param _targetId the ID of a graph element that is the target element of a transition
      * @return true if the transition condition exists and evaluates to true, false otherwise
      */
     function resolveTransitionCondition(bytes32 _sourceId, bytes32 _targetId) external view returns (bool) {
-        return self.processDefinition.resolveTransitionCondition(_sourceId, _targetId, this);
+        if (self.processDefinition.modelElementExists(_targetId)) {
+            return self.processDefinition.resolveTransitionCondition(_sourceId, _targetId, this);
+        }
+        else {
+            BpmRuntime.ActivityNode memory currentTarget = self.graph.activities[_targetId];
+            ErrorsLib.revertIf(!currentTarget.exists || currentTarget.node.outputs.length == 0,
+                ErrorsLib.INVALID_INPUT(), "ProcessInstance.resolveTransitionCondition", "The specified target element ID is unsuitable to determine a successor. It is either not a graph activity or it has no output elements");
+            ErrorsLib.revertIf(!self.processDefinition.modelElementExists(currentTarget.node.outputs[0]),
+                ErrorsLib.INVALID_INPUT(), "ProcessInstance.resolveTransitionCondition", "Neither the specified target element nor its successor (in case of artificial graph places) is a known element in the ProcessDefinition");
+            return self.processDefinition.resolveTransitionCondition(_sourceId, currentTarget.node.outputs[0], this);
+        }
     }
 
 	/**

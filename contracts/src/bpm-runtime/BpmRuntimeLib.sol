@@ -867,14 +867,14 @@ library BpmRuntimeLib {
             addTransition(_graph, _currentId, transitionType);
             for (uint i=0; i<outputs.length; i++) {
                 targetId = outputs[i];
-                targetType = _processDefinition.getElementType(targetId);
                 // continue recursion to the next element to ensure relevant nodes in the graph exist before adding the connections
                 traverseRuntimeGraph(_processDefinition, targetId, _graph);
-                connect(_graph, _currentId, currentType, targetId, targetType);
-            }
-            // if there is a valid defaultOutput, set it
-            if (defaultOutput != "" && ArrayUtilsAPI.contains(_graph.transitions[_currentId].node.outputs, defaultOutput)) {
-                _graph.transitions[_currentId].defaultOutput = defaultOutput;
+                targetType = _processDefinition.getElementType(targetId);
+                bytes32 newElementId = connect(_graph, _currentId, currentType, targetId, targetType);
+                // if the current target is the gateway's defaultOutput, set it considering the potential creation of an artificial place (newElementId)
+                if (defaultOutput == targetId) {
+                    _graph.transitions[_currentId].defaultOutput = (newElementId != "") ? newElementId : targetId;
+                }
             }
         }
     }
@@ -893,15 +893,16 @@ library BpmRuntimeLib {
      */
     function connect(BpmRuntime.ProcessGraph storage _graph, bytes32 _sourceId, BpmModel.ModelElementType _sourceType, bytes32 _targetId, BpmModel.ModelElementType _targetType)
         public
+        returns (bytes32 newElementId)
     {
         if (_sourceType == BpmModel.ModelElementType.ACTIVITY &&
             _targetType == BpmModel.ModelElementType.ACTIVITY) {
             // two activities (places) cannot be directly connected
             // so, a NONE transition is put between the two transitions
-            bytes32 transitionId = keccak256(abi.encodePacked(_sourceId, _targetId));
-            addTransition(_graph, transitionId, BpmRuntime.TransitionType.NONE);
-            connect(_graph.activities[_sourceId].node, _graph.transitions[transitionId].node); // input arc
-            connect(_graph.transitions[transitionId].node, _graph.activities[_targetId].node); // output arc
+            newElementId = keccak256(abi.encodePacked(_sourceId, _targetId));
+            addTransition(_graph, newElementId, BpmRuntime.TransitionType.NONE);
+            connect(_graph.activities[_sourceId].node, _graph.transitions[newElementId].node); // input arc
+            connect(_graph.transitions[newElementId].node, _graph.activities[_targetId].node); // output arc
         }
         else if (_sourceType == BpmModel.ModelElementType.ACTIVITY) {
             connect(_graph.activities[_sourceId].node, _graph.transitions[_targetId].node);
@@ -912,10 +913,10 @@ library BpmRuntimeLib {
         else {
             // two transitions cannot be directly connected or the activation markers would not be passed on
             // so, an artificial activity (place) is put between the two transitions
-            bytes32 activityId = keccak256(abi.encodePacked(_sourceId, _targetId));
-            addActivity(_graph, activityId);
-            connect(_graph.transitions[_sourceId].node, _graph.activities[activityId].node); // output arc
-            connect(_graph.activities[activityId].node, _graph.transitions[_targetId].node); // input arc
+            newElementId = keccak256(abi.encodePacked(_sourceId, _targetId));
+            addActivity(_graph, newElementId);
+            connect(_graph.transitions[_sourceId].node, _graph.activities[newElementId].node); // output arc
+            connect(_graph.activities[newElementId].node, _graph.transitions[_targetId].node); // input arc
         }
     }
 
@@ -968,6 +969,7 @@ library BpmRuntimeLib {
      * @param _b the target node
      */
     function connect(BpmRuntime.Node storage _a, BpmRuntime.Node storage _b) private {
+        // TODO there is currently no protection from accidentally adding the same connection multiple times. We should implement .contains() checks or refactor the inputs/outputs to a mapping to prevent duplicate connections.
         _a.outputs.push(_b.id);
         _b.inputs.push(_a.id);
     }
