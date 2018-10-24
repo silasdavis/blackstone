@@ -34,10 +34,15 @@ contract ProcessDefinitionTest {
 	bytes32 EMPTY = "";
 
 	/**
-	 * @dev 
+	 * @dev Tests building of the ProcessDefinition and checking for validity along the way
 	 */
 	function testProcessDefinition() external returns (string) {
 	
+		//                                              
+		// Graph: activity1 -> activity2 -> XOR SPLIT -/---------------> XOR JOIN -> activity4
+		//                                            \                /                               
+		//                                             \-> activity3 -/
+
 		// re-usable test variables
 		uint error;
 		address newAddress;
@@ -135,20 +140,23 @@ contract ProcessDefinitionTest {
 		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
 			return "Adding condition for non-existent transition connection should fail";
 
+		// establish all missing connections
+		pd.createGateway("gateway2", BpmModel.GatewayType.XOR);
 		pd.createTransition(activity2Id, "gateway1");
+		pd.createTransition("gateway1", "gateway2");
 		pd.createTransition("gateway1", activity3Id);
-		pd.createTransition("gateway1", activity4Id);
+		pd.createTransition("gateway2", activity4Id);
 
 		// test transition condition failure when adding condition on default transition
-		pd.setDefaultTransition("gateway1", activity3Id);
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+		pd.setDefaultTransition("gateway1", "gateway2");
+		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", "gateway2", EMPTY, EMPTY, 0x0, 0, 0x0))
 			return "Adding condition for the default transition shoudl fail";
 
-		// test transition condition success with activity4
-		if (!address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity4Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+		// test transition condition success
+		if (!address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
 			return "Adding condition on valid transition should succeed";
 
-		//TODO missing test if condition gets deleted when setting activity4 as the default transition
+		//TODO missing test if condition gets deleted when setting activity3 as the default transition
 
 		// check transitions on gateways
 		bytes32[] memory inputs;
@@ -157,22 +165,10 @@ contract ProcessDefinitionTest {
 		(inputs, outputs, , defaultOutput) = pd.getGatewayGraphDetails("gateway1");
 		if (inputs.length != 1) return "XOR SPLIT gateway should have 1 incoming transitions";
 		if (outputs.length != 2) return "XOR SPLIT gateway should have 2 outgoing transitions";
-		if (defaultOutput != activity3Id) return "activity3 should be set as default transition";
+		if (defaultOutput != "gateway2") return "XOR SPLIT should have gateway2 set as default transition";
 
 		(valid, errorMsg) = pd.validate();
 		if (!valid) return errorMsg.toString(); // process definition should be valid at this point
-
-		// Scenario 3: XOR Join
-		pd.createGateway("gateway2", BpmModel.GatewayType.XOR);
-		// Activity 5
-		error = pd.createActivityDefinition(activity5Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
-		if (error != BaseErrors.NO_ERROR()) return "Creating activity5 failed";
-		pd.createTransition(activity3Id, "gateway2");
-		pd.createTransition(activity4Id, "gateway2");
-		pd.createTransition("gateway2", activity5Id);
-
-		(valid, errorMsg) = pd.validate();
-		if (!valid) return errorMsg.toString(); // should be valid at this point
 
 		bytes32[] memory activityIds = pd.getActivitiesForParticipant(participantId1);
 		if (activityIds.length != 1)
