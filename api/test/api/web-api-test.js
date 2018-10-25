@@ -9,8 +9,8 @@ const _ = require('lodash')
 const hexToString = require('@monax/burrow').utils.hexToAscii;
 const stringToHex = require('@monax/burrow').utils.asciiToHex;
 
-const app = require('../../app')
-const server = require(__common + '/aa-web-api')
+const app = require('../../app')();
+const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger')
 const log = logger.getLogger('agreements.tests')
 const pool = require(__common + '/postgres-db');
