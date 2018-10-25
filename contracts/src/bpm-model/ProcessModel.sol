@@ -14,13 +14,14 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 
 	event LogProcessDefinitionCreation(
 		bytes32 indexed eventId,
-		address processDefinitionAddress,
+		address process_definition_address,
 		bytes32 id,
-		bytes32 interfaceId,
-		bytes32 modelId
+		bytes32 interface_id,
+		bytes32 model_id,
+		address model_address
 	);
 
-	bytes32 public constant EVENT_ID_PROCESS_DEFINITION = "AN://process/definition";
+	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel

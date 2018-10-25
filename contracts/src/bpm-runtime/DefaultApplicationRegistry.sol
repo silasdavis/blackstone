@@ -33,8 +33,18 @@ contract DefaultApplicationRegistry is Versioned(1,0,0), ApplicationRegistry, Ab
 			_function,
 			_webForm
 		);
-		if (error == BaseErrors.NO_ERROR())
+		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateApplications(TABLE_APPLICATIONS, _id);
+			emit LogApplicationCreation(
+				EVENT_ID_APPLICATIONS,
+				_id,
+				uint8(_type),
+				_location,
+				_function,
+				_webForm,
+				0
+			);
+		}
 	}
 
 	/**
@@ -51,8 +61,21 @@ contract DefaultApplicationRegistry is Versioned(1,0,0), ApplicationRegistry, Ab
 		if (!ApplicationRegistryDb(database).applicationExists(_id))
 			return BaseErrors.RESOURCE_NOT_FOUND();
 		error = ApplicationRegistryDb(database).addAccessPoint(_id, _accessPointId, _dataType, _direction);
-		if (error == BaseErrors.NO_ERROR())
+		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateApplicationAccessPoints(TABLE_APPLICATION_ACCESS_POINTS, _id, _accessPointId);
+			emit LogApplicationAccessPointCreation(
+				EVENT_ID_APPLICATION_ACCESS_POINTS,
+				_id,
+				_accessPointId,
+				_dataType,
+				uint8(_direction)
+			);
+			emit LogApplicationAccessPointCountUpdate(
+				EVENT_ID_APPLICATIONS,
+				_id,
+				ApplicationRegistryDb(database).getNumberOfAccessPoints(_id)
+			);
+		}
 	}
 
 	/**

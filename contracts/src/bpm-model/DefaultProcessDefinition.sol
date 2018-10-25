@@ -132,7 +132,7 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 		graphElements.rows[_id].exists = true;
 		model.fireActivityDefinitionUpdateEvent(_id);
 		emit LogActivityDefinitionCreation(
-			EVENT_ID_ACTIVITY_DEFINITION,
+			EVENT_ID_ACTIVITY_DEFINITIONS,
 			address(model),
 			address(this),
 			_id,
@@ -257,7 +257,7 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 		processInterfaces.rows[key].exists = true;
 		model.fireProcessDefinitionUpdateEvent();
 		emit LogProcessDefinitionInterfaceIdUpdate(
-			EVENT_ID_PROCESS_DEFINITION,
+			EVENT_ID_PROCESS_DEFINITIONS,
 			address(this),
 			_interfaceId
 		);

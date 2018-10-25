@@ -20,6 +20,76 @@ contract ParticipantsManager is EventListener, Upgradeable {
     event UpdateDepartmentUser(string name, address key1, bytes32 key2, address key3);
     event RemoveDepartmentUser(string name, address key1, bytes32 key2, address key3);
 
+    event LogUserCreation(
+        bytes32 indexed eventId,
+        address user_account_address,
+        bytes32 id,
+        address owner
+    );
+
+    event LogOrganizationCreation(
+        bytes32 indexed eventId,
+        address organization_address,
+        uint approver_count,
+        bytes32 organization_id
+    );
+
+    event LogOrganizationApproverUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        address approver_address
+    );
+
+    event LogOrganizationUserUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        address user_address
+    );
+
+    event LogOrganizationUserRemoval(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        address user_address
+    ); 
+
+    event LogOrganizationDepartmentUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        bytes32 department_id,
+        uint user_count,
+        string name        
+    );
+
+    event LogOrganizationDepartmentRemoval(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        bytes32 department_id
+    );
+
+    event LogDepartmentUserUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        bytes32 department_id,
+        address user_address
+    );
+
+    event LogDepartmentUserRevomal(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        bytes32 department_id,
+        address user_address
+    );
+    
+    bytes32 public constant EVENT_ID_USER_ACCOUNTS = "AN://user-accounts";
+    bytes32 public constant EVENT_ID_ORGANIZATION_ACCOUNTS = "AN://organization-accounts";
+    bytes32 public constant EVENT_ID_ORGANIZATION_APPROVERS = "AN://organizations/approvers";
+    bytes32 public constant EVENT_ID_ORGANIZATION_USERS = "AN://organizations/users";
+    bytes32 public constant EVENT_ID_ORGANIZATION_DEPARTMENTS = "AN://organizations/departments";
+    bytes32 public constant EVENT_ID_DEPARTMENT_USERS = "AN://departments/users";
+
     /**
     * @dev Creates and adds a user account
     * @param _id id (required)

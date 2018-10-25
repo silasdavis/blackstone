@@ -16,6 +16,23 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	event UpdateProcessDefinition(string table, address model, address processDefinition);
 	event UpdateActivityDefinition(string table, address model, address processDefinition, bytes32 activityId);
 
+	event LogProcessModelCreation(
+		bytes32 indexed eventId,
+		address model_address,
+		bytes32 id,
+		string name,
+		uint version_major,
+		uint version_minor,
+		uint version_patch,
+		address author,
+		bool is_private,
+		bool active,
+		bytes32 diagram_address,
+		bytes32 diagram_secret
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_MODELS = "AN://process-models";
+
 	/**
 	 * @dev Factory function to instantiate a ProcessModel. The model is automatically added to this repository.
 	 * @param _id the model ID

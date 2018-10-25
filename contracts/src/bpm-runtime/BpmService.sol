@@ -21,19 +21,87 @@ contract BpmService is Upgradeable {
 
 	event LogProcessInstanceCreation(
 		bytes32 indexed eventId,
-		address processAddress,
-		address processDefinition,
+		address process_instance_address,
+		address process_definition_address,
 		uint8 state,
-		address startedBy
+		address started_by
 	);
 
 	event LogProcessInstanceStateUpdate(
 		bytes32 indexed eventId,
-		address processAddress,
+		address process_instance_address,
 		uint8 state
 	);
 
-	bytes32 public constant EVENT_ID_PROCESS_INSTANCE = "AN://process/instance";
+	event LogProcessDataCreation(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		bool bool_value,
+		uint uint_value,
+		int int_value,
+		bytes32 bytes32_value,
+		address address_value,
+		string string_value
+	);
+
+	event LogProcessDataBoolUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		bool bool_value
+	);
+
+	event LogProcessDataUintUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		uint uint_value
+	);
+
+	event LogProcessDataIntUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		int int_value
+	);
+
+	event LogProcessDataBytes32Update(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		bytes32 bytes32_value
+	);
+
+	event LogProcessDataAddressUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		address address_value
+	);
+
+	event LogProcessDataStringUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		string string_value
+	);
+
+	event LogProcessInstanceAddressScopesUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 addres_scope_key,
+		address key_address,
+		bytes32 key_context,
+		bytes32 fixed_scope,
+		bytes32 data_path,
+		bytes32 data_storage_id,
+		address data_storage
+	);
+	
+	bytes32 public constant EVENT_ID_PROCESS_INSTANCES = "AN://process-instances";
+	bytes32 public constant EVENT_ID_PROCESS_DATA = "EVENT_ID_PROCESS_DATA";
+	bytes32 public constant EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES = "AN://process-instance/scopes";
 
 	/**
 		* @dev Gets the ProcessModelRepository address for this BpmService

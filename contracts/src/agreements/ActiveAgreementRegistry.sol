@@ -21,84 +21,91 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	// Vent specific events
 	event LogAgreementCreation(
 		bytes32 indexed eventId, 
-		address agreementAddress, 
-		address archetype, 
-		string name, 
-		address creator,
-		bool isPrivate, 
-		uint8 legalState,
-		bytes32 hoardAddress,
-		bytes32 hoardSecret
+		address	agreement_address,
+		address	archetype_address,
+		string name,
+		address	creator,
+		bool is_private,
+		uint8	legal_state,
+		uint32 max_event_count,
+		address	formation_process_instance,
+		address	execution_process_instance,
+		bytes32 hoard_address,
+		bytes32 hoard_secret,
+		bytes32 event_log_hoard_address,
+		bytes32 event_log_hoard_secret
 	);
 
 	event LogAgreementFormationProcessUpdate(
 		bytes32 indexed eventId, 
-		address agreementAddress,
-		address formationProcessInstance
+		address agreement_address,
+		address formation_process_instance
 	);
 
 	event LogAgreementExecutionProcessUpdate(
 		bytes32 indexed eventId, 
-		address agreementAddress,
-		address executionProcessInstance
+		address agreement_address,
+		address execution_process_instance
 	);
 
 	event LogAgreementMaxEventCountUpdate(
 		bytes32 indexed eventId,
-		address agreementAddress, 
-		uint32 maxNumberOfEvents
+		address agreement_address,
+		uint32 max_event_count
 	);
 
 	event LogAgreementEventLogReference(
 		bytes32 indexed eventId,
-		address agreementAddress, 
-		bytes32 eventLogHoardAddress,
-		bytes32 eventLogHoardSecret
+		address agreement_address, 
+		bytes32 event_log_hoard_address,
+		bytes32 event_log_hoard_secret
 	);
 
 	event LogAgreementCollectionCreation(
 		bytes32 indexed eventId,
-		bytes32 id,
+		bytes32 collection_id,
 		string name,
 		address author,
-		uint8 collectionType,
-		bytes32 packageId
+		uint8 collection_type,
+		bytes32 package_id
 	);
 
 	event LogAgreementToCollectionUpdate(
 		bytes32 indexed eventId,
-		bytes32 collectionId,
-		address agreementAddress,
-		string agreementName,
-		address archetypeAddress
+		bytes32 collection_id,
+		address agreement_address,
+		string agreement_name,
+		address archetype_address
 	);
 
 	event LogActiveAgreementToPartyUpdate(
 		bytes32 indexed eventId,
-		address agreementAddress,
-		address party
+		address agreement_address,
+		address party,
+		address signed_by,
+		uint signature_timestamp
 	);
 
 	event LogGoverningAgreementUpdate(
 		bytes32 indexed eventId,
-		address agreementAddress,
-		address governingAgreementAddress,
-		string governingAgreementName
+		address agreement_address,
+		address governing_agreement_address,
+		string governing_agreement_name
 	);
 
 	event LogAgreementLegalStateUpdate(
 		bytes32 indexed eventId,
-		address agreementAddress,
-		uint8 legalState
+		address agreement_address,
+		uint8 legal_state
 	);
 
 	bytes32 public constant DATA_ID_AGREEMENT = "agreement";
 
-	bytes32 public constant EVENT_ID_AGREEMENT = "AN://agreement";
-	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTION = "AN://agreement/collection";
+	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
+	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTIONS = "AN://agreement-collections";
 	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTION_MAP = "AN://agreement-to-collection";
 	bytes32 public constant EVENT_ID_AGREEMENT_PARTY_MAP = "AN://agreement-to-party";
-	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreement";
+	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreements";
 
 	/**
 	 * @dev Creates an Active Agreement with the given parameters
