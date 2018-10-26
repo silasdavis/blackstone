@@ -14,6 +14,35 @@ contract ApplicationRegistry is Upgradeable {
 	event UpdateApplications(string table, bytes32 key1);
 	event UpdateApplicationAccessPoints(string table, bytes32 key1, bytes32 key2);
 
+	event LogApplicationCreation(
+		bytes32 indexed eventId,
+		bytes32 application_id,
+		uint8 application_type,
+		address location,
+		bytes4 method,
+		bytes32 web_form,
+		uint access_point_count // TODO Remove if it's unused in the API
+	);
+
+	// TODO Remove if access point count is unused in the API,
+	// or can be substituted by a direct query to the ApplicationRegistry contract	 
+	event LogApplicationAccessPointCountUpdate(
+		bytes32 indexed eventId,
+		bytes32 application_id,
+		uint access_point_count
+	);
+
+	event LogApplicationAccessPointCreation(
+		bytes32 indexed eventId,
+		bytes32 application_id,
+		bytes32 access_point_id,
+		uint8 data_type,
+		uint8 direction
+	);
+
+	bytes32 public constant EVENT_ID_APPLICATIONS = "AN://applications";
+	bytes32 public constant EVENT_ID_APPLICATION_ACCESS_POINTS = "AN://applications/access-points";
+
 	/**
 	 * @dev Adds an application with the given parameters to this ProcessModel
 	 * @param _id the ID of the application

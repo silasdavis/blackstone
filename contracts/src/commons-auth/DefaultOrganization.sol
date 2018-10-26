@@ -79,6 +79,10 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
 		name = self.departments[_id].name;
 	}
 
+	function getDepartmentName(bytes32 _id) external view returns (string name) {
+		name = self.departments[_id].name;
+	}
+
 	function departmentExists(bytes32 _id) external view returns (bool) {
 		return self.departments[_id].exists;
 	}
@@ -239,7 +243,7 @@ contract DefaultOrganization is Organization, DefaultEventEmitter, AbstractERC16
 		}			
 	}
 
-  function getOrganizationKey() internal view returns (bytes32) {
+  function getOrganizationKey() public view returns (bytes32) {
     return keccak256(abi.encodePacked(address(this)));
   }
 

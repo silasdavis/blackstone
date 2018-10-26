@@ -23,7 +23,7 @@ services:
     - --grpc-addr
     - chain:10997
     - --log-level
-    - debug
+    - info
     - --spec-file
     - /config/Tables.spec
     - --abi-dir

@@ -7,6 +7,15 @@ import "commons-collections/VersionLinkedAppendOnly.sol";
  */
 contract IsoCurrencies is VersionLinkedAppendOnly {
 
+	event LogCurrencyRegistration(
+		bytes32 indexed eventId,
+		bytes3 alpha3,
+		bytes3 num3,
+		string name
+	);
+
+	bytes32 public constant EVENT_ID_ISO_CURRENCIES = "AN://standards/currencies";
+
 	struct Currency {
 		bytes3 alpha3;	// 3-letter Currency code
 		bytes3 num3;		// 3-digit numeric code which may match the country's M49 code

@@ -56,11 +56,12 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		error = processDefinitions.insert(_id, newAddress);
 		emitEvent("UPDATE_PROCESS_DEFINITION", newAddress);
 		emit LogProcessDefinitionCreation(
-			EVENT_ID_PROCESS_DEFINITION,
+			EVENT_ID_PROCESS_DEFINITIONS,
 			newAddress,
 			_id,
 			bytes32(""),
-			ProcessModel(this).getId()
+			ProcessModel(this).getId(),
+			address(this)
 		);
 	}
 	
@@ -108,7 +109,6 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		if (processInterfaces[_interfaceId]) return BaseErrors.RESOURCE_ALREADY_EXISTS();
 		processInterfaces[_interfaceId] = true;
 		processInterfaceKeys.push(_interfaceId);
-		emitEvent("UPDATE_PROCESS_MODEL", this);
 		return BaseErrors.NO_ERROR();
 	}
 

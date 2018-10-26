@@ -60,6 +60,12 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         error = ParticipantsManagerDb(database).addUserAccount(UserAccount(_account).getId(), _account);
         if (error == BaseErrors.NO_ERROR()) {
             emit UpdateUserAccount(TABLE_USERS, _account);
+            emit LogUserCreation(
+                EVENT_ID_USER_ACCOUNTS,
+                _account,
+                UserAccount(_account).getId(),
+                UserAccount(_account).getOwner()
+            );
         }
     }
 
@@ -96,6 +102,12 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
             Organization(_address).addEventListener(EVENT_UPDATE_DEPARTMENT_USER);
             Organization(_address).addEventListener(EVENT_REMOVE_DEPARTMENT_USER);
             emit UpdateOrganization(TABLE_ORGANIZATIONS, _address);
+            emit LogOrganizationCreation(
+                EVENT_ID_ORGANIZATION_ACCOUNTS,
+                _address,
+                Organization(_address).getNumberOfApprovers(),
+                Organization(_address).getOrganizationKey()
+            );
             fireOrganizationApproverEvents(_address);
             fireDepartmentEvents(_address);
         }
@@ -127,6 +139,12 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
             Organization(organization).addEventListener(EVENT_UPDATE_DEPARTMENT_USER);
             Organization(organization).addEventListener(EVENT_REMOVE_DEPARTMENT_USER);
             emit UpdateOrganization(TABLE_ORGANIZATIONS, organization);
+            emit LogOrganizationCreation(
+                EVENT_ID_ORGANIZATION_ACCOUNTS,
+                organization,
+                Organization(organization).getNumberOfApprovers(),
+                Organization(organization).getOrganizationKey()
+            );
             fireOrganizationApproverEvents(organization);
             fireDepartmentEvents(organization);
 		}
@@ -319,9 +337,20 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_ORGANIZATION_USER &&
              ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateOrganizationUser(TABLE_ORGANIZATION_USERS, _source, _data);
+            emit LogOrganizationUserUpdate(
+                EVENT_ID_ORGANIZATION_USERS,
+                _source,
+                _data
+            );
         } else if (_event == EVENT_REMOVE_ORGANIZATION_USER &&
              ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveOrganizationUser(TABLE_ORGANIZATION_USERS, _source, _data);
+            emit LogOrganizationUserRemoval(
+                EVENT_ID_ORGANIZATION_USERS,
+                bytes32("delete"),
+                _source,
+                _data
+            );
         }
     }
 
@@ -335,9 +364,23 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_ORGANIZATION_DEPARTMENT &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _source, _id);            
+            emit LogOrganizationDepartmentUpdate(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS,
+                _source,
+                _id,
+                Organization(_source).getNumberOfDepartmentUsers(_id),
+                Organization(_source).getDepartmentName(_id)
+            );
         } else if (_event == EVENT_REMOVE_ORGANIZATION_DEPARTMENT &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _source, _id);            
+            emit LogOrganizationDepartmentRemoval(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS, 
+                bytes32("delete"), 
+                _source, 
+                _id
+            );
+            
         }
     }
 
@@ -352,9 +395,22 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_DEPARTMENT_USER &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateDepartmentUser(TABLE_DEPARTMENT_USERS, _source, _id, _userAccount);
+            emit LogDepartmentUserUpdate(
+                EVENT_ID_DEPARTMENT_USERS,
+                _source,
+                _id,
+                _userAccount
+            );
         } else if (_event == EVENT_REMOVE_DEPARTMENT_USER &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveDepartmentUser(TABLE_DEPARTMENT_USERS, _source, _id, _userAccount);
+            emit LogDepartmentUserRevomal(
+                EVENT_ID_DEPARTMENT_USERS,
+                bytes32("delete"),
+                _source,
+                _id,
+                _userAccount
+            );
         }
     }
 
@@ -365,6 +421,11 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     function fireOrganizationApproverEvents(address _address) internal {
         for (uint i=0; i<Organization(_address).getNumberOfApprovers(); i++) {
             emit UpdateOrganizationApprover(TABLE_ORGANIZATION_APPROVERS, _address, Organization(_address).getApproverAtIndex(i));
+            emit LogOrganizationApproverUpdate(
+                EVENT_ID_ORGANIZATION_APPROVERS,
+                _address,
+                Organization(_address).getApproverAtIndex(i)
+            );
         }
     }
 
@@ -373,8 +434,17 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
 	 * @param _address the organization address
 	 */
     function fireDepartmentEvents(address _address) internal {
+        bytes32 deptId;
         for (uint i=0; i<Organization(_address).getNumberOfDepartments(); i++) {
-            emit UpdateOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _address, Organization(_address).getDepartmentAtIndex(i));
+            deptId = Organization(_address).getDepartmentAtIndex(i);
+            emit UpdateOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _address, deptId);
+            emit LogOrganizationDepartmentUpdate(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS,
+                _address,
+                deptId,
+                Organization(_address).getNumberOfDepartmentUsers(deptId),
+                Organization(_address).getDepartmentName(deptId)
+            );
         }
     }
 

@@ -14,27 +14,27 @@ contract ProcessDefinition is Bytes32Identifiable {
 
 	event LogProcessDefinitionInterfaceIdUpdate(
 		bytes32 indexed eventId,
-		address processDefinitionAddress,
-		bytes32 interfaceId
+		address process_definition_address,
+		bytes32 interface_id
 	);
 
 	event LogActivityDefinitionCreation(
 		bytes32 indexed eventId,
-		address modelAddress,
-		address processDefinitionAddress,
-		bytes32 activityDefinitionId,
-		uint8 activityType,
-		uint8 taskType,
-		uint8 taskBehavior,
-		bytes32 assignee,
-		bool multiInstance,
+		address model_address,
+		address process_definition_address,
+		bytes32 activity_id,
+		uint8 activity_type,
+		uint8 task_type,
+		uint8 task_behavior,
+		bytes32 participant_id,
+		bool multi_instance,
 		bytes32 application,
-		bytes32 subProcessModelId,
-		bytes32 subProcessDefinitionId
+		bytes32 sub_process_model_id,
+		bytes32 sub_process_definition_id
 	);
 
-	bytes32 public constant EVENT_ID_PROCESS_DEFINITION = "AN://process/definition";
-	bytes32 public constant EVENT_ID_ACTIVITY_DEFINITION = "AN://activity/definition";
+	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
+	bytes32 public constant EVENT_ID_ACTIVITY_DEFINITIONS = "AN://activity-definitions";
 
 	/**
 	 * @dev Creates a new activity definition with the specified parameters.

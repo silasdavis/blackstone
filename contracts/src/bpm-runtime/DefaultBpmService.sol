@@ -148,18 +148,58 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         for (uint i=0; i<_pi.getSize(); i++) {
             ( ,dataId) = _pi.getDataIdAtIndex(i);
             emit UpdateProcessData(TABLE_PROCESS_DATA, _pi, dataId);
+            emit LogProcessDataCreation(
+                EVENT_ID_PROCESS_DATA,
+                address(_pi),
+                dataId,
+                _pi.getDataValueAsBool(dataId),
+                _pi.getDataValueAsUint(dataId),
+                _pi.getDataValueAsInt(dataId),
+                _pi.getDataValueAsBytes32(dataId),
+                _pi.getDataValueAsAddress(dataId),
+                _pi.getDataValueAsString(dataId)
+            );
         }
-        bytes32[] memory keys = _pi.getAddressScopeKeys();
-        for (i = 0; i<keys.length; i++) {
-            emit UpdateProcessInstanceAddressScopes(TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES, _pi, keys[i]);
-        }
+        emitProcessInstanceAddressScopeEvents(_pi);
         error = _pi.execute(this);
         emit UpdateProcesses(TABLE_PROCESS_INSTANCES, _pi);
         emit LogProcessInstanceStateUpdate(
-            EVENT_ID_PROCESS_INSTANCE,
+            EVENT_ID_PROCESS_INSTANCES,
             address(_pi),
             _pi.getState()
         );
+    }
+
+    function emitProcessInstanceAddressScopeEvents(ProcessInstance _pi) internal {
+        bytes32[] memory keys = _pi.getAddressScopeKeys();
+        address keyAddress;
+        bytes32 keyContext;
+        bytes32 fixedScope;
+        bytes32 dataPath;
+        bytes32 dataStorageId;
+        address dataStorage;
+        for (uint i = 0; i<keys.length; i++) {
+            emit UpdateProcessInstanceAddressScopes(TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES, _pi, keys[i]);
+            (
+                keyAddress,
+                keyContext,
+                fixedScope,
+                dataPath,
+                dataStorageId,
+                dataStorage
+            ) = _pi.getAddressScopeDetailsForKey(keys[i]);
+            emit LogProcessInstanceAddressScopesUpdate(
+                EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES,
+                address(_pi),
+                keys[i],
+                keyAddress,
+                keyContext,
+                fixedScope,
+                dataPath,
+                dataStorageId,
+                dataStorage
+            );
+        }
     }
 
 	/**
@@ -180,13 +220,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultBpmService.createDefaultProcessInstance", "ProcessDefinition is NULL");
         processInstance = new DefaultProcessInstance(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
         processInstance.transferOwnership(msg.sender);
+        ErrorsLib.revertIf(address(processInstance) == 0x0,
+                ErrorsLib.INVALID_STATE(), "DefaultBpmService.createDefaultProcessInstance", "Process Instance address empty");
         emit LogProcessInstanceCreation(
-            EVENT_ID_PROCESS_INSTANCE,
-            processInstance,
-            ProcessInstance(processInstance).getProcessDefinition(),
-            ProcessInstance(processInstance).getState(),
-            ProcessInstance(processInstance).getStartedBy()
-        );
+			EVENT_ID_PROCESS_INSTANCES,
+			address(processInstance),
+			processInstance.getProcessDefinition(),
+			processInstance.getState(),
+			processInstance.getStartedBy()
+		);
     }
 
 	/**
@@ -299,8 +341,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsBool(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataBoolUpdate(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
 	/**
@@ -317,8 +366,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsString(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataStringUpdate(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
 	/**
@@ -335,8 +391,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsBytes32(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataBytes32Update(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
 	/**
@@ -353,8 +416,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsUint(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataUintUpdate(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
 	/**
@@ -371,8 +441,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsInt(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataIntUpdate(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
 	/**
@@ -389,8 +466,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
         (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
         DataStorage(storageAddress).setDataValueAsAddress(dataPath, _value);
-        if (storageAddress == piAddress)
+        if (storageAddress == piAddress) {
             emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+            emit LogProcessDataAddressUpdate(
+                EVENT_ID_PROCESS_DATA,
+                piAddress,
+                dataPath,
+                _value
+            );
+        }
     }
 
     /**
@@ -641,7 +725,7 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
      */
     function emitProcessStateChangeEvent(address _processInstance) external {
         emit LogProcessInstanceStateUpdate(
-            EVENT_ID_PROCESS_INSTANCE,
+            EVENT_ID_PROCESS_INSTANCES,
             _processInstance,
             ProcessInstance(_processInstance).getState()
         );

@@ -26,52 +26,52 @@ library BpmRuntimeLib {
 
     event LogActivityInstanceCreation(
         bytes32 indexed eventId,
-        address processInstance,
-        bytes32 activityInstanceId,
-        bytes32 activityId,
+        bytes32 activity_instance_id,
+        bytes32 activity_id,
+        address process_instance_address,
         uint created,
         uint completed,
         address performer,
-        address completedBy,
+        address completed_by,
         uint8 state
     );
 
     event LogActivityInstanceStateUpdate(
         bytes32 indexed eventId,
-        bytes32 activityInstanceId,
+        bytes32 activity_instance_id,
         uint8 state
     );
 
     event LogActivityInstancePerformerUpdate(
         bytes32 indexed eventId,
-        bytes32 activityInstanceId,
+        bytes32 activity_instance_id,
         address performer
     );
 
     event LogActivityInstanceStateAndPerformerUpdate(
         bytes32 indexed eventId,
-        bytes32 activityInstanceId,
+        bytes32 activity_instance_id,
         address performer,
         uint8 state
     );
 
     event LogActivityInstanceStateAndTimestampUpdate(
         bytes32 indexed eventId,
-        bytes32 activityInstanceId,
+        bytes32 activity_instance_id,
         uint completed,
         uint8 state
     );
 
     event LogActivityInstanceCompletion(
         bytes32 indexed eventId,
-        bytes32 activityInstanceId,
-        address completedBy,
+        bytes32 activity_instance_id,
+        address completed_by,
         uint completed,
         address performer,
         uint8 state
     );
     
-    bytes32 public constant EVENT_ID_ACTIVITY_INSTANCE = "AN://activity/instance";
+    bytes32 public constant EVENT_ID_ACTIVITY_INSTANCES = "AN://activity-instances";
 
     function getERC165IdOrganization() internal pure returns (bytes4) {
         return (bytes4(keccak256(abi.encodePacked("addUser(address)"))) ^ 
@@ -100,7 +100,7 @@ library BpmRuntimeLib {
 
     function emitAICompletionEvent(bytes32 _aiId, address _completedBy, uint _completed, address _performer, BpmRuntime.ActivityInstanceState _state) internal {
         emit LogActivityInstanceCompletion(
-            EVENT_ID_ACTIVITY_INSTANCE,
+            EVENT_ID_ACTIVITY_INSTANCES,
             _aiId,
             _completedBy,
             _completed,
@@ -146,7 +146,7 @@ library BpmRuntimeLib {
                     (BpmModel.TaskBehavior(behavior) != BpmModel.TaskBehavior.SEND)) {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                         emit LogActivityInstanceStateUpdate(
-                            EVENT_ID_ACTIVITY_INSTANCE,
+                            EVENT_ID_ACTIVITY_INSTANCES,
                             _activityInstance.id,
                             uint8(_activityInstance.state)
                         );
@@ -176,7 +176,7 @@ library BpmRuntimeLib {
                     // USER tasks are always suspended to wait for external completion
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         uint8(_activityInstance.state)
                     );
@@ -203,7 +203,7 @@ library BpmRuntimeLib {
                                 // if the application prevented activity completion, return performing rights back to the user
                                 _activityInstance.performer = taskPerformer;
                                 emit LogActivityInstanceStateAndPerformerUpdate(
-                                    EVENT_ID_ACTIVITY_INSTANCE,
+                                    EVENT_ID_ACTIVITY_INSTANCES,
                                     _activityInstance.id,
                                     _activityInstance.performer,
                                     uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)
@@ -245,7 +245,7 @@ library BpmRuntimeLib {
                 error = invokeApplication(_activityInstance, _rootDataStorage, application, msg.sender, _processDefinition, _service.getApplicationRegistry());
                 _activityInstance.performer = 0x0;
                 emit LogActivityInstanceStateAndPerformerUpdate(
-                    EVENT_ID_ACTIVITY_INSTANCE,
+                    EVENT_ID_ACTIVITY_INSTANCES,
                     _activityInstance.id,
                     _activityInstance.performer,
                     uint8(BpmRuntime.ActivityInstanceState.APPLICATION)
@@ -253,7 +253,7 @@ library BpmRuntimeLib {
                 if (error != BaseErrors.NO_ERROR()) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
                     );
@@ -295,7 +295,7 @@ library BpmRuntimeLib {
                         // for the synchronous part of the event, the state is set to APPLICATION to allow IN mappings to be executed
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.APPLICATION;
                         emit LogActivityInstanceStateUpdate(
-                            EVENT_ID_ACTIVITY_INSTANCE,
+                            EVENT_ID_ACTIVITY_INSTANCES,
                             _activityInstance.id,
                             uint8(_activityInstance.state)
                         );
@@ -304,7 +304,7 @@ library BpmRuntimeLib {
                             _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                             _activityInstance.performer = 0x0;
                             emit LogActivityInstanceStateAndPerformerUpdate(
-                                EVENT_ID_ACTIVITY_INSTANCE,
+                                EVENT_ID_ACTIVITY_INSTANCES,
                                 _activityInstance.id,
                                 _activityInstance.performer,
                                 uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
@@ -317,7 +317,7 @@ library BpmRuntimeLib {
                     if (BpmModel.TaskBehavior(behavior) != BpmModel.TaskBehavior.SEND) {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                         emit LogActivityInstanceStateUpdate(
-                            EVENT_ID_ACTIVITY_INSTANCE,
+                            EVENT_ID_ACTIVITY_INSTANCES,
                             _activityInstance.id,
                             uint8(_activityInstance.state)
                         );
@@ -367,7 +367,7 @@ library BpmRuntimeLib {
                 if (subProcessDefinition == 0x0) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         uint8(_activityInstance.state)
                     );
@@ -378,7 +378,7 @@ library BpmRuntimeLib {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                     _activityInstance.completed = block.timestamp;
                     emit LogActivityInstanceStateAndTimestampUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         _activityInstance.completed,
                         uint8(BpmRuntime.ActivityInstanceState.COMPLETED)
@@ -387,7 +387,7 @@ library BpmRuntimeLib {
                 else {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         uint8(_activityInstance.state)
                     );
@@ -399,7 +399,7 @@ library BpmRuntimeLib {
                 if (error != BaseErrors.NO_ERROR()) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         _activityInstance.id,
                         uint8(_activityInstance.state)
                     );
@@ -413,7 +413,7 @@ library BpmRuntimeLib {
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                 _activityInstance.completed = block.timestamp;
                 emit LogActivityInstanceStateAndTimestampUpdate(
-                    EVENT_ID_ACTIVITY_INSTANCE,
+                    EVENT_ID_ACTIVITY_INSTANCES,
                     _activityInstance.id,
                     _activityInstance.completed,
                     uint8(BpmRuntime.ActivityInstanceState.COMPLETED)
@@ -570,7 +570,7 @@ library BpmRuntimeLib {
                 _activityInstance.performer = (dataPath == "") ? targetAddress : DataStorage(targetAddress).getDataValueAsAddress(dataPath);
             }
             emit LogActivityInstancePerformerUpdate(
-                EVENT_ID_ACTIVITY_INSTANCE,
+                EVENT_ID_ACTIVITY_INSTANCES,
                 _activityInstance.id,
                 _activityInstance.performer
             );
@@ -746,10 +746,10 @@ library BpmRuntimeLib {
                                                                              completedBy: 0x0});
         insertOrUpdate(_processInstance.activities, ai);
         emit LogActivityInstanceCreation(
-            EVENT_ID_ACTIVITY_INSTANCE,
-            _processInstance.addr,
+            EVENT_ID_ACTIVITY_INSTANCES,
             aiId,
             _activityId,
+            _processInstance.addr,
             created,
             0,
             0x0,
@@ -774,7 +774,7 @@ library BpmRuntimeLib {
                     _processInstance.activities.rows[activityInstanceId].value.state = BpmRuntime.ActivityInstanceState.ABORTED;
                     _service.fireActivityUpdateEvent(_processInstance.addr, activityInstanceId);
                     emit LogActivityInstanceStateUpdate(
-                        EVENT_ID_ACTIVITY_INSTANCE,
+                        EVENT_ID_ACTIVITY_INSTANCES,
                         activityInstanceId,
                         uint8(BpmRuntime.ActivityInstanceState.ABORTED)
                     );

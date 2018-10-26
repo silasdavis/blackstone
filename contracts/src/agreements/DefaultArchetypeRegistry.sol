@@ -64,7 +64,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		for (uint i = 0; i < _governingArchetypes.length; i++) {
 			emit UpdateGoverningArchetypes(TABLE_GOVERNING_ARCHETYPES, archetype, _governingArchetypes[i]);
 			emit LogGoverningArchetypeUpdate(
-				EVENT_ID_GOVERNING_ARCHETYPE, 
+				EVENT_ID_GOVERNING_ARCHETYPES, 
 				archetype, 
 				_governingArchetypes[i],
 				Archetype(_governingArchetypes[i]).getName()
@@ -90,7 +90,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), 
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultArchetypeRegistry.createArchetype", "Archetype already exists");
 		emit LogArchetypeCreation(
-			EVENT_ID_ARCHETYPE,
+			EVENT_ID_ARCHETYPES,
 			_archetype,
 			Archetype(_archetype).getName(),
 			Archetype(_archetype).getDescription(),
@@ -172,7 +172,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateArchetypeParameters(TABLE_ARCHETYPE_PARAMETERS, _archetype, _parameterName);
 			emit LogArchetypeParameterUpdate(
-				EVENT_ID_ARCHETYPE_PARAMETER,
+				EVENT_ID_ARCHETYPE_PARAMETERS,
 				_archetype,
 				_parameterName,
 				uint8(_parameterType),
@@ -218,7 +218,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateArchetypeJurisdictions(TABLE_ARCHETYPE_JURISDICTIONS, _archetype, key);
 			emit LogArchetypeJurisdictionUpdate(
-				EVENT_ID_ARCHETYPE_JURISDICTION,
+				EVENT_ID_ARCHETYPE_JURISDICTIONS,
 				_archetype,
 				_country,
 				_region
@@ -256,7 +256,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given author address is not authorized to activate archetype");
 		Archetype(_archetype).activate();
 		emit UpdateArchetypes(TABLE_ARCHETYPES, _archetype);
-		emit LogArchetypeActive(EVENT_ID_ARCHETYPE, _archetype, true);
+		emit LogArchetypeActive(EVENT_ID_ARCHETYPES, _archetype, true);
 	}
 
 	/**
@@ -268,7 +268,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given address is not authorized to deactivate archetype");
 		Archetype(_archetype).deactivate();
 		emit UpdateArchetypes(TABLE_ARCHETYPES, _archetype);
-		emit LogArchetypeActive(EVENT_ID_ARCHETYPE, _archetype, false);
+		emit LogArchetypeActive(EVENT_ID_ARCHETYPES, _archetype, false);
 	}
 
 	/**
@@ -283,7 +283,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(_successor != 0x0 && !ArchetypeRegistryDb(database).archetypeExists(_successor), ErrorsLib.INVALID_INPUT(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Successor must be a valid archetype");
 		Archetype(_archetype).setSuccessor(_successor);
 		emit UpdateArchetypes(TABLE_ARCHETYPES, _archetype);
-		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPE, _archetype, _successor);
+		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, _archetype, _successor);
 	}
 
 	/**
@@ -368,7 +368,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateArchetypeDocuments(TABLE_ARCHETYPE_DOCUMENTS, _archetype, _name);
 			emit LogArchetypeDocumentUpdate(
-				EVENT_ID_ARCHETYPE_DOCUMENT,
+				EVENT_ID_ARCHETYPE_DOCUMENTS,
 				_archetype,
 				_name,
 				_hoardAddress,
@@ -386,7 +386,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		Archetype(_archetype).setPrice(_price);
 		emit UpdateArchetypes(TABLE_ARCHETYPES, _archetype);
 		emit LogArchetypePriceUpdate(
-			EVENT_ID_ARCHETYPE,
+			EVENT_ID_ARCHETYPES,
 			_archetype,
 			_price
 		);
@@ -408,7 +408,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		error = ArchetypeRegistryDb(database).createPackage(id, _name, _description, _author, _isPrivate, _active);
 		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateArchetypePackages(TABLE_ARCHETYPE_PACKAGES, id);
-			emit LogArchetypePackageCreation(EVENT_ID_ARCHETYPE_PACKAGE, id, _name, _description, _author, _isPrivate, _active);
+			emit LogArchetypePackageCreation(EVENT_ID_ARCHETYPE_PACKAGES, id, _name, _description, _author, _isPrivate, _active);
 		}
 	}
 
@@ -424,7 +424,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(_author != packageAuthor, ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activatePackage", "Given address is not authorized to activate archetype package");
 		ArchetypeRegistryDb(database).activatePackage(_id);
 		emit UpdateArchetypePackages(TABLE_ARCHETYPE_PACKAGES, _id);
-		emit LogArchetypePackageActive(EVENT_ID_ARCHETYPE_PACKAGE, _id, true);
+		emit LogArchetypePackageActive(EVENT_ID_ARCHETYPE_PACKAGES, _id, true);
 	}
 
 	/**
@@ -439,7 +439,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		ErrorsLib.revertIf(_author != packageAuthor, ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activatePackage", "Given address is not authorized to deactivate archetype package");
 		ArchetypeRegistryDb(database).deactivatePackage(_id);
 		emit UpdateArchetypePackages(TABLE_ARCHETYPE_PACKAGES, _id);
-		emit LogArchetypePackageActive(EVENT_ID_ARCHETYPE_PACKAGE, _id, false);
+		emit LogArchetypePackageActive(EVENT_ID_ARCHETYPE_PACKAGES, _id, false);
 	}
 
 	/**

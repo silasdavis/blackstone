@@ -21,33 +21,33 @@ contract ArchetypeRegistry is Upgradeable {
 
 	event LogArchetypeCreation(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address archetype_address,
 		string name,
 		string description,
 		uint32 price,
 		address author,
 		bool active,
-		bool isPrivate,
+		bool is_private,
 		address successor,
-		address formationProcessDefinition,
-		address executionProcessDefinition
+		address formation_process_Definition,
+		address execution_process_Definition
 	);
 
 	event LogArchetypeSuccessorUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address archetype_address,
 		address successor
 	);
 
 	event LogArchetypePriceUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address archetype_address,
 		uint32 price
 	);
 
 	event LogArchetypeActive(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address archetype_address,
 		bool active
 	);
 
@@ -57,7 +57,7 @@ contract ArchetypeRegistry is Upgradeable {
 		string name,
 		string description,
 		address author,
-		bool isPrivate,
+		bool is_private,
 		bool active
 	);
 
@@ -70,47 +70,47 @@ contract ArchetypeRegistry is Upgradeable {
 	event LogArchetypeToPackageUpdate(
 		bytes32 indexed eventId,
 		bytes32 packageId,
-		address archetypeAddress,
-		string archetypeName
+		address archetype_address,
+		string archetype_name
 	);
 
 	event LogArchetypeParameterUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
-		bytes32 parameterName,
-		uint8 parameterType,
+		address archetype_address,
+		bytes32 parameter_name,
+		uint8 parameter_type,
 		uint position		
 	);
 
 	event LogArchetypeDocumentUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
-		bytes32 documentName,
-		bytes32 hoardAddress,
-		bytes32 hoardSecret
+		address archetype_address,
+		bytes32 document_key,
+		bytes32 hoard_address,
+		bytes32 hoard_secret
 	);
 
 	event LogArchetypeJurisdictionUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address archetype_address,
 		bytes2 country,
 		bytes32 region
 	);
 
 	event LogGoverningArchetypeUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
-		address governingArchetypeAddress,
-		string governingArchetypeName
+		address archetype_address,
+		address governing_archetype_address,
+		string governing_archetype_name
 	);
 
-	bytes32 public constant EVENT_ID_ARCHETYPE = "AN://archetype";
-	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGE = "AN://archetype/package";
+	bytes32 public constant EVENT_ID_ARCHETYPES = "AN://archetypes";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGES = "AN://archetype-packages";
 	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGE_MAP = "AN://archetype-to-package";
-	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETER = "AN://archetype/parameter";
-	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENT = "AN://archetype/document";
-	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTION = "AN://archetype/jurisdiction";
-	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPE = "AN://governing-archetype";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETERS = "AN://archetype/parameters";
+	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENTS = "AN://archetype/documents";
+	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetype/jurisdictions";
+	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
 
 	/**
 	 * @dev Creates a new archetype

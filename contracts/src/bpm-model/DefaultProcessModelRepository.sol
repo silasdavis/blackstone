@@ -67,6 +67,27 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 		_model.addEventListener("UPDATE_PROCESS_DEFINITION", this);
 		_model.addEventListener("UPDATE_ACTIVITY_DEFINITION", this);
 		emit UpdateProcessModel(TABLE_PROCESS_MODELS, _model);
+		emitModelCreationEvent(_model);
+	}
+
+	function emitModelCreationEvent(ProcessModel _model) internal {
+		bytes32 hoardAddress;
+		bytes32 hoardSecret;
+		(hoardAddress, hoardSecret) = _model.getDiagram();
+		emit LogProcessModelCreation(
+			EVENT_ID_PROCESS_MODELS,
+			address(_model),
+			_model.getId(),
+			_model.getName(),
+			_model.major(),
+			_model.minor(),
+			_model.patch(),
+			_model.getAuthor(),
+			_model.isPrivate(),
+			ProcessModelRepositoryDb(database).getActiveModel(_model.getId()) == address(_model),
+			hoardAddress,
+			hoardSecret
+		);
 	}
 	
 	/**

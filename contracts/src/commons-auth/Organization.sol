@@ -25,6 +25,8 @@ contract Organization is EventEmitter, ERC165 {
 
 	function getDepartmentData(bytes32 _id) external view returns (uint userCount, string name);
 
+	function getDepartmentName(bytes32 _id) external view returns (string name);
+	
 	function departmentExists(bytes32 _id) external view returns (bool);
 
 	/**
@@ -114,6 +116,8 @@ contract Organization is EventEmitter, ERC165 {
 	 * @return true if authorized, false otherwise
 	 */
 	function authorizeUser(address _userAccount, bytes32 _department) external view returns (bool);
+
+	function getOrganizationKey() public view returns (bytes32);
 
   function getOrganizationDetails() external view returns (uint numberOfApprovers, bytes32 organizationKey);
 }

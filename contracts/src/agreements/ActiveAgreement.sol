@@ -113,6 +113,20 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	function sign() external;
 
 	/**
+	 * @dev Returns the signee of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the address of the signee (if the party authorized a signee other than itself)
+	 */
+	function getSignee(address _party) external view returns (address signee);
+
+	/**
+	 * @dev Returns the timestamp of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the time of signing or 0 if the address is not a party to this agreement or has not signed yet
+	 */
+	function getSignatureTimestamp(address _party) external view returns (uint signatureTimestamp);
+
+	/**
 	 * @dev Returns the timestamp of the signature of the given party.
 	 * @param _party the signing party
 	 * @return the address of the signee (if the party authorized a signee other than itself)
