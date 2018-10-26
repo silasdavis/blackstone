@@ -871,7 +871,8 @@ library BpmRuntimeLib {
                 traverseRuntimeGraph(_processDefinition, targetId, _graph);
                 targetType = _processDefinition.getElementType(targetId);
                 bytes32 newElementId = connect(_graph, _currentId, currentType, targetId, targetType);
-                // if the current target is the gateway's defaultOutput, set it considering the potential creation of an artificial place (newElementId)
+                // If the ProcessDefinition defines the target of the just made connection to be the default, it needs to be set in the graph
+                // For the graph, however, the target can be the original target (=activity) or a newly inserted place (newElementId), if the PD's target is another gateway.
                 if (defaultOutput == targetId) {
                     _graph.transitions[_currentId].defaultOutput = (newElementId != "") ? newElementId : targetId;
                 }
