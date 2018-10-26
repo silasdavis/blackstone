@@ -44,7 +44,7 @@ contract DataStorageTest {
 	bytes32 wonderwoman = "wonderwoman";
 
 	bytes32 num10 = "num10";
-	uint ten = 10;
+	uint tenVal = 10;
 	bytes32 trueVal = "trueVal";
 	bool truthy = true;
 	bytes32 marmot = "marmot";
@@ -183,8 +183,9 @@ contract DataStorageTest {
 		myStorage.setDataValueAsAddress(subStorageId, mySubDataStorage);
 		
 		// compare uints
-		myStorage.setDataValueAsUintType(num10, ten, DataTypes.UINT256());
-		result = DataStorageUtils.resolveExpression(myStorage, EMPTY, num10, DataStorageUtils.COMPARISON_OPERATOR.EQ, ten);
+		myStorage.setDataValueAsUint(num10, tenVal);
+		mySubDataStorage.setDataValueAsUint("num2000", uint(2000));
+		result = DataStorageUtils.resolveExpression(myStorage, EMPTY, num10, DataStorageUtils.COMPARISON_OPERATOR.EQ, tenVal);
 		if (result != true) return "Expected 10 == 10 to be true";
 
 		result = DataStorageUtils.resolveExpression(myStorage, EMPTY, num10, DataStorageUtils.COMPARISON_OPERATOR.NEQ, uint(12));
@@ -195,6 +196,13 @@ contract DataStorageTest {
 
 		result = DataStorageUtils.resolveExpression(myStorage, EMPTY, num10, DataStorageUtils.COMPARISON_OPERATOR.GT, uint(12));
 		if (result != false) return "Expected 10 > 12 to be false";
+
+		// uint in substorage
+		result = DataStorageUtils.resolveExpression(myStorage, subStorageId, "num2000", DataStorageUtils.COMPARISON_OPERATOR.GTE, uint(2000));
+		if (result != true) return "Expected 2000 >= 2000 to be true";
+
+		result = DataStorageUtils.resolveExpression(myStorage, subStorageId, "num2000", DataStorageUtils.COMPARISON_OPERATOR.GTE, uint(2001));
+		if (result != false) return "Expected 2000 >= 2001 to be false";
 
 		// compare bools
 		myStorage.setDataValueAsBool(trueVal, truthy);
@@ -227,7 +235,7 @@ contract DataStorageTest {
 
 		// compare uint in substorage
 		mySubDataStorage.setDataValueAsUintType(num10, 10, DataTypes.UINT256());
-		result = DataStorageUtils.resolveExpression(myStorage, subStorageId, num10, DataStorageUtils.COMPARISON_OPERATOR.EQ, ten);
+		result = DataStorageUtils.resolveExpression(myStorage, subStorageId, num10, DataStorageUtils.COMPARISON_OPERATOR.EQ, tenVal);
 		if (result != true) return "Expected 10 == 10 to be true in substorage";
 
 		return SUCCESS;

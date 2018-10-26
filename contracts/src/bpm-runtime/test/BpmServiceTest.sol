@@ -882,11 +882,11 @@ contract BpmServiceTest {
 		if (graph.activities[activityId1].node.inputs.length != 0) return "Activity1 should have no inputs.";
 		if (graph.activities[activityId1].node.outputs.length != 1) return "Activity1 should have 1 outputs.";
 		if (graph.transitions[transitionId1].node.inputs.length != 2) return "Transition1 should have 2 inputs.";
-		if (graph.transitions[transitionId1].node.outputs.length != 1) return "Transition1 should have 1 inputs.";
+		if (graph.transitions[transitionId1].node.outputs.length != 1) return "Transition1 should have 1 outputs.";
 		if (graph.activities[activityId2].node.inputs.length != 1) return "Activity2 should have 1 inputs.";
 		if (graph.activities[activityId2].node.outputs.length != 1) return "Activity2 should have 1 outputs.";
 		if (graph.transitions[transitionId2].node.inputs.length != 1) return "Transition2 should have 1 inputs.";
-		if (graph.transitions[transitionId2].node.outputs.length != 2) return "Transition2 should have 2 inputs.";
+		if (graph.transitions[transitionId2].node.outputs.length != 2) return "Transition2 should have 2 outputs.";
 		if (graph.activities[activityId3].node.inputs.length != 1) return "Activity3 should have 1 inputs.";
 		if (graph.activities[activityId3].node.outputs.length != 1) return "Activity3 should have 1 outputs.";
 		if (graph.activities[activityId4].node.inputs.length != 1) return "Activity4 should have 1 inputs.";
@@ -937,6 +937,131 @@ contract BpmServiceTest {
 		(activityId, , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(6));
 		if (activityId != activityId4) return "Process should be in activity4 at end";
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "activity4 should be completed";
+
+		return SUCCESS;
+	}
+
+	/**
+	 * @dev Tests a graph with multiple successive gateways and conditions and default transitions to ensure the logic is translated correctly
+	 */
+	function testSuccessiveGatewaysRoute() external returns (string) {
+
+		//                                   default                               condition
+		// Graph: activity1 -> XOR SPLIT ---/-----------------> XOR JOIN/SPLIT --------------------> XOR JOIN-> activity4
+		//                               |                    |               |                    |
+		//                    condition   \--- activity2 --->/        default  \-/- activity3 --->/
+
+		// re-usable variables for return values
+		uint error;
+		address addr;
+		bytes32 activityId;
+
+		(error, addr) = repository.createProcessModel("twoGatewayModel", "2 Gateway Model", [1,0,0], modelAuthor, false, EMPTY, EMPTY);
+		if (addr == 0x0) return "Unable to create a ProcessModel";
+		ProcessModel pm = ProcessModel(addr);
+
+		(error, addr) = pm.createProcessDefinition("TwoGatewayPD");
+		if (addr == 0x0) return "Unable to create a ProcessDefinition";
+		ProcessDefinition pd = ProcessDefinition(addr);
+		
+		// the process definition is using straight-through activities
+		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId2, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId3, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createActivityDefinition(activityId4, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		pd.createGateway(transitionId1, BpmModel.GatewayType.XOR);
+		pd.createGateway(transitionId2, BpmModel.GatewayType.XOR);
+		pd.createGateway(transitionId3, BpmModel.GatewayType.XOR);
+		pd.createTransition(activityId1, transitionId1);
+		pd.createTransition(transitionId1, transitionId2);
+		pd.createTransition(transitionId1, activityId2);
+ 		pd.createTransition(activityId2, transitionId2);
+		pd.createTransition(transitionId2, transitionId3);
+		pd.createTransition(transitionId2, activityId3);
+ 		pd.createTransition(activityId3, transitionId3);
+		pd.createTransition(transitionId3, activityId4);
+
+		pd.createTransitionConditionForUint(transitionId1, activityId2, "Year", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.LT), uint(1978));
+		pd.setDefaultTransition(transitionId1, transitionId2);
+		pd.createTransitionConditionForString(transitionId2, transitionId3, "Lastname", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), "Smith");
+		pd.setDefaultTransition(transitionId2, activityId3);
+		
+		// Validate to set the start activity and enable runtime configuration
+		(bool valid, bytes32 errorMsg) = pd.validate();
+		if (!valid) return errorMsg.toString();
+
+		TestBpmService service = getNewTestBpmService();
+		service.setProcessModelRepository(repository);
+		service.setApplicationRegistry(applicationRegistry);
+
+		// Start first process instance with Payments Made uninitialized
+		ProcessInstance pi = new DefaultProcessInstance(pd, this, EMPTY);
+
+		// produce a copy of the ProcessGraph for inspection
+		graph.configure(pi);
+		if (graph.activityKeys.length != 6) return "There should be 6 activities in the ProcessGraph (including 2 artificial between the gateways)";
+		if (graph.transitionKeys.length != 3) return "There should be 3 transitions in the ProcessGraph";
+		// scipping complete graph details here (they're covered in other tests) and concentrating on the essential
+		if (graph.transitions[transitionId1].node.inputs.length != 1) return "Transition1 should have 1 inputs.";
+		if (graph.transitions[transitionId1].node.outputs.length != 2) return "Transition1 should have 2 outputs.";
+		if (graph.transitions[transitionId2].node.inputs.length != 2) return "Transition2 should have 2 inputs.";
+		if (graph.transitions[transitionId2].node.outputs.length != 2) return "Transition2 should have 2 outputs.";
+		if (graph.transitions[transitionId3].node.inputs.length != 2) return "Transition3 should have 2 inputs.";
+		if (graph.transitions[transitionId3].node.outputs.length != 1) return "Transition3 should have 1 outputs.";
+		// verify correct setup of default transitions
+		if (graph.transitions[transitionId1].defaultOutput != keccak256(abi.encodePacked(transitionId1, transitionId2)))
+			return "The default output of transition1 should be the artificial key of (t1+t2)";
+		if (graph.transitions[transitionId2].defaultOutput != activityId3)
+			return "The default output of transition2 should be activityId3";
+
+		TestData dataStorage = new TestData();
+		pi.setDataValueAsAddress("agreement", dataStorage);
+
+		// FIRST RUN: Set conditions to make process go through ALL conditional activities (activities 2 + 3)
+		dataStorage.setDataValueAsUint("Year", uint(1950));
+	
+		// Initialize the graph within the PI in order to correctly access transition conditions
+		pi.initRuntime();
+		// verify expected routing decisions ahead of start. The resolveTransitionCondition needs to handle the artificial activity inserted between gateway2 and gateway3
+		if (pi.resolveTransitionCondition(transitionId1, activityId2) == false) return "TransitionCondition for Year should be true in first run";
+		if (pi.resolveTransitionCondition(transitionId2, transitionId3) == true) return "TransitionCondition for Lastname should be false in first run using the PD element ID";
+		if (pi.resolveTransitionCondition(transitionId2, keccak256(abi.encodePacked(transitionId2, transitionId3))) == true) return "TransitionCondition for Lastname should be false in first run using the artificial place ID";
+		if (address(pi).call(abi.encodeWithSignature("resolveTransitionCondition(bytes32,bytes32)", transitionId2, bytes32("fakeIdTTGGSS")))) return "Attempting to resolve a condition with an unknown target element should revert";
+
+		// start the process execution
+		pi.execute(service);
+		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start of PI for first run";
+		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "PI in first run should be completed";
+
+		if (pi.getNumberOfActivityInstances() != 4) return "There should be 4 AIs total in the PI on the first run";
+		(activityId, , , , , ) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
+		if (activityId != activityId2) return "Process should have completed activity2 in first run";
+		(activityId, , , , , ) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
+		if (activityId != activityId3) return "Process should should have completed activity3 in first run";
+
+
+		// SECOND RUN: Set conditions to make process go straight through and skip activities 2 + 3
+		pi = new DefaultProcessInstance(pd, this, EMPTY);
+		pi.setDataValueAsAddress("agreement", dataStorage);
+		dataStorage.setDataValueAsUint("Year", uint(2000));
+		dataStorage.setDataValueAsString("Lastname", "Smith");
+
+		// Initialize the graph within the PI in order to correctly access transition conditions
+		pi.initRuntime();
+		// verify expected routing decisions ahead of start. The resolveTransitionCondition needs to handle the artificial activity inserted between gateway2 and gateway3
+		if (pi.resolveTransitionCondition(transitionId1, activityId2) == true) return "TransitionCondition for Year should be false in second run";
+		if (pi.resolveTransitionCondition(transitionId2, keccak256(abi.encodePacked(transitionId2, transitionId3))) == false) return "TransitionCondition for Lastname should be true in second run using the artificial place ID";
+
+		// start the process execution
+		pi.execute(service);
+		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start of PI for first run";
+		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "PI in second run should be completed";
+
+		if (pi.getNumberOfActivityInstances() != 2) return "There should be 2 AIs total in the PI on the first run";
+		(activityId, , , , , ) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
+		if (activityId != activityId1) return "Process should have completed activity1 in second run";
+		(activityId, , , , , ) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
+		if (activityId != activityId4) return "Process should should have completed activity4 in second run";
 
 		return SUCCESS;
 	}

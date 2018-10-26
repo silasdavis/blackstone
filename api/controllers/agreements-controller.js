@@ -358,11 +358,12 @@ const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agre
   const promises = [];
   const invalidParams = [];
   agreementParams.forEach((param) => {
+    log.trace('Processing parameter data for agreement %s: %s', agreementAddr, JSON.stringify(param));
     const matchingParam = archetypeParamDetails.filter(item => param.name === item.name)[0];
     if (matchingParam) {
       const setterFunction = dataStorage.agreementDataSetters[`${matchingParam.parameterType}`];
       if (setterFunction) {
-        log.debug(`Setting value: ${param.value} for parameter: ${matchingParam.name} in agremeement at agreement address ${agreementAddr}`);
+        log.debug('Setting value: %s for parameter %s with type %d in agremeement %s', param.value, matchingParam.name, matchingParam.parameterType, agreementAddr);
         const formattedParam = format('Parameter Value', { parameterType: matchingParam.parameterType, value: param.value });
         promises.push(setterFunction(agreementAddr, matchingParam.name, formattedParam.value));
       } else {
@@ -393,7 +394,6 @@ const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
 };
 
 const createAgreement = asyncMiddleware(async (req, res) => {
-  const password = req.body.password || null;
   let parameters = req.body.parameters || [];
   parameters = await createOrFindAccountsWithEmails(parameters);
   const parties = req.body.parties || [];

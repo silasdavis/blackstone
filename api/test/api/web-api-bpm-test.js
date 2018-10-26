@@ -34,6 +34,9 @@ before(function(done) {
 
 var hoardRef = { address: null, secretKey: null };
 
+/**
+ * ######## HOARD ###############################################################################################################
+ */
 describe(':: HOARD ::', () => {
   it('Should upload a real file to hoard', async () => {
     let hoardUser = {
@@ -65,6 +68,10 @@ describe(':: HOARD ::', () => {
   }).timeout(10000);
 });
 
+
+/**
+ * ######## Incorporation use case ###############################################################################################################
+ */
 describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::', () => {
   let signer = {
     username: `signer${rid(5, 'aA0')}`,
@@ -322,6 +329,10 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
 
 });
 
+
+/**
+ * ######## Sale of Goods use case ###############################################################################################################
+ */
 describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
 
   const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
@@ -511,6 +522,10 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
 
 });
 
+
+/**
+ * ######## Data Mapping Test ###############################################################################################################
+ */
 describe(':: DATA MAPPING TEST ::', () => {
   let manager = {
     username: `manager${rid(5, 'aA0')}`,
@@ -763,6 +778,189 @@ describe(':: DATA MAPPING TEST ::', () => {
 
 });
 
+/**
+ * ######## Gateway Test ###############################################################################################################
+ * Deploys a model with a conditional task based on a uint condition and XOR gateway.
+ * Verifies that the gateway is working properly by running two processes, one for each path.
+ */
+describe(':: GATEWAY TEST ::', () => {
+  let tenant = {
+    username: `tenant${rid(5, 'aA0')}`,
+    password: 'tenant',
+    email: `tenant${rid(3, 'aA0')}@test.com`,
+  };
+
+  let formation = {
+    filePath: 'test/data/Formation-Tenant-XOR-Gateway.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Formation-Tenant-XOR-Gateway'
+  }
+  let execution = {
+    filePath: 'test/data/Execution-NoAction.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Execution-NoAction'
+  }
+
+  /**
+      { type: 0, name: 'bool' },
+      { type: 1, name: 'string' },
+      { type: 2, name: 'num' },
+      { type: 3, name: 'date' },
+      { type: 4, name: 'datetime' },
+      { type: 5, name: 'money' },
+      { type: 6, name: 'user' },
+      { type: 7, name: 'addr' },
+      { type: 8, name: 'signatory' },
+   */
+  let archetype = {
+    name: 'Rental Archetype',
+    description: 'Rental Archetype',
+    price: 10,
+    isPrivate: 0,
+    active: true,
+    parameters: [
+      { type: 8, name: 'Tenant' },
+      { type: 2, name: 'Building Completed' },
+    ],
+    documents: [{
+      name: 'doc1.md',
+      hoardAddress: '0x0',
+      secretKey: '0x0',
+    }],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  }
+
+  let agreement = {
+    name: 'Rental Agreement 1',
+    archetype: '',
+    isPrivate: false,
+    parameters: [],
+    hoardAddress: '',
+    hoardSecret: '',
+    eventLogHoardAddress: '',
+    eventLogHoardSecret: '',
+    maxNumberOfEvents: 0,
+    governingAgreements: []
+  }
+
+  let tenantTask;
+
+  it('Should register users', async () => {
+    // REGISTER USERS
+    let registerResult = await api.registerUser(tenant);
+    tenant.address = registerResult.address;
+    expect(tenant.address).to.exist
+  }).timeout(3000);
+
+  it('Should login users', (done) => {
+    // LOGIN USERS
+    setTimeout(async () => {
+      try {
+        let loginResult = await api.loginUser(tenant);
+        expect(loginResult.token).to.exist;
+        tenant.token = loginResult.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let formXml = api.generateModelXml(formation.id, formation.filePath);
+    let formationDeploy = await api.createAndDeployModel(formXml, tenant.token);
+    expect(formationDeploy).to.exist;
+    Object.assign(formation, formationDeploy.model);
+    Object.assign(formation.process, formationDeploy.processes[0]);
+    archetype.formationProcessDefinition = formation.process.address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    let execXml = api.generateModelXml(execution.id, execution.filePath);
+    let executionDeploy = await api.createAndDeployModel(execXml, tenant.token);
+    expect(executionDeploy).to.exist;
+    Object.assign(execution, executionDeploy.model);
+    Object.assign(execution.process, executionDeploy.processes[0]);
+    archetype.executionProcessDefinition = execution.process.address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(30000);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        archetype.documents[0].hoardAddress = hoardRef.address;
+        archetype.documents[0].secretKey = hoardRef.secretKey;
+        Object.assign(archetype, await api.createArchetype(archetype, tenant.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should create an agreement and start formation process leading to user task', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        let tenantTasks = await api.getTasksForUser(tenant.token);
+        const numberOfTasksBefore = tenantTasks.length;
+        agreement.parameters.length = 0; // reset parameters
+        agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
+        agreement.parameters.push({ name: 'Building Completed', type: 2, value: 1950 });
+        agreement.hoardAddress = hoardRef.address;
+        agreement.hoardSecret = hoardRef.secretKey;
+        Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        setTimeout(async () => {
+          tenantTasks = await api.getTasksForUser(tenant.token);
+          expect(tenantTasks.length).to.equal(numberOfTasksBefore + 1);
+          done();  
+        }, 5000);
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(20000);
+
+  it('Should create an agreement and start formation process with staight-through processing (no user task)', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        let tenantTasks = await api.getTasksForUser(tenant.token);
+        const numberOfTasksBefore = tenantTasks.length;
+        agreement.parameters.length = 0; // reset parameters
+        agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
+        agreement.parameters.push({ name: 'Building Completed', type: 2, value: 2007 });
+        agreement.hoardAddress = hoardRef.address;
+        agreement.hoardSecret = hoardRef.secretKey;
+        Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        setTimeout(async () => {
+          tenantTasks = await api.getTasksForUser(tenant.token);
+          expect(tenantTasks.length).to.equal(numberOfTasksBefore);
+          done();  
+        }, 5000);
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(20000);
+
+});
+
+
+/**
+ * ######## Archetype Packages and Agreement Collections  ###############################################################################################################
+ */
 describe(':: Archetype Packages and Agreement Collections ::', () => {
   const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
   const publicArchetype1 = {
@@ -1121,6 +1319,10 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
 });
 
+
+/**
+ * ######## Governing Archetypes and Agreements  ###############################################################################################################
+ */
 describe(':: Governing Archetypes and Agreements ::', () => {
   const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
   const user1 = {

@@ -918,7 +918,7 @@ const setDefaultTransition = (processAddress, gatewayId, activityId) => new Prom
       return reject(boom
         .badImplementation(`Failed to set default transition between gateway ${gatewayId} and activity ${activityId} in process at ${processAddress}: ${error}`));
     }
-    log.info(`Default transition set between gateway ${gatewayId} and activity ${activityId} in process at ${processAddress}`);
+    log.info(`Default transition set between gateway ${gatewayId} and model element ${activityId} in process at ${processAddress}`);
     return resolve();
   });
 });
@@ -940,7 +940,20 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
     processAddress, dataType, gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, value,
   }));
   const createFunction = getTransitionConditionFunctionByDataType(processAddress, dataType);
-  createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, value, (error) => {
+  let formattedValue;
+  if (dataType === DATA_TYPES.UINT || dataType === DATA_TYPES.INT) {
+    formattedValue = parseInt(value, 10);
+    log.debug('Converted value to integer: %d', formattedValue);
+  } else if (dataType === DATA_TYPES.BOOLEAN) {
+    formattedValue = Boolean(value);
+    log.debug('Converted value to boolean: %s', formattedValue);
+  } else if (dataType === DATA_TYPES.BYTES32) {
+    formattedValue = global.stringToHex(value);
+    log.debug('Converted value to bytes32: %s', formattedValue);
+  } else {
+    formattedValue = value;
+  }
+  createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, formattedValue, (error) => {
     if (error) {
       return reject(boom.badImplementation('Failed to add transition condition for gateway id ' +
         `${gatewayId} and activity id ${activityId} in process at address ${processAddress}: ${error}`));

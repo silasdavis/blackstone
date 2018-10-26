@@ -289,6 +289,18 @@ jobs:
     relation: eq
     val: success
 
+- name: testSuccessiveGatewaysRoute
+  call:
+    destination: $BpmServiceTest
+    bin: BpmServiceTest
+    function: testSuccessiveGatewaysRoute
+
+- name: assertSuccessiveGatewaysRoute
+  assert:
+    key: $testSuccessiveGatewaysRoute
+    relation: eq
+    val: success
+
 - name: testSequentialServiceApplications
   call:
     destination: $BpmServiceTest

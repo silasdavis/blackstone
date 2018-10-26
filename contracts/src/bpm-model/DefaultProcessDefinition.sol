@@ -40,22 +40,29 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 		_;
 	}
 
-	// ensures the gateway and activity exist and are connected
-	modifier pre_gatewayOutTransitionExists(bytes32 _gatewayId, bytes32 _activityId) {
+	/**
+	 * @dev Ensures the gateway and target element exist and are connected.
+	 * The target element can either be an activity or another gateway
+	 */
+	modifier pre_gatewayOutTransitionExists(bytes32 _gatewayId, bytes32 _targetElementId) {
 		ErrorsLib.revertIf(!graphElements.rows[_gatewayId].exists,
-			"BPM404","ProcessDefinition.pre_gatewayOutTransitionExists","The gateway does not exist");
-		ErrorsLib.revertIf(!graphElements.rows[_activityId].exists,
-			"BPM404","ProcessDefinition.pre_gatewayOutTransitionExists","The activity does not exist");
-		ErrorsLib.revertIf(!(graphElements.rows[_gatewayId].gateway.outputs.contains(_activityId) &&
-							 graphElements.rows[_activityId].activity.predecessor == _gatewayId),
-			"BPM404","ProcessDefinition.pre_gatewayOutTransitionExists","No transition found between gateway and activity");
+			ErrorsLib.RESOURCE_NOT_FOUND(),"ProcessDefinition.pre_gatewayOutTransitionExists","The gateway does not exist");
+		ErrorsLib.revertIf(!graphElements.rows[_targetElementId].exists,
+			ErrorsLib.RESOURCE_NOT_FOUND(),"ProcessDefinition.pre_gatewayOutTransitionExists","The target element (activity|gateway) does not exist");
+		// check the connection, i.e. the references depending on target type
+		ErrorsLib.revertIf(!(graphElements.rows[_gatewayId].gateway.outputs.contains(_targetElementId) &&
+							(graphElements.rows[_targetElementId].elementType == BpmModel.ModelElementType.ACTIVITY ?
+								graphElements.rows[_targetElementId].activity.predecessor == _gatewayId : graphElements.rows[_targetElementId].gateway.inputs.contains(_gatewayId))),
+			ErrorsLib.RESOURCE_NOT_FOUND(),"ProcessDefinition.pre_gatewayOutTransitionExists","No transition found between gateway and activity");
 		_;
 	}
 
-	// ensures the acitivity is not the gateway's default transition
-	modifier pre_activityNotDefaultTransition(bytes32 _gatewayId, bytes32 _activityId) {
-		ErrorsLib.revertIf(graphElements.rows[_gatewayId].gateway.defaultOutput == _activityId,
-			"BPM400","ProcessDefinition.pre_activityNotDefaultTransition","The activity is the gateway's default transition");
+	/**
+	 * @dev ensures the target element is not the gateway's default transition
+	 */
+	modifier pre_targetNotDefaultTransition(bytes32 _gatewayId, bytes32 _targetElementId) {
+		ErrorsLib.revertIf(graphElements.rows[_gatewayId].gateway.defaultOutput == _targetElementId,
+			ErrorsLib.INVALID_PARAMETER_STATE(),"ProcessDefinition.pre_targetNotDefaultTransition","The target element is the gateway's default transition");
 		_;
 	}
 
@@ -169,6 +176,10 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 
 	/**
 	 * @dev Creates a transition between the specified source and target objects.
+	 * REVERTS if:
+	 * - no element with the source ID exists
+	 * - no element with the target ID exists
+	 * - one of source/target is an activity and an existing connection on that activity would be overwritten. This is a necessary restriction to avoid dangling references
 	 * @param _source the start of the transition
 	 * @param _target the end of the transition
 	 * @return BaseErrors.NO_ERROR() upon successful creation.
@@ -206,6 +217,23 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 
 		model.fireProcessDefinitionUpdateEvent();
 		return BaseErrors.NO_ERROR();
+	}
+
+	/**
+	 * @dev Sets the specified activity to be the default output (default transition) of the specified gateway.
+	 * REVERTS if:
+	 * - the specified transition between the gateway and target element does not exist
+	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
+	 */
+	function setDefaultTransition(bytes32 _gatewayId, bytes32 _targetElementId)
+		external
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_invalidate
+	{
+		// delete any pre-existing condition for this pair
+		delete transitionConditions[keccak256(abi.encodePacked(_gatewayId, _targetElementId))];
+		graphElements.rows[_gatewayId].gateway.defaultOutput = _targetElementId;
 	}
 
 	/**
@@ -269,20 +297,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value)
+	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.stringValue = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -294,20 +322,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForBytes32(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bytes32 _value)
+	function createTransitionConditionForBytes32(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bytes32 _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.bytes32Value = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -319,20 +347,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForAddress(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, address _value)
+	function createTransitionConditionForAddress(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, address _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.addressValue = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -344,20 +372,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForBool(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bool _value)
+	function createTransitionConditionForBool(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bool _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.boolValue = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -369,20 +397,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForUint(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, uint _value)
+	function createTransitionConditionForUint(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, uint _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.uintValue = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -394,20 +422,20 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForInt(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, int _value)
+	function createTransitionConditionForInt(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, int _value)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_dataPath, _dataStorageId, _dataStorage, _operator);
 		transitionConditions[key].rhPrimitive.intValue = _value;
 		transitionConditions[key].rhPrimitive.exists = true;
@@ -420,7 +448,7 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * REVERT: if the specified transition between the gateway and activity does not exist
 	 * REVERT: if the specified activity is set as the default output of the gateway
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _lhDataPath the left-hand side dataPath condition
 	 * @param _lhDataStorageId the left-hand side dataStorageId condition
 	 * @param _lhDataStorage the left-hand side dataStorage condition
@@ -429,34 +457,18 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 	 * @param _rhDataStorageId the right-hand side dataStorageId condition
 	 * @param _rhDataStorage the right-hand side dataStorage condition
 	 */
-	function createTransitionConditionForDataStorage(bytes32 _gatewayId, bytes32 _activityId, bytes32 _lhDataPath, bytes32 _lhDataStorageId, address _lhDataStorage, uint8 _operator, bytes32 _rhDataPath, bytes32 _rhDataStorageId, address _rhDataStorage)
+	function createTransitionConditionForDataStorage(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _lhDataPath, bytes32 _lhDataStorageId, address _lhDataStorage, uint8 _operator, bytes32 _rhDataPath, bytes32 _rhDataStorageId, address _rhDataStorage)
 		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_activityNotDefaultTransition(_gatewayId, _activityId)
+		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
+		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
 		pre_invalidate
 	{
-		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _activityId));
+		bytes32 key = keccak256(abi.encodePacked(_gatewayId, _targetElementId));
 		transitionConditions[key] = BpmModel.createLeftHandTransitionCondition(_lhDataPath, _lhDataStorageId, _lhDataStorage, _operator);
 		transitionConditions[key].rhData.dataPath = _rhDataPath;
 		transitionConditions[key].rhData.dataStorageId = _rhDataStorageId;
 		transitionConditions[key].rhData.dataStorage = _rhDataStorage;
 		transitionConditions[key].rhData.exists = true;
-	}
-
-	/**
-	 * @dev Sets the specified activity to be the default output (default transition) of the specified gateway.
-	 * REVERT: if the specified transition between the gateway and activity does not exist
-	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
-	 */
-	function setDefaultTransition(bytes32 _gatewayId, bytes32 _activityId)
-		external
-		pre_gatewayOutTransitionExists(_gatewayId, _activityId)
-		pre_invalidate
-	{
-		// delete any pre-existing condition for this pair
-		delete transitionConditions[keccak256(abi.encodePacked(_gatewayId, _activityId))];
-		graphElements.rows[_gatewayId].gateway.defaultOutput = _activityId;
 	}
 
 	/**
