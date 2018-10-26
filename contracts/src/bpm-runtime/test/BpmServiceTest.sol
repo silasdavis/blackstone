@@ -823,8 +823,6 @@ contract BpmServiceTest {
 		//                         \<--------------- activity3 <----------/
 
 		// re-usable variables for return values
-		uint error;
-		address addr;
 		bytes32 activityId;
 		uint8 state;
 
@@ -948,8 +946,6 @@ contract BpmServiceTest {
 		//                    condition   \--- activity2 --->/        default  \-/- activity3 --->/
 
 		// re-usable variables for return values
-		uint error;
-		address addr;
 		bytes32 activityId;
 
 		(error, addr) = repository.createProcessModel("twoGatewayModel", "2 Gateway Model", [1,0,0], modelAuthor, false, EMPTY, EMPTY);
@@ -1131,7 +1127,7 @@ contract BpmServiceTest {
 		if (dataPath != "Message") return "The dataPath after storage resolution for inDataIdGreeting is not correct";
 
 		// test failure scenarios for IN mappings
-		if (address(service).call(keccak256(abi.encodePacked("getActivityInDataAsUint(bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge()))
+		if (address(pi).call(keccak256(abi.encodePacked("getActivityInDataAsUint(bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge()))
 			return "Retrieving IN data outside of the application should REVERT";
 		if (address(eventApp).call(keccak256(abi.encodePacked("retrieveInDataAge()"))))
 			return "Retrieving IN data in the event application outside of APPLICATION state should REVERT";
@@ -1142,7 +1138,7 @@ contract BpmServiceTest {
 			return "IN data inDataIdGreeting not correctly saved during completion of eventApp";
 
 		// trying to set OUT data from here should fail
-		if (address(service).call(keccak256(abi.encodePacked("setActivityOutDataAsBytes32(bytes32,bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge(), "bla"))
+		if (address(pi).call(keccak256(abi.encodePacked("setActivityOutDataAsBytes32(bytes32,bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge(), "bla"))
 			return "Retrieving IN data outside of the application should REVERT";
 		// try completing activity1 from here should fail
 		error = pi.completeActivity(pi.getActivityInstanceAtIndex(0), service);
@@ -1310,12 +1306,12 @@ contract BpmServiceTest {
 		if (addr != address(user1)) return "Activity1 should be assigned to user1";
 
 		// test data mappings via user-assigned task
-		if (address(service).call(bytes4(keccak256(abi.encodePacked("getActivityInDataAsBytes32(bytes32,bytes32)"))), pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")))
+		if (address(pi).call(bytes4(keccak256(abi.encodePacked("getActivityInDataAsBytes32(bytes32,bytes32)"))), pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")))
 			 return "It should not be possible to access IN data mappings from a non-performer address";
-		(success, returnData) = user1.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
+		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
 		if(!success) return "Retrieving IN data mapping Name should be successful";
 		if (returnData.toBytes32() != "Smith") return "IN data mapping Name should return correctly via user1";
-		(success, returnData) = user1.forwardCall(address(service), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
+		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
 		if (!success) return "Unable to set OUT data boolean approvedAccessPoint";
 
 		// complete user task 1 and check outcome
@@ -1335,14 +1331,14 @@ contract BpmServiceTest {
 		if (addr != address(org1)) return "Activity2 should be assigned to the organization org1";
 
 		// test data mappings via organization-assigned task
-		(success, returnData) = user1.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
 		if (success) return "It should not be possible to access IN data mappings from a user account that is not the performer";
 
 
-		(success, returnData) = organizationUser.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
 		if (returnData.length != 32) return "should have length 32";
 		if (uint(returnData[31]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
-		(success, ) = organizationUser.forwardCall(address(service), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
+		(success, ) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
 		if (!success) return "Unable to set OUT data uint ageAccessPoint";
 
 		// complete user task 2 and check outcome
@@ -1350,9 +1346,7 @@ contract BpmServiceTest {
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity2 by user1 should fail";
 
 		// complete the activity here using an OUT data mapping to set the Age
-		// TODO this should be re-enabled as soon as the ProcessInstance has these functions available
-		// (success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), address(service)));
+		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
 		if (!success) return "Unexpected error attempting to complete activity2 user task via organizationUser";
 		if (returnData.toUint() != BaseErrors.NO_ERROR()) return "Attempt to complete activity2 by organizationUser should be successful";
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
@@ -1361,8 +1355,8 @@ contract BpmServiceTest {
 		// check the fields that were set in the PI and data storage
 		if (pi.getDataValueAsBool("Approved") != true)
 			return "The Approved field in the PI should've been set via data mappings";
-		// if (dataStorage.getDataValueAsUint("Age") != 21)
-		// 	return "The Age field in the DataStorge should've been set at AI completion";
+		if (dataStorage.getDataValueAsUint("Age") != 21)
+			return "The Age field in the DataStorge should've been set at AI completion";
 
 		// verify process state
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The PI should be completed";
@@ -1753,8 +1747,8 @@ contract EventApplication is Application {
 
 	/// writes the bytes32 to the outDataIdResult mapping and completes the activity
 	function completeExternal(bytes32 _aiId, bytes32 _value) external returns (uint error) {
-		bpmService.setActivityOutDataAsBytes32(_aiId, outDataIdResult, _value);
 		address pi = bpmService.getProcessInstanceForActivity(_aiId);
+		ProcessInstance(pi).setActivityOutDataAsBytes32(_aiId, outDataIdResult, _value);
 		error = ProcessInstance(pi).completeActivity(_aiId, bpmService);
 	}
 
@@ -1770,12 +1764,14 @@ contract EventApplication is Application {
 
 	/// allows invoking the inDataIdAge mapping via the application
 	function retrieveInDataAge() public view returns (uint) {
-		return bpmService.getActivityInDataAsUint(activityInstanceId, inDataIdAge);
+		address pi = bpmService.getProcessInstanceForActivity(activityInstanceId);
+		return ProcessInstance(pi).getActivityInDataAsUint(activityInstanceId, inDataIdAge);
 	}
 
 	/// allows invoking the inDataIdGreeting mapping via the application
 	function retrieveInDataGreeting() public view returns (string) {
-		return bpmService.getActivityInDataAsString(activityInstanceId, inDataIdGreeting);
+		address pi = bpmService.getProcessInstanceForActivity(activityInstanceId);
+		return ProcessInstance(pi).getActivityInDataAsString(activityInstanceId, inDataIdGreeting);
 	}
 }
 

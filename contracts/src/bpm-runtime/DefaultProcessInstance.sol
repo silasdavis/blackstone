@@ -192,7 +192,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsBool(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithBoolData", "Reverting data changes due to error completing the activity instance.");
     }
 
@@ -209,7 +210,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsString(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithStringData", "Reverting data changes due to error completing the activity instance.");
     }
 
@@ -226,7 +228,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsBytes32(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithBytes32Data", "Reverting data changes due to error completing the activity instance.");
     }
 
@@ -243,7 +246,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsUint(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithUintData", "Reverting data changes due to error completing the activity instance.");
     }
 
@@ -260,7 +264,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsInt(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithIntData", "Reverting data changes due to error completing the activity instance.");
     }
 
@@ -277,7 +282,8 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         returns (uint error)
     {
         setActivityOutDataAsAddress(_activityInstanceId, _dataMappingId, _value);
-        ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+        error = completeActivity(_activityInstanceId, _service);
+        ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
             ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithAddressData", "Reverting data changes due to error completing the activity instance.");
     }
 
