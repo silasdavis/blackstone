@@ -76,6 +76,18 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
     }
 
 	/**
+	 * @dev Aborts this ProcessInstance and halts any ongoing activities. After the abort the ProcessInstance cannot be resurrected.
+     * @param _service the BpmService to emit update events for ActivityInstances
+	 */
+	function abort(BpmService _service)
+        external
+        pre_onlyByOwner
+    {
+        self.abort(_service); //TODO the service is only required to emit events after activity instance state changes
+        notifyProcessStateChange();
+    }
+
+	/**
 	 * @dev Completes the specified activity
 	 * @param _activityInstanceId the activity instance
 	 * @param _service the BpmService managing this ProcessInstance (required for changes to this ProcessInstance after the activity completes)
@@ -111,17 +123,115 @@ contract DefaultProcessInstance is ProcessInstance, AbstractDataStorage, Abstrac
         return self.continueTransaction(_service);
     }
 
-	/**
-	 * @dev Aborts this ProcessInstance and halts any ongoing activities. After the abort the ProcessInstance cannot be resurrected.
-     * @param _service the BpmService to emit update events for ActivityInstances
-	 */
-	function abort(BpmService _service)
-        external
-        pre_onlyByOwner
-    {
-        self.abort(_service); //TODO the service is only required to emit events after activity instance state changes
-        notifyProcessStateChange();
-    }
+    // Functions from WorkflowUserAccount. To be re-enabled here as part of function migration from service to ProcessInstance
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the bool value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithBoolData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, bool _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsBool(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithBoolData", "Reverting data changes due to error completing the activity instance.";
+    // }
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the string value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsString(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithStringData", "Reverting data changes due to error completing the activity instance.";
+    // }
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the bytes32 value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithBytes32Data(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, bytes32 _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsBytes32(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithBytes32Data", "Reverting data changes due to error completing the activity instance.";
+    // }
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the uint value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithUintData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, uint _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsUint(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithUintData", "Reverting data changes due to error completing the activity instance.";
+    // }
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the int value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithIntData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, int _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsInt(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithIntData", "Reverting data changes due to error completing the activity instance.";
+    // }
+
+    // /**
+	//  * @dev Writes data via BpmService and then completes the specified activity.
+	//  * @param _activityInstanceId the task ID
+	//  * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	//  * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	//  * @param _value the address value of the data
+	//  * @return error code if the completion failed
+	//  */
+    // function completeActivityWithAddressData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, address _value)
+    //     external
+    //     pre_onlyAuthorizedCallers
+    //     returns (uint error)
+    // {
+    //     _service.setActivityOutDataAsAddress(_activityInstanceId, _dataMappingId, _value);
+    //     ErrorsLib.revertIf(completeActivity(_activityInstanceId, _service) != BaseErrors.NO_ERROR(),
+    //         ErrorsLib.RUNTIME_ERROR(), "DefaultProcessInstance.completeActivityWithAddressData", "Reverting data changes due to error completing the activity instance.";
+    // }
 
     /**
      * @dev Resolves the target storage location for the specified IN data mapping in the context of the given activity instance.

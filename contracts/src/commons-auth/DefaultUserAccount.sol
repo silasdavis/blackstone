@@ -77,7 +77,7 @@ contract DefaultUserAccount is UserAccount {
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");
         bytes memory data = _payload;
         assembly {
-            success := call(gas, _target, 0, add(data, 0x20), mload(data), 0, 0)
+            success := call(gas, _target, 0, add(data, 0x20), mload(data), data, 0)
         }
         if (success) {
             uint returnSize;

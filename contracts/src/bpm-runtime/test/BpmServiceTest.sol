@@ -1335,30 +1335,34 @@ contract BpmServiceTest {
 		if (addr != address(org1)) return "Activity2 should be assigned to the organization org1";
 
 		// test data mappings via organization-assigned task
-//BUG		// (success, returnData) = user1.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
-		// if (success) return "It should not be possible to access IN data mappings from a user account that is not the performer";
+		(success, returnData) = user1.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		if (success) return "It should not be possible to access IN data mappings from a user account that is not the performer";
 
 
 		(success, returnData) = organizationUser.forwardCall(address(service), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
-		if (returnData.length != 1) return "should have length 1";
-		if (uint(returnData[0]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
+		if (returnData.length != 32) return "should have length 32";
+		if (uint(returnData[31]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
 		(success, ) = organizationUser.forwardCall(address(service), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
 		if (!success) return "Unable to set OUT data uint ageAccessPoint";
 
 		// complete user task 2 and check outcome
-		(success, ) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
-		if (success) return "Attempt to complete activity2 by user1 should fail";
+		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
+		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity2 by user1 should fail";
+
 		// complete the activity here using an OUT data mapping to set the Age
-		(success, ) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), service, bytes32("Age"), uint(21)));
+		// TODO this should be re-enabled as soon as the ProcessInstance has these functions available
+		// (success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
+		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), address(service)));
 		if (!success) return "Unexpected error attempting to complete activity2 user task via organizationUser";
+		if (returnData.toUint() != BaseErrors.NO_ERROR()) return "Attempt to complete activity2 by organizationUser should be successful";
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity2 should be completed";
 		if (addr != address(organizationUser)) return "Activity2 should be completedBy the organizationUser";
 		// check the fields that were set in the PI and data storage
 		if (pi.getDataValueAsBool("Approved") != true)
 			return "The Approved field in the PI should've been set via data mappings";
-		if (dataStorage.getDataValueAsUint("Age") != 21)
-			return "The Age field in the DataStorge should've been set at AI completion";
+		// if (dataStorage.getDataValueAsUint("Age") != 21)
+		// 	return "The Age field in the DataStorge should've been set at AI completion";
 
 		// verify process state
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The PI should be completed";
