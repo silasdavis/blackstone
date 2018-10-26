@@ -94,7 +94,7 @@ library TypeUtilsImpl {
 
     /**
      * @dev Converts the given string to bytes32. If the string is longer than
-     * 32 byte-sized characters (depends on encoding and character-set), it will be truncated.
+     * 32 bytes, it will be truncated.
      * @param s a string
      * @return the bytes32 representation
      */
@@ -102,6 +102,29 @@ library TypeUtilsImpl {
 	    assembly {
     	    result := mload(add(s, 32))
     	}
+    }
+
+    /**
+     * @dev Converts the given bytes to bytes32. If the bytes are longer than
+     * 32, it will be truncated.
+     * @param b a byte[]
+     * @return the bytes32 representation
+     */
+    function toBytes32(bytes b) public pure returns (bytes32 result) {
+	    assembly {
+    	    result := mload(add(b, 32))
+    	}
+    }
+
+    /**
+     * @dev Converts the given bytes into the corresponding uint representation
+     * @param b a byte[]
+     * @return the uint representation
+     */
+	function toUint(bytes b) public pure returns (uint256 number) {
+        for (uint i=0; i<b.length; i++) {
+            number = number + uint(b[i])*(2**(8*(b.length-(i+1))));
+        }
     }
 
 }

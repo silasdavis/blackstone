@@ -5,6 +5,9 @@ jobs:
   - name: DefaultEcosystem
     build:
       contract: commons-auth/DefaultEcosystem.sol
+  - name: UserAccount
+    build:
+      contract: commons-auth/UserAccount.sol
   - name: EcosystemRegistry
     build:
       contract: commons-auth/EcosystemRegistry.sol

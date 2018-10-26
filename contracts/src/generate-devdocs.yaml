@@ -312,18 +312,6 @@ jobs:
     binpath: ../../docs/docdev/agreements
     instance: all
 
-- name: AgreementPartyAccount
-  build:
-    contract: agreements/AgreementPartyAccount.sol
-    binpath: ../../docs/docdev/agreements
-    instance: all
-
-- name: AgreementPartyProxy
-  build:
-    contract: agreements/AgreementPartyProxy.sol
-    binpath: ../../docs/docdev/agreements
-    instance: all
-
 - name: AgreementSignatureCheck
   build:
     contract: agreements/AgreementSignatureCheck.sol
@@ -687,18 +675,6 @@ jobs:
 - name: DefaultProcessInstance
   build:
     contract: bpm-runtime/DefaultProcessInstance.sol
-    binpath: ../../docs/docdev/bpm-runtime
-    instance: all
-
-- name: WorkflowProxy
-  build:
-    contract: bpm-runtime/WorkflowProxy.sol
-    binpath: ../../docs/docdev/bpm-runtime
-    instance: all
-
-- name: WorkflowUserAccount
-  build:
-    contract: bpm-runtime/WorkflowUserAccount.sol
     binpath: ../../docs/docdev/bpm-runtime
     instance: all
 

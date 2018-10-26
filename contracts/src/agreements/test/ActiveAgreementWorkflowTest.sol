@@ -6,6 +6,8 @@ import "commons-utils/DataTypes.sol";
 import "commons-utils/TypeUtilsAPI.sol";
 import "commons-auth/ParticipantsManager.sol";
 import "commons-auth/Organization.sol";
+import "commons-auth/UserAccount.sol";
+import "commons-auth/DefaultUserAccount.sol";
 import "commons-auth/DefaultOrganization.sol";
 import "commons-management/DOUG.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
@@ -22,12 +24,12 @@ import "bpm-runtime/ApplicationRegistry.sol";
 import "agreements/ActiveAgreementRegistry.sol";
 import "agreements/DefaultActiveAgreementRegistry.sol";
 import "agreements/ArchetypeRegistry.sol";
-import "agreements/AgreementPartyAccount.sol";
 import "agreements/AgreementSignatureCheck.sol";
 
 contract ActiveAgreementWorkflowTest {
 
 	using TypeUtilsAPI for bytes32;
+	using TypeUtilsAPI for bytes;
 
 	string constant EMPTY_STRING = "";
 
@@ -53,10 +55,10 @@ contract ActiveAgreementWorkflowTest {
 	// tests should overwrite the users and orgs as needed
 	Organization org1;
 	Organization org2;
-	AgreementPartyAccount userAccount1;
-	AgreementPartyAccount userAccount2;
-	AgreementPartyAccount userAccount3;
-	AgreementPartyAccount nonPartyAccount;
+	UserAccount userAccount1;
+	UserAccount userAccount2;
+	UserAccount userAccount3;
+	UserAccount nonPartyAccount;
 
 
 	string constant SUCCESS = "success";
@@ -150,7 +152,8 @@ contract ActiveAgreementWorkflowTest {
 		// re-usable variables for return values
 		uint error;
 		address addr;
-		bool valid;
+		bool success;
+		bytes memory returnData;
 		bytes32 errorMsg;
 		uint8 state;
 		ProcessDefinition formationPD;
@@ -171,15 +174,11 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ORGS/USERS
 		//
-		(error, addr) = agreementRegistry.createUserAccount(participantsManager, user1Id, this, address(0));
-		if (error != BaseErrors.NO_ERROR()) return "Error creating user account1 via BpmService";
-		userAccount1 = AgreementPartyAccount(addr);
-		(error, addr) = agreementRegistry.createUserAccount(participantsManager, "john.smith", this, address(0));
-		if (error != BaseErrors.NO_ERROR()) return "Error creating user account2 via BpmService";
-		nonPartyAccount = AgreementPartyAccount(addr);
 		// create additional users via constructor
-		userAccount2 = new AgreementPartyAccount(user2Id, this, address(0));
-		userAccount3 = new AgreementPartyAccount(user3Id, this, address(0));
+		userAccount1 = new DefaultUserAccount(user1Id, this, address(0));
+		userAccount2 = new DefaultUserAccount(user2Id, this, address(0));
+		userAccount3 = new DefaultUserAccount(user3Id, this, address(0));
+		nonPartyAccount = new DefaultUserAccount("jane.doe", this, address(0));
 
 		org1 = new DefaultOrganization(approvers, EMPTY_STRING);
 		org2 = new DefaultOrganization(approvers, EMPTY_STRING);
@@ -208,16 +207,16 @@ contract ActiveAgreementWorkflowTest {
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, appIdSignatureCheck, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating USER task for formation process definition";
 		formationPD.createDataMapping(activityId1, BpmModel.Direction.IN, "agreement", "agreement", EMPTY, 0x0);
-		(valid, errorMsg) = formationPD.validate();
-		if (!valid) return errorMsg.toString();
+		(success, errorMsg) = formationPD.validate();
+		if (!success) return errorMsg.toString();
 		// Execution Process
 		(error, addr) = pm.createProcessDefinition("ExecutionProcess");
 		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating SERVICE task for execution process definition";
-		(valid, errorMsg) = executionPD.validate();
-		if (!valid) return errorMsg.toString();
+		(success, errorMsg) = executionPD.validate();
+		if (!success) return errorMsg.toString();
 
 		//
 		// ARCHETYPE
@@ -256,21 +255,21 @@ contract ActiveAgreementWorkflowTest {
 			return "Retrieving IN data via the application should REVERT while the user is still the performer";
 
 		// test fail on invalid user
-		error = nonPartyAccount.completeActivity(pi.getActivityInstanceAtIndex(0), bpmService);
-		if (error != BaseErrors.INVALID_ACTOR()) return "Attempting to complete the Sign activity with an unassigned user should fail.";
+		(success , returnData) = nonPartyAccount.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempting to complete the Sign activity with an unassigned user should fail.";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after wrong user attempt";
 		// test fail on unsigned agreement
-		error = userAccount1.completeActivity(pi.getActivityInstanceAtIndex(0), bpmService);
-		if (error != BaseErrors.RUNTIME_ERROR()) return "Attempting to complete the Sign activity without signing the agreement should fail";
+		( , returnData) = userAccount1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		if (returnData.toUint() != BaseErrors.RUNTIME_ERROR()) return "Attempting to complete the Sign activity without signing the agreement should fail";
 		( , , , addr, , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after completion attempt without signing";
 		if (addr != address(userAccount1)) return "userAccount1 should still be the performer of activity1 even after completion failed";
 
 		// test successful completion
-		userAccount1.signAgreement(agreement);
-		error = userAccount1.completeActivity(pi.getActivityInstanceAtIndex(0), bpmService);
-		if (error != BaseErrors.NO_ERROR()) return "Unexpected error attempting to complete Activity1 in Formation Process by user1";
+		userAccount1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		(success, ) = userAccount1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user1";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 1 in Formation Process should be completed";
 
@@ -278,21 +277,21 @@ contract ActiveAgreementWorkflowTest {
 		if (signatureCheckApp.lastAgreement() != address(agreement)) return "The agreement should've been processed by the TestSignatureCheck app.";
 
 		// complete the missing signatures and tasks
-		userAccount2.signAgreement(agreement);
-		error = userAccount2.completeActivity(pi.getActivityInstanceAtIndex(1), bpmService);
-		if (error != BaseErrors.NO_ERROR()) return "Unexpected error attempting to complete Activity1 in Formation Process by user2 in org1";
+		userAccount2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		(success, ) = userAccount2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), bpmService));
+		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user2 in org1";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 2 in Formation Process should be completed";
 
-		userAccount3.signAgreement(agreement);
+		userAccount3.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
 
 		( , , ,addr , , ) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
 		if (addr != address(org2)) return "ActivityInstance3 should have org2 as performer";
 		if (pi.resolveAddressScope(address(org2), activityId1, pi) != departmentId1) return "Org2 in context of activity1 should show the additional department scope";
-		// check upfront if the user/org/department context is authorized which is used in the following completeActivity() invocation
+		// check upfront if the user/org/department context is authorized which is used in the following activity completion
 		if (!org2.authorizeUser(userAccount3, departmentId1)) return "User3 should be authorized for dep1 in org2";
-		error = userAccount3.completeActivity(pi.getActivityInstanceAtIndex(2), bpmService);
-		if (error != BaseErrors.NO_ERROR()) return string(abi.encodePacked("Unexpected error attempting to complete Activity1 in Formation Process by user3 in org2: ",TypeUtilsAPI.toBytes32(error)));
+		(success, ) = userAccount3.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(2), bpmService));
+		if (!success) return "Unexpected error attempting to complete Activity1 in Formation Process by user3 in org2";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 3 in Formation Process should be completed";
 
@@ -327,8 +326,8 @@ contract ActiveAgreementWorkflowTest {
 		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
 		agreementRegistry.setBpmService(bpmService);
 
-		userAccount1 = new AgreementPartyAccount(user1Id, this, address(0));
-		userAccount2 = new AgreementPartyAccount(user2Id, this, address(0));
+		userAccount1 = new DefaultUserAccount(user1Id, this, address(0));
+		userAccount2 = new DefaultUserAccount(user2Id, this, address(0));
 		delete parties;
 		parties.push(userAccount1);
 		parties.push(userAccount2);
@@ -392,8 +391,8 @@ contract ActiveAgreementWorkflowTest {
 		if (agreementRegistry.getTrackedFormationProcess(agreement2) != address(pis[1])) return "The tracked formation process should match the started formation PI for agreement2";
 
 		// sign agreement2 and move PI2 into execution phase
-		userAccount1.signAgreement(agreement2);
-		userAccount2.signAgreement(agreement2);
+		userAccount1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		userAccount2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
 		if (ActiveAgreement(agreement2).getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "The agreement2 should be in EXECUTED after signing";
 		error = pis[1].completeActivity(pis[1].getActivityInstanceAtIndex(0), bpmService);
 		if (error != BaseErrors.NO_ERROR()) return "Error completing wait activity in formation process 2";
@@ -409,15 +408,15 @@ contract ActiveAgreementWorkflowTest {
 		if (pis[2].getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The Execution PI for agreement2 should be active";
 
 		// cancel the first agreement BEFORE its execution phase (uni-lateral cancellation)
-		userAccount2.cancelAgreement(agreement1);
+		userAccount2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
 		if (ActiveAgreement(agreement1).getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "agreement1 should be CANCELED";
 		if (pis[0].getState() != uint8(BpmRuntime.ProcessInstanceState.ABORTED)) return "The Formation PI for agreement1 should be aborted after canceling";
 		
 		// cancel the second agreement AFTER it reaches execution phase (multi-lateral cancellation required)
-		userAccount2.cancelAgreement(agreement2);
+		userAccount2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (pis[1].getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The Formation PI for agreement2 should still be completed after 1st cancellation";
 		if (pis[2].getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The Formation PI for agreement2 should still be active after 1st cancellation";
-		userAccount1.cancelAgreement(agreement2);
+		userAccount1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (pis[1].getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The Formation PI for agreement2 should still be completed after 2nd cancellation";
 		if (pis[2].getState() != uint8(BpmRuntime.ProcessInstanceState.ABORTED)) return "The Formation PI for agreement2 should be aborted after 2nd cancellation";
 

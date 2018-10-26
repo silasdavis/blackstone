@@ -2,9 +2,6 @@ jobs:
   - name: ArchetypeRegisterInterface
     build:
       contract: agreements/ArchetypeRegistry.sol
-  - name: AgreementPartyAccountInterface
-    build:
-      contract: agreements/AgreementPartyAccount.sol
   - name: Archetype
     build:
       contract: agreements/Archetype.sol

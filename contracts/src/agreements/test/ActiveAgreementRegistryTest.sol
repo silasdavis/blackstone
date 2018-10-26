@@ -62,11 +62,10 @@ contract ActiveAgreementRegistryTest {
 
 	function testActiveAgreementRegistry() external returns (string) {
 
-	  uint error;
 		address addr;
 
 		ActiveAgreementRegistryDb registryDb = new ActiveAgreementRegistryDb();
-    archetype = new DefaultArchetype(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+    	archetype = new DefaultArchetype(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
 		agreementRegistry = new TestRegistry();
 		SystemOwned(registryDb).transferSystemOwnership(agreementRegistry);
 		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);

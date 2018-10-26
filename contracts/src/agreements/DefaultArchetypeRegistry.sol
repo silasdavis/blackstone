@@ -80,7 +80,7 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		verifyNoDuplicates(_governingArchetypes);
 	}
 
-	function validateArchetypeProperties(string _name, address _author) internal {
+	function validateArchetypeProperties(string _name, address _author) internal pure {
 		ErrorsLib.revertIf(bytes(_name).length == 0 || _author == 0x0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name, author address, formation and execution process definitions are required");
 	}

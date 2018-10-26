@@ -11,6 +11,9 @@ jobs:
   - name: MappingsLib
     build:
       contract: commons-collections/MappingsLib.sol
+  - name: UserAccountTest
+    build:
+      contract: commons-auth/test/UserAccountTest.sol
   - name: ParticipantsManagerTest
     build:
       contract: commons-auth/test/ParticipantsManagerTest.sol

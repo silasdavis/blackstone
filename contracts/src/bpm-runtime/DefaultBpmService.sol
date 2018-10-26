@@ -18,7 +18,6 @@ import "bpm-runtime/BpmService.sol";
 import "bpm-runtime/BpmServiceDb.sol";
 import "bpm-runtime/ProcessInstance.sol";
 import "bpm-runtime/DefaultProcessInstance.sol";
-import "bpm-runtime/WorkflowUserAccount.sol";
 
 /**
  * @title DefaultBpmService

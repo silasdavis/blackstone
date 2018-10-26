@@ -132,8 +132,8 @@ contract ParticipantsManagerTest {
         if (org2.authorizeUser(account2, keccak256(abi.encodePacked(address(org2))))) return "account2 expected to be inactive in org2";
 
         // users can be added to departments in organization
-        if (org1.addDepartment(dep1Id, dep1Name) != BaseErrors.NO_ERROR()) return "Failed adding dep1 to org1";
-        if (org1.addDepartment(dep2Id, dep2Name) != BaseErrors.NO_ERROR()) return "Failed adding dep2 to org1";
+        if (!org1.addDepartment(dep1Id, dep1Name)) return "Adding dep1 to org1 should be successful";
+        if (!org1.addDepartment(dep2Id, dep2Name)) return "Adding dep2 to org1 should be successful";
         if (!org1.addUserToDepartment(account1, dep1Id)) return "Failed to add account1 to dep1";
         if (!org1.addUserToDepartment(account1, dep2Id)) return "Failed to add account1 to dep2";
         if (!org1.addUserToDepartment(account2, dep1Id)) return "Failed to add account2 to dep1";
@@ -201,7 +201,7 @@ contract ParticipantsManagerTest {
 		if (participantsManager.getNumberOfOrganizations() != 1) return "Number of Orgs in participantsManager should be 1";
     
         // departments
-        if (org1.addDepartment(dep1Id, dep1Name) != BaseErrors.NO_ERROR()) return "Failed adding department to org1";
+        if (!org1.addDepartment(dep1Id, dep1Name)) return "Adding department1 to org1 should be successful";
         // reminder: number of deps is +1 due to the default department
         if (org1.getNumberOfDepartments() != 2) return "Failed to get number of departments in org1";
         if (org1.getDepartmentAtIndex(1) != dep1Id) return "Failed to get department id at pos 0 in org1";
@@ -223,7 +223,7 @@ contract ParticipantsManagerTest {
         if (!org1.removeUserFromDepartment(user1, dep1Id)) return "Failed removing user1 from dep1";
         if (org1.getDepartmentUserAtIndex(dep1Id, 0) != address(user2)) return "Expected department user at idx 0 to be user2 after removing user1";        
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected 1 department user in dep1 after removing user1";
-        if (org1.addUserToDepartment(user2, dep1Id) != false) return "Expected attempt to re-add user2 to dep1 to return false";
+        if (org1.addUserToDepartment(user2, dep1Id) != true) return "Expected attempt to re-add user2 to dep1 to return true";
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected re-adding user2 to dep1 to not change number of department users";
 
 		// 0x0 address for non-existent index
@@ -281,7 +281,7 @@ contract ParticipantsManagerTest {
         // User1 -> default department
         // User2 -> Department 1
         // User3 -> Organization only 
-        if (org.addDepartment(dep1Id, "Department 1") != BaseErrors.NO_ERROR()) return "Failed adding department to org1";
+        if (!org.addDepartment(dep1Id, "Department 1")) return "Adding department1 to org1 should be successful";
         if (!org.addUserToDepartment(user1, EMPTY)) return "Failed to add user1 to default department";
         if (!org.addUserToDepartment(user2, dep1Id)) return "Failed to add user2 to department1";
         if (!org.addUser(user3)) return "Failed to add user3 to organization";

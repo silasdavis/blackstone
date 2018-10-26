@@ -20,7 +20,6 @@ import "agreements/ActiveAgreementRegistry.sol";
 import "agreements/ActiveAgreementRegistryDb.sol";
 import "agreements/Archetype.sol";
 import "agreements/ArchetypeRegistry.sol";
-import "agreements/AgreementPartyAccount.sol";
 
 /**
  * @title DefaultActiveAgreementRegistry Interface
@@ -569,23 +568,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	function getPartyByActiveAgreementData(address _activeAgreement, address _party) external view returns (address signedBy, uint signatureTimestamp) {
 		(signedBy, signatureTimestamp) = ActiveAgreement(_activeAgreement).getSignatureDetails(_party);
-	}
-
-	/**
-	 * @dev Creates an AgreementPartyAccount with the specified parameters and adds it to the ParticipantsManager
- 	 * @param _accountsManager the ParticipantsManager address
-	 * @param _id an identifier for the user
-	 * @param _owner the owner of the user account
-	 * @param _ecosystem the address of an Ecosystem to which the user account is connected
-	 * @return error BaseErrors.RESOURCE_ALREADY_EXISTS() or BaseErrors.NO_ERROR()
-	 * @return userAccount user account address, or 0x0 if not successful
-	 */
-	function createUserAccount(address _accountsManager, bytes32 _id, address _owner, address _ecosystem) external returns (uint error, address userAccount) {
-			if (ParticipantsManager(_accountsManager).userAccountExists(_id)) {
-					return (BaseErrors.RESOURCE_ALREADY_EXISTS(), 0x0);
-			}
-			userAccount = new AgreementPartyAccount(_id, _owner, _ecosystem);
-			error = ParticipantsManager(_accountsManager).addUserAccount(userAccount);
 	}
 
 	/**
