@@ -129,8 +129,8 @@ const getActivityInDataAsBool = (userAddr, activityInstanceId, dataMappingId) =>
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsBool.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### Bool return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBool.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsBool.decode(returnData)[0]);
+    log.trace('Activity data bool return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBool.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsBool.decode(returnData).raw[0]);
   } catch (error) {
     return reject(error);
   }
@@ -142,8 +142,8 @@ const getActivityInDataAsString = (userAddr, activityInstanceId, dataMappingId) 
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsString.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### String return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsString.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsString.decode(returnData)[0].valueOf());
+    log.trace('Activity data string return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsString.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsString.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -155,8 +155,8 @@ const getActivityInDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId)
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsBytes32.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### Bytes32 return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBytes32.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsBytes32.decode(returnData)[0].valueOf());
+    log.trace('Activity data bytes32 return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBytes32.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsBytes32.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -168,8 +168,8 @@ const getActivityInDataAsUint = (userAddr, activityInstanceId, dataMappingId) =>
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsUint.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### Uint return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsUint.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsUint.decode(returnData)[0].valueOf());
+    log.trace('Activity data uint return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsUint.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsUint.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -181,8 +181,8 @@ const getActivityInDataAsInt = (userAddr, activityInstanceId, dataMappingId) => 
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsInt.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### Int return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsInt.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsInt.decode(returnData)[0].valueOf());
+    log.trace('Activity data int return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsInt.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsInt.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -194,8 +194,8 @@ const getActivityInDataAsAddress = (userAddr, activityInstanceId, dataMappingId)
     const bpmService = contracts.getBpmService();
     const payload = bpmService.factory.getActivityInDataAsAddress.encode(activityInstanceId, dataMappingId);
     const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('############### Address return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsAddress.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsAddress.decode(returnData)[0].valueOf());
+    log.trace('Activity data address return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsAddress.decode(returnData)));
+    return resolve(bpmService.factory.getActivityInDataAsAddress.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
