@@ -14,6 +14,48 @@ import "bpm-runtime/TransitionConditionResolver.sol";
  */
 contract ProcessInstance is DataStorage, AddressScopes, OwnerTransferable, ProcessStateChangeEmitter, TransitionConditionResolver {
 
+	event LogProcessDataBoolUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		bool bool_value
+	);
+
+	event LogProcessDataUintUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		uint uint_value
+	);
+
+	event LogProcessDataIntUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		int int_value
+	);
+
+	event LogProcessDataBytes32Update(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		bytes32 bytes32_value
+	);
+
+	event LogProcessDataAddressUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		address address_value
+	);
+
+	event LogProcessDataStringUpdate(
+		bytes32 indexed eventId,
+		address process_instance_address,
+		bytes32 data_id,
+		string string_value
+	);
+
 	/**
 	 * @dev Initiates and populates the runtime graph that will handle the state of this ProcessInstance.
 	 */
@@ -28,18 +70,174 @@ contract ProcessInstance is DataStorage, AddressScopes, OwnerTransferable, Proce
 	function execute(BpmService _service) public returns (uint error);
 
 	/**
+	 * @dev Aborts this ProcessInstance and halts any ongoing activities. After the abort the ProcessInstance cannot be resurrected.
+     * @param _service the BpmService to emit update events for ActivityInstances
+	 */
+	function abort(BpmService _service) external;
+
+	/**
 	 * @dev Completes the specified activity
 	 * @param _activityInstanceId the activity instance
 	 * @param _service the BpmService managing this ProcessInstance (required for changes to this ProcessInstance after the activity completes)
 	 * @return an error code indicating success or failure
 	 */
-	function completeActivity(bytes32 _activityInstanceId, BpmService _service) external returns (uint error);
+	function completeActivity(bytes32 _activityInstanceId, BpmService _service) public returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the bool value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithBoolData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, bool _value) external returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the string value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string _value) external returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the bytes32 value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithBytes32Data(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, bytes32 _value) external returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the uint value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithUintData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, uint _value) external returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the int value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithIntData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, int _value) external returns (uint error);
+
+    /**
+	 * @dev Writes data via BpmService and then completes the specified activity.
+	 * @param _activityInstanceId the task ID
+	 * @param _service the BpmService required for lookup and access to the BpmServiceDb
+	 * @param _dataMappingId the id of the dataMapping that points to data storage slot
+	 * @param _value the address value of the data
+	 * @return error code if the completion failed
+	 */
+    function completeActivityWithAddressData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, address _value) external returns (uint error);
 
 	/**
-	 * @dev Aborts this ProcessInstance and halts any ongoing activities. After the abort the ProcessInstance cannot be resurrected.
-     * @param _service the BpmService to emit update events for ActivityInstances
+	 * @dev Returns the bool value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the bool value resulting from resolving the data mapping
 	 */
-	function abort(BpmService _service) external;
+	function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bool);
+
+	/**
+	 * @dev Returns the string value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the string value resulting from resolving the data mapping
+	 */
+	function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (string);
+
+	/**
+	 * @dev Returns the bytes32 value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the bytes32 value resulting from resolving the data mapping
+	 */
+	function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bytes32);
+
+	/**
+	 * @dev Returns the uint value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the uint value resulting from resolving the data mapping
+	 */
+	function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (uint);
+
+	/**
+	 * @dev Returns the int value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the int value resulting from resolving the data mapping
+	 */
+	function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (int);
+
+	/**
+	 * @dev Returns the address value of the specified IN data mapping in the context of the given activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
+	 * @return the address value resulting from resolving the data mapping
+	 */
+	function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (address);
+
+	/**
+	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId, bool _value) public;
+
+	/**
+	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string _value) public;
+
+	/**
+	 * @dev Applies the given bytes32 value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId, bytes32 _value) public;
+
+	/**
+	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId, uint _value) public;
+
+	/**
+	 * @dev Applies the given int value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId, int _value) public;
+
+	/**
+	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
+	 * @param _activityInstanceId the ID of an activity instance in this ProcessInstance
+	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
+	 * @param _value the value to set
+	 */
+	function setActivityOutDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId, address _value) public;
 
     /**
      * @dev Resolves the target storage location for the specified IN data mapping in the context of the given activity instance.

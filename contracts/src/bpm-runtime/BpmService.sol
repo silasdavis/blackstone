@@ -45,48 +45,6 @@ contract BpmService is Upgradeable {
 		string string_value
 	);
 
-	event LogProcessDataBoolUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		bool bool_value
-	);
-
-	event LogProcessDataUintUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		uint uint_value
-	);
-
-	event LogProcessDataIntUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		int int_value
-	);
-
-	event LogProcessDataBytes32Update(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		bytes32 bytes32_value
-	);
-
-	event LogProcessDataAddressUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		address address_value
-	);
-
-	event LogProcessDataStringUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		string string_value
-	);
-
 	event LogProcessInstanceAddressScopesUpdate(
 		bytes32 indexed eventId,
 		address process_instance_address,
@@ -99,10 +57,6 @@ contract BpmService is Upgradeable {
 		address data_storage
 	);
 	
-	bytes32 public constant EVENT_ID_PROCESS_INSTANCES = "AN://process-instances";
-	bytes32 public constant EVENT_ID_PROCESS_DATA = "EVENT_ID_PROCESS_DATA";
-	bytes32 public constant EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES = "AN://process-instance/scopes";
-
 	/**
 		* @dev Gets the ProcessModelRepository address for this BpmService
 		* @return the address of the repository
@@ -149,102 +103,6 @@ contract BpmService is Upgradeable {
      * @param _activityInstanceId the ID of a subprocess activity instance that initiated this ProcessInstance (optional)
 	 */
 	function createDefaultProcessInstance(address _processDefinition, address _startedBy, bytes32 _activityInstanceId) public returns (ProcessInstance);
-
-	/**
-	 * @dev Returns the bool value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the bool value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bool);
-
-	/**
-	 * @dev Returns the string value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the string value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (string);
-
-	/**
-	 * @dev Returns the bytes32 value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the bytes32 value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bytes32);
-
-	/**
-	 * @dev Returns the uint value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the uint value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (uint);
-
-	/**
-	 * @dev Returns the int value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the int value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (int);
-
-	/**
-	 * @dev Returns the address value of the specified IN data mapping in the context of the given activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the address value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (address);
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId, bool _value) external;
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string _value) external;
-
-	/**
-	 * @dev Applies the given bytes32 value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId, bytes32 _value) external;
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId, uint _value) external;
-
-	/**
-	 * @dev Applies the given int value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId, int _value) external;
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId, address _value) external;
 
 	/**
 	 * @dev Returns the number of Process Instances.
@@ -394,6 +252,6 @@ contract BpmService is Upgradeable {
 	 * @dev Emits a state change event for the process instance
 	 * @param _processInstance address of process intance
 	 */
-  function emitProcessStateChangeEvent(address _processInstance) external;
+	function emitProcessStateChangeEvent(address _processInstance) external;
 
 }
