@@ -7,7 +7,7 @@ const _ = require('lodash');
 const monax = require('@monax/burrow');
 
 (function bootstrapAPI() {
-  module.exports = (app) => {
+  module.exports = (app, addCustomEndpoints) => {
     // Set up global directory constants used throughout the app
     global.__appDir = __dirname;
     global.__common = path.resolve(global.__appDir, 'common');
@@ -77,7 +77,7 @@ const monax = require('@monax/burrow');
       return contracts.initCache();
     }).then(() => {
       log.info('SQL Cache initiated.');
-      require(`${global.__common}/aa-web-api`)(app);
+      require(`${global.__common}/aa-web-api`)(app, addCustomEndpoints);
       log.info('Web API started and ready for requests.');
       log.info('Active Agreements Application started successfully ...');
       eventEmitter.emit(eventConsts.STARTED);

@@ -19,7 +19,7 @@ const pool = require(`${global.__common}/postgres-db`);
 let app;
 
 (function startApp() {
-  module.exports = (existingApp) => {
+  module.exports = (existingApp, addCustomEndpoints) => {
     if (!app) {
       const log = logger.getLogger('agreements.web');
 
@@ -115,6 +115,8 @@ let app;
       app.post('/seeds/users', (req, res, next) => {
         seeds.users(req, res, next, log);
       });
+
+      if (addCustomEndpoints) addCustomEndpoints();
 
       // ERROR HANDLING MIDDLEWARE
       app.use((err, req, res, next) => {
