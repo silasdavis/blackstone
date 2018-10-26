@@ -7,8 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
 
-const app = require('../../app');
-const server = require(__common + '/aa-web-api');
+const app = require('../../app')();
+const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests');
 const pool = require(__common + '/postgres-db');
