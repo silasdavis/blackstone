@@ -126,11 +126,12 @@ const getDataValueAsAddress = (agreementAddr, fieldName) => new Promise((resolve
 const getActivityInDataAsBool = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as bool value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsBool.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data bool return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBool.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsBool.decode(returnData).raw[0]);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsBool.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data bool return: %s', JSON.stringify(processInstance.getActivityInDataAsBool.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsBool.decode(returnData).raw[0]);
   } catch (error) {
     return reject(error);
   }
@@ -139,11 +140,12 @@ const getActivityInDataAsBool = (userAddr, activityInstanceId, dataMappingId) =>
 const getActivityInDataAsString = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as string value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsString.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data string return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsString.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsString.decode(returnData).raw[0].valueOf());
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsString.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data string return: %s', JSON.stringify(processInstance.getActivityInDataAsString.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsString.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -152,11 +154,12 @@ const getActivityInDataAsString = (userAddr, activityInstanceId, dataMappingId) 
 const getActivityInDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as bytes32 value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsBytes32.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data bytes32 return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsBytes32.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsBytes32.decode(returnData).raw[0].valueOf());
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsBytes32.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data bytes32 return: %s', JSON.stringify(processInstance.getActivityInDataAsBytes32.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsBytes32.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -165,11 +168,12 @@ const getActivityInDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId)
 const getActivityInDataAsUint = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as uint value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsUint.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data uint return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsUint.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsUint.decode(returnData).raw[0].valueOf());
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsUint.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data uint return: %s', JSON.stringify(processInstance.getActivityInDataAsUint.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsUint.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -178,11 +182,12 @@ const getActivityInDataAsUint = (userAddr, activityInstanceId, dataMappingId) =>
 const getActivityInDataAsInt = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as int value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsInt.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data int return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsInt.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsInt.decode(returnData).raw[0].valueOf());
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsInt.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data int return: %s', JSON.stringify(processInstance.getActivityInDataAsInt.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsInt.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -191,11 +196,12 @@ const getActivityInDataAsInt = (userAddr, activityInstanceId, dataMappingId) => 
 const getActivityInDataAsAddress = (userAddr, activityInstanceId, dataMappingId) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s reading IN data %s as string value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.getActivityInDataAsAddress.encode(activityInstanceId, dataMappingId);
-    const returnData = await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
-    log.trace('Activity data address return: %s', JSON.stringify(bpmService.factory.getActivityInDataAsAddress.decode(returnData)));
-    return resolve(bpmService.factory.getActivityInDataAsAddress.decode(returnData).raw[0].valueOf());
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.getActivityInDataAsAddress.encode(activityInstanceId, dataMappingId);
+    const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
+    log.trace('Activity data address return: %s', JSON.stringify(processInstance.getActivityInDataAsAddress.decode(returnData)));
+    return resolve(processInstance.getActivityInDataAsAddress.decode(returnData).raw[0].valueOf());
   } catch (error) {
     return reject(error);
   }
@@ -208,9 +214,10 @@ const getActivityInDataAsAddress = (userAddr, activityInstanceId, dataMappingId)
 const setActivityOutDataAsBool = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as bool value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);
@@ -220,9 +227,11 @@ const setActivityOutDataAsBool = (userAddr, activityInstanceId, dataMappingId, v
 const setActivityOutDataAsString = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as string value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);
@@ -232,9 +241,11 @@ const setActivityOutDataAsString = (userAddr, activityInstanceId, dataMappingId,
 const setActivityOutDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as bytes32 value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);
@@ -244,9 +255,11 @@ const setActivityOutDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId
 const setActivityOutDataAsUint = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as uint value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);
@@ -256,9 +269,10 @@ const setActivityOutDataAsUint = (userAddr, activityInstanceId, dataMappingId, v
 const setActivityOutDataAsInt = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as int value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);
@@ -268,9 +282,10 @@ const setActivityOutDataAsInt = (userAddr, activityInstanceId, dataMappingId, va
 const setActivityOutDataAsAddress = (userAddr, activityInstanceId, dataMappingId, value) => new Promise(async (resolve, reject) => {
   try {
     log.trace('User %s setting OUT data %s as address value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
-    const bpmService = contracts.getBpmService();
-    const payload = bpmService.factory.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
-    await contracts.callOnBehalfOf(userAddr, bpmService.address, payload);
+    const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
+    const processInstance = contracts.getProcessInstance(piAddress);
+    const payload = processInstance.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+    await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
     return reject(error);

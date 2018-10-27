@@ -91,6 +91,7 @@ const getContract = (abiPath, contractName, contractAddress) => {
 const getBpmService = () => appManager.contracts['BpmService'];
 const getUserAccount = userAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
 const getOrganization = orgAddress => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
+const getProcessInstance = piAddress => getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
 
 /**
  * Returns a promise to call the forwardCall function of the given userAddress to invoke the function encoded in the given payload on the provided target address and return the result bytes representation
@@ -1253,6 +1254,7 @@ module.exports = {
   boomify,
   getContract,
   getBpmService,
+  getProcessInstance,
   createOrganization,
   createArchetype,
   isActiveArchetype,
