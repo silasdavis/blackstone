@@ -168,8 +168,6 @@ contract ActiveAgreementWorkflowTest {
 
 		TestSignatureCheck signatureCheckApp = new TestSignatureCheck();
 		applicationRegistry.addApplication("AgreementSignatureCheck", BpmModel.ApplicationType.WEB, signatureCheckApp, bytes4(EMPTY), EMPTY);
-		doug.deployContract("AgreementSignatureCheck", signatureCheckApp);
-		if (signatureCheckApp.getBpmService() != address(bpmService)) return "BpmService not injected successfully into AgreementSignatureCheck application";
 
 		//
 		// ORGS/USERS
@@ -447,12 +445,8 @@ contract TestSignatureCheck is AgreementSignatureCheck {
 
 	address public lastAgreement;
 
-	function getBpmService() external view returns (address) {
-		return bpmService;
-	}
-
 	function complete(address _pi, bytes32 _aiId, bytes32 _aId, address _txPerformer) public {
-		lastAgreement = bpmService.getActivityInDataAsAddress(_aiId, "agreement");
+		lastAgreement = ProcessInstance(_pi).getActivityInDataAsAddress(_aiId, "agreement");
 		super.complete(_pi, _aiId, _aId, _txPerformer);
 	}
 

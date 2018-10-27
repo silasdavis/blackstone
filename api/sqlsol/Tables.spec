@@ -606,7 +606,7 @@
   },
   {
     "TableName": "PROCESS_DATA",
-    "Filter": "Log1Text = 'EVENT_ID_PROCESS_DATA'",
+    "Filter": "Log1Text = 'AN://process-instance/data'",
     "Columns": {
       "process_instance_address": {
         "name": "process_instance_address",

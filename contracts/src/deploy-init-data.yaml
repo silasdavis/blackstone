@@ -120,19 +120,6 @@ jobs:
     function: addAccessPoint
     data: ["WebAppApprovalForm", "readApproved", 1, 0]
 
-- name: DeployAgreementSignatureCheck
-  call:
-    destination: $DOUG
-    bin: DOUG
-    function: deployContract
-    data: [AgreementSignatureCheck, $AgreementSignatureCheck]
-
-- name: AssertAgreementSignatureCheckDeployment
-  assert:
-    key: $DeployAgreementSignatureCheck
-    relation: eq
-    val: "true"
-
 # TotalCounterCheck
 - name: TotalCounterCheck
   deploy:
@@ -173,16 +160,3 @@ jobs:
     bin: ApplicationRegistry
     function: addAccessPoint
     data: ["TotalCounterCheck", "completedOut", 1, 1]
-
-- name: DeployTotalCounterCheck
-  call:
-    destination: $DOUG
-    bin: DOUG
-    function: deployContract
-    data: ["TotalCounterCheck", $TotalCounterCheck]
-
-- name: AssertTotalCounterCheckDeployment
-  assert:
-    key: $DeployTotalCounterCheck
-    relation: eq
-    val: "true"
