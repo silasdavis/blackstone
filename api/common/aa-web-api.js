@@ -67,6 +67,8 @@ let app;
         type: '*/*',
       }));
 
+      if (addCustomEndpoints) addCustomEndpoints();
+
       /**
        * HOARD Routes
        */
@@ -115,8 +117,6 @@ let app;
       app.post('/seeds/users', (req, res, next) => {
         seeds.users(req, res, next, log);
       });
-
-      if (addCustomEndpoints) addCustomEndpoints();
 
       // ERROR HANDLING MIDDLEWARE
       app.use((err, req, res, next) => {
