@@ -15,7 +15,7 @@ const {
   hoard,
   getModelFromHoard,
 } = require(`${global.__controllers}/hoard-controller`);
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
 

@@ -54,18 +54,7 @@ const dependencies = {
       case 'Access Point':
         element.accessPointId = global.hexToString(element.accessPointId);
         break;
-      case 'Archetype': // TODO - replace with contents of 'Archetype-PG' and delete the case below once ready to remove sqlsol
-        if (Object.prototype.hasOwnProperty.call(element, 'active')) element.active = parseInt(element.active, 10) !== 0;
-        if (Object.prototype.hasOwnProperty.call(element, 'isPrivate')) element.isPrivate = parseInt(element.isPrivate, 10) !== 0;
-        if (!_.isEmpty(element.description)) element.description = _.unescape(element.description);
-        if (element.formationModelId) element.formationModelId = global.hexToString(element.formationModelId);
-        if (element.executionModelId) element.executionModelId = global.hexToString(element.executionModelId);
-        if (element.formationProcessId) element.formationProcessId = global.hexToString(element.formationProcessId);
-        if (element.executionProcessId) element.executionProcessId = global.hexToString(element.executionProcessId);
-        if (element.successor) element.successor = Number(element.successor) === 0 ? null : element.successor;
-        if (element.price) element.price = parseInt(element.price, 10) / 100; // converting to dollars from cents (recorded uint on chain)
-        break;
-      case 'Archetype-PG':
+      case 'Archetype':
         if (!_.isEmpty(element.description)) element.description = _.unescape(element.description);
         if (element.successor) element.successor = Number(element.successor) === 0 ? null : element.successor;
         if (element.price) element.price = parseInt(element.price, 10) / 100; // converting to dollars from cents (recorded uint on chain)

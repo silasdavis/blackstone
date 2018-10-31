@@ -3,7 +3,7 @@ const {
   format,
   asyncMiddleware,
 } = require(`${global.__common}/controller-dependencies`);
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 
 module.exports = {
   getCountries: asyncMiddleware(async (req, res) => {

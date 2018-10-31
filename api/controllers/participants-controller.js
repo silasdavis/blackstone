@@ -16,7 +16,7 @@ const log = logger.getLogger('participants');
 const pool = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 
 const getOrganizations = asyncMiddleware(async (req, res) => {
   if (req.query.approver === 'true') {

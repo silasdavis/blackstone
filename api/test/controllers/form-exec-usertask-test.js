@@ -50,7 +50,7 @@ const contracts = require(path.join(__controllers, 'contracts-controller'))
 const agreementsController = require(path.join(__controllers, 'agreements-controller'))
 const bpm = require(path.join(__controllers, 'bpm-controller'))
 const createModel = require('./model-creation-helper').createModel
-const sqlCache = require(path.join(__controllers, 'sqlsol-query-helper'))
+const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 
 before(function (done) {
   this.timeout(99999999)

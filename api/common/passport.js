@@ -6,7 +6,7 @@ const pool = require(`${global.__common}/postgres-db`);
 const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
-const sqlCache = require(`${global.__controllers}/sqlsol-query-helper`);
+const sqlCache = require(`${global.__controllers}/postgres-query-helper`);
 
 module.exports = (passport) => {
   const isValidUser = async (id) => {

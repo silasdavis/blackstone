@@ -246,6 +246,8 @@ const getArchetypePackages = (queryParams, userAccount) => new Promise((resolve,
   });
 });
 
+const getArchetypePackage = () => {};
+
 const getArchetypesInPackage = packageId => new Promise((resolve, reject) => {
   const queryString = 'SELECT a.name, a.address, a.active from ARCHETYPES a ' +
                       'JOIN ARCHETYPE_TO_PACKAGE ap ON a.address = ap.archetypeAddress ' +
@@ -572,6 +574,7 @@ module.exports = {
   getPackagesOfArchetype: pgq.getPackagesOfArchetype || getPackagesOfArchetype,
   getGoverningArchetypes: pgq.getGoverningArchetypes || getGoverningArchetypes,
   getArchetypePackages: pgq.getArchetypePackages || getArchetypePackages,
+  getArchetypePackage: pgq.getArchetypePackage || getArchetypePackage,
   getArchetypesInPackage: pgq.getArchetypesInPackage || getArchetypesInPackage,
   getAgreements: pgq.getAgreements || getAgreements,
   getAgreementData: pgq.getAgreementData || getAgreementData,

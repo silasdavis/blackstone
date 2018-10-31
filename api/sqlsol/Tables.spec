@@ -756,8 +756,8 @@
         "primary": true,
         "bytesToString": true
       },
-      "num3": {
-        "name": "num3",
+      "m49": {
+        "name": "m49",
         "type": "bytes3",
         "bytesToString": true
       },

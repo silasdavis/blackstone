@@ -397,7 +397,7 @@ module.exports = (app) => {
     ]
   }
 */
-  app.get('/archetype-packages/:package_key', ensureAuth, getArchetypePackage);
+  app.get('/archetype-packages/:id', ensureAuth, getArchetypePackage);
 
   /**
  * @api {post} /archetypes/packages Create an Archetype Package
