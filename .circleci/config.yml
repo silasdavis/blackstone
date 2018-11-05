@@ -37,6 +37,20 @@ jobs:
           root: ./api/
           paths:
             - node_modules
+  build_vent:
+    docker:
+      - image: golang:1.10
+    working_directory: ~/blackstone
+    steps:
+      - checkout
+      - run: |
+          go get -u github.com/monax/bosmarmot/...
+          cd $GOPATH/src/github.com/monax/bosmarmot/vent
+          go build -o ~/bos/vent .
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - bos
   test_contracts:
     <<: *defaults
     steps:
@@ -66,9 +80,15 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run: |
+          mv /tmp/bos ./
           mv /tmp/bin ./contracts/src/.
           mv /tmp/node_modules ./api/.
-      - run: ./test/test_api.sh
+      - run:
+          name: Test API
+          command: ./test/test_api.sh
+          environment:
+            POSTGRES_USER: blackstone_development
+            POSTGRES_PASSWORD: blackstone_development
       - store_artifacts:
           path: ./burrow.log
   deploy_docs:
@@ -138,6 +158,7 @@ workflows:
     jobs:
       - cache_contracts
       - cache_api
+      - build_vent
       - test_contracts:
           requires:
             - cache_contracts
@@ -145,6 +166,7 @@ workflows:
           requires:
             - cache_api
             - cache_contracts
+            - build_vent
       - deploy_docs:
           filters:
             branches:
