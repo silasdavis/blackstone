@@ -1319,7 +1319,6 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
 });
 
-
 /**
  * ######## Governing Archetypes and Agreements  ###############################################################################################################
  */

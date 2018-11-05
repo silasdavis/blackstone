@@ -10,7 +10,7 @@ contract IsoCurrencies is VersionLinkedAppendOnly {
 	event LogCurrencyRegistration(
 		bytes32 indexed eventId,
 		bytes3 alpha3,
-		bytes3 num3,
+		bytes3 m49,
 		string name
 	);
 
@@ -18,7 +18,7 @@ contract IsoCurrencies is VersionLinkedAppendOnly {
 
 	struct Currency {
 		bytes3 alpha3;	// 3-letter Currency code
-		bytes3 num3;		// 3-digit numeric code which may match the country's M49 code
+		bytes3 m49;		// 3-digit numeric code which may match the country's M49 code
 		string name;		// Currency name (EN)
     bool exists;
 	}
@@ -37,7 +37,7 @@ contract IsoCurrencies is VersionLinkedAppendOnly {
 
 	function getCurrencyData(bytes3 _key) external view returns (bytes3 alpha3, bytes3 m49, string name) {
 		alpha3 = currencies[_key].alpha3;
-		m49 = currencies[_key].num3;
+		m49 = currencies[_key].m49;
 		name = currencies[_key].name;
 	}
 

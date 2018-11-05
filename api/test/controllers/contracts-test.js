@@ -48,7 +48,7 @@ global.global.stringToHex = (str) => { return monax.utils.asciiToHex(str || '') 
 
 global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_BUNDLES
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
-const sqlCache = require(path.join(__controllers, 'sqlsol-query-helper'))
+const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
 
 before(function (done) {

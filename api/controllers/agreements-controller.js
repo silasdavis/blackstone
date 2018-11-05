@@ -2,6 +2,8 @@ const path = require('path');
 const boom = require('boom');
 const Joi = require('joi');
 const _ = require('lodash');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const pgCache = require('./postgres-cache-helper');
 
 const {
@@ -14,8 +16,6 @@ const {
   getBooleanFromString,
 } = require(`${global.__common}/controller-dependencies`);
 const pool = require(`${global.__common}/postgres-db`);
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
 const archetypeSchema = require(`${global.__schemas}/archetype`);
@@ -23,7 +23,7 @@ const agreementSchema = require(`${global.__schemas}/agreement`);
 const { hoard } = require(`${global.__controllers}/hoard-controller`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements');
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 const { PARAMETER_TYPE: PARAM_TYPE, AGREEMENT_PARTIES } = global.__monax_constants;
 
 const getArchetypes = asyncMiddleware(async (req, res) => {
@@ -33,7 +33,7 @@ const getArchetypes = asyncMiddleware(async (req, res) => {
   archData.forEach((_archetype) => {
     const archetype = Object.assign(_archetype, { countries: [] });
     jurisData.forEach((juris) => {
-      if (juris.address === archetype.address) archetype.countries.push(global.hexToString(juris.country));
+      if (juris.address === archetype.address) archetype.countries.push(juris.country);
     });
     retData.push(format('Archetype', archetype));
   });
@@ -127,8 +127,15 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   type.price = parseFloat(type.price, 10);
   type.active = type.active || false;
   if (type.packageId) {
-    const packageData = await sqlCache.getArchetypePackages({ package_key: type.packageId }, req.user.address);
-    if (!packageData) throw boom.badRequest(`Given packageId ${type.packageId} does not exist, or may not be accessible to user`);
+    let packageData;
+    try {
+      packageData = await sqlCache.getArchetypePackage(type.packageId, req.user.address);
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === 404) {
+        throw boom.badRequest(`Given packageId ${type.packageId} does not exist, or may not be accessible to user`);
+      }
+      throw boom.badImplementation(err);
+    }
     if (packageData.author !== req.user.address) throw boom.forbidden(`Package with id ${type.packageId} is not modifiable by user at address ${req.user.address}`);
     if (type.isPrivate && !packageData.isPrivate) throw boom.badRequest(`Private archetype ${type.name} cannot be added to public package with id ${type.packageId}`);
   }
@@ -252,10 +259,10 @@ const getArchetypePackages = asyncMiddleware(async (req, res) => {
 });
 
 const getArchetypePackage = asyncMiddleware(async (req, res) => {
-  const { package_key } = req.params;
-  const archPackage = await sqlCache.getArchetypePackages({ package_key }, req.user.address);
-  if (!archPackage) throw boom.notFound(`Archetype Package with id ${package_key} not found or user has insufficient privileges`);
-  const archetypes = await sqlCache.getArchetypesInPackage(package_key);
+  const { id } = req.params;
+  const archPackage = await sqlCache.getArchetypePackage(id, req.user.address);
+  if (!archPackage) throw boom.notFound(`Archetype Package with id ${id} not found or user has insufficient privileges`);
+  const archetypes = await sqlCache.getArchetypesInPackage(id);
   archPackage.archetypes = archetypes.map(elem => ({
     name: elem.name,
     address: elem.address,
@@ -267,9 +274,8 @@ const getArchetypePackage = asyncMiddleware(async (req, res) => {
 const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   const { packageId, archetypeAddress } = req.params;
   if (!packageId || !archetypeAddress) throw boom.badRequest('Package id and archetype address are required');
-  const packageData = await sqlCache.getArchetypePackages({ package_key: packageId }, req.user.address);
-  const archetypeData = (await sqlCache.getArchetypeData({ address: archetypeAddress }, req.user.address))[0];
-  if (!packageData) throw boom.forbidden(`Package with id ${packageId} is not accessible by user ${req.user.address}`);
+  const packageData = (await sqlCache.getArchetypePackage(packageId, req.user.address));
+  const archetypeData = (await sqlCache.getArchetypeData({ archetype_address: archetypeAddress }, req.user.address))[0];
   if (!archetypeData) {
     throw boom.forbidden(`User at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
       `and thus not allowed to add it to the package with id ${packageId}`);
@@ -510,7 +516,7 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   const retData = {};
   if (!req.params.address) throw boom.badRequest('Agreement address is required');
   const addr = req.params.address;
-  const data = await sqlCache.getAgreementData(addr, req.user.address);
+  const data = (await sqlCache.getAgreementData(addr, req.user.address))[0];
   if (!data) throw boom.notFound(`Agreement at ${addr} not found or user has insufficient privileges`);
   const parameters = await getAgreementParameters(addr, null);
   const parties = await sqlCache.getAgreementParties(addr);
@@ -520,8 +526,7 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   retData.documents = await getDocumentsFromHoard(documentMetadata, password);
   retData.parameters = parameters.map(param => format('Parameter Value', param));
   retData.parties = parties.map(party => format('Parameter Value', party));
-  const governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
-  retData.governingAgreements = governingAgreements.map(agreement => format('Agreement', agreement));
+  retData.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
   delete retData.hoardAddress;
   delete retData.hoardSecret;
   return res.status(200).json(retData);
