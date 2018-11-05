@@ -70,13 +70,7 @@ const dependencies = {
         element.id = global.hexToString(element.id);
         element.webForm = global.hexToString(element.webForm);
         break;
-      case 'Country':
-        element.country = global.hexToString(element.country);
-        element.alpha2 = global.hexToString(element.alpha2);
-        element.alpha3 = global.hexToString(element.alpha3);
-        element.m49 = global.hexToString(element.m49);
-        break;
-      case 'Country-PG': // TODO Temporary until front-end is updated to rely on alpha2
+      case 'Country': // TODO Temporary until front-end is updated to rely on alpha2
         element.country = element.alpha2;
         break;
       case 'Currency':

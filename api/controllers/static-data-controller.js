@@ -10,7 +10,7 @@ module.exports = {
     const countries = [];
     const data = await sqlCache.getCountries();
     data.forEach((elem) => {
-      countries.push(format('Country-PG', elem));
+      countries.push(format('Country', elem));
     });
     return res.status(200).json(countries);
   }),
@@ -19,7 +19,7 @@ module.exports = {
     if (!req.params.alpha2) throw boom.badRequest('Country alpha2 identifier required');
     const { alpha2 } = req.params;
     const data = await sqlCache.getCountryByAlpha2Code(alpha2);
-    return res.status(200).json(format('Country-PG', data));
+    return res.status(200).json(format('Country', data));
   }),
 
   getAlpha2CountryRegions: asyncMiddleware(async (req, res) => {
