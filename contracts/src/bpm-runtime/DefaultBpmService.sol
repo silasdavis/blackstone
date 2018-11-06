@@ -430,4 +430,16 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
             ProcessInstance(_processInstance).getState()
         );
     }
+
+	/**
+	 * @dev Overwrites the Upgradeable.upgrade(address) function to remove this contract as a contract change listener.
+	 */
+    function upgrade(address _successor) public returns (bool success) {
+        success = super.upgrade(_successor);
+        if (success && address(locator) != address(0)) {
+            locator.removeContractChangeListener(serviceIdApplicationRegistry);
+            locator.removeContractChangeListener(serviceIdProcessModelRepository);
+        }
+    }
+
 }

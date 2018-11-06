@@ -58,6 +58,7 @@ contract DefaultUserAccount is UserAccount {
         }
         account.exists = true;
     }
+    
     /**
      * @dev Forwards a call to the specified target using the given bytes message.
      * @param _target the address to call

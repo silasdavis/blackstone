@@ -44,4 +44,10 @@ contract TestService is AbstractUpgradeable, ContractLocatorEnabled {
         success = true;
     }
 
+    function upgrade(address _successor) public returns (bool success) { 
+        success = super.upgrade(_successor);
+        if (success && address(locator) != address(0)) {
+            locator.removeContractChangeListener(dependencyKey);
+        }
+    }
 }

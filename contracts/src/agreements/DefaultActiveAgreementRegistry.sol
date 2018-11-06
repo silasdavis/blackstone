@@ -785,5 +785,16 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		ActiveAgreement(_activeAgreement).setEventLogReference(_eventLogHoardAddress, _eventLogHoardSecret);
 		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, _activeAgreement, _eventLogHoardAddress, _eventLogHoardSecret);
 	 }
-	
+
+	/**
+	 * @dev Overwrites the Upgradeable.upgrade(address) function to remove this contract as a contract change listener.
+	 */
+    function upgrade(address _successor) public returns (bool success) {
+        success = super.upgrade(_successor);
+        if (success && address(locator) != address(0)) {
+            locator.removeContractChangeListener(serviceIdArchetypeRegistry);
+            locator.removeContractChangeListener(serviceIdBpmService);
+        }
+    }
+
 }

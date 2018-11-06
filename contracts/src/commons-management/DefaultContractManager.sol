@@ -22,6 +22,9 @@ contract DefaultContractManager is Versioned(1,0,0), SystemOwned, AbstractDbUpgr
 	bytes4 constant ERC165_ID_Versioned = bytes4(keccak256(abi.encodePacked("getVersion()")));
 	bytes4 constant ERC165_ID_Upgradeable = bytes4(keccak256(abi.encodePacked("upgrade(address)")));
 
+    /**
+     * @dev Creates a new DefaultContractManager and sets the msg.sender as the systemOwner.
+     */
     constructor() public {
         systemOwner = msg.sender;
     }
