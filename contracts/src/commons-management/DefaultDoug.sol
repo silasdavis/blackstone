@@ -52,9 +52,11 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefManager, O
      * @dev Registers the contract with the given address under the specified ID and performs a deployment
      * procedure which involves dependency injection and upgrades from previously deployed contracts with
      * the same ID.
-	 * If the given contract implements Upgradeable, it must have the upgradeOwner set to this contract
 	 * If the given contract implements ContractLocatorEnabled, it will be passed an instance of the ContractManager, so that
 	 * it can perform dependency lookups and register for changes.
+	 * REVERTS if:
+	 * - the provided contract is Upgradeable, but this DOUG contract is not the upgradeOwner
+	 * - a contract with the same ID is being replaced, but the upgrade between predecessor and successor failed (see Upgradeable.upgrade(address))
      * @param _id the ID under which to register the contract
      * @param _address the address of the contract
      * @return true if successful, false otherwise
@@ -64,10 +66,10 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefManager, O
 		ErrorsLib.revertIf(UpgradeOwned(_address).getUpgradeOwner() != address(this),
 			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultDoug.deployContract", "DOUG must be upgradeOwner of the provided contract");
 		}
-		address addr = ContractManager(manager).getContract(_id);
-		if (addr != 0x0 && ERC165Utils.implementsInterface(addr, getERC165IdUpgradeable())) {
-			ErrorsLib.revertIf(!Upgradeable(addr).upgrade(_address),
-				"", "DefaultDoug.deployContract", "Failed to upgrade from an existing contract with the same ID");
+		address existing = ContractManager(manager).getContract(_id);
+		if (existing != 0x0 && ERC165Utils.implementsInterface(existing, getERC165IdUpgradeable())) {
+			ErrorsLib.revertIf(!Upgradeable(existing).upgrade(_address),
+				ErrorsLib.INVALID_STATE(), "DefaultDoug.deployContract", "Failed to upgrade from an existing contract with the same ID");
 		}
 		ContractManager(manager).addContract(_id, _address);
 		success = true;
