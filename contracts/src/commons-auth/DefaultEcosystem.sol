@@ -45,21 +45,27 @@ contract DefaultEcosystem is Ecosystem {
         external
     {
         ErrorsLib.revertIf(
+            (_id == ""), 
+            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(),
+            "DefaultEcosystem.addUserAccount",
+            "User ID cannot be empty"
+        );
+        ErrorsLib.revertIf(
+            (_userAccount == 0x0), 
+            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(),
+            "DefaultEcosystem.addUserAccount",
+            "User account address cannot be empty"
+        );
+        ErrorsLib.revertIf(
             userAccounts.exists(_id), 
             ErrorsLib.RESOURCE_ALREADY_EXISTS(),
             "DefaultEcosystem.addUserAccount",
             "User with same ID already exists in given ecosystem"
         );
-        ErrorsLib.revertIf(
-            (_id == "" || _userAccount == 0x0), 
-            ErrorsLib.RESOURCE_ALREADY_EXISTS(),
-            "DefaultEcosystem.addUserAccount",
-            "User ID and account address both are required fields"
-        );
         uint error = userAccounts.insert(_id, _userAccount);
         ErrorsLib.revertIf(
             error != BaseErrors.NO_ERROR(), 
-            ErrorsLib.RESOURCE_ALREADY_EXISTS(),
+            ErrorsLib.RUNTIME_ERROR(),
             "DefaultEcosystem.addUserAccount",
             "User with same ID already exists in given ecosystem"
         );

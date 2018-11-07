@@ -35,38 +35,24 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     string constant TABLE_DEPARTMENT_USERS = "DEPARTMENT_USERS";
 
     /**
-     * @dev Creates and adds a user account
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
      * @param _id id (required)
      * @param _owner owner (optional)
      * @param _ecosystem owner (optional)
      * @return userAccount user account
      */
     function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount) {
-        ErrorsLib.revertIf(_id == "",
-            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultParticipantsManager.createUserAccount", "User ID must not be empty");
-        ErrorsLib.revertIf(Ecosystem(_ecosystem).getUserAccount(_id) != 0x0,
-            ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultParticipantsManager.createUserAccount", "User with same ID already exists in given ecosystem");
         userAccount = new DefaultUserAccount(_owner, _ecosystem);
-        require(addUserAccount(_id, userAccount, _ecosystem) == BaseErrors.NO_ERROR(),
-            ErrorsLib.format(ErrorsLib.INVALID_STATE(), "DefaultParticipantsManager.createUserAccount", "Unable to add new UserAccount to DB"));
-    }
-
-    /**
-     * @dev Adds the specified UserAccount to the ParticipantsManagerDb as well as registers it to the given ecosystem
-     * @param _id user id
-     * @param _account user account address
-     * @param _ecosystem ecosystem address
-     * @return NO_ERROR, RESOURCE_ALREADY_EXISTS if the user account ID is already registered
-     */
-    function addUserAccount(bytes32 _id, address _account, address _ecosystem) public returns (uint error) {
-        error = ParticipantsManagerDb(database).addUserAccount(_account);
+        uint error = ParticipantsManagerDb(database).addUserAccount(userAccount);
         if (error == BaseErrors.NO_ERROR()) {
-            Ecosystem(_ecosystem).addUserAccount(_id, _account);
+            if (_id != "" && _ecosystem != 0x0) {
+                Ecosystem(_ecosystem).addUserAccount(_id, userAccount);
+            }
             emit LogUserCreation(
                 EVENT_ID_USER_ACCOUNTS,
-                _account,
+                userAccount,
                 _id,
-                UserAccount(_account).getOwner()
+                _owner
             );
         }
     }

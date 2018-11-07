@@ -85,15 +85,19 @@ contract ParticipantsManagerTest {
         DefaultOrganization org1 = new DefaultOrganization(approvers, EMPTY_STRING);
         DefaultOrganization org2 = new DefaultOrganization(approvers, EMPTY_STRING);
 
-        UserAccount account1 = new DefaultUserAccount(participantsManager, 0x0);
-        UserAccount account2 = new DefaultUserAccount(participantsManager, 0x0);
-        address account3;
         uint oldSize = participantsManager.getUserAccountsSize();
+
+        address account1 = participantsManager.createUserAccount(acc1Id, 0x0, myEcosystem);
+        address account2 = participantsManager.createUserAccount(acc2Id, 0x0, myEcosystem);
+
+        if (participantsManager.getUserAccountsSize() != oldSize + 2) return "Expected accounts size to be +2";
+
+        address account3;
         uint departmentUserSize;
 
-        if (BaseErrors.NO_ERROR() != participantsManager.addUserAccount(acc1Id, account1, myEcosystem)) return "Error adding account1.";
-        if (BaseErrors.NO_ERROR() != participantsManager.addUserAccount(acc2Id, account2, myEcosystem)) return "Error adding account2.";
-        if (BaseErrors.RESOURCE_ALREADY_EXISTS() != participantsManager.addUserAccount(acc2Id, account2, myEcosystem)) return "Expected error for existing account2.";
+        if (address(participantsManager).call(bytes4(keccak256(abi.encodePacked("createUserAccount(bytes32,address,address)"))), acc2Id, 0x0, myEcosystem)) {
+            return "Expected error when creating new account with existing user id in same ecosystem.";
+        }
 
         // test adding users
         if (participantsManager.getUserAccountsSize() != oldSize + 2) return "Expected accounts size to be +2";
@@ -270,9 +274,6 @@ contract ParticipantsManagerTest {
 		address[] memory emptyAdmins;
 
         Organization org = new DefaultOrganization(emptyAdmins, EMPTY_STRING);
-        bytes32 user1Id = "user1";
-        bytes32 user2Id = "user2";
-        bytes32 user3Id = "user3";
         bytes32 dep1Id = "department";
 
         UserAccount user1 = new DefaultUserAccount(participantsManager, 0x0);

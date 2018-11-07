@@ -91,23 +91,13 @@ contract ParticipantsManager is EventListener, Upgradeable {
     bytes32 public constant EVENT_ID_DEPARTMENT_USERS = "AN://departments/users";
 
     /**
-    * @dev Creates and adds a user account
-    * @param _id id (required)
-    * @param _owner owner (optional)
-    * @param _ecosystem owner (optional)
-    * @return error code indicating success or failure
-    * @return userAccount user account
-    */
-    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
-
-    /**
-     * @dev Adds the specified UserAccount to the ParticipantsManagerDb as well as registers it to the given ecosystem
-     * @param _id user id
-     * @param _account user account address
-     * @param _ecosystem ecosystem address
-     * @return NO_ERROR, RESOURCE_ALREADY_EXISTS if the user account ID is already registered
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
+     * @param _id id (required)
+     * @param _owner owner (optional)
+     * @param _ecosystem owner (optional)
+     * @return userAccount user account
      */
-    function addUserAccount(bytes32 _id, address _account, address _ecosystem) public returns (uint);
+    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
 
 	/**
 	 * @dev Adds the organization at the specified address

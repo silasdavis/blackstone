@@ -42,6 +42,7 @@ contract ParticipantsManagerDb is SystemOwned {
 
   function getUserAccountAtIndex(uint _index) external view returns (address) {
     ( , address account) = userAccounts.keyAtIndex(_index);
+    return account;
   }
 
   function addOrganization(address _address) external pre_onlyBySystemOwner returns (uint error) {
