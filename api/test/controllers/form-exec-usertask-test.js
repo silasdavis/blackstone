@@ -10,6 +10,7 @@ const expect = chai.expect
 const assert = chai.assert
 const _ = require('lodash')
 const monax = require('@monax/burrow')
+const crypto = require('crypto');
 
 global.__appDir = path.resolve()
 global.__common = path.resolve(__appDir, 'common')
@@ -155,8 +156,8 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }
 
   it('Should create a buyer and a seller', async () => {
-    let resBuyer = await contracts.createUser(buyer)
-    let resSeller = await contracts.createUser(seller)
+    let resBuyer = await contracts.createUser({ id: crypto.createHash('sha256').update(buyer.id).digest('hex') });
+    let resSeller = await contracts.createUser({ id: crypto.createHash('sha256').update(seller.id).digest('hex') });
     resBuyer.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     resSeller.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     buyer.address = resBuyer

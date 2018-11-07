@@ -12,6 +12,7 @@ const should = chai.should()
 const expect = chai.expect
 const assert = chai.assert
 const monax = require('@monax/burrow')
+const crypto = require('crypto');
 
 global.__appDir = path.resolve()
 global.__common = path.resolve(__appDir, 'common')
@@ -157,7 +158,7 @@ describe('CONTRACTS', () => {
 
   it('Should create a user', async () => {
     let user = { id: rid(16, 'aA0') }
-    let res = await contracts.createUser(user)
+    let res = await contracts.createUser({id: crypto.createHash('sha256').update(user.id).digest('hex')})
     res.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     pAccount.address = res
     arch.author = pAccount.address

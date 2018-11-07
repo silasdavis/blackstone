@@ -9,6 +9,7 @@ const {
   setUserIds,
   getNamesOfOrganizations,
   asyncMiddleware,
+  getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
@@ -192,7 +193,7 @@ const removeDepartmentUser = asyncMiddleware(async (req, res) => {
 
 const _userExistsOnChain = async (id) => {
   try {
-    await contracts.getUserById(id);
+    await contracts.getUserById(getSHA256Hash(id));
     return true;
   } catch (err) {
     if (err.output.statusCode === 404) {
@@ -226,7 +227,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
   if (userInCache) throw boom.badData(`Username ${id} already exists`);
 
   // create user on chain
-  const address = await contracts.createUser({ id });
+  const address = await contracts.createUser({ id: getSHA256Hash(id) });
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
 

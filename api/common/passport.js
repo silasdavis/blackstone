@@ -7,11 +7,12 @@ const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
 const sqlCache = require(`${global.__controllers}/postgres-query-helper`);
+const { getSHA256Hash } = require(`${global.__common}/controller-dependencies`);
 
 module.exports = (passport) => {
   const isValidUser = async (id) => {
     try {
-      await contracts.getUserById(id);
+      await contracts.getUserById(getSHA256Hash(id));
       return true;
     } catch (err) {
       if (err.output.statusCode === 404) {
@@ -82,7 +83,8 @@ module.exports = (passport) => {
       const {
         username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
       } = rows[0];
-      const { address: addressFromChain, hashedId } = await contracts.getUserById(username);
+      const hashedId = getSHA256Hash(id);
+      const { address: addressFromChain } = await contracts.getUserById(hashedId);
       const data = (await sqlCache.getUsers({ id: hashedId }))[0];
       if (!data) return done(null, false, { message: 'Invalid login credentials' });
       const isPassword = await bcrypt.compare(password, pwDigest);

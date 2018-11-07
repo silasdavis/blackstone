@@ -38,20 +38,16 @@ contract DefaultUserAccount is UserAccount {
     }
 
     /**
-     * @dev Creates a new UserAccount with the given ID and belonging to the specified owner and/or ecosystem.
+     * @dev Creates a new UserAccount belonging to the specified owner and/or ecosystem.
      * One or both owner/ecosystem are required to be set to guarantee another entity has control over this UserAccount
      * REVERTS if:
      * - both owner and ecosystem are empty.
-     * @param _id id (required)
      * @param _owner public external address of individual owner (optional)
      * @param _ecosystem address of an ecosystem (optional)
      */
-    constructor(bytes32 _id, address _owner, address _ecosystem) public {
-        ErrorsLib.revertIf(_id == "",
-            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.constructor", "ID must not be NULL");
+    constructor(address _owner, address _ecosystem) public {
         ErrorsLib.revertIf(_owner == address(0) && _ecosystem == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.constructor", "One of owner or ecosystem must be provided");
-        account.id = keccak256(abi.encodePacked(_id)); // Hashing userId before storing //TODO the ID should be hashed before passing it in a transaction. check in API
         owner = _owner;
         if (_ecosystem != address(0)) {
             account.ecosystems.insertOrUpdate(_ecosystem, true);
@@ -91,13 +87,4 @@ contract DefaultUserAccount is UserAccount {
             }
         }
     }
-
-	/**
-	 * @dev Returns this account's ID
-     * @return the account ID
-	 */
-    function getId() public view returns (bytes32) {
-        return account.id;
-    }
-    
 }

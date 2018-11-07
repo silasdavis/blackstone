@@ -173,10 +173,10 @@ contract ActiveAgreementWorkflowTest {
 		// ORGS/USERS
 		//
 		// create additional users via constructor
-		userAccount1 = new DefaultUserAccount(user1Id, this, address(0));
-		userAccount2 = new DefaultUserAccount(user2Id, this, address(0));
-		userAccount3 = new DefaultUserAccount(user3Id, this, address(0));
-		nonPartyAccount = new DefaultUserAccount("jane.doe", this, address(0));
+		userAccount1 = new DefaultUserAccount(this, address(0));
+		userAccount2 = new DefaultUserAccount(this, address(0));
+		userAccount3 = new DefaultUserAccount(this, address(0));
+		nonPartyAccount = new DefaultUserAccount(this, address(0));
 
 		org1 = new DefaultOrganization(approvers, EMPTY_STRING);
 		org2 = new DefaultOrganization(approvers, EMPTY_STRING);
@@ -324,8 +324,8 @@ contract ActiveAgreementWorkflowTest {
 		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
 		agreementRegistry.setBpmService(bpmService);
 
-		userAccount1 = new DefaultUserAccount(user1Id, this, address(0));
-		userAccount2 = new DefaultUserAccount(user2Id, this, address(0));
+		userAccount1 = new DefaultUserAccount(this, address(0));
+		userAccount2 = new DefaultUserAccount(this, address(0));
 		delete parties;
 		parties.push(userAccount1);
 		parties.push(userAccount2);

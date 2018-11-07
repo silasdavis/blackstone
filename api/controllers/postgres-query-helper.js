@@ -415,12 +415,9 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     'LEFT JOIN process_data pdat ON ai.process_instance_address = pdat.process_instance_address ' +
     'LEFT JOIN agreements agr ON agr.agreement_address = pdat.address_value ' +
     'WHERE pdat.data_id = \'agreement\'' + // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
-    `${(processAddress ? ' AND ai.process_instance_address = $1' : '')}` +
-    `${(agreementAddress ? ' AND pdat.address_value = $2;' : ';')}`;
-  const params = [];
-  if (processAddress) params.push(processAddress);
-  if (agreementAddress) params.push(agreementAddress);
-  return runQuery(queryString, params)
+    `${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}` +
+    `${(agreementAddress ? ` AND pdat.address_value = '${agreementAddress}';` : ';')}`;
+  return runQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
 
