@@ -28,7 +28,6 @@ library Governance {
     }
 
     struct UserAccount {
-        bytes32 id;
         Mappings.AddressBoolMap ecosystems;
         bool exists;
     }

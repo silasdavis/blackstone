@@ -22,9 +22,14 @@ contract ParticipantsManagerTest {
     bytes32 id;
     
     ParticipantsManager participantsManager;
+    Ecosystem myEcosystem;
 
     bytes32 EMPTY = "";
     string constant EMPTY_STRING = "";
+
+    bytes32 acc1Id;
+    bytes32 acc2Id;
+    bytes32 acc3Id;
 
     /**
      * @dev Internal helper function to initiate a new ParticipantsManager with an empty database.
@@ -44,10 +49,11 @@ contract ParticipantsManagerTest {
         ExternalCaller ownerCaller = new ExternalCaller();
         ExternalCaller ecosystemCaller = new ExternalCaller();
 
-        Ecosystem myEcosystem = new DefaultEcosystem();
+        myEcosystem = new DefaultEcosystem();
         myEcosystem.addExternalAddress(address(ecosystemCaller));
 
-        TestUserAccount user1 = new TestUserAccount("user1", address(ownerCaller), address(myEcosystem));
+        TestUserAccount user1 = new TestUserAccount(address(ownerCaller), address(myEcosystem));
+        myEcosystem.addUserAccount("user1", user1);
 
         // first test failure
         if (address(user1).call(bytes4(keccak256(abi.encodePacked("authorizedCall()")))))
@@ -66,9 +72,9 @@ contract ParticipantsManagerTest {
         participantsManager = createNewParticipantsManager();
 
         // generate unique names for this test
-        bytes32 acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
-        bytes32 acc2Id = "dummyId";
-        bytes32 acc3Id = "dummyId2";
+        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc2Id = "dummyId";
+        acc3Id = "dummyId2";
         bytes32 dep1Id = "dep1Id";
         string memory dep1Name = "dep1Name";
         bytes32 dep2Id = "dep2Id";
@@ -79,15 +85,19 @@ contract ParticipantsManagerTest {
         DefaultOrganization org1 = new DefaultOrganization(approvers, EMPTY_STRING);
         DefaultOrganization org2 = new DefaultOrganization(approvers, EMPTY_STRING);
 
-        UserAccount account1 = new DefaultUserAccount(acc1Id, participantsManager, 0x0);
-        UserAccount account2 = new DefaultUserAccount(acc2Id, participantsManager, 0x0);
-        address account3;
         uint oldSize = participantsManager.getUserAccountsSize();
+
+        address account1 = participantsManager.createUserAccount(acc1Id, 0x0, myEcosystem);
+        address account2 = participantsManager.createUserAccount(acc2Id, 0x0, myEcosystem);
+
+        if (participantsManager.getUserAccountsSize() != oldSize + 2) return "Expected accounts size to be +2";
+
+        address account3;
         uint departmentUserSize;
 
-        if (BaseErrors.NO_ERROR() != participantsManager.addUserAccount(account1)) return "Error adding account1.";
-        if (BaseErrors.NO_ERROR() != participantsManager.addUserAccount(account2)) return "Error adding account2.";
-        if (BaseErrors.RESOURCE_ALREADY_EXISTS() != participantsManager.addUserAccount(account2)) return "Expected error for existing account2.";
+        if (address(participantsManager).call(bytes4(keccak256(abi.encodePacked("createUserAccount(bytes32,address,address)"))), acc2Id, 0x0, myEcosystem)) {
+            return "Expected error when creating new account with existing user id in same ecosystem.";
+        }
 
         // test adding users
         if (participantsManager.getUserAccountsSize() != oldSize + 2) return "Expected accounts size to be +2";
@@ -96,20 +106,15 @@ contract ParticipantsManagerTest {
         oldSize = participantsManager.getUserAccountsSize();
 
         // test creating user accounts via ParticipantsManager
-        account3 = participantsManager.createUserAccount(acc3Id, this, 0x0);
+        account3 = participantsManager.createUserAccount(acc3Id, this, myEcosystem);
 
-        if (UserAccount(account3).getId() != keccak256(abi.encodePacked(acc3Id))) return "UserAccount account3 id mismatch";
-        (error, addr) = participantsManager.getUserAccount(acc3Id);
-        if (addr != account3) return "account3 address mismatch";
-        if (error != BaseErrors.NO_ERROR()) return "Exp. NO_ERROR";
+        if (!participantsManager.userAccountExistsInEcosystem(acc3Id, account3, myEcosystem)) return "UserAccount account3 does not exist in myEcosystem";
+        addr = participantsManager.getUserAccount(acc3Id, myEcosystem);
         if (addr == 0x0) return "Exp. non-0x0 address";
-        if (UserAccount(addr).getId() != keccak256(abi.encodePacked(acc3Id))) return "UserAccount addr id mismatch";
+        if (addr != account3) return "account3 address mismatch";
+        // if (UserAccount(addr).getId() != keccak256(abi.encodePacked(acc3Id))) return "UserAccount addr id mismatch";
         if (UserAccount(addr).getOwner() != address(this)) return "Exp. this";
         if (participantsManager.getUserAccountsSize() != oldSize + 1) return "Expected accounts size to be +1";
-        (error, addr, id) = participantsManager.getUserAccountDataById(acc3Id);
-        if (error != BaseErrors.NO_ERROR()) return "Exp. NO_ERROR retrieving account data by id";
-        if (addr == 0x0) return "Exp. non-0x0 address retrieving account data by id";
-        if (id != keccak256(abi.encodePacked(acc3Id))) return "UserAccount account3 id mismatch retrieving account data by id";
 
         // test adding user accounts to organizations via Organization
         oldSize = org1.getNumberOfUsers();
@@ -167,16 +172,16 @@ contract ParticipantsManagerTest {
 
 		// reusable variables in this test
 		address[] memory emptyAdmins;
-        bytes32 acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
-        bytes32 acc2Id = "dummyId";
+        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc2Id = "dummyId";
         bytes32 dep1Id = "dep1Id";
         string memory dep1Name = "Department 1 Name";
 		
 		// externally created organizations
 		Organization org1 = new DefaultOrganization(emptyAdmins, "Unassigned");
 
-        UserAccount user1 = new DefaultUserAccount(acc1Id, participantsManager, 0x0);
-        UserAccount user2 = new DefaultUserAccount(acc2Id, participantsManager, 0x0);
+        UserAccount user1 = new DefaultUserAccount(participantsManager, 0x0);
+        UserAccount user2 = new DefaultUserAccount(participantsManager, 0x0);
 		
         // Test special handling of the default department in the organization
         if (!org1.departmentExists(org1.DEFAULT_DEPARTMENT_ID()))
@@ -269,14 +274,11 @@ contract ParticipantsManagerTest {
 		address[] memory emptyAdmins;
 
         Organization org = new DefaultOrganization(emptyAdmins, EMPTY_STRING);
-        bytes32 user1Id = "user1";
-        bytes32 user2Id = "user2";
-        bytes32 user3Id = "user3";
         bytes32 dep1Id = "department";
 
-        UserAccount user1 = new DefaultUserAccount(user1Id, participantsManager, 0x0);
-        UserAccount user2 = new DefaultUserAccount(user2Id, participantsManager, 0x0);
-        UserAccount user3 = new DefaultUserAccount(user3Id, participantsManager, 0x0);
+        UserAccount user1 = new DefaultUserAccount(participantsManager, 0x0);
+        UserAccount user2 = new DefaultUserAccount(participantsManager, 0x0);
+        UserAccount user3 = new DefaultUserAccount(participantsManager, 0x0);
 
         // User1 -> default department
         // User2 -> Department 1
@@ -305,8 +307,8 @@ contract ParticipantsManagerTest {
 
 contract TestUserAccount is DefaultUserAccount {
 
-    constructor(bytes32 _id, address _owner, address _ecosystem) public
-        DefaultUserAccount(_id, _owner, _ecosystem) {
+    constructor(address _owner, address _ecosystem) public
+        DefaultUserAccount(_owner, _ecosystem) {
         
     }
 

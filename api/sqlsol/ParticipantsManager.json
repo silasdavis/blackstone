@@ -1,6 +1,5 @@
 {
   "initSeq":{
-    "userAccount":{"deserialize":"getUserAccountAtIndex", "len":{"call": "getUserAccountsSize", "field": "size"}},
     "organization":{"deserialize":"getOrganizationAtIndex", "len":{"call": "getNumberOfOrganizations", "field": "size"}},
     "approverKey": {"dependent": "organization", "deserialize":"getApproverAtIndex", "len":{"call": "getNumberOfApprovers", "field": "size"}},
     "userKey": {"dependent": "organization", "deserialize":"getUserAtIndex", "len":{"call": "getNumberOfUsers", "field": "size"}},
@@ -8,10 +7,6 @@
     "departmentUserKey": {"dependent": "departmentKey", "deserialize":"getDepartmentUserAtIndex", "len":{"call": "getNumberOfDepartmentUsers", "field": "size"}}
   },
   "tables":{
-    "USERS":{
-      "call": "getUserAccountData",
-      "keys": ["userAccount"]
-    },
     "ORGANIZATIONS":{
       "call": "getOrganizationData",
       "keys": ["organization"]

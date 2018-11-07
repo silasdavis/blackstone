@@ -24,8 +24,8 @@ contract UserAccountTest {
 		TestService testService = new TestService();
 		bool success;
 
-		UserAccount account = new DefaultUserAccount("userId77", this, 0x0);
-		UserAccount externalAccount = new DefaultUserAccount("userId14", msg.sender, 0x0);
+		UserAccount account = new DefaultUserAccount(this, 0x0);
+		UserAccount externalAccount = new DefaultUserAccount(msg.sender, 0x0);
 
 		bytes memory payload = abi.encodeWithSignature(testServiceFunctionSig, address(this), testState, testKey);
 		// test failures

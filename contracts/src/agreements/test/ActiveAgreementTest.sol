@@ -12,7 +12,7 @@ import "agreements/DefaultArchetype.sol";
 
 contract ActiveAgreementTest {
   
-  	string constant SUCCESS = "success";
+  string constant SUCCESS = "success";
 	string constant EMPTY_STRING = "";
 	bytes32 constant EMPTY = "";
 
@@ -41,8 +41,8 @@ contract ActiveAgreementTest {
 
 		address result;
 		ActiveAgreement agreement;
-		signer1 = new DefaultUserAccount("signer1", this, address(0));
-		signer2 = new DefaultUserAccount("signer2", this, address(0));
+		signer1 = new DefaultUserAccount(this, address(0));
+		signer2 = new DefaultUserAccount(this, address(0));
 
 		// set up the parties.
 		delete parties;
@@ -77,9 +77,9 @@ contract ActiveAgreementTest {
 	function testActiveAgreementSigning() external returns (string) {
 
 		bool success;
-	  	ActiveAgreement agreement;
-		signer1 = new DefaultUserAccount("signer1", this, address(0));
-		signer2 = new DefaultUserAccount("signer2", this, address(0));
+	  ActiveAgreement agreement;
+		signer1 = new DefaultUserAccount(this, address(0));
+		signer2 = new DefaultUserAccount(this, address(0));
 
 		// set up the parties.
 		// Signer1 is a direct signer
@@ -136,8 +136,8 @@ contract ActiveAgreementTest {
 		bool success;
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
-		signer1 = new DefaultUserAccount("signer1", this, address(0));
-		signer2 = new DefaultUserAccount("signer2", this, address(0));
+		signer1 = new DefaultUserAccount(this, address(0));
+		signer2 = new DefaultUserAccount(this, address(0));
 
 		// set up the parties.
 		delete parties;

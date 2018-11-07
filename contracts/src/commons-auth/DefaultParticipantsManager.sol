@@ -5,6 +5,7 @@ import "commons-base/BaseErrors.sol";
 import "commons-events/AbstractEventListener.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 
+import "commons-auth/Ecosystem.sol";
 import "commons-auth/ParticipantsManager.sol";
 import "commons-auth/ParticipantsManagerDb.sol";
 import "commons-auth/UserAccount.sol";
@@ -27,7 +28,6 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     bytes32 constant EVENT_REMOVE_DEPARTMENT_USER = "RemoveDepartmentUser";
 
     // SQLSOL metadata
-    string constant TABLE_USERS = "USERS";
     string constant TABLE_ORGANIZATIONS = "ORGANIZATIONS";
     string constant TABLE_ORGANIZATION_USERS = "ORGANIZATION_USERS";
     string constant TABLE_ORGANIZATION_APPROVERS = "ORGANIZATION_APPROVERS";
@@ -35,55 +35,85 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     string constant TABLE_DEPARTMENT_USERS = "DEPARTMENT_USERS";
 
     /**
-     * @dev Creates and adds a user account
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
      * @param _id id (required)
      * @param _owner owner (optional)
      * @param _ecosystem owner (optional)
      * @return userAccount user account
      */
     function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount) {
-        ErrorsLib.revertIf(_id == "",
-            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultParticipantsManager.createUserAccount", "User ID must not be empty");
-        bytes32 hashedId = keccak256(abi.encodePacked(_id)); //TODO the ID should be hashed client-side and not here
-        ErrorsLib.revertIf(ParticipantsManagerDb(database).userAccountExists(hashedId),
-            ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultParticipantsManager.createUserAccount", "User with same ID already exists");
-        userAccount = new DefaultUserAccount(_id, _owner, _ecosystem); // passing user-readable id since DefaultUserAccount hashes it before storing
-        require(addUserAccount(userAccount) == BaseErrors.NO_ERROR(),
-            ErrorsLib.format(ErrorsLib.INVALID_STATE(), "DefaultParticipantsManager.createUserAccount", "Unable to add new UserAccount to DB"));
-    }
-
-    /**
-     * @dev Adds the specified UserAccount.
-     * @return NO_ERROR, RESOURCE_ALREADY_EXISTS if the user account ID is already registered
-     */
-    function addUserAccount(address _account) public returns (uint error) {
-        error = ParticipantsManagerDb(database).addUserAccount(UserAccount(_account).getId(), _account);
+        userAccount = new DefaultUserAccount(_owner, _ecosystem);
+        uint error = ParticipantsManagerDb(database).addUserAccount(userAccount);
         if (error == BaseErrors.NO_ERROR()) {
-            emit UpdateUserAccount(TABLE_USERS, _account);
+            if (_id != "" && _ecosystem != 0x0) {
+                Ecosystem(_ecosystem).addUserAccount(_id, userAccount);
+            }
             emit LogUserCreation(
                 EVENT_ID_USER_ACCOUNTS,
-                _account,
-                UserAccount(_account).getId(),
-                UserAccount(_account).getOwner()
+                userAccount,
+                _id,
+                _owner
             );
         }
     }
 
     /**
-     * @dev Indicates whether the specified user account exists for the given userAccount ID
-     * @param _id userAccount ID
+     * @dev Indicates whether the specified user account exists for the given userAccount address
+     * @param _userAccount user account address
      * @return bool exists
      */
-    function userAccountExists(bytes32 _id) external view returns (bool) {
-        return ParticipantsManagerDb(database).userAccountExists(keccak256(abi.encodePacked(_id)));
+    function userAccountExists(address _userAccount) external view returns (bool) {
+        return ParticipantsManagerDb(database).userAccountExists(_userAccount);
     }
 
-	/**
-	 * @dev Returns the user account address for the specified user account ID.
-	 */
-    function getUserAccount(bytes32 _id) external view returns (uint, address) {
-        bytes32 hashedId = keccak256(abi.encodePacked(_id)); // hashing the user-readable id before lookup
-        return ParticipantsManagerDb(database).getUserAccount(hashedId);
+    /**
+     * @dev Indicates whether the specified user id and account address pair exists for the given ecosystem
+     * @param _userAccount user account address
+     * @param _id user account id
+     * @param _ecosystem ecosystem address
+     * @return bool exists
+     */
+    function userAccountExistsInEcosystem(bytes32 _id, address _userAccount, address _ecosystem)
+        external
+        view
+        returns (bool)
+    {
+        ErrorsLib.revertIf(
+            (_id == "" || _userAccount == 0x0 || _ecosystem == 0x0), 
+            ErrorsLib.INVALID_INPUT(),
+            "DefaultParticipantManager.userAccountExistsInEcosystem",
+            "User ID, account address and ecosystem address are all required fields"
+        );
+        ErrorsLib.revertIf(
+            !ParticipantsManagerDb(database).userAccountExists(_userAccount), 
+            ErrorsLib.RESOURCE_NOT_FOUND(),
+            "DefaultParticipantManager.userAccountExistsInEcosystem",
+            "User account with given address does not exist"
+        );
+        return Ecosystem(_ecosystem).getUserAccount(_id) == _userAccount;
+    }
+
+    /**
+     * @dev Gets user account address for the specified user account ID and ecosystem.
+     * @param _id the user account ID
+     * @param _ecosystem the ecosystem address
+     * @return addr user account address
+     */
+    function getUserAccount(bytes32 _id, address _ecosystem) external view returns (address) {
+        ErrorsLib.revertIf(
+            (_id == "" || _ecosystem == 0x0), 
+            ErrorsLib.INVALID_INPUT(),
+            "DefaultParticipantManager.getUserAccount",
+            "User ID and ecosystem address both are required fields"
+        );
+        address addr = Ecosystem(_ecosystem).getUserAccount(_id);
+        ErrorsLib.revertIf(
+            (addr == 0x0 || !ParticipantsManagerDb(database).userAccountExists(addr)), 
+            ErrorsLib.RESOURCE_NOT_FOUND(),
+            "DefaultParticipantManager.getUserAccount",
+            "No user account found with given user ID and ecosystem address"
+        );
+        return addr;
     }
 
     /**
@@ -291,41 +321,6 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
      */
     function getUserAccountsSize() external view returns (uint size) {
         size = ParticipantsManagerDb(database).getNumberOfUserAccounts();
-    }
-
-    /**
-     * @dev Gets data for the specified user account.
-     * @param _userAccount the user account address
-     * @return id user account ID
-     * @return owner user account owner
-     */
-    function getUserAccountData(address _userAccount) external view returns (bytes32 id, address owner) {
-        UserAccount acc = UserAccount(_userAccount);
-        id = acc.getId();
-        owner = acc.getOwner();
-    }
-
-    /**
-     * @dev Gets hashed user account ID and user account address for the specified user account ID.
-     * @param _id the user account ID
-     * @return error RESOURCE_NOT_FOUND or NO_ERROR
-     * @return addr user account address
-     * @return hashedId hashed user account ID
-     */
-    function getUserAccountDataById(bytes32 _id) external view returns (uint error, address addr, bytes32 hashedId) {
-        hashedId = keccak256(abi.encodePacked(_id)); // hashing the user-readable id before lookup
-        (error, addr) = ParticipantsManagerDb(database).getUserAccount(hashedId);
-        if (error != BaseErrors.NO_ERROR()) return (error, 0x0, "");
-        error = BaseErrors.NO_ERROR();
-    }
-
-    /**
-     * @dev Gets user account at the given position.
-     * @param _pos position
-     * @return userAccount user account address
-     */
-    function getUserAccountAtIndex(uint _pos) external view returns (address) {
-        return ParticipantsManagerDb(database).getUserAccountAtIndex(_pos);
     }
 
 	/**

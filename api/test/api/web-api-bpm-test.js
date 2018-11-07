@@ -6,6 +6,7 @@ const rid = require('random-id');
 const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
+const crypto = require('crypto');
 
 const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
@@ -1593,8 +1594,8 @@ describe(':: External Users ::', () => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        const user1 = await contracts.getUserById(externalUser1.email.toLowerCase());
-        const user2 = await contracts.getUserById(externalUser2.email.toLowerCase());
+        const user1 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toLowerCase()).digest('hex'));
+        const user2 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser2.email.toLowerCase()).digest('hex'));
         expect(user1).to.be.a('object');
         expect(user2).to.be.a('object');
         expect(/[0-9A-Fa-f]{40}/.test(user1.address)).to.be.true;
@@ -1612,7 +1613,7 @@ describe(':: External Users ::', () => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        await assert.isRejected(contracts.getUserById(externalUser1.email.toUpperCase()));
+        await assert.isRejected(contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toUpperCase()).digest('hex')));
         done();
       } catch (err) {
         done(err);

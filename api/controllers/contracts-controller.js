@@ -613,10 +613,9 @@ const addAgreementToCollection = (collectionId, agreement) => new Promise((resol
 
 const createUser = user => new Promise((resolve, reject) => {
   log.trace(`Creating a new user with ID: ${user.id}`);
-  const idHex = global.stringToHex(user.id); //TODO this should get hashed here to produce a globally unique key for this user, e.g. hash(userId, ecosystemAddress). Currently the userId passed to createUserAccount gets hashed again in the smart contract!
   appManager
     .contracts['ParticipantsManager']
-    .factory.createUserAccount(idHex, '0x0', appManager.ecosystemAddress, (error, data) => {
+    .factory.createUserAccount(user.id, '0x0', appManager.ecosystemAddress, (error, data) => {
       if (error || !data.raw) {
         return reject(boom.badImplementation(`Failed to create user ${user.id}: ${error}`));
       }
@@ -631,16 +630,12 @@ const getUserById = userId => new Promise((resolve, reject) => {
   // using ['ParticipantsManager'].factory.getUserAccount(id)
   // getUserAccountDataById was added so we can get the hashed id to query sqlsol
   log.trace(`Getting user by Id: ${userId}`);
-  const idHex = global.stringToHex(userId);
   appManager
     .contracts['ParticipantsManager']
-    .factory.getUserAccountDataById(idHex, (error, data) => {
-      if (error || !data.raw) return reject(boom.badImplementation(`Failed to get data for user ${userId}: ${error}`));
-      if (parseInt(data.raw[0], 10) === 1001) return reject(boom.notFound(`User ${userId} not found`));
-      if (parseInt(data.raw[0], 10) !== 1) return reject(boom.badImplementation(`Error code validating user: ${data.raw[0]}`));
+    .factory.getUserAccount(userId, appManager.ecosystemAddress, (error, data) => {
+      if (error || !data.raw) return reject(boomify(error, `Failed to get data for user ${userId}`));
       return resolve({
-        address: data.raw[1],
-        hashedId: data.raw[2],
+        address: data.raw[0],
       });
     });
 });

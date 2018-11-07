@@ -91,20 +91,13 @@ contract ParticipantsManager is EventListener, Upgradeable {
     bytes32 public constant EVENT_ID_DEPARTMENT_USERS = "AN://departments/users";
 
     /**
-    * @dev Creates and adds a user account
-    * @param _id id (required)
-    * @param _owner owner (optional)
-    * @param _ecosystem owner (optional)
-    * @return error code indicating success or failure
-    * @return userAccount user account
-    */
-    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
-
-    /**
-     * @dev Adds the specified UserAccount
-     * @return an error code
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
+     * @param _id id (required)
+     * @param _owner owner (optional)
+     * @param _ecosystem owner (optional)
+     * @return userAccount user account
      */
-    function addUserAccount(address _account) public returns (uint);
+    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
 
 	/**
 	 * @dev Adds the organization at the specified address
@@ -216,32 +209,31 @@ contract ParticipantsManager is EventListener, Upgradeable {
 
     /**
      * @dev Indicates whether the specified user account exists for the given userAccount ID
-     * @param _id userAccount ID
+     * @param _userAccount user account address
      * @return bool exists
      */
-    function userAccountExists(bytes32 _id) external view returns (bool);
+    function userAccountExists(address _userAccount) external view returns (bool);
 
     /**
-     * @dev Returns the user account address for the specified user account ID.
+     * @dev Indicates whether the specified user id and account address pair exists for the given ecosystem
+     * @param _userAccount user account address
+     * @param _id user account id
+     * @param _ecosystem ecosystem address
+     * @return bool exists
      */
-    function getUserAccount(bytes32 _id) external view returns (uint, address);
+    function userAccountExistsInEcosystem(bytes32 _id, address _userAccount, address _ecosystem) external view returns (bool);
+
+    /**
+     * @dev Gets user account address for the specified user account ID and ecosystem.
+     * @param _id the user account ID
+     * @param _ecosystem the ecosystem address
+     * @return addr user account address
+     */
+    function getUserAccount(bytes32 _id, address _ecosystem) external view returns (address);
 
     /**
      * SQLSOL support functions
      */
 
     function getUserAccountsSize() external view returns (uint size);
-
-    function getUserAccountData(address _userAccount) external view returns (bytes32 id, address owner);
-
-    /**
-     * @dev Gets hashed user account ID and user account address for the specified user account ID.
-     * @param _id the user account ID
-     * @return error RESOURCE_NOT_FOUND or NO_ERROR
-     * @return addr user account address
-     * @return hashedId hashed user account ID
-     */
-    function getUserAccountDataById(bytes32 _id) external view returns (uint error, address addr, bytes32 hashedId);
-
-    function getUserAccountAtIndex(uint _pos) external view returns (address userAccount);
 }

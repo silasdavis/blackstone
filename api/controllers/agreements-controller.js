@@ -14,6 +14,7 @@ const {
   addMeta,
   asyncMiddleware,
   getBooleanFromString,
+  getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
 const pool = require(`${global.__common}/postgres-db`);
 const contracts = require('./contracts-controller');
@@ -329,7 +330,7 @@ const createOrFindAccountsWithEmails = async (params) => {
       });
       const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
         // Create user on chain
-        const address = await contracts.createUser({ id: email });
+        const address = await contracts.createUser({ id: getSHA256Hash(email) });
         const password = crypto.randomBytes(32).toString('hex');
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
