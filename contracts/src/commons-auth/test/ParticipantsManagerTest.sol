@@ -107,9 +107,7 @@ contract ParticipantsManagerTest {
 
         // test creating user accounts via ParticipantsManager
         account3 = participantsManager.createUserAccount(acc3Id, this, myEcosystem);
-
-        if (!participantsManager.userAccountExistsInEcosystem(acc3Id, account3, myEcosystem)) return "UserAccount account3 does not exist in myEcosystem";
-        addr = participantsManager.getUserAccount(acc3Id, myEcosystem);
+        addr = myEcosystem.getUserAccount(acc3Id);
         if (addr == 0x0) return "Exp. non-0x0 address";
         if (addr != account3) return "account3 address mismatch";
         // if (UserAccount(addr).getId() != keccak256(abi.encodePacked(acc3Id))) return "UserAccount addr id mismatch";

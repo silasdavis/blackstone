@@ -92,6 +92,7 @@ const getBpmService = () => appManager.contracts['BpmService'];
 const getUserAccount = userAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
 const getOrganization = orgAddress => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
 const getProcessInstance = piAddress => getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
+const getEcosystem = ecosystemAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
 
 /**
  * Returns a promise to call the forwardCall function of the given userAddress to invoke the function encoded in the given payload on the provided target address and return the result bytes representation
@@ -625,18 +626,19 @@ const createUser = user => new Promise((resolve, reject) => {
 });
 
 const getUserById = userId => new Promise((resolve, reject) => {
-  // TODO: If decided later that address in sqlsol does not need to be checked against address on chain
-  // when loggin in, this function should be modified so it just returns the address of the user
-  // using ['ParticipantsManager'].factory.getUserAccount(id)
-  // getUserAccountDataById was added so we can get the hashed id to query sqlsol
   log.trace(`Getting user by Id: ${userId}`);
-  appManager
-    .contracts['ParticipantsManager']
-    .factory.getUserAccount(userId, appManager.ecosystemAddress, (error, data) => {
-      if (error || !data.raw) return reject(boomify(error, `Failed to get data for user ${userId}`));
+  const ecosystem = getEcosystem(appManager.ecosystemAddress);
+  ecosystem
+    .getUserAccount(userId)
+    .then((data) => {
+      if (!data.raw) throw boom.badImplementation(`Failed to get address for user with id ${userId}`);
       return resolve({
         address: data.raw[0],
       });
+    })
+    .catch((err) => {
+      if (err.isBoom) return reject(err);
+      return reject(boomify(err, `Failed to get address for user with id ${userId}`));
     });
 });
 
