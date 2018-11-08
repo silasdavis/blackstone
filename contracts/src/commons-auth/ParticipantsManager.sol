@@ -215,23 +215,6 @@ contract ParticipantsManager is EventListener, Upgradeable {
     function userAccountExists(address _userAccount) external view returns (bool);
 
     /**
-     * @dev Indicates whether the specified user id and account address pair exists for the given ecosystem
-     * @param _userAccount user account address
-     * @param _id user account id
-     * @param _ecosystem ecosystem address
-     * @return bool exists
-     */
-    function userAccountExistsInEcosystem(bytes32 _id, address _userAccount, address _ecosystem) external view returns (bool);
-
-    /**
-     * @dev Gets user account address for the specified user account ID and ecosystem.
-     * @param _id the user account ID
-     * @param _ecosystem the ecosystem address
-     * @return addr user account address
-     */
-    function getUserAccount(bytes32 _id, address _ecosystem) external view returns (address);
-
-    /**
      * SQLSOL support functions
      */
 

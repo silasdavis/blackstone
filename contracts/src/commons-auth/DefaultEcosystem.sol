@@ -74,8 +74,14 @@ contract DefaultEcosystem is Ecosystem {
     function getUserAccount(bytes32 _id)
         external
         view
-        returns (address _account) 
+        returns (address userAccount) 
     {
-        return userAccounts.get(_id);
+        userAccount = userAccounts.get(_id);
+        ErrorsLib.revertIf(
+            userAccount == 0x0,
+            ErrorsLib.RESOURCE_NOT_FOUND(),
+            "DefaultEcosystem.getUserAccount",
+            "User account with given Id does not exist"
+        );
     }
 }

@@ -67,56 +67,6 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     }
 
     /**
-     * @dev Indicates whether the specified user id and account address pair exists for the given ecosystem
-     * @param _userAccount user account address
-     * @param _id user account id
-     * @param _ecosystem ecosystem address
-     * @return bool exists
-     */
-    function userAccountExistsInEcosystem(bytes32 _id, address _userAccount, address _ecosystem)
-        external
-        view
-        returns (bool)
-    {
-        ErrorsLib.revertIf(
-            (_id == "" || _userAccount == 0x0 || _ecosystem == 0x0), 
-            ErrorsLib.INVALID_INPUT(),
-            "DefaultParticipantManager.userAccountExistsInEcosystem",
-            "User ID, account address and ecosystem address are all required fields"
-        );
-        ErrorsLib.revertIf(
-            !ParticipantsManagerDb(database).userAccountExists(_userAccount), 
-            ErrorsLib.RESOURCE_NOT_FOUND(),
-            "DefaultParticipantManager.userAccountExistsInEcosystem",
-            "User account with given address does not exist"
-        );
-        return Ecosystem(_ecosystem).getUserAccount(_id) == _userAccount;
-    }
-
-    /**
-     * @dev Gets user account address for the specified user account ID and ecosystem.
-     * @param _id the user account ID
-     * @param _ecosystem the ecosystem address
-     * @return addr user account address
-     */
-    function getUserAccount(bytes32 _id, address _ecosystem) external view returns (address) {
-        ErrorsLib.revertIf(
-            (_id == "" || _ecosystem == 0x0), 
-            ErrorsLib.INVALID_INPUT(),
-            "DefaultParticipantManager.getUserAccount",
-            "User ID and ecosystem address both are required fields"
-        );
-        address addr = Ecosystem(_ecosystem).getUserAccount(_id);
-        ErrorsLib.revertIf(
-            (addr == 0x0 || !ParticipantsManagerDb(database).userAccountExists(addr)), 
-            ErrorsLib.RESOURCE_NOT_FOUND(),
-            "DefaultParticipantManager.getUserAccount",
-            "No user account found with given user ID and ecosystem address"
-        );
-        return addr;
-    }
-
-    /**
 	 * @dev Adds the organization at the specified address
 	 * @param _address the Organization contract's address
 	 * @return BaseErrors.INVALID_PARAM_VALUE() if address is empty, BaseErrors.RESOURCE_ALREADY_EXISTS() if the organization's ID is already registered, BaseErrors.NO_ERROR() if successful
