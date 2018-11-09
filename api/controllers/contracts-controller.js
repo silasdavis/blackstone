@@ -1009,22 +1009,22 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     if (dataMappingId) {
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
-          payload = bpmService.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
           break;
         case DATA_TYPES.STRING:
-          payload = bpmService.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
           break;
         case DATA_TYPES.BYTES32:
-          payload = bpmService.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
           break;
         case DATA_TYPES.UINT:
-          payload = bpmService.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
           break;
         case DATA_TYPES.INT:
-          payload = bpmService.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
           break;
         case DATA_TYPES.ADDRESS:
-          payload = bpmService.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+          payload = bpmService.factory.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
           break;
         default:
           return reject(boom.badImplementation(`Unsupported dataType parameter ${dataType}`));
