@@ -112,8 +112,7 @@ jobs:
               --request POST \
               --form token=$PLATFORM_DEPLOY_KEY \
               --form ref=master \
-              --form "variables[BUILD_REFSPEC]=$CIRCLE_BRANCH" \
-              $PLATFORM_DEPLOY_URL/trigger/pipeline
+              $PLATFORM_DEPLOY_URL
   update_info:
     docker:
       - image: alpine/git
