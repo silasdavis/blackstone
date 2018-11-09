@@ -42,12 +42,12 @@ const monax = require('@monax/burrow');
         _.set(
           settings,
           'monax.pg.app_db_url',
-          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}?currentSchema=${process.env.POSTGRES_DB_SCHEMA}`,
+          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`,
         );
         _.set(
           settings,
           'monax.pg.chain_db_url',
-          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE_VENT}?currentSchema=${process.env.POSTGRES_DB_SCHEMA_VENT}`,
+          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE_VENT}`,
         );
       }
       if (process.env.NODE_ENV === 'production') _.set(settings, 'monax.cookie.secure', true);
