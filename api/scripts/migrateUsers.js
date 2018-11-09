@@ -51,14 +51,14 @@ global.__monax_constants = require(path.join(__common, 'monax-constants'));
   const logger = require(__common + '/monax-logger')
   const log = logger.getLogger('monax')
 
-  const pool = require(__common + '/postgres-db')
-  log.info('Postgres DB pool created.')
+  const { appPool, chainPool } = require(__common + '/postgres-db');
+  log.info('Postgres DB pools created.')
 
   const contracts = require(__controllers + '/contracts-controller')
   let client
 
   try {
-    client = await pool.connect()
+    client = await appPool.connect()
     await client.query('BEGIN')
 
     // Check if 'users' table exists; exit if it doesn't

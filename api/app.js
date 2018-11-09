@@ -39,8 +39,16 @@ const monax = require('@monax/burrow');
       if (process.env.MONAX_COOKIE_MAX_AGE) _.set(settings, 'monax.cookie.maxAge', process.env.MONAX_COOKIE_MAX_AGE);
       if (process.env.MONAX_ECOSYSTEM) _.set(settings, 'monax.ecosystem', process.env.MONAX_ECOSYSTEM);
       if (process.env.NODE_ENV === 'production') {
-        _.set(settings, 'monax.pg.database_url',
-          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`);
+        _.set(
+          settings,
+          'monax.pg.app_db_url',
+          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}?currentSchema=${process.env.POSTGRES_DB_SCHEMA}`,
+        );
+        _.set(
+          settings,
+          'monax.pg.chain_db_url',
+          `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE_VENT}?currentSchema=${process.env.POSTGRES_DB_SCHEMA_VENT}`,
+        );
       }
       if (process.env.NODE_ENV === 'production') _.set(settings, 'monax.cookie.secure', true);
       else _.set(settings, 'monax.cookie.secure', false);
@@ -65,12 +73,6 @@ const monax = require('@monax/burrow');
     const log = logger.getLogger('monax');
 
     log.info('Starting platform ...');
-
-    // const { hoard } = require(global.__controllers + '/hoard-controller');
-    // log.info('Hoard client created.');
-
-    // const pool = require(global.__common + '/postgres-db');
-    // log.info('Postgres DB pool created.');
 
     const contracts = require(`${global.__controllers}/contracts-controller`);
 

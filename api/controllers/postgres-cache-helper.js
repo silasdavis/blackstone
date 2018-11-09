@@ -4,7 +4,7 @@ const { splitMeta } = require(`${global.__common}/controller-dependencies`);
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const { getModelFromHoard } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
-const pool = require(`${global.__common}/postgres-db`);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
 
@@ -46,7 +46,7 @@ const coalesceActivityName = activity => new Promise(async (resolve, reject) => 
   const cachedActivities = {};
   try {
     // check if activity is in postgres cache
-    const { rows } = await pool.query({
+    const { rows } = await appPool.query({
       text: 'SELECT activity_id, process_name, activity_name FROM ACTIVITY_DETAILS WHERE model_id = $1 AND process_id = $2;',
       values: [activity.modelId, activity.processDefinitionId],
     });
@@ -60,7 +60,7 @@ const coalesceActivityName = activity => new Promise(async (resolve, reject) => 
       // activity is not in postgres cache, get activity name from bpmn and subsequently save in cache
       const activityDetails = await getActivityDetailsFromBpmn(activity.modelAddress, activity.processDefinitionId, activity.activityId);
       Object.assign(activity, activityDetails);
-      await pool.query({
+      await appPool.query({
         text: 'INSERT INTO ACTIVITY_DETAILS (model_id, process_id, process_name, activity_id, activity_name) VALUES($1, $2, $3, $4, $5) ' +
             'ON CONFLICT ON CONSTRAINT activity_details_pkey DO UPDATE SET activity_name = $5',
         values: [activity.modelId, activity.processDefinitionId, activity.processName, activity.activityId, activity.name],
@@ -100,7 +100,7 @@ const coalesceProcessName = _processDefn => new Promise(async (resolve, reject) 
   if (!_processDefn.modelId || !_processDefn.processDefinitionId) { return reject(boom.badImplementation('Properties modelId and/or processDefinitionId not supplied')); }
   try {
     // check if process is in postgres cache
-    const { rows } = await pool.query({
+    const { rows } = await appPool.query({
       text: 'SELECT process_id, process_name FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2;',
       values: [_processDefn.modelId, _processDefn.processDefinitionId],
     });
@@ -111,7 +111,7 @@ const coalesceProcessName = _processDefn => new Promise(async (resolve, reject) 
     } else {
       // otherwise, get process name from bpmn and subsequently save in postgres cache
       _process.processName = await getProcessNameFromBpmn(_process.modelAddress, _process.processDefinitionId);
-      await pool.query({
+      await appPool.query({
         text: 'INSERT INTO PROCESS_DETAILS (model_id, process_id, process_name) VALUES($1, $2, $3) ' +
             'ON CONFLICT ON CONSTRAINT process_details_pkey DO UPDATE SET process_name = $3',
         values: [_process.modelId, _process.processDefinitionId, _process.processName],
@@ -135,7 +135,7 @@ const populateProcessNames = processDefinitions => new Promise((resolve, reject)
 
 const getActivityData = async (aiId, userAddress) => {
   try {
-    const data = await pool.query({
+    const data = await chainPool.query({
       text: 'SELECT * FROM activity_view WHERE activity_instance_id = $1 AND performer = $2',
       values: [aiId, userAddress],
     });
@@ -147,13 +147,13 @@ const getActivityData = async (aiId, userAddress) => {
 
 // Temporary workaround to force activity_details cache update
 // upon pending user task creation
-pool.connect((err, client, release) => {
+chainPool.connect((err, client, release) => {
   if (err) throw boom.badImplementation(`Error connecting to db: ${err.stack}`);
   client.on('notification', (msg) => {
     setTimeout(async () => {
       const ai = JSON.parse(msg.payload);
       if (isNaN(ai.performer) && parseInt(ai.state, 10) === 4) { // pending task for user
-        const aiData = await getActivityData(ai.activityinstanceid, ai.performer);
+        const aiData = await getActivityData(ai.activity_instance_id, ai.performer);
         let pdData;
         if (aiData && aiData.process_definition) pdData = await sqlCache.getProcessDefinitionData(aiData.process_definition);
         if (aiData && aiData.model_id && aiData.process_id && pdData && pdData.modelAddress && aiData.activity_id) {

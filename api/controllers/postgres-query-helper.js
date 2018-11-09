@@ -1,18 +1,15 @@
 const boom = require('boom');
-const contracts = require('./contracts-controller');
 const {
   where,
-  format,
   setUserIds,
-  rightPad,
   getNamesOfOrganizations,
 } = require(`${global.__common}/controller-dependencies`);
 const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const pool = require(`${global.__common}/postgres-db`);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 
-const runQuery = (queryString, values = []) => pool
+const runQuery = (pool, queryString, values = []) => pool
   .connect()
   .then(client => client.query(queryString, values).then((res) => {
     log.trace('Running query by PG-Query-Helper: ');
@@ -24,10 +21,13 @@ const runQuery = (queryString, values = []) => pool
     throw boom.badImplementation(err);
   }));
 
+const runAppDbQuery = (queryString, values = []) => runQuery(appPool, queryString, values);
+const runChainDbQuery = (queryString, values = []) => runQuery(chainPool, queryString, values);
+
 const getOrganizations = (queryParams) => {
   const queryString = 'SELECT o.organization_address AS address, encode(o.organization_id::bytea, \'hex\') as "organizationKey", oa.approver_address as approver ' +
     `FROM organization_accounts o JOIN organization_approvers oa ON (o.organization_address = oa.organization_address) ${where(queryParams)}`;
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
 };
 
@@ -39,7 +39,7 @@ const getOrganization = (orgAddress) => {
     'LEFT JOIN organization_departments od ON (o.organization_address = od.organization_address) ' +
     'LEFT JOIN department_users du ON (od.department_id = du.department_id) AND (du.user_address = ou.user_address) AND (od.organization_address = du.organization_address) ' +
     'WHERE o.organization_address = $1 ';
-  return runQuery(queryString, [orgAddress])
+  return runChainDbQuery(queryString, [orgAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get data for organization at ${orgAddress}: ${err.stack}`); });
 };
 
@@ -47,7 +47,7 @@ const getUsers = (queryParams) => {
   const _queryParams = Object.assign({}, queryParams);
   if (_queryParams.id) _queryParams.id = `\\x${queryParams.id}`;
   const queryString = `SELECT user_account_address AS address FROM user_accounts ${(queryParams ? `${where(_queryParams, false)}` : '')}`;
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .then((data) => {
       try {
         return setUserIds(data, true, 'User');
@@ -66,19 +66,19 @@ const getProfile = (userAddress) => {
     'LEFT JOIN organization_departments od ON ou.organization_address = od.organization_address ' +
     'LEFT JOIN department_users du ON (od.department_id = du.department_id) AND (du.user_address = ou.user_address) AND (ou.organization_address = du.organization_address) ' +
     'WHERE u.user_account_address = $1';
-  return runQuery(queryString, [userAddress])
+  return runChainDbQuery(queryString, [userAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err.stack}`); });
 };
 
 const getCountries = () => {
   const queryString = 'SELECT m49, name, alpha2, alpha3 FROM COUNTRIES';
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get countries data: ${err}`); });
 };
 
 const getCountryByAlpha2Code = (alpha2) => {
   const queryString = 'SELECT m49, name, alpha2, alpha3 FROM COUNTRIES WHERE alpha2 = $1';
-  return runQuery(queryString, [alpha2])
+  return runChainDbQuery(queryString, [alpha2])
     .then((data) => {
       if (data.length === 0) throw boom.notFound(`No country found with given alpha2 code ${alpha2}`);
       return data[0];
@@ -91,19 +91,19 @@ const getCountryByAlpha2Code = (alpha2) => {
 
 const getRegionsOfCountry = (alpha2) => {
   const queryString = 'SELECT country, encode(region::bytea, \'hex\') AS region, code2, code3, name FROM REGIONS WHERE country = $1';
-  return runQuery(queryString, [alpha2])
+  return runChainDbQuery(queryString, [alpha2])
     .catch((err) => { throw boom.badImplementation(`Failed to get regions of country ${alpha2}: ${err}`); });
 };
 
 const getCurrencies = () => {
   const queryString = 'SELECT alpha3, m49, name FROM CURRENCIES';
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get currencies data: ${err}`); });
 };
 
 const getCurrencyByAlpha3Code = (alpha3) => {
   const queryString = 'SELECT alpha3, m49, name FROM CURRENCIES WHERE alpha3 = $1';
-  return runQuery(queryString, [alpha3])
+  return runChainDbQuery(queryString, [alpha3])
     .then((data) => {
       if (data.length === 0) throw boom.notFound(`No currency found with given alpha3 code ${alpha3}`);
       return data[0];
@@ -116,7 +116,7 @@ const getCurrencyByAlpha3Code = (alpha3) => {
 
 const getParameterType = (paramType) => {
   const queryString = 'SELECT parameter_type as "parameterType", label FROM PARAMETER_TYPES WHERE parameter_type = $1';
-  return runQuery(queryString, [paramType])
+  return runChainDbQuery(queryString, [paramType])
     .then((data) => {
       if (!data) throw boom.notFound(`Parameter type ${paramType} not found`);
       return data;
@@ -129,7 +129,7 @@ const getParameterType = (paramType) => {
 
 const getParameterTypes = () => {
   const queryString = 'SELECT parameter_type as "parameterType", label FROM PARAMETER_TYPES';
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get parameter types: ${err}`); });
 };
 
@@ -140,7 +140,7 @@ const getArchetypeData = (queryParams, userAccount) => {
     'FROM archetypes a ' +
     `WHERE (a.is_private = $1 AND a.active = $2 ${(queryParams ? `${where(queryParams, true)})` : ')')}` +
     `OR (a.author = $3 ${(queryParams ? `${where(queryParams, true)})` : ')')}`;
-  return runQuery(queryString, [false, true, userAccount])
+  return runChainDbQuery(queryString, [false, true, userAccount])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
 };
 
@@ -155,7 +155,7 @@ const getArchetypeDataWithProcessDefinitions = (archetypeAddress, userAccount) =
     'LEFT JOIN process_definitions e ON a.execution_process_definition = e.process_definition_address ' +
     'WHERE archetype_address = $1 ' +
     'AND (a.is_private = $2 OR a.author = $3)';
-  return runQuery(queryString, [archetypeAddress, false, userAccount])
+  return runChainDbQuery(queryString, [archetypeAddress, false, userAccount])
     .then((data) => {
       if (data.length === 0) throw boom.notFound(`No archetypes found at address ${archetypeAddress}`);
       return data[0];
@@ -172,19 +172,19 @@ const getArchetypeParameters = (archetypeAddress) => {
     'FROM ARCHETYPE_PARAMETERS af ' +
     'JOIN PARAMETER_TYPES ft on af.parameter_type = ft.parameter_type WHERE archetype_address = $1 ' +
     'ORDER BY af.position';
-  return runQuery(queryString, [archetypeAddress])
+  return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype parameters: ${err}`); });
 };
 
 const getArchetypeJurisdictionsAll = () => {
   const queryString = 'SELECT DISTINCT archetype_address AS address, country from archetype_jurisdictions';
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get all archetype jurisdictions: ${err}`); });
 };
 
 const getArchetypeJurisdictions = (archetypeAddress) => {
   const queryString = 'SELECT country, encode(region::bytea, \'hex\') AS region FROM archetype_jurisdictions WHERE archetype_address = $1';
-  return runQuery(queryString, [archetypeAddress])
+  return runChainDbQuery(queryString, [archetypeAddress])
     .then((data) => {
       const jurisdictions = [];
       const countries = {};
@@ -213,7 +213,7 @@ const getArchetypeJurisdictions = (archetypeAddress) => {
 const getArchetypeDocuments = (archetypeAddress) => {
   const queryString = 'SELECT document_key AS name, encode(hoard_address::bytea, \'hex\') as "hoardAddress", ' +
     'encode(secret_key:: bytea, \'hex\') as "secretKey" FROM archetype_documents WHERE archetype_address = $1';
-  return runQuery(queryString, [archetypeAddress])
+  return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get documents for archetype: ${err}`); });
 };
 
@@ -222,7 +222,7 @@ const getPackagesOfArchetype = (archetypeAddress) => {
     'FROM archetype_to_package ap ' +
     'JOIN archetype_packages p ON ap.package_id = p.package_id ' +
     'WHERE ap.archetype_address = $1';
-  return runQuery(queryString, [archetypeAddress])
+  return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get packages of archetype: ${err}`); });
 };
 
@@ -230,7 +230,7 @@ const getGoverningArchetypes = (archetypeAddress) => {
   const queryString = 'SELECT governing_archetype_address as address, governing_archetype_name as name ' +
     'FROM GOVERNING_ARCHETYPES ' +
     'WHERE archetype_address = $1';
-  return runQuery(queryString, [archetypeAddress])
+  return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get governing archetypes: ${err}`); });
 };
 
@@ -239,7 +239,7 @@ const getArchetypePackages = (queryParams, userAccount) => {
     'FROM ARCHETYPE_PACKAGES ' +
     `WHERE (is_private = $1 AND active = $2 ${(queryParams ? `${where(queryParams, true)})` : ')')}` +
     `OR (author = $3 ${(queryParams ? `${where(queryParams, true)})` : ')')}`;
-  return runQuery(queryString, [false, true, userAccount])
+  return runChainDbQuery(queryString, [false, true, userAccount])
     .then(data => data)
     .catch((err) => {
       if (err.isBoom) throw err;
@@ -252,7 +252,7 @@ const getArchetypePackage = (id, userAccount) => {
     'FROM ARCHETYPE_PACKAGES ' +
     'WHERE ((is_private = FALSE AND active = TRUE) OR author = $1) AND ' +
     'package_id = $2;';
-  return runQuery(queryString, [userAccount, `\\x${id}`])
+  return runChainDbQuery(queryString, [userAccount, `\\x${id}`])
     .then((data) => {
       if (!data.length) {
         throw boom.notFound(`Package with id ${id} not found`);
@@ -269,7 +269,7 @@ const getArchetypesInPackage = (packageId) => {
   const queryString = 'SELECT a.name, a.archetype_address as address, a.active from ARCHETYPES a ' +
     'JOIN ARCHETYPE_TO_PACKAGE ap ON a.archetype_address = ap.archetype_address ' +
     'WHERE ap.package_id = $1';
-  return runQuery(queryString, [`\\x${packageId}`])
+  return runChainDbQuery(queryString, [`\\x${packageId}`])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetypes in package ${packageId}: ${err}`); });
 };
 
@@ -295,7 +295,7 @@ const getAgreements = (queryParams, forCurrentUser, userAccount) => {
     `WHERE ${forCurrentUser ? currentUserAgreements(userAccount) : 'a.is_private = $1 '} ` +
     `${queryParams ? where(queryParams, true) : ''};`;
   const values = !forCurrentUser ? [false] : [];
-  return runQuery(queryString, values)
+  return runChainDbQuery(queryString, values)
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement(s): ${err}`); });
 };
 
@@ -311,7 +311,7 @@ const getAgreementData = (agreementAddress, userAccount) => {
     'LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address ' +
     'JOIN archetypes arch ON a.archetype_address = arch.archetype_address ' +
     `WHERE a.agreement_address = $1 AND (a.is_private = $2 OR ${currentUserAgreements(userAccount)})`;
-  return runQuery(queryString, [agreementAddress, false])
+  return runChainDbQuery(queryString, [agreementAddress, false])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement data: ${err}`); });
 };
 
@@ -319,7 +319,7 @@ const getAgreementParties = (agreementAddress) => {
   const queryString = 'SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp", parties.signed_by as "signedBy", encode(user_accounts.id::bytea, \'hex\') as id ' +
     'FROM agreement_to_party parties ' +
     'LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address WHERE parties.agreement_address = $1;';
-  return runQuery(queryString, [agreementAddress])
+  return runChainDbQuery(queryString, [agreementAddress])
     .then(async (data) => {
       try {
         let users = [];
@@ -342,7 +342,7 @@ const getGoverningAgreements = (agreementAddress) => {
   const queryString = 'SELECT governing_agreement_address as address, governing_agreement_name as name ' +
     'FROM GOVERNING_AGREEMENTS ' +
     'WHERE agreement_address = $1';
-  return runQuery(queryString, [agreementAddress])
+  return runChainDbQuery(queryString, [agreementAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get governing agreements: ${err}`); });
 };
 
@@ -350,7 +350,7 @@ const getAgreementEventLogDetails = (agreementAddress) => {
   const queryString = 'SELECT ' +
     'encode(a.event_log_hoard_address:: bytea, \'hex\') as "eventLogHoardAddress", encode(a.event_log_hoard_secret::bytea, \'hex\') as "eventLogHoardSecret", ' +
     'a.max_event_count::integer as "maxNumberOfEvents" FROM agreements a WHERE agreement_address = $1;';
-  return runQuery(queryString, [agreementAddress])
+  return runChainDbQuery(queryString, [agreementAddress])
     .then((data) => {
       if (!data.length) throw boom.notFound(`Agreement at address ${agreementAddress} not found`);
       return data[0];
@@ -362,7 +362,7 @@ const getAgreementCollections = (userAccount) => {
   const queryString = 'SELECT UPPER(encode(collection_id::bytea, \'hex\')) as "id", name, author, collection_type::integer as "collectionType", UPPER(encode(package_id::bytea, \'hex\')) as "packageId" ' +
     'FROM AGREEMENT_COLLECTIONS ' +
     'WHERE author = $1 OR author IN (SELECT organization_address FROM organization_users WHERE user_address = $2)';
-  return runQuery(queryString, [userAccount, userAccount])
+  return runChainDbQuery(queryString, [userAccount, userAccount])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement collections: ${err}`); });
 };
 
@@ -371,7 +371,7 @@ const getAgreementCollectionData = (collectionId) => {
     'ac.agreement_address as "agreementAddress", ac.agreement_name as "agreementName", ac.archetype_address as archetype FROM AGREEMENT_COLLECTIONS c ' +
     'LEFT JOIN AGREEMENT_TO_COLLECTION ac ON ac.collection_id = c.collection_id ' +
     'WHERE c.collection_id = $1;';
-  return runQuery(queryString, [`\\x${collectionId}`])
+  return runChainDbQuery(queryString, [`\\x${collectionId}`])
     .then((data) => {
       if (!data.length) throw boom.notFound(`Collection with id ${collectionId} not found`);
       return data;
@@ -384,7 +384,7 @@ const getAgreementCollectionData = (collectionId) => {
 
 const getAgreementsInCollection = (collectionId) => {
   const queryString = 'SELECT agreement_address as "agreementAddress", agreement_name as "agreementName", archetype_address as archetype from AGREEMENT_TO_COLLECTION where collection_id = $1';
-  return runQuery(queryString, [`\\x${collectionId}`])
+  return runChainDbQuery(queryString, [`\\x${collectionId}`])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreements in collection ${collectionId}: ${err}`); });
 };
 
@@ -417,7 +417,7 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     'WHERE pdat.data_id = \'agreement\'' + // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
     `${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}` +
     `${(agreementAddress ? ` AND pdat.address_value = '${agreementAddress}';` : ';')}`;
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
 
@@ -464,7 +464,7 @@ const getActivityInstanceData = (id, userAddress) => {
       )
     )
     AND pdat.data_id = 'agreement'`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
-  return runQuery(queryString, [`\\x${id}`, userAddress])
+  return runChainDbQuery(queryString, [`\\x${id}`, userAddress])
     .then((data) => {
       if (!data) throw boom.notFound(`Activity ${id} not found`);
       return data;
@@ -480,7 +480,7 @@ const getAccessPointDetails = (dataMappings = [], applicationId) => {
   const queryString = 'SELECT access_point_id as "accessPointId", data_type as "dataType", direction ' +
     'FROM application_access_points WHERE application_id = $1 ' +
     `AND access_point_id IN ('${dataMappingIds.join("', '")}')`;
-  return runQuery(queryString, [applicationId])
+  return runChainDbQuery(queryString, [applicationId])
     .catch((err) => { throw boom.badImplementation(`Failed to get data types for data mappings ids ${JSON.stringify(dataMappings)}: ${err}`); });
 };
 
@@ -530,13 +530,13 @@ const getTasksByUserAddress = (userAddress) => {
       )
     )
     AND pdat.data_id = 'agreement';`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
-  return runQuery(queryString, [userAddress])
+  return runChainDbQuery(queryString, [userAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get tasks assigned to user: ${err}`); });
 };
 
 const getModels = (author) => {
   const queryString = 'SELECT model_address as "modelAddress", id, name, author, is_private as "isPrivate", active, encode(diagram_address::bytea, \'hex\') as "diagramAddress", encode(diagram_secret::bytea, \'hex\') as "diagramSecret", version_major as "versionMajor", version_minor as "versionMinor", version_patch as "versionPatch" FROM process_models WHERE is_private = $1 OR author = $2';
-  return runQuery(queryString, [false, author])
+  return runChainDbQuery(queryString, [false, author])
     .catch((err) => { throw boom.badImplementation(`Failed to get process model(s): ${err}`); });
 };
 
@@ -544,7 +544,7 @@ const getApplications = () => {
   const queryString = 'SELECT encode(a.application_id::bytea, \'hex\') AS id, a.application_type as "applicationType", a.location, encode(a.web_form::bytea, \'hex\') as "webForm", ' +
     'encode(aap.access_point_id::bytea, \'hex\') as "accessPointId", aap.data_type as "dataType", aap.direction ' +
     'FROM applications a LEFT JOIN application_access_points aap ON aap.application_id = a.application_id';
-  return runQuery(queryString)
+  return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get applications: ${err}`); });
 };
 
@@ -555,7 +555,7 @@ const getProcessDefinitions = (author, interfaceId) => {
     `WHERE pm.is_private = $1 OR pm.author = $2 ${(interfaceId ? 'AND interfaceId = $3;' : ';')}`;
   const params = [false, author];
   if (interfaceId) params.push(interfaceId);
-  return runQuery(queryString, params)
+  return runChainDbQuery(queryString, params)
     .catch((err) => { throw boom.badImplementation(`Failed to get process definitions: ${err}`); });
 };
 
@@ -563,14 +563,14 @@ const getProcessDefinitionData = (address) => {
   const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", encode(pm.diagram_address::bytea, \'hex\') as "diagramAddress", encode(pm.diagram_secret::bytea, \'hex\') as "diagramSecret", pm.is_private as "isPrivate", pm.author, pm.id as "modelId" ' +
     'FROM process_definitions pd JOIN process_models pm ' +
     'ON pd.model_address = pm.model_address WHERE pd.process_definition_address = $1;';
-  return runQuery(queryString, [address])
+  return runChainDbQuery(queryString, [address])
     .catch((err) => { throw boom.badImplementation(`Failed to get process definition: ${err}`); });
 };
 
 const getProcessModelData = (address) => {
   const queryString = 'SELECT model_address as "modelAddress", id, name, author, is_private as "isPrivate", active, encode(diagram_address::bytea, \'hex\') as "diagramAddress", encode(diagram_secret::bytea, \'hex\') as "diagramSecret", version_major as "versionMajor", version_minor as "versionMinor", version_patch as "versionPatch" FROM process_models pm ' +
     'WHERE pm.model_address = $1;';
-  return runQuery(queryString, [address])
+  return runChainDbQuery(queryString, [address])
     .catch((err) => { throw boom.badImplementation(`Failed to get process model: ${err}`); });
 };
 

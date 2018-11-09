@@ -14,7 +14,7 @@ const {
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
-const pool = require(`${global.__common}/postgres-db`);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const sqlCache = require('./postgres-query-helper');
@@ -102,7 +102,7 @@ const createOrganization = asyncMiddleware(async (req, res) => {
   }
   try {
     const address = await contracts.createOrganization(org);
-    await pool.query({
+    await chainPool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
@@ -210,7 +210,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
     username: id, email, password, isProducer,
   } = value;
   // check if email or username already registered in pg
-  const { rows } = await pool.query({
+  const { rows } = await appPool.query({
     text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
     values: [email, id],
   });
@@ -233,7 +233,7 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
 
   // insert in user db
   const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5)';
-  await pool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
+  await appPool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
   return res.status(200).json({ address, id });
 });
 
@@ -263,7 +263,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
   });
   user.organizations = await getNamesOfOrganizations(Object.values(organizations));
   try {
-    const { rows } = await pool.query({
+    const { rows } = await appPool.query({
       text: 'SELECT username AS id, email, created_at, first_name, last_name, country, region, is_producer, onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
@@ -283,7 +283,7 @@ const editProfile = asyncMiddleware(async (req, res) => {
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
   let client;
   try {
-    client = await pool.connect();
+    client = await appPool.connect();
     await client.query('BEGIN');
     if (req.body.newPassword) {
       const { rows } = await client.query({

@@ -1,8 +1,16 @@
 const { Pool } = require('pg');
 
 (function startPostgresDb() {
-  const pool = new Pool({
-    connectionString: global.__settings.monax.pg.database_url,
+  // connection to the app db
+  const appPool = new Pool({
+    connectionString: global.__settings.monax.pg.app_db_url,
   });
-  module.exports = pool;
+  // connection to chain/vent db
+  const chainPool = new Pool({
+    connectionString: global.__settings.monax.pg.chain_db_url,
+  });
+  module.exports = {
+    appPool,
+    chainPool,
+  };
 }());

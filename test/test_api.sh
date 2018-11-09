@@ -44,7 +44,7 @@ deploy_local() {
 
 deploy_vent() {
   ./bos/vent --db-adapter=postgres --db-url=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/blackstone_development?sslmode=disable \
-      --db-schema=blackstone_development --grpc-addr=${CHAIN_URL_GRPC} --log-level=info --spec-file=./api/sqlsol/Tables.spec --abi-dir=./contracts/src/ &
+      --db-schema=blackstone_development --grpc-addr=${CHAIN_URL_GRPC} --log-level=error --spec-file=./api/sqlsol/Tables.spec --abi-dir=./contracts/src/ &
 }
 
 configApp() {

@@ -12,7 +12,7 @@ const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests');
-const pool = require(__common + '/postgres-db');
+const { appPool, chainPool } = require(__common + '/postgres-db');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);
@@ -213,12 +213,12 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     const executionProcess = await api.getProcessDefinition(execution.process.address, signer.token);
     expect(formationProcess.processName).to.equal(formation.process.processName);
     expect(executionProcess.processName).to.equal(execution.process.processName);
-    let formCacheReponse = await pool.query({
+    let formCacheReponse = await appPool.query({
       text: 'SELECT process_name FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2',
       values: [formation.id, formation.process.processDefinitionId]
     });
     expect(formCacheReponse.rows[0].process_name).to.equal(formation.process.processName);
-    let execCacheReponse = await pool.query({
+    let execCacheReponse = await appPool.query({
       text: 'SELECT process_name FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2',
       values: [execution.id, execution.process.processDefinitionId]
     });
