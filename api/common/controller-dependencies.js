@@ -313,7 +313,7 @@ const dependencies = {
 
   getNamesOfOrganizations: async (organizations) => {
     try {
-      const { rows } = await chainPool.query({
+      const { rows } = await appPool.query({
         text: 'SELECT DISTINCT address, name FROM organizations WHERE address = ANY ($1)',
         values: [organizations.map(({ address }) => address)],
       });
