@@ -5,8 +5,7 @@
     "password": "blackstone_development",
     "host": "postgres",
     "port": "5432",
-    "database": "blackstone_development",
-    "schema": "blackstone_development"
+    "database": "blackstone_development"
   },
 
   "cluster": {
@@ -15,8 +14,7 @@
     "password": "blackstone_development",
     "host": "localhost",
     "port": "5432",
-    "database": "blackstone_development",
-    "schema": "blackstone_development"
+    "database": "blackstone_development"
   },
 
   "prod": {
@@ -25,7 +23,6 @@
     "password": {"ENV": "POSTGRES_DB_PASSWORD"},
     "host": {"ENV": "POSTGRES_DB_HOST"},
     "port": {"ENV": "POSTGRES_DB_PORT"},
-    "database": {"ENV": "POSTGRES_DB_DATABASE"},
-    "schema": {"ENV": "POSTGRES_DB_SCHEMA"}
+    "database": {"ENV": "POSTGRES_DB_DATABASE"}
   }
 }
