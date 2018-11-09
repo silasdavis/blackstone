@@ -12,8 +12,7 @@ const stringToHex = require('@monax/burrow').utils.asciiToHex;
 const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger')
-const log = logger.getLogger('agreements.tests')
-const pool = require(__common + '/postgres-db');
+const log = logger.getLogger('agreements.tests');
 
 const api = require('./api-helper')(server)
 const { rightPad } = require(__common + '/controller-dependencies')
