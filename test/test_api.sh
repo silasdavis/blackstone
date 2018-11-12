@@ -28,9 +28,8 @@ main() {
 deploy_local() {
   echo "Hello! I'm the marmot who tests the Monax Agreements Network API."
 
-  export CHAIN_URL_INFO="localhost:26658"
-  export CHAIN_URL_GRPC="localhost:10997"
-  test_setup
+  export CHAIN_URL_INFO="chain:26658"
+  export CHAIN_URL_GRPC="chain:10997"
   sleep 3
   $CI_PROJECT_DIR/contracts/deploy_contracts
 

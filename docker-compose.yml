@@ -38,6 +38,15 @@ services:
     - postgres
     - chain
   chain:
+    image: hyperledger/burrow:0.23.0
+    expose:
+    - "10997"
+    volumes:
+    - ./test/chain:/chain
+    working_dir: /chain
+    command:
+      - start
+  api:
     image: quay.io/monax/build:latest
     environment:
       CI_PROJECT_DIR: /app
@@ -49,13 +58,12 @@ services:
     ports:
     - "3080:3080"
     - "9222:9222"
-    expose:
-    - "10997"
     working_dir: /app
     depends_on:
     - postgres
     - hoard
     links:
+    - chain
     - postgres
     - hoard
     command: "test/test_api.sh --runAPI"

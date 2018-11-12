@@ -22,44 +22,4 @@ export WEBAPP_EMAIL=${WEBAPP_EMAIL:-"help@$org_url"}
 export CHAIN_SOURCE_DIRECTORY=$CI_PROJECT_DIR/test/chain
 export CONTRACTS_DEPLOYMENT_ADDRESS="F390C8CA854874472CAD38C0135F78097BCB632D"
 
-# ----------------------------------------------------------
-#  functions
-test_setup(){
-  echo "Setting up..."
-  cd $CHAIN_SOURCE_DIRECTORY
 
-  if [[ "$skipChain" = true ]]; then
-    echo "Not booting Burrow, but expecting burrow to be running default ports"
-  else
-    rm -rf $CHAIN_SOURCE_DIRECTORY/.burrow
-    burrow start 2>>$CI_PROJECT_DIR/burrow.log &
-    burrow_pid=$!
-  fi
-
-  cd $CI_PROJECT_DIR
-  echo "Setup complete"
-}
-
-test_teardown(){
-  echo "Cleaning up..."
-
-  if ! [[ "$skipChain" = true ]]; then
-    kill ${burrow_pid}
-    wait ${burrow_pid} 2> /dev/null &
-    sleep 1 #ensure it's dead
-    rm -rf $CHAIN_SOURCE_DIRECTORY/.burrow
-  fi
-
-  if [ ${#failures[@]} -eq 0 ]
-  then
-    echo "Tests are Green. :)"
-  else
-    cat $CI_PROJECT_DIR/test-contracts.log
-    echo
-    echo "Tests are Red. :("
-    printf 'Failed bundle:\n\n%s\n' "${failures[@]}"
-  fi
-
-  cd $CI_PROJECT_DIR
-  exit ${#failures[@]}
-}

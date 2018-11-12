@@ -11,7 +11,7 @@ analyticsID = "TEST"
 #upload_limit =        # default: '100mb'
 
 [monax.chain]
-host = "127.0.0.1"
+host = "chain"
 port = 10997
 
 [monax.accounts]

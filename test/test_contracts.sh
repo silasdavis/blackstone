@@ -5,7 +5,6 @@ main() {
   echo "Hello! I'm the marmot that tests the contracts."
 
   cd $CI_PROJECT_DIR
-  test_setup
   sleep 3
   cd $CONTRACTS_DIRECTORY
 
@@ -28,7 +27,6 @@ main() {
     failures=($(awk 'NR==1{for(i=1;i<=NF;i++){if($i=="Exitval"){c=i;break}}} ($c=="1"&& NR>1){print $NF}' $CI_PROJECT_DIR/test-contracts-jobs.log))
     echo "Tests complete"
 
-    test_teardown
   fi
 }
 
