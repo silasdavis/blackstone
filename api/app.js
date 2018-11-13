@@ -14,7 +14,6 @@ const monax = require('@monax/burrow');
     global.__config = path.resolve(global.__appDir, 'config');
     global.__contracts = path.resolve(global.__appDir, 'contracts');
     global.__abi = path.resolve(global.__appDir, 'public-abi');
-    global.__sqlsol = path.resolve(global.__appDir, 'sqlsol');
     global.__routes = path.resolve(global.__appDir, 'routes');
     global.__controllers = path.resolve(global.__appDir, 'controllers');
     global.__data = path.resolve(global.__appDir, 'data');
@@ -78,9 +77,6 @@ const monax = require('@monax/burrow');
 
     contracts.load().then(() => {
       log.info('Contracts loaded.');
-      return contracts.initCache();
-    }).then(() => {
-      log.info('SQL Cache initiated.');
       require(`${global.__common}/aa-web-api`)(app, customConfigs.endpoints);
       log.info('Web API started and ready for requests.');
       log.info('Active Agreements Application started successfully ...');

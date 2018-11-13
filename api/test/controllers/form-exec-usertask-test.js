@@ -17,7 +17,6 @@ global.__common = path.resolve(__appDir, 'common')
 global.__config = path.resolve(__appDir, 'config')
 global.__contracts = path.resolve(__appDir, 'contracts')
 global.__abi = path.resolve(__appDir, 'public-abi')
-global.__sqlsol = path.resolve(__appDir, 'sqlsol')
 global.__routes = path.resolve(__appDir, 'routes')
 global.__controllers = path.resolve(__appDir, 'controllers')
 global.__data = path.resolve(__appDir, 'data')
@@ -57,9 +56,6 @@ before(function (done) {
   this.timeout(99999999)
   contracts.load().then(() => {
     log.info('Contracts loaded.')
-    return contracts.initCache()
-  }).then(() => {
-    log.info('SQL Cache initiated.')
     log.info('Application started. Running Contracts Test Suite ...')
     done()
   }).catch(error => {
@@ -271,14 +267,14 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should validate agreement parameters', async () => {
-    let params = await agreementsController.getAgreementParameters(agreement.address)
-    let buyerExists = false, sellerExists = false
+    const params = await agreementsController.getAgreementParameters(agreement.address);
+    let buyerExists = false, sellerExists = false;
     params.forEach(param => {
-      if (param.name === 'Buyer' && param.value.match(/[0-9A-Fa-f]{40}/)) buyerExists = true
-      if (param.name === 'Seller' && param.value.match(/[0-9A-Fa-f]{40}/)) sellerExists = true
-    })
-    expect(buyerExists).to.be.true
-    expect(sellerExists).to.be.true
+      if (param.name === 'Buyer' && param.value.match(/[0-9A-Fa-f]{40}/)) buyerExists = true;
+      if (param.name === 'Seller' && param.value.match(/[0-9A-Fa-f]{40}/)) sellerExists = true;
+    });
+    expect(buyerExists).to.be.true;
+    expect(sellerExists).to.be.true;
   }).timeout(10000)
 
   /************************************

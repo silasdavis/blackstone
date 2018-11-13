@@ -19,7 +19,6 @@ global.__common = path.resolve(__appDir, 'common')
 global.__config = path.resolve(__appDir, 'config')
 global.__contracts = path.resolve(__appDir, 'contracts')
 global.__abi = path.resolve(__appDir, 'public-abi')
-global.__sqlsol = path.resolve(__appDir, 'sqlsol')
 global.__routes = path.resolve(__appDir, 'routes')
 global.__controllers = path.resolve(__appDir, 'controllers')
 global.__data = path.resolve(__appDir, 'data')
@@ -51,14 +50,12 @@ global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_B
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
 const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
+const { chainPool } = require(`${global.__common}/postgres-db`);
 
 before(function (done) {
   this.timeout(99999999)
   contracts.load().then(() => {
     log.info('Contracts loaded.')
-    return contracts.initCache()
-  }).then(() => {
-    log.info('SQL Cache initiated.')
     log.info('Application started. Running Contracts Test Suite ...')
     done()
   }).catch(error => {
@@ -335,10 +332,10 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    contracts.cache.db.all('select * from process_models', (err, data) => {
-      expect(data.length).to.be.greaterThan(0)
-      let model = data.filter(item => {
-        return item.modelAddress === pmAddress
+    chainPool.query('select * from process_models;', [], (err, { rows }) => {
+      expect(rows.length).to.be.greaterThan(0)
+      let model = rows.filter(item => {
+        return item.model_address === pmAddress
       })[0]
       expect(model).to.exist
       done()

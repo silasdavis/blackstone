@@ -96,15 +96,6 @@ let app;
        */
       require(`${global.__routes}/bpm-api`)(app);
 
-      // SQL TEST ROUTE
-      app.post('/query', (req, res, next) => {
-        log.info(req.body);
-        contracts.cache.db.all(req.body, (err, data) => {
-          res.json(data);
-          return next();
-        });
-      });
-
       // // PG-SQL TEST ROUTE
       // app.post('/pg-query', (req, res, next) => {
       //   log.info(req.body);

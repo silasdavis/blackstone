@@ -26,7 +26,7 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
   }
   try {
     const data = await sqlCache.getOrganizations(req.query);
-    // Sqlsol query has join that results in multiple rows for each org
+    // Vent query has join that results in multiple rows for each org
     // Consolidate data by storing in object 'aggregated'
     const aggregated = {};
     data.forEach(({ address, organizationKey, approver }) => {
@@ -46,7 +46,7 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
 const getOrganization = asyncMiddleware(async (req, res) => {
   try {
     const data = await sqlCache.getOrganization(req.params.address);
-    // Sqlsol query has left join that results in multiple rows for the org for each approver, user, department, and department member
+    // Vent query has left join that results in multiple rows for the org for each approver, user, department, and department member
     // Consolidate data by storing approvers and users in objects
     let approvers = {};
     let users = {};
