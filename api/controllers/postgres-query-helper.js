@@ -574,6 +574,30 @@ const getProcessModelData = (address) => {
     .catch((err) => { throw boom.badImplementation(`Failed to get process model: ${err}`); });
 };
 
+const getActivityDetailsFromCache = (activityId, modelId, processId) => {
+  const queryString = 'SELECT activity_name as "activityName", process_name as "processName" FROM activity_details WHERE activity_id = $1 AND process_id = $2 AND model_id = $3';
+  return runAppDbQuery(queryString, [activityId, processId, modelId])
+    .then(rows => rows[0] || {});
+};
+
+const updateActivityDetailsCache = (modelId, processDefinitionId, processName, activityId, name) => {
+  const queryString = 'INSERT INTO ACTIVITY_DETAILS (model_id, process_id, process_name, activity_id, activity_name) VALUES($1, $2, $3, $4, $5) ' +
+    'ON CONFLICT ON CONSTRAINT activity_details_pkey DO UPDATE SET activity_name = $5';
+  return runAppDbQuery(queryString, [modelId, processDefinitionId, processName, activityId, name]);
+};
+
+const getProcessDetailsFromCache = (modelId, processId) => {
+  const queryString = 'SELECT process_id as "processDefinitionId", process_name as "processName" FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2;';
+  return runAppDbQuery(queryString, [modelId, processId])
+    .then(rows => rows[0] || {});
+};
+
+const updateProcessDetailsCache = (modelId, processDefinitionId, processName) => {
+  const queryString = 'INSERT INTO PROCESS_DETAILS (model_id, process_id, process_name) VALUES($1, $2, $3) ' +
+    'ON CONFLICT ON CONSTRAINT process_details_pkey DO UPDATE SET process_name = $3';
+  return runAppDbQuery(queryString, [modelId, processDefinitionId, processName]);
+};
+
 module.exports = {
   getOrganizations,
   getOrganization,
@@ -614,4 +638,8 @@ module.exports = {
   getProcessDefinitions,
   getProcessDefinitionData,
   getProcessModelData,
+  getActivityDetailsFromCache,
+  updateActivityDetailsCache,
+  getProcessDetailsFromCache,
+  updateProcessDetailsCache,
 };
