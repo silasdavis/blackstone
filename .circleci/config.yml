@@ -7,56 +7,11 @@ defaults: &defaults
 
 version: 2
 jobs:
-  cache_contracts:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: burrow deploy --file build.yaml --dir ./contracts/src
-      - persist_to_workspace:
-          root: ./contracts/src/
-          paths:
-            - bin
-  cache_api:
-    <<: *defaults
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - api-{{ checksum "api/package-lock.json" }}
-            - api
-      - run:
-          name: Install npm
-          command: |
-            cd ./api/
-            npm install
-      - save_cache:
-          key: api-{{ checksum "api/package-lock.json" }}
-          paths:
-            - api/node_modules/
-      - persist_to_workspace:
-          root: ./api/
-          paths:
-            - node_modules
-  build_vent:
-    docker:
-      - image: golang:1.10
-    working_directory: ~/blackstone
-    steps:
-      - checkout
-      - run: |
-          go get -u github.com/monax/bosmarmot/...
-          cd $GOPATH/src/github.com/monax/bosmarmot/vent
-          go build -o ~/bos/vent .
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - bos
   test_contracts:
     <<: *defaults
     steps:
       - checkout
-      - attach_workspace:
-          at: contracts/src
+      - run: burrow deploy --file build.yaml --dir ./contracts/src
       - run: ./test/test_contracts.sh
       - store_artifacts:
           path: ./burrow.log
@@ -74,15 +29,15 @@ jobs:
         environment:
           POSTGRES_USER: blackstone_development
           POSTGRES_PASSWORD: blackstone_development
+      - image:
     working_directory: ~/blackstone
     steps:
       - checkout
-      - attach_workspace:
-          at: /tmp
-      - run: |
-          mv /tmp/bos ./
-          mv /tmp/bin ./contracts/src/.
-          mv /tmp/node_modules ./api/.
+      - run:
+          name: Install npm
+          command: |
+            cd ./api/
+            npm install
       - run:
           name: Test API
           command: ./test/test_api.sh
@@ -155,17 +110,8 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
-      - cache_contracts
-      - cache_api
-      - build_vent
       - test_contracts:
-          requires:
-            - cache_contracts
       - test_api:
-          requires:
-            - cache_api
-            - cache_contracts
-            - build_vent
       - deploy_docs:
           filters:
             branches:

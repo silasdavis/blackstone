@@ -5,7 +5,6 @@
 for var in "$@"
 do
   if [[ $var == "--runAPI" ]]; then runAPI=true; fi
-  if [[ $var == "--skipChain" ]]; then skipChain=true; fi
 done
 
 # ----------------------------------------------------------
@@ -19,7 +18,5 @@ export API_ABI_DIRECTORY_LOCAL=${API_ABI_DIRECTORY_LOCAL:-"$CI_PROJECT_DIR/api/p
 export CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$CI_PROJECT_DIR/contracts/src"}
 export WEBAPP_NAME=${WEBAPP_NAME:-"Monax Application"}
 export WEBAPP_EMAIL=${WEBAPP_EMAIL:-"help@$org_url"}
-export CHAIN_SOURCE_DIRECTORY=$CI_PROJECT_DIR/test/chain
 export CONTRACTS_DEPLOYMENT_ADDRESS="F390C8CA854874472CAD38C0135F78097BCB632D"
-
 

@@ -37,16 +37,19 @@ restart_api:
 	docker-compose exec api test/restart_api.sh
 
 .PHONY: test
-test: test_contracts test_api clean
+# Ordered execution
+test: | test_contracts test_api clean
+
+.PHONY: down
+down:
+	pkill docker-compose || true
+	docker-compose down
+	docker-compose rm --force --stop
 
 .PHONY: clean
-clean:
-	pkill docker-compose || true
+clean: down
 	docker-compose run --no-deps api test/clean
-	docker-compose rm --force --stop
 
 .PHONY: clean_all
-clean_all:
-	pkill docker-compose || true
+clean_all: down
 	docker-compose run --no-deps api test/clean all
-	docker-compose rm --force --stop

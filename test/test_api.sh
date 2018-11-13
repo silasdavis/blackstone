@@ -3,7 +3,6 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/preflight"
 
 main() {
   deploy_local
-  deploy_vent
 
   if [[ $1 == "deploy" ]]; then
     exit 0
@@ -39,11 +38,6 @@ deploy_local() {
 
   echo
   echo "#### Agreements Network contracts successfully deployed"
-}
-
-deploy_vent() {
-  ./bos/vent --db-adapter=postgres --db-url=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/blackstone_development?sslmode=disable \
-      --db-schema=blackstone_development --grpc-addr=${CHAIN_URL_GRPC} --log-level=error --spec-file=./api/sqlsol/Tables.spec --abi-dir=./contracts/src/ &
 }
 
 configApp() {

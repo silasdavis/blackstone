@@ -2,6 +2,8 @@ version: "3"
 services:
   hoard:
     image: quay.io/monax/hoard:1.1.3
+    ports:
+      - "53431"
   postgres:
     image: postgres:9-alpine
     ports:
@@ -38,7 +40,7 @@ services:
     - postgres
     - chain
   chain:
-    image: hyperledger/burrow:0.23.0
+    image: hyperledger/burrow:0.23.1-dev-2018-11-14-f23fae1e
     expose:
     - "10997"
     volumes:
@@ -47,7 +49,11 @@ services:
     command:
       - start
   api:
-    image: quay.io/monax/build:latest
+    build:
+      context: .
+      args:
+        USER: $USER
+        UID: $UID
     environment:
       CI_PROJECT_DIR: /app
       HOARD_IP: hoard:53431
