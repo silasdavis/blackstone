@@ -5,47 +5,16 @@ defaults: &defaults
   environment:
     IMAGE_API: quay.io/monax/blackstone
 
-version: 2
+version: 2.1
 jobs:
-  test_contracts:
-    <<: *defaults
+  test:
+    machine:
+      enabled: true
     steps:
       - checkout
-      - run: burrow deploy --file build.yaml --dir ./contracts/src
-      - run: ./test/test_contracts.sh
-      - store_artifacts:
-          path: ./burrow.log
-      - store_artifacts:
-          path: ./test-contracts-jobs.log
-      - store_artifacts:
-          path: ./test-contracts.log
-  test_api:
-    docker:
-      - image: quay.io/monax/build:latest
-      - image: quay.io/monax/hoard:1.1.3
-        name: hoard
-      - image: postgres:9-alpine
-        name: postgres
-        environment:
-          POSTGRES_USER: blackstone_development
-          POSTGRES_PASSWORD: blackstone_development
-      - image:
-    working_directory: ~/blackstone
-    steps:
-      - checkout
-      - run:
-          name: Install npm
-          command: |
-            cd ./api/
-            npm install
-      - run:
-          name: Test API
-          command: ./test/test_api.sh
-          environment:
-            POSTGRES_USER: blackstone_development
-            POSTGRES_PASSWORD: blackstone_development
-      - store_artifacts:
-          path: ./burrow.log
+      - run: make install_api
+      - run: make test
+
   deploy_docs:
     <<: *defaults
     steps:
@@ -55,6 +24,7 @@ jobs:
           fingerprints:
             - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - run: ./docs/generate.sh
+
   deploy_platform:
     docker:
       - image: appropriate/curl
@@ -68,6 +38,7 @@ jobs:
               --form token=$PLATFORM_DEPLOY_KEY \
               --form ref=master \
               $PLATFORM_DEPLOY_URL
+
   update_info:
     docker:
       - image: alpine/git
@@ -110,8 +81,7 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
-      - test_contracts:
-      - test_api:
+      - test
       - deploy_docs:
           filters:
             branches:
@@ -119,8 +89,7 @@ workflows:
                 - master
       - update_info:
           requires:
-            - test_api
-            - test_contracts
+            - test
           filters:
             branches:
               only:
@@ -128,8 +97,7 @@ workflows:
                 - develop
       - deploy_platform:
           requires:
-            - test_api
-            - test_contracts
+            - test
             - update_info
           filters:
             branches:

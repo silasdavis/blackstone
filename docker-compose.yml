@@ -12,6 +12,18 @@ services:
       POSTGRES_USER: blackstone_development
       POSTGRES_PASSWORD: blackstone_development
       POSTGRES_DB: blackstone_development
+  chain:
+    # We could reference hyperledger/burrow:$version directly here but for the sake of only specifying our dependency version
+    # once we do it in the project Dockerfile
+    build: .
+    expose:
+    - "10997"
+    volumes:
+    - ./test/chain:/chain
+    working_dir: /chain
+    command:
+    - burrow
+    - start
   vent:
     image: quay.io/monax/vent:develop
     restart: always
@@ -36,24 +48,8 @@ services:
     depends_on:
     - postgres
     - chain
-    links:
-    - postgres
-    - chain
-  chain:
-    image: hyperledger/burrow:0.23.1-dev-2018-11-14-f23fae1e
-    expose:
-    - "10997"
-    volumes:
-    - ./test/chain:/chain
-    working_dir: /chain
-    command:
-      - start
   api:
-    build:
-      context: .
-      args:
-        USER: $USER
-        UID: $UID
+    build: .
     environment:
       CI_PROJECT_DIR: /app
       HOARD_IP: hoard:53431
@@ -68,8 +64,6 @@ services:
     depends_on:
     - postgres
     - hoard
-    links:
+    - vent
     - chain
-    - postgres
-    - hoard
     command: "test/test_api.sh --runAPI"
