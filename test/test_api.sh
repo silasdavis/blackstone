@@ -49,5 +49,7 @@ configApp() {
   set -e
 }
 
-set -e
-main $@
+if [ "${1}" != "--source-only" ]; then
+  set -e
+  main "${@}"
+fi
