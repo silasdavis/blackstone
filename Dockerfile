@@ -1,3 +1,5 @@
+# This container provides the test environment from which the various test scripts
+# can be run
 # For solc binary
 FROM ethereum/solc:0.4.25 as solc-builder
 # Burrow version on which Blackstone is tested

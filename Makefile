@@ -53,3 +53,9 @@ clean: down
 .PHONY: clean_all
 clean_all: down
 	docker-compose run --no-deps api test/clean all
+
+# Make sure we have fresh service images
+.PHONY: rebuild_docker
+rebuild_docker: clean
+	docker-compose pull
+	docker-compose build --no-cache
