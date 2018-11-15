@@ -12,7 +12,7 @@ if ! [[ "$CI" = true ]]; then
   #files and dirs accumulated during contracts deployment/testing
   rm -f $CI_PROJECT_DIR/contracts/src/*.output.json
   rm -f $CI_PROJECT_DIR/test*.log
-  rm -rf $CI_PROJECT_DIR/contracts/src/bin
+  rm -rf $CI_PROJECT_DIR/contracts/src/bin/*
 
   # files and dirs accumulated by API deployment/testing
   rm -rf $CI_PROJECT_DIR/api/public-abi

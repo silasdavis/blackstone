@@ -42,12 +42,11 @@ services:
     - --log-level
     - info
     - --spec-file
-    - /config/Tables.spec
+    - /app/api/sqlsol/Tables.spec
     - --abi-dir
-    - /abi/
+    - /app/contracts/src/bin
     volumes:
-    - ./api/sqlsol:/config
-    - ./contracts/src/bin:/abi
+    - .:/app
     depends_on:
     - postgres
     - chain
