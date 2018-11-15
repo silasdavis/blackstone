@@ -7,7 +7,7 @@ services:
   postgres:
     image: postgres:9-alpine
     ports:
-    - "5432:5432"
+    - "5432"
     environment:
       POSTGRES_USER: blackstone_development
       POSTGRES_PASSWORD: blackstone_development
@@ -16,8 +16,11 @@ services:
     # We could reference hyperledger/burrow:$version directly here but for the sake of only specifying our dependency version
     # once we do it in the project Dockerfile
     build: .
-    expose:
+    ports:
+    # GRPC port for most interaction
     - "10997"
+    # HTTP status/information port
+    - "26658"
     volumes:
     - ./test/chain:/chain
     working_dir: /chain

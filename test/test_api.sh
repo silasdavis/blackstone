@@ -24,30 +24,5 @@ main() {
 
 }
 
-deploy_local() {
-  echo "Hello! I'm the marmot who tests the Monax Agreements Network API."
-
-  export CHAIN_URL_INFO="chain:26658"
-  export CHAIN_URL_GRPC="chain:10997"
-  sleep 3
-  $CI_PROJECT_DIR/contracts/deploy_contracts
-
-  echo
-  echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
-  configApp
-
-  echo
-  echo "#### Agreements Network contracts successfully deployed"
-}
-
-configApp() {
-  set +e
-  mkdir -p $API_ABI_DIRECTORY_LOCAL
-  while read -r abi; do
-    cp $CONTRACTS_DIRECTORY/bin/$abi.bin $API_ABI_DIRECTORY_LOCAL/$abi.bin
-  done < $CI_PROJECT_DIR/contracts/abi.csv
-  set -e
-}
-
 set -e
 main $@
