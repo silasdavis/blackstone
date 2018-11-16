@@ -114,7 +114,6 @@ ValidatorAddress = "0201EF325305ABD75E1FB8A8F539730F71547484"
   NonBlocking = false
   [Logging.RootSink]
     [Logging.RootSink.Output]
-      OutputType = "file"
+      OutputType = "stdout"
       Format = "json"
-      Path = "burrow.log"
 

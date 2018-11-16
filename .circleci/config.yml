@@ -10,10 +10,17 @@ jobs:
   test:
     machine:
       enabled: true
+      image: circleci/classic:201808-01
     steps:
       - checkout
       - run: make install_api
       - run: make test
+      - store_artifacts:
+          path: ./test/chain/burrow.log
+      - store_artifacts:
+          path: ./test-contracts-jobs.log
+      - store_artifacts:
+          path: ./test-contracts.log
 
   deploy_docs:
     <<: *defaults
