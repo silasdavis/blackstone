@@ -7,13 +7,30 @@ defaults: &defaults
 
 version: 2.1
 jobs:
-  test:
-    machine:
+  test_contracts:
+    machine: &machine_defaults
       enabled: true
+      image: circleci/classic:201808-01
+    steps:
+    - checkout
+    - run: make test_contracts
+
+  test_api:
+    machine: *machine_defaults
     steps:
       - checkout
       - run: make install_api
-      - run: make test
+      - run: make test_api
+      - persist_to_workspace:
+          root: ./contracts/src/
+          paths:
+            - bin
+      - store_artifacts:
+          path: ./test/chain/burrow.log
+      - store_artifacts:
+          path: ./test-contracts-jobs.log
+      - store_artifacts:
+          path: ./test-contracts.log
 
   deploy_docs:
     <<: *defaults
@@ -50,38 +67,15 @@ jobs:
       - <<: *add_ssh_key
       - attach_workspace:
           at: /tmp
-      - run:
-          name: "Update AN Info"
-          command: |
-            if [ $CIRCLE_BRANCH != "master" ]; then CHAIN_INFO="${CHAIN_INFO}-dev"; fi
-            CHAIN_OUT_DIR="${CHAIN_INFO_HOST}/${CHAIN_INFO}"
-            CHAIN_INFO_URL="https://${CHAIN_INFO_HOST}/${CHAIN_INFO}"
-            git config --global user.name "Billings, a Bot"
-            git config --global user.email "billings@monax.io"
-            git clone git@github.com:agreements-network/info $CHAIN_INFO_HOST
-            mkdir -p ${CHAIN_OUT_DIR}/abi
-            mkdir -p ${CHAIN_OUT_DIR}/specs
-            while read -r abi; do
-              echo "${CHAIN_INFO_URL}/abi/${abi}.bin" >> ${CHAIN_OUT_DIR}/abi-new.csv
-              cp /tmp/bin/${abi}.bin ${CHAIN_OUT_DIR}/abi/.
-            done < ./contracts/abi.csv
-            mv ${CHAIN_OUT_DIR}/abi-new.csv ${CHAIN_OUT_DIR}/abi.csv
-            for spec in ./api/sqlsol/*; do
-              echo "${CHAIN_INFO_URL}/specs/$(basename ${spec})" >> ${CHAIN_OUT_DIR}/spec-new.csv
-              cp $spec ${CHAIN_OUT_DIR}/specs/.
-            done
-            mv ${CHAIN_OUT_DIR}/spec-new.csv ${CHAIN_OUT_DIR}/spec.csv
-            cd ${CHAIN_INFO_HOST}
-            git add -A :/
-            git commit -m "Automatic info generation from AN build on `date`" || true
-            git push
-            sleep 60 # allow time for GH pages to render
+      - run: ./scripts/update_info.sh
+
 
 workflows:
   version: 2
   test_and_deploy:
     jobs:
-      - test
+      - test_contracts
+      - test_api
       - deploy_docs:
           filters:
             branches:
@@ -89,7 +83,8 @@ workflows:
                 - master
       - update_info:
           requires:
-            - test
+            - test_contracts
+            - test_api
           filters:
             branches:
               only:
@@ -97,7 +92,8 @@ workflows:
                 - develop
       - deploy_platform:
           requires:
-            - test
+            - test_contracts
+            - test_api
             - update_info
           filters:
             branches:
