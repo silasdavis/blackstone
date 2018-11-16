@@ -22,7 +22,7 @@ install_api: build_docker
 	docker-compose run --workdir=/app/api api npm install
 
 .PHONY: test_api
-test_api: clean build_docker
+test_api: build_docker
 	docker-compose run api test/test_api.sh
 
 .PHONY: run

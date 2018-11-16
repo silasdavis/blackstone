@@ -15,8 +15,7 @@ main() {
   echo -e "Using chain url: $CHAIN_URL_GRPC"
   set -e
   cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/src
-  burrow deploy \
-    --file=build.yaml
+  burrow deploy --file=build.yaml
   burrow deploy \
     --chain-url="$CHAIN_URL_GRPC" \
     --mempool-signing="true" \
