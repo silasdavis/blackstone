@@ -7,7 +7,7 @@ FROM ethereum/solc:$SOLC_VERSION as solc-builder
 # Burrow version on which Blackstone is tested
 FROM hyperledger/burrow:$BURROW_VERSION as burrow-builder
 # Testing image
-FROM alpine:latest
+FROM alpine:3.8
 
 RUN apk --update --no-cache add \
   bash \
@@ -27,6 +27,16 @@ RUN apk --update --no-cache add \
   tar
 
 ARG INSTALL_BASE=/usr/local/bin
+
+ARG UID=1000
+ARG GID=1000
+ARG USER=api
+
+RUN addgroup -g $GID -S $USER
+RUN adduser -S -D -u $UID -G $USER $USER
+USER $UID:$GID
+
+WORKDIR /home/$USER
 
 COPY --from=burrow-builder /usr/local/bin/burrow $INSTALL_BASE/
 COPY --from=solc-builder /usr/bin/solc $INSTALL_BASE/

@@ -22,10 +22,19 @@ main() {
     # test all bundles
     testBundles=($(ls test-*.yaml))
 
-    echo "Running ${#testBundles[@]} tests..."
+    num_tests=${#testBundles[@]}
+    echo "Running $num_tests tests..."
     parallel -k -j 15 --joblog $CI_PROJECT_DIR/test-contracts-jobs.log --no-notice $CI_PROJECT_DIR/test/test_bundle.sh ::: "${testBundles[@]}" &> $CI_PROJECT_DIR/test-contracts.log
     failures=($(awk 'NR==1{for(i=1;i<=NF;i++){if($i=="Exitval"){c=i;break}}} ($c=="1"&& NR>1){print $NF}' $CI_PROJECT_DIR/test-contracts-jobs.log))
-    echo "Tests complete"
+
+    test_exit=${#failures[@]}
+
+    if [[ "$test_exit" == "0" ]]; then
+      echo "Tests completed successfully"
+    else
+      echo "Tests failed ($test_exit / $num_tests failed)"
+    fi
+    exit ${test_exit}
 
   fi
 }
