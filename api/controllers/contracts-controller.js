@@ -8,7 +8,6 @@ const logger = require(`${global.__common}/monax-logger`);
 const monaxUtils = require(`${global.__common}/monax-utils`);
 const monaxDB = require(`${global.__common}/monax-db`);
 const monaxApp = require(`${global.__common}/monax-app`);
-const SqlCache = require(`${global.__common}/monax-sqlsol`);
 
 const {
   DATA_TYPES,
@@ -41,7 +40,6 @@ const db = new monaxDB.Connection(
 );
 
 let appManager;
-const cache = new SqlCache(':memory:', serverAccount);
 
 const boomify = (burrowError, message) => {
   const arr = burrowError.message ? burrowError.message.split('::') : [];
@@ -205,25 +203,6 @@ const load = () => new Promise((resolve, reject) => {
   }
   return reject(boom.badImplementation('No Ecosystem name set. Unable to start API ...'));
 }));
-
-/**
- * Loads information from contracts into the sql cache as configured via the sqlsol/ directory.
- * Note: The contract matching the .json filename must already be loaded in the appManager.
- */
-const initCache = () => {
-  const cachePromises = [];
-  fs.readdirSync(global.__sqlsol).forEach((file) => {
-    if (file.endsWith('.json')) {
-      if (log.isDebugEnabled()) {
-        log.debug(`Processing SQLSOL configuration: ${file}`);
-      }
-      const structDef = JSON.parse(fs.readFileSync(`${global.__sqlsol}/${file}`));
-      const { name } = path.parse(file);
-      cachePromises.push(cache.add(appManager.contracts[name].factory, structDef, name));
-    }
-  });
-  return Promise.all(cachePromises);
-};
 
 /**
  * Creates a promise to create a new organization and add to Accounts Manager.
@@ -1243,11 +1222,9 @@ const getActiveAgreementData = agreementAddress => new Promise((resolve, reject)
 
 module.exports = {
   load,
-  initCache,
   events,
   listen: chainEvents,
   db,
-  cache,
   boomify,
   getContract,
   getBpmService,

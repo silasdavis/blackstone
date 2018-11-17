@@ -63,8 +63,8 @@ module.exports = (passport) => {
   /*
   Local Strategy Flow:
   Get address hashed userId from chain
-  Get address from sqlsol using hashed userId
-  Compare chain address to sqlsol address and return unauthorized on mismatch
+  Get address from vent using hashed userId
+  Compare chain address to vent address and return unauthorized on mismatch
   Get address and password digest from pg
   Compare chain address to pg address and return unauthorized on mismatch
   Compare given password with password digest and return unauthorized on mismatch

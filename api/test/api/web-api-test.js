@@ -300,7 +300,7 @@ describe('Organizations', () => {
         res.body.name.should.exist;
         acme.address = res.body.address;
         setTimeout(function () {
-          // verify organization in sqlsol
+          // verify organization in vent
           chai
           .request(server)
           .get(`/organizations?approver=true`)
@@ -1418,7 +1418,7 @@ describe('Agreement with parameters', () => {
 
 //   it('Should have a suspended activity for user 1', done => {
 //     // TODO bypassing the getTaskForUser REST API call since that query retrieve empty array for some reason,
-//     // although the data is there in sqlsol cache. This may be a timing issue with the test.
+//     // although the data is there in vent cache. This may be a timing issue with the test.
 //     setTimeout(() => {
 //       chai
 //         .request(server)

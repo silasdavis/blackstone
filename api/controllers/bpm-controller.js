@@ -55,7 +55,7 @@ const _getDataMappingDetails = async (userAddress, activityInstanceId, dataMappi
       delete mapping.dataStorage;
       return format('Data Mapping', mapping);
     });
-    // get access point details from sqlsol
+    // get access point details from vent
     const accessPointDetails = await sqlCache.getAccessPointDetails(dataMappingDetails, application);
     if (dataMappingDetails.length === 0 || accessPointDetails.length === 0) {
       throw boom.notFound(`No ${direction ? 'out-' : 'in-'}data mapping details found for activity ${activityInstanceId}`);
