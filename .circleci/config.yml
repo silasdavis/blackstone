@@ -7,20 +7,14 @@ defaults: &defaults
 
 version: 2.1
 jobs:
-  test_contracts:
+
+  test:
     machine: &machine_defaults
       enabled: true
       image: circleci/classic:201808-01
     steps:
-    - checkout
-    - run: make test_contracts
-
-  test_api:
-    machine: *machine_defaults
-    steps:
       - checkout
-      - run: make install_api
-      - run: make test_api
+      - run: make test
       - persist_to_workspace:
           root: ./contracts/src/
           paths:
@@ -74,8 +68,7 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
-      - test_contracts
-      - test_api
+      - test
       - deploy_docs:
           filters:
             branches:
@@ -83,8 +76,7 @@ workflows:
                 - master
       - update_info:
           requires:
-            - test_contracts
-            - test_api
+            - test
           filters:
             branches:
               only:
@@ -92,8 +84,7 @@ workflows:
                 - develop
       - deploy_platform:
           requires:
-            - test_contracts
-            - test_api
+            - test
             - update_info
           filters:
             branches:

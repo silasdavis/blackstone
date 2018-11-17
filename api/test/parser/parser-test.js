@@ -5,14 +5,15 @@ const should = chai.should();
 const expect = chai.expect;
 const assert = chai.assert;
 
-global.__config = path.resolve('config');
-global.__common = path.resolve('common');
+global.__appDir = path.resolve('api')
+global.__config = path.resolve(__appDir, 'config');
+global.__common = path.resolve(__appDir, 'common');
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
 
-const bpmnParser = require(path.resolve("lib", "bpmn-parser"));
+const bpmnParser = require(path.resolve(__appDir, "lib", "bpmn-parser"));
 
-const xmlString = fs.readFileSync(path.resolve("data", "sample", "T2-example.bpmn"), "utf8");
-const gatewayXml = fs.readFileSync(path.resolve("test", "data", "Gateways-Parser-Test.bpmn"), "utf8");
+const xmlString = fs.readFileSync(path.resolve(__appDir, "data", "sample", "T2-example.bpmn"), "utf8");
+const gatewayXml = fs.readFileSync(path.resolve(__appDir, "test", "data", "Gateways-Parser-Test.bpmn"), "utf8");
 
 describe("BPMN XML Parser", () => {
   let parser;

@@ -52,13 +52,13 @@ const badcredentials = {
 }
 
 let formation = {
-  filePath: 'test/data/inc-formation.bpmn',
+  filePath: 'api/test/data/inc-formation.bpmn',
   process: {},
   id: rid(16, 'aA0'),
   name: 'Incorporation-Formation'
 }
 let execution = {
-  filePath: 'test/data/inc-execution.bpmn',
+  filePath: 'api/test/data/inc-execution.bpmn',
   process: {},
   id: rid(16, 'aA0'),
   name: 'Incorporation-Execution'
@@ -1315,7 +1315,7 @@ describe('Agreement with parameters', () => {
 
 // describe('BPM user task completion', () => {
 //   const modelId = rid(16, "aA0");
-//   let xml = fs.readFileSync(path.resolve('test/data/Sample-example-3.bpmn'), 'utf8');
+//   let xml = fs.readFileSync(path.resolve('api/test/data/Sample-example-3.bpmn'), 'utf8');
 //   xml = _.replace(xml, '###MODEL_ID###', modelId);
 //   const user1 = { user: rid(10, 'aA0'), password: 'johndoe' };
 //   const user2 = { user: rid(10, 'aA0'), password: 'janedoe' };

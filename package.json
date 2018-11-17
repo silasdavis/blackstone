@@ -1,24 +1,24 @@
 {
   "name": "agreements-network-api",
   "version": "0.5.0",
-  "description": "REST API for the Agreements Network",
-  "main": "app.js",
+  "description": "Foundation smart contracts and API for the Agreements Network",
+  "main": "api/app.js",
   "scripts": {
-    "start": "node -e 'require(\"./app.js\")()'",
-    "start:dev": "npm run-script db:migrate:up:dev && node -e 'require(\"./app.js\")()'",
-    "start:debug": "npm run-script db:migrate:up:dev && node --inspect=0.0.0.0:9222 -e 'require(\"./app.js\")()'",
-    "start:debug:cluster": "node --inspect=0.0.0.0:9222 -e 'require(\"./app.js\")()'",
+    "start": "node -e 'require(\"./api/app.js\")()'",
+    "start:dev": "npm run-script db:migrate:up:dev && node -e 'require(\"./api/app.js\")()'",
+    "start:debug": "npm run-script db:migrate:up:dev && node --inspect=0.0.0.0:9222 -e 'require(\"./api/app.js\")()'",
+    "start:debug:cluster": "node --inspect=0.0.0.0:9222 -e 'require(\"./api/app.js\")()'",
     "test": "npm run-script db:migrate:up:dev && npm run-script test:contracts && npm run-script test:contracts:fe && npm run-script test:parser && npm run-script test:api && npm run-script test:api:bpm",
-    "test:api": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-test.js --timeout 99999999",
-    "test:api:debug": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "test:api:bpm": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-bpm-test.js --timeout 99999999",
-    "test:api:bpm:debug": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-bpm-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "test:contracts": "mocha --exit test/controllers/contracts-test.js --timeout 99999999",
-    "test:contracts:debug": "mocha --exit test/controllers/contracts-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "test:contracts:fe": "mocha --exit test/controllers/form-exec-usertask-test.js --timeout 99999999",
-    "test:contracts:fe:debug": "mocha --exit test/controllers/form-exec-usertask-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "test:parser": "mocha --exit test/parser/parser-test.js --timeout 99999999",
-    "test:parser:debug": "mocha --exit test/parser/parser-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:api": "npm run-script db:migrate:up:dev && mocha --exit ./api/test/api/web-api-test.js --timeout 99999999",
+    "test:api:debug": "npm run-script db:migrate:up:dev && mocha --exit ./api/test/api/web-api-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:api:bpm": "npm run-script db:migrate:up:dev && mocha --exit ./api/test/api/web-api-bpm-test.js --timeout 99999999",
+    "test:api:bpm:debug": "npm run-script db:migrate:up:dev && mocha --exit ./api/test/api/web-api-bpm-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:contracts": "mocha --exit ./api/test/controllers/contracts-test.js --timeout 99999999",
+    "test:contracts:debug": "mocha --exit ./api/test/controllers/contracts-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:contracts:fe": "mocha --exit ./api/test/controllers/form-exec-usertask-test.js --timeout 99999999",
+    "test:contracts:fe:debug": "mocha --exit ./api/test/controllers/form-exec-usertask-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:parser": "mocha --exit ./api/test/parser/parser-test.js --timeout 99999999",
+    "test:parser:debug": "mocha --exit ./api/test/parser/parser-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
     "db:migrate:up": "node node_modules/db-migrate/bin/db-migrate up -e prod",
     "db:migrate:up:dev": "node node_modules/db-migrate/bin/db-migrate up",
     "db:migrate:up:dev:cluster": "node node_modules/db-migrate/bin/db-migrate up -e cluster",
@@ -82,10 +82,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://code.monax.io/monax/paas.git"
+    "url": "git+https://github.com/agreements-network/blackstone.git"
   },
   "bugs": {
-    "url": "https://code.monax.io/monax/paas/issues"
+    "url": "https://github.com/agreements-network/blackstone/issues"
   },
-  "homepage": "https://code.monax.io/monax/paas"
+  "homepage": "https://agreements.network"
 }

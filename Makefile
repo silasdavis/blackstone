@@ -10,8 +10,12 @@
 DCB_ARGS := --build-arg UID=$(shell id -u) --build-arg GID=$(shell id -g)
 
 .PHONY: build_contracts
-build_contracts: build_docker
-	docker-compose run --workdir=/app/contracts/src api burrow deploy -f $(if $(tgt),build-$(tgt),build.yaml)
+build_contracts:
+	docker-compose run api contracts/build_contracts $(tgt)
+
+.PHONY: deploy_contracts
+deploy_contracts:
+	docker-compose run api contracts/deploy_contracts $(tgt)
 
 .PHONY: test_contracts
 test_contracts: build_contracts
@@ -19,11 +23,14 @@ test_contracts: build_contracts
 
 .PHONY: install_api
 install_api: build_docker
-	docker-compose run --workdir=/app/api api npm install
+	docker-compose run api npm install
 
 .PHONY: test_api
-test_api: build_docker
+test_api:
 	docker-compose run api test/test_api.sh
+
+.PHONY: build_deploy_test_api
+build_deploy_test_api: | build_contracts deploy_contracts test_api
 
 .PHONY: run
 run: clean build_docker
@@ -38,9 +45,10 @@ restart_api:
 	pkill docker-compose || true
 	docker-compose exec api test/restart_api.sh
 
+# Full test (run by CI)
 .PHONY: test
 # Ordered execution
-test: | test_contracts test_api clean
+test: | build_docker install_api test_contracts build_deploy_test_api clean
 
 .PHONY: down
 down:

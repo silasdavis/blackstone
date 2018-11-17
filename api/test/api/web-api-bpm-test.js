@@ -8,6 +8,7 @@ const fs = require('fs');
 const _ = require('lodash');
 const crypto = require('crypto');
 
+
 const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger');
@@ -91,13 +92,13 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
   };
 
   let formation = {
-    filePath: 'test/data/inc-formation.bpmn',
+    filePath: 'api/test/data/inc-formation.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Formation'
   }
   let execution = {
-    filePath: 'test/data/inc-execution.bpmn',
+    filePath: 'api/test/data/inc-execution.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Execution'
@@ -336,7 +337,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
  */
 describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
 
-  const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
+  const model = { id: rid(16, 'aA0'), filePath: 'api/test/data/AN-TestTemplate-FE.bpmn' };
   const archetype1 = {
     name: "Archetype 1",
     description: "Archetype 1",
@@ -541,13 +542,13 @@ describe(':: DATA MAPPING TEST ::', () => {
   };
 
   let formation = {
-    filePath: 'test/data/data-mapping-formation.bpmn',
+    filePath: 'api/test/data/data-mapping-formation.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Data-Mapping-Formation'
   }
   let execution = {
-    filePath: 'test/data/data-mapping-execution.bpmn',
+    filePath: 'api/test/data/data-mapping-execution.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Data-Mapping-Execution'
@@ -792,13 +793,13 @@ describe(':: GATEWAY TEST ::', () => {
   };
 
   let formation = {
-    filePath: 'test/data/Formation-Tenant-XOR-Gateway.bpmn',
+    filePath: 'api/test/data/Formation-Tenant-XOR-Gateway.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Formation-Tenant-XOR-Gateway'
   }
   let execution = {
-    filePath: 'test/data/Execution-NoAction.bpmn',
+    filePath: 'api/test/data/Execution-NoAction.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Execution-NoAction'
@@ -963,7 +964,7 @@ describe(':: GATEWAY TEST ::', () => {
  * ######## Archetype Packages and Agreement Collections  ###############################################################################################################
  */
 describe(':: Archetype Packages and Agreement Collections ::', () => {
-  const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
+  const model = { id: rid(16, 'aA0'), filePath: 'api/test/data/AN-TestTemplate-FE.bpmn' };
   const publicArchetype1 = {
     name: "Public Archetype 1",
     description: "Public Archetype 1 " + rid(5, 'aA0'),
@@ -1324,7 +1325,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
  * ######## Governing Archetypes and Agreements  ###############################################################################################################
  */
 describe(':: Governing Archetypes and Agreements ::', () => {
-  const model = { id: rid(16, 'aA0'), filePath: 'test/data/AN-TestTemplate-FE.bpmn' };
+  const model = { id: rid(16, 'aA0'), filePath: 'api/test/data/AN-TestTemplate-FE.bpmn' };
   const user1 = {
     username: rid(8, 'aA0'),
     password: 'archUser1',
@@ -1457,13 +1458,13 @@ describe(':: External Users ::', () => {
   };
 
   let formation = {
-    filePath: 'test/data/inc-formation.bpmn',
+    filePath: 'api/test/data/inc-formation.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Formation'
   }
   let execution = {
-    filePath: 'test/data/inc-execution.bpmn',
+    filePath: 'api/test/data/inc-execution.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Execution'

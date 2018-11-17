@@ -12,7 +12,7 @@ const _ = require('lodash')
 const monax = require('@monax/burrow')
 const crypto = require('crypto');
 
-global.__appDir = path.resolve()
+global.__appDir = path.resolve('api')
 global.__common = path.resolve(__appDir, 'common')
 global.__config = path.resolve(__appDir, 'config')
 global.__contracts = path.resolve(__appDir, 'contracts')
