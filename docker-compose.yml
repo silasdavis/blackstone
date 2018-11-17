@@ -25,8 +25,9 @@ services:
     - ./test/chain:/chain
     working_dir: /chain
     command:
-    - burrow
-    - start
+    - /bin/sh
+    - -c
+    - burrow start &> burrow.log
   vent:
     image: quay.io/monax/vent:develop
     restart: always
@@ -42,12 +43,11 @@ services:
     - --log-level
     - info
     - --spec-file
-    - /config/Tables.spec
+    - /app/api/sqlsol/Tables.spec
     - --abi-dir
-    - /abi/
+    - /app/contracts/src/bin
     volumes:
-    - ./api/sqlsol:/config
-    - ./contracts/src/bin:/abi
+    - .:/app
     depends_on:
     - postgres
     - chain
