@@ -1,4 +1,4 @@
-The Parity Public License 3.0.0
+The Parity Public License 4.0.0
 
 Copyright Notice: Monax Industries, Limited
 
@@ -14,8 +14,9 @@ latest contribution, or both.
 
 1. Contribute source code for changes you make to this software.
 
-2. If you run or combine this software with other software in any
-   larger program, contribute all source code for that program.
+2. If you run or combine this software with other software as
+   part of any larger application, contribute all source code for
+   that application.
 
 3. Contribute all source code for software you develop, deploy,
    monitor, or run with this software.
@@ -39,7 +40,6 @@ You are excused for unknowingly breaking 1, 2, or 3 if you
 contribute source code, or stop doing anything requiring this
 license, within 30 days of learning you broke the rule.
 
-**This software comes as is, without any warranty or condition
-at all. As far as the law allows, I will not be liable for any
-damages related to this software or this license, for any kind
-of legal claim.**
+**This software comes as is, without any warranty at all. As far
+as the law allows, I will not be liable for any damages related
+to this software or this license, for any kind of legal claim.**
