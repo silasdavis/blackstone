@@ -1,26 +1,13 @@
-defaults: &defaults
-  docker:
-    - image: quay.io/monax/build:latest
-  working_directory: ~/blackstone
-  environment:
-    IMAGE_API: quay.io/monax/blackstone
-
 version: 2.1
 jobs:
-  test_contracts:
+
+  test:
     machine: &machine_defaults
       enabled: true
       image: circleci/classic:201808-01
     steps:
-    - checkout
-    - run: make test_contracts
-
-  test_api:
-    machine: *machine_defaults
-    steps:
       - checkout
-      - run: make install_api
-      - run: make test_api
+      - run: make test
       - persist_to_workspace:
           root: ./contracts/src/
           paths:
@@ -33,7 +20,8 @@ jobs:
           path: ./test-contracts.log
 
   deploy_docs:
-    <<: *defaults
+    docker:
+    - image: node:11
     steps:
       - checkout
       - &add_ssh_key
@@ -74,8 +62,7 @@ workflows:
   version: 2
   test_and_deploy:
     jobs:
-      - test_contracts
-      - test_api
+      - test
       - deploy_docs:
           filters:
             branches:
@@ -83,8 +70,7 @@ workflows:
                 - master
       - update_info:
           requires:
-            - test_contracts
-            - test_api
+            - test
           filters:
             branches:
               only:
@@ -92,8 +78,7 @@ workflows:
                 - develop
       - deploy_platform:
           requires:
-            - test_contracts
-            - test_api
+            - test
             - update_info
           filters:
             branches:

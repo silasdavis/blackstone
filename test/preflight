@@ -4,44 +4,32 @@
 # read variables
 for var in "$@"
 do
-  if [[ $var == "--runAPI" ]]; then runAPI=true; fi
+    if [[ $var == "--runAPI" ]]; then
+        runAPI=true;
+    fi
 done
 
 # ----------------------------------------------------------
 #  variables
 if [[ "$CI_PROJECT_DIR" == "" ]]; then
-  export CI_PROJECT_DIR=`pwd`
+    export CI_PROJECT_DIR=`pwd`
 fi
 
 export NODE_ENV=${NODE_ENV:-"production"}
 export API_ABI_DIRECTORY_LOCAL=${API_ABI_DIRECTORY_LOCAL:-"$CI_PROJECT_DIR/api/public-abi"}
 export CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$CI_PROJECT_DIR/contracts/src"}
+export API_DIRECTORY=${API_DIRECTORY:-"$CI_PROJECT_DIR/api"}
 export WEBAPP_NAME=${WEBAPP_NAME:-"Monax Application"}
 export WEBAPP_EMAIL=${WEBAPP_EMAIL:-"help@$org_url"}
-export CONTRACTS_DEPLOYMENT_ADDRESS="F390C8CA854874472CAD38C0135F78097BCB632D"
 
-deploy_local() {
-  echo "Hello! I'm the marmot who tests the Monax Agreements Network API."
-
-  export CHAIN_URL_INFO="chain:26658"
-  export CHAIN_URL_GRPC="chain:10997"
-  sleep 3
-  $CI_PROJECT_DIR/contracts/deploy_contracts
-
-  echo
-  echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
-  configApp
-
-  echo
-  echo "#### Agreements Network contracts successfully deployed"
-}
-
-configApp() {
-  set +e
-  mkdir -p $API_ABI_DIRECTORY_LOCAL
-  while read -r abi; do
-    cp $CONTRACTS_DIRECTORY/bin/$abi.bin $API_ABI_DIRECTORY_LOCAL/$abi.bin
-  done < $CI_PROJECT_DIR/contracts/abi.csv
-  set -e
+config_app() {
+    echo
+    echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
+    set +e
+    mkdir -p $API_ABI_DIRECTORY_LOCAL
+    while read -r abi; do
+        cp $CONTRACTS_DIRECTORY/bin/$abi.bin $API_ABI_DIRECTORY_LOCAL/$abi.bin
+    done < $CI_PROJECT_DIR/contracts/abi.csv
+    set -e
 }
 

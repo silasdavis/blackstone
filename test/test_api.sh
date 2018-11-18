@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/preflight"
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/preflight"
 
 main() {
-  deploy_local
+    config_app
 
-  if [[ $1 == "deploy" ]]; then
-    exit 0
-  fi
+    export NODE_ENV=testing
 
-  cd $CI_PROJECT_DIR/api
-  export NODE_ENV=testing
+    cd "$API_DIRECTORY"
 
-  if [[ $runAPI == "true" ]]; then
-    echo "#### Starting API"
-    npm run-script start:dev &
-    while true; do sleep 10; done
-  else
-    echo "#### Starting API Tests"
-    echo
-    npm test
-  fi
-  cd $CI_PROJECT_DIR
+    if [[ $runAPI == "true" ]]; then
+        echo "#### Starting API"
+        npm run-script start:dev &
+        while true; do
+            sleep 10;
+        done
+    else
+        echo "#### Starting API Tests"
+        echo
+        npm test
+    fi
 
 }
 

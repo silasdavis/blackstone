@@ -1,5 +1,4 @@
-ARG BURROW_VERSION=0.23.1
-FROM hyperledger/burrow:$BURROW_VERSION
+FROM hyperledger/burrow:0.23.1
 USER root
 
 RUN apk add --update --no-cache bash curl jq
@@ -9,4 +8,4 @@ WORKDIR /app
 
 ENTRYPOINT []
 
-CMD ["./deploy_contracts"]
+CMD ["/bin/sh", "-c", "./build_contracts && ./deploy_contracts"]
