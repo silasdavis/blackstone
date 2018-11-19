@@ -4,8 +4,6 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/preflight"
 main() {
   echo "Hello! I'm the marmot that tests the contracts."
 
-  cd $CI_PROJECT_DIR
-  sleep 3
   cd $CONTRACTS_DIRECTORY
 
   if [[ ${1+x} ]]; then
