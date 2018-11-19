@@ -6,7 +6,7 @@ pkill -f "burrow"
 
 if ! [[ "$CI" = true ]]; then
   # files and dirs accumulated during chain deployment/testing
-  rm -f $CI_PROJECT_DIR/burrow.log
+  rm -f $CI_PROJECT_DIR/test/chain/burrow.log
   rm -rf $CI_PROJECT_DIR/test/chain/.burrow
 
   #files and dirs accumulated during contracts deployment/testing

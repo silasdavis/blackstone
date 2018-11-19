@@ -1,6 +1,6 @@
 {
   "name": "agreements-network-api",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "REST API for the Agreements Network",
   "main": "app.js",
   "scripts": {
