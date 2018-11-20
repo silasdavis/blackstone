@@ -48,7 +48,7 @@ restart_api:
 # Full test (run by CI)
 .PHONY: test
 # Ordered execution
-test: | build_docker install_api test_contracts deploy_test_api clean
+test: | build_docker install_api test_contracts deploy_test_api
 
 .PHONY: down
 down:
