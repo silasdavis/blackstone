@@ -32,4 +32,3 @@ config_app() {
     done < $CI_PROJECT_DIR/contracts/abi.csv
     set -e
 }
-
