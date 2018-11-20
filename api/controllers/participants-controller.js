@@ -322,9 +322,10 @@ const activateUser = asyncMiddleware(async (req, res) => {
   }
   try {
     await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
-    res.redirect(`${process.env.WEBAPP_URL}`);
+    res.redirect(`${process.env.WEBAPP_URL}/?activated=true`);
   } catch (err) {
-    throw boom.badImplementation(`Failed to activate user account: ${err}`);
+    log.error(`Failed to activate user account at ${rows[0].address}: ${err}`);
+    res.redirect(`${process.env.WEBAPP_URL}/help`);
   }
 });
 
