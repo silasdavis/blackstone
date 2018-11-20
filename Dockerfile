@@ -24,19 +24,18 @@ RUN apk --update --no-cache add \
   parallel \
   python \
   py-crcmod \
-  tar
+  tar \
+  shadow
 
 ARG INSTALL_BASE=/usr/local/bin
 
 ARG UID=1000
 ARG GID=1000
-ARG USER=api
 
-RUN addgroup -g $GID -S $USER
-RUN adduser -S -D -u $UID -G $USER $USER
+# Create user and group unless they already exist
+COPY ./scripts/ensure_user.sh $INSTALL_BASE/
+RUN ensure_user.sh $UID $GID
 USER $UID:$GID
-
-WORKDIR /home/$USER
 
 COPY --from=burrow-builder /usr/local/bin/burrow $INSTALL_BASE/
 COPY --from=solc-builder /usr/bin/solc $INSTALL_BASE/
