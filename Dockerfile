@@ -34,8 +34,10 @@ ARG GID=1000
 
 # Create user and group unless they already exist
 COPY ./scripts/ensure_user.sh $INSTALL_BASE/
-RUN ensure_user.sh $UID $GID
+RUN ensure_user.sh $UID $GID /home/api
 USER $UID:$GID
+WORKDIR /home/api
+
 
 COPY --from=burrow-builder /usr/local/bin/burrow $INSTALL_BASE/
 COPY --from=solc-builder /usr/bin/solc $INSTALL_BASE/
