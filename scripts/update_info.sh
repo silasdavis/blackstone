@@ -16,7 +16,7 @@ mkdir -p ${CHAIN_OUT_DIR}/specs
 
 while read -r abi; do
     echo "${CHAIN_INFO_URL}/abi/${abi}.bin" >> ${CHAIN_OUT_DIR}/abi-new.csv
-    cp /tmp/bin/${abi}.bin ${CHAIN_OUT_DIR}/abi/.
+    cp /tmp/${abi}.bin ${CHAIN_OUT_DIR}/abi/.
 done < ./contracts/abi.csv
 
 mv ${CHAIN_OUT_DIR}/abi-new.csv ${CHAIN_OUT_DIR}/abi.csv
