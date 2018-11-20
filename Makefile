@@ -14,7 +14,7 @@ build_contracts:
 	docker-compose run api contracts/build_contracts $(tgt)
 
 .PHONY: deploy_contracts
-deploy_contracts:
+deploy_contracts: build_contracts
 	docker-compose run api contracts/deploy_contracts $(tgt)
 
 .PHONY: test_contracts
@@ -29,16 +29,16 @@ install_api: build_docker
 test_api:
 	docker-compose run api test/test_api.sh
 
-.PHONY: build_deploy_test_api
-build_deploy_test_api: | build_contracts deploy_contracts test_api
+.PHONY: deploy_test_api
+deploy_test_api: | deploy_contracts test_api
 
 .PHONY: run
-run: clean build_docker
+run: | clean
 	docker-compose up -d
 	docker-compose logs --follow api &
 
 .PHONY: run_all
-run_all: install_api run
+run_all: | clean build_docker deploy_contracts install_api run
 
 .PHONY: restart_api
 restart_api:
@@ -48,7 +48,7 @@ restart_api:
 # Full test (run by CI)
 .PHONY: test
 # Ordered execution
-test: | build_docker install_api test_contracts build_deploy_test_api clean
+test: | build_docker install_api test_contracts deploy_test_api clean
 
 .PHONY: down
 down:
