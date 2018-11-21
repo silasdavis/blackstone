@@ -5,8 +5,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/preflight"
 main() {
     config_app
 
-    export NODE_ENV=testing
-
     cd "$API_DIRECTORY"
 
     if [[ $runAPI == "true" ]]; then
