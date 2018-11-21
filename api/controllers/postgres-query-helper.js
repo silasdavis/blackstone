@@ -115,7 +115,7 @@ const getCurrencyByAlpha3Code = (alpha3) => {
 };
 
 const getParameterType = (paramType) => {
-  const queryString = 'SELECT parameter_type as "parameterType", label FROM PARAMETER_TYPES WHERE parameter_type = $1';
+  const queryString = 'SELECT CAST(parameter_type AS INTEGER) AS "parameterType", label FROM PARAMETER_TYPES WHERE parameter_type = $1';
   return runChainDbQuery(queryString, [paramType])
     .then((data) => {
       if (!data) throw boom.notFound(`Parameter type ${paramType} not found`);
@@ -128,7 +128,7 @@ const getParameterType = (paramType) => {
 };
 
 const getParameterTypes = () => {
-  const queryString = 'SELECT parameter_type as "parameterType", label FROM PARAMETER_TYPES';
+  const queryString = 'SELECT CAST(parameter_type AS INTEGER) AS "parameterType", label FROM PARAMETER_TYPES';
   return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get parameter types: ${err}`); });
 };
@@ -168,10 +168,10 @@ const getArchetypeDataWithProcessDefinitions = (archetypeAddress, userAccount) =
 
 const getArchetypeParameters = (archetypeAddress) => {
   const queryString =
-    'SELECT af.parameter_name AS name, ft.parameter_type AS type, ft.label AS label ' +
-    'FROM ARCHETYPE_PARAMETERS af ' +
-    'JOIN PARAMETER_TYPES ft on af.parameter_type = ft.parameter_type WHERE archetype_address = $1 ' +
-    'ORDER BY af.position';
+    'SELECT ap.parameter_name AS name, ap.parameter_type AS type, pt.label AS label ' +
+    'FROM ARCHETYPE_PARAMETERS ap ' +
+    'JOIN PARAMETER_TYPES pt on ap.parameter_type = pt.parameter_type WHERE archetype_address = $1 ' +
+    'ORDER BY ap.position';
   return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype parameters: ${err}`); });
 };
@@ -535,7 +535,14 @@ const getTasksByUserAddress = (userAddress) => {
 };
 
 const getModels = (author) => {
-  const queryString = 'SELECT model_address as "modelAddress", id, name, author, is_private as "isPrivate", active, encode(diagram_address::bytea, \'hex\') as "diagramAddress", encode(diagram_secret::bytea, \'hex\') as "diagramSecret", version_major as "versionMajor", version_minor as "versionMinor", version_patch as "versionPatch" FROM process_models WHERE is_private = $1 OR author = $2';
+  const queryString = 'SELECT model_address as "modelAddress", ' +
+    'id, name, author, is_private as "isPrivate", active, ' +
+    'encode(diagram_address:: bytea, \'hex\') as "diagramAddress", ' +
+    'encode(diagram_secret::bytea, \'hex\') as "diagramSecret", ' +
+    'CAST(version_major AS INTEGER) AS "versionMajor", ' +
+    'CAST(version_minor AS INTEGER) AS "versionMinor", ' +
+    'CAST(version_patch AS INTEGER) AS "versionPatch" ' +
+    'FROM process_models WHERE is_private = $1 OR author = $2';
   return runChainDbQuery(queryString, [false, author])
     .catch((err) => { throw boom.badImplementation(`Failed to get process model(s): ${err}`); });
 };
