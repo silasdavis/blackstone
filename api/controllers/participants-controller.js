@@ -102,7 +102,7 @@ const createOrganization = asyncMiddleware(async (req, res) => {
   }
   try {
     const address = await contracts.createOrganization(org);
-    await chainPool.query({
+    await appPool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
