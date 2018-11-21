@@ -378,7 +378,7 @@ npm install
 Run pending migrations
 
 ```bash
-npm run db:migrate:up:dev
+npm run db:migrate:up
 ```
 
 The node application is now ready to run

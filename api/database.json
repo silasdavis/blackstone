@@ -1,4 +1,6 @@
 {
+  "defaultEnv": {"ENV": "NODE_ENV"},
+
   "dev": {
     "driver": "pg",
     "user": "blackstone_development",
@@ -17,7 +19,7 @@
     "database": "blackstone_development"
   },
 
-  "prod": {
+  "production": {
     "driver": "pg",
     "user": {"ENV": "POSTGRES_DB_USER"},
     "password": {"ENV": "POSTGRES_DB_PASSWORD"},
