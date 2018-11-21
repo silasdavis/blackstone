@@ -55,6 +55,7 @@ services:
     build: .
     environment:
       CI_PROJECT_DIR: /app
+      API_DIRECTORY: /app/api
       HOARD_IP: hoard:53431
       NODE_ENV: testing
       MONAX_ECOSYSTEM: MONAX_PLATFORM
