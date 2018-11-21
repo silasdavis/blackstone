@@ -18,7 +18,7 @@ fi
 export NODE_ENV=${NODE_ENV:-"production"}
 export API_ABI_DIRECTORY_LOCAL=${API_ABI_DIRECTORY_LOCAL:-"$CI_PROJECT_DIR/api/public-abi"}
 export CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$CI_PROJECT_DIR/contracts/src"}
-export API_DIRECTORY=${API_DIRECTORY:-"$CI_PROJECT_DIR/api"}
+export API_DIRECTORY=${API_DIRECTORY:-"$CI_PROJECT_DIR"}
 export WEBAPP_NAME=${WEBAPP_NAME:-"Monax Application"}
 export WEBAPP_EMAIL=${WEBAPP_EMAIL:-"help@$org_url"}
 

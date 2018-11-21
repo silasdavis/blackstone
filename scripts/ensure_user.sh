@@ -8,6 +8,8 @@ UserID=$1
 GroupID=$2
 HomeDir=$3
 
+[[ "$UserID" -eq  "0" ]] && exit 0
+
 # Create user and group unless they already exist
 group=$(awk -F: -v id=${GroupID} '$3 == id { print $1 }' /etc/group)
 user=$(awk -F: -v id=${UserID} '$3 == id { print $1 }' /etc/passwd)

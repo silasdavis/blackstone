@@ -29,8 +29,8 @@ RUN apk --update --no-cache add \
 
 ARG INSTALL_BASE=/usr/local/bin
 
-ARG UID=1000
-ARG GID=1000
+ARG UID=0
+ARG GID=0
 
 # Create user and group unless they already exist
 COPY ./scripts/ensure_user.sh $INSTALL_BASE/
