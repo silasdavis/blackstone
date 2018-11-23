@@ -149,7 +149,7 @@ module.exports = (app) => {
    * @apiName CreateBpmModel
    * @apiGroup BPMModel
    *
-   * BPMN XML needs to be passed in the request body as plain text or application/xml
+   * @apiDescription BPMN XML needs to be passed in the request body as plain text or application/xml
    *
    * @apiExample {curl} Simple:
    *     curl -i /bpm/process-models

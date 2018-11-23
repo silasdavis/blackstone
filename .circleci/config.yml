@@ -21,7 +21,7 @@ jobs:
 
   deploy_docs:
     docker:
-    - image: node:11
+    - image: node:11-alpine
     steps:
       - checkout
       - &add_ssh_key
@@ -29,20 +29,6 @@ jobs:
           fingerprints:
             - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - run: ./docs/generate.sh
-
-  deploy_platform:
-    docker:
-      - image: appropriate/curl
-    steps:
-      - run:
-          name: Trigger upgrade
-          command: |
-            set -x
-            curl \
-              --request POST \
-              --form token=$PLATFORM_DEPLOY_KEY \
-              --form ref=master \
-              $PLATFORM_DEPLOY_URL
 
   update_info:
     docker:
@@ -57,7 +43,6 @@ jobs:
           at: /tmp
       - run: ./scripts/update_info.sh
 
-
 workflows:
   version: 2
   test_and_deploy:
@@ -71,15 +56,6 @@ workflows:
       - update_info:
           requires:
             - test
-          filters:
-            branches:
-              only:
-                - master
-                - develop
-      - deploy_platform:
-          requires:
-            - test
-            - update_info
           filters:
             branches:
               only:
