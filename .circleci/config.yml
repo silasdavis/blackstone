@@ -6,6 +6,10 @@ jobs:
       enabled: true
       image: circleci/classic:201808-01
     steps:
+      - &add_ssh_key
+        add_ssh_keys:
+          fingerprints:
+            - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - checkout
       - run: make test
       - persist_to_workspace:
@@ -23,11 +27,8 @@ jobs:
     docker:
     - image: node:11-alpine
     steps:
+      - <<: *add_ssh_key
       - checkout
-      - &add_ssh_key
-        add_ssh_keys:
-          fingerprints:
-            - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - run: ./docs/generate.sh
 
   update_info:
@@ -37,8 +38,8 @@ jobs:
       CHAIN_INFO: "t5"
       CHAIN_INFO_HOST: "info.agreements.network"
     steps:
-      - checkout
       - <<: *add_ssh_key
+      - checkout
       - attach_workspace:
           at: /tmp
       - run: ./scripts/update_info.sh
