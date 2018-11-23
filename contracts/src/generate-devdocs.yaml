@@ -534,9 +534,9 @@ jobs:
     binpath: ../../docs/docdev/commons-auth
     instance: all
 
-- name: ClientRegistry
+- name: ChainAuthorizations
   build:
-    contract: commons-auth/ClientRegistry.sol
+    contract: commons-auth/ChainAuthorizations.sol
     binpath: ../../docs/docdev/commons-auth
     instance: all
 
@@ -570,9 +570,9 @@ jobs:
     binpath: ../../docs/docdev/commons-auth
     instance: all
 
-- name: EcosystemDb
+- name: EcosystemRegistryDb
   build:
-    contract: commons-auth/EcosystemDb.sol
+    contract: commons-auth/EcosystemRegistryDb.sol
     binpath: ../../docs/docdev/commons-auth
     instance: all
 
