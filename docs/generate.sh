@@ -4,7 +4,6 @@ export BURROW_VERSION="0.23.1"
 export SOLC_VERSION="0.4.25"
 
 # Prerequisites
-apk add --no-cache --update curl openssh git
 curl -L https://github.com/hyperledger/burrow/releases/download/v${BURROW_VERSION}/burrow_${BURROW_VERSION}_Linux_x86_64.tar.gz > /tmp/burrow.tar.gz
 tar -xzf /tmp/burrow.tar.gz -C /usr/local/bin/
 curl -L https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/solc-static-linux > /usr/local/bin/solc

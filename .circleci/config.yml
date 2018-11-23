@@ -28,6 +28,7 @@ jobs:
     - image: node:11-alpine
     steps:
       - <<: *add_ssh_key
+      - run: apk add --upgrade --no-cache bash curl git openssh
       - checkout
       - run: ./docs/generate.sh
 
