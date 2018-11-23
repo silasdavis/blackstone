@@ -13,6 +13,7 @@ npm config set unsafe-perm true # https://github.com/npm/uid-number/issues/3
 npm install -g apidoc apidocjs-markdown json2md
 
 # Setup Git
+echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > $HOME/.ssh/config
 git config --global user.name "Billings, a Bot"
 git config --global user.email "billings@monax.io"
 git clone git@github.com:agreements-network/docs ../docs.agreements.network
