@@ -2,40 +2,29 @@ const sendgrid = require('@sendgrid/mail');
 const crypto = require('crypto');
 const passport = require('passport');
 const bcrypt = require('bcryptjs');
-const Analytics = require('analytics-node');
 const boom = require('boom');
 
 const { asyncMiddleware } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.auth');
-const pool = require(`${global.__common}/postgres-db`);
-const analytics = new Analytics(global.__settings.monax.analyticsID);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 
 const login = (req, res, next) => {
-  if (!req.body.user || !req.body.password) {
+  if ((!req.body.username && !req.body.email) || !req.body.password) {
     return next(boom.badRequest('Username or password not supplied'));
   }
-  return passport.authenticate('local-login', { session: false }, (err, user, info) => {
-    if (err) return next(boom.badImplementation(`Failed to login user ${req.body.user}: ${err}`));
+  const strategy = req.body.username ? 'username-login' : 'email-login';
+  return passport.authenticate(strategy, { session: false }, (err, user, info) => {
+    if (err) return next(boom.badImplementation(`Failed to login user ${req.body.username || req.body.email}: ${err}`));
     if (!user || !user.address) {
       return next(boom.unauthorized(info.message));
     }
     const userData = {
       address: user.address,
-      id: req.body.user,
+      id: user.username,
       createdAt: user.createdAt,
     };
-    analytics.identify({
-      userId: userData.id,
-      traits: {
-        userContract: userData.address,
-      },
-    });
-    analytics.track({
-      event: 'Logged in',
-      userId: userData.id,
-    });
-    log.info(`${req.body.user} logged in successfully`);
+    log.info(`${user.username} logged in successfully`);
     return res
       .cookie(global.__settings.monax.cookie.name, user.token, {
         secure: global.__settings.monax.cookie.secure,
@@ -61,11 +50,11 @@ const logout = (req, res) => {
 };
 
 const createRecoveryCode = asyncMiddleware(async (req, res) => {
-  const client = await pool.connect();
+  const client = await appPool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query({
-      text: 'SELECT id FROM users WHERE email = $1',
+      text: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       values: [req.body.email],
     });
     let msg;
@@ -117,7 +106,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
 const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
-  const { rows } = await pool.query({
+  const { rows } = await appPool.query({
     text:
       "SELECT * FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
     values: [hash.digest('hex')],
@@ -130,7 +119,7 @@ const validateRecoveryCode = asyncMiddleware(async (req, res) => {
 });
 
 const resetPassword = (req, res, next) => (async () => {
-  const client = await pool.connect();
+  const client = await appPool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
     codeHash.update(req.params.recoveryCode);

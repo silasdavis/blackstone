@@ -106,9 +106,10 @@ const validateProcess = (process, dataStoreFields) => {
       // test if transition conditions only exist on outgoing transitions of xor gateways
       const sourceXorGateways = process.xorGateways.filter(gw => gw.id === transition.source);
       const sourceAndGateways = process.andGateways.filter(gw => gw.id === transition.source);
-      if (!process.activityMap[transition.target]) {
-        validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an incoming transition of an activity`);
-      }
+      // TODO commented out due to false validation errors on transition with condition between two XOR gateways
+      // if (!process.activityMap[transition.target]) {
+      //   validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an incoming transition of an activity`);
+      // }
       if (sourceXorGateways.length !== 1 && sourceAndGateways.length !== 0) {
         validationErrors.push(`Transition ${transition.id} in process ${process.id} has a transition condition but is not an outgoing transition of an XOR gateway`);
       }
@@ -257,7 +258,14 @@ const getTransitionFromNode = (node) => {
       properties.rhValue === undefined
     ) {
       throw boom.badData(`Invalid expression for transition ${node.id}. ` +
-        '"lhDataPath", "lhDataStorageId", "operator" and "rhValue" are required fields.');
+        '"lhDataPath", "lhDataStorageId", "operator" and "rhValue" are required fields.'); // TODO instead of rhValue (fixed), an rhDataStorageId and rhDataPath are also valid. The if statement needs work to support this
+    }
+    // check if dataStorageIds are set and replace reserved DataStorage ID for PROCESS_INSTANCE with an empty string, if detected
+    if (properties.lhDataStorageId === BPMN_DATASTORAGEID_PROCESS_INSTANCE) {
+      properties.lhDataStorageId = '';
+    }
+    if (properties.rhDataStorageId === BPMN_DATASTORAGEID_PROCESS_INSTANCE) {
+      properties.rhDataStorageId = '';
     }
     transition.condition = properties;
   }

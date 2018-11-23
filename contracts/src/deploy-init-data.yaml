@@ -120,15 +120,43 @@ jobs:
     function: addAccessPoint
     data: ["WebAppApprovalForm", "readApproved", 1, 0]
 
-- name: DeployAgreementSignatureCheck
-  call:
-    destination: $DOUG
-    bin: DOUG
-    function: deployContract
-    data: [AgreementSignatureCheck, $AgreementSignatureCheck]
+# TotalCounterCheck
+- name: TotalCounterCheck
+  deploy:
+    contract: active-agreements/TotalCounterCheck.bin
+    libraries: ErrorsLib:$ErrorsLib
 
-- name: AssertAgreementSignatureCheckDeployment
-  assert:
-    key: $DeployAgreementSignatureCheck
-    relation: eq
-    val: "true"
+- name: registerTotalCounterCheck
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addApplication
+    data: ["TotalCounterCheck", 1, $TotalCounterCheck, "", ""]
+
+- name: addTotalCounterCheckNumberInAccessPoint
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["TotalCounterCheck", "numberIn", 8, 0]
+
+- name: addTotalCounterCheckTotalInAccessPoint
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["TotalCounterCheck", "totalIn", 8, 0]
+
+- name: addTotalCounterCheckNumberOutAccessPoint
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["TotalCounterCheck", "numberOut", 8, 1]
+
+- name: addTotalCounterCheckCompletedOutAccessPoint
+  call:
+    destination: $ApplicationRegistry
+    bin: ApplicationRegistry
+    function: addAccessPoint
+    data: ["TotalCounterCheck", "completedOut", 1, 1]

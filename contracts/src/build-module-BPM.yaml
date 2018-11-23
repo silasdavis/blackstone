@@ -1,35 +1,35 @@
 jobs:
-  - name: ProcessModelInterface
+  - name: ProcessModel
     build:
       contract: bpm-model/ProcessModel.sol
-  - name: ProcessDefinitionInterface
+  - name: ProcessDefinition
     build:
       contract: bpm-model/ProcessDefinition.sol
-  - name: ProcessModelRepositoryInterface
+  - name: ProcessModelRepository
     build:
       contract: bpm-model/ProcessModelRepository.sol
-  - name: WorkflowUserAccountInterface
-    build:
-      contract: bpm-runtime/WorkflowUserAccount.sol
-  - name: ProcessModelRepository
+  - name: DefaultProcessModelRepository
     build:
       contract: bpm-model/DefaultProcessModelRepository.sol
   - name: ProcessModelRepositoryDb
     build:
       contract: bpm-model/ProcessModelRepositoryDb.sol
-  - name: ApplicationRegistryInterface
+  - name: ProcessInstance
+    build:
+      contract: bpm-runtime/ProcessInstance.sol
+  - name: ApplicationRegistry
     build:
       contract: bpm-runtime/ApplicationRegistry.sol
-  - name: ApplicationRegistry
+  - name: DefaultApplicationRegistry
     build:
       contract: bpm-runtime/DefaultApplicationRegistry.sol
   - name: ApplicationRegistryDb
     build:
       contract: bpm-runtime/ApplicationRegistryDb.sol
-  - name: BpmServiceInterface
+  - name: BpmService
     build:
       contract: bpm-runtime/BpmService.sol
-  - name: BpmService
+  - name: DefaultBpmService
     build:
       contract: bpm-runtime/DefaultBpmService.sol
   - name: BpmServiceDb

@@ -11,7 +11,7 @@ analyticsID = "TEST"
 #upload_limit =        # default: '100mb'
 
 [monax.chain]
-host = "127.0.0.1"
+host = "chain"
 port = 10997
 
 [monax.accounts]
@@ -34,4 +34,5 @@ maxAge = 3600000 # milliseconds
 httpOnly = true
 
 [monax.pg]
-database_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"

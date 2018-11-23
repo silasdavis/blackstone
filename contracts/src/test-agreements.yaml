@@ -49,6 +49,7 @@ jobs:
     instance: IsoCountries100
     libraries: ErrorsLib:$ErrorsLib
 
+
 # ArchetypeRegistryTest
 - name: ArchetypeRegistryTest
   deploy:
@@ -123,6 +124,7 @@ jobs:
     relation: eq
     val: success
 
+
 # ActiveAgreementTest
 - name: ActiveAgreementTest
   deploy:
@@ -138,9 +140,9 @@ jobs:
 
 - name: assertActiveAgreementSetup
   assert:
-    key: $testActiveAgreementSetup.0
+    key: $testActiveAgreementSetup
     relation: eq
-    val: 1
+    val: success
 
 - name: testActiveAgreementSigning
   call:
@@ -150,9 +152,9 @@ jobs:
 
 - name: assertActiveAgreementSigning
   assert:
-    key: $testActiveAgreementSigning.0
+    key: $testActiveAgreementSigning
     relation: eq
-    val: 1
+    val: success
 
 - name: testActiveAgreementCancellation
   call:
@@ -162,9 +164,9 @@ jobs:
 
 - name: assertActiveAgreementCancellation
   assert:
-    key: $testActiveAgreementCancellation.0
+    key: $testActiveAgreementCancellation
     relation: eq
-    val: 1
+    val: success
 
 
 # ActiveAgreementRegistryTest
@@ -182,9 +184,9 @@ jobs:
 
 - name: assertActiveAgreementRegistry
   assert:
-    key: $testActiveAgreementRegistry.0
+    key: $testActiveAgreementRegistry
     relation: eq
-    val: 1
+    val: success
 
 - name: testAgreementCollections
   call:
@@ -194,9 +196,9 @@ jobs:
 
 - name: assertAgreementCollections
   assert:
-    key: $testAgreementCollections.0
+    key: $testAgreementCollections
     relation: eq
-    val: 1
+    val: success
 
 - name: testGoverningAgreements
   call:
@@ -446,9 +448,9 @@ jobs:
 
 - name: assertExecutedAgreementWorkflow
   assert:
-    key: $testExecutedAgreementWorkflow.0
+    key: $testExecutedAgreementWorkflow
     relation: eq
-    val: 1
+    val: success
 
 - name: testCanceledAgreementWorkflow
   call:
@@ -458,6 +460,6 @@ jobs:
 
 - name: assertCanceledAgreementWorkflow
   assert:
-    key: $testCanceledAgreementWorkflow.0
+    key: $testCanceledAgreementWorkflow
     relation: eq
-    val: 1
+    val: success

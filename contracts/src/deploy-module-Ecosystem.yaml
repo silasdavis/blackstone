@@ -45,7 +45,7 @@ jobs:
 - name: EcosystemRegistry
   deploy:
     contract: DefaultEcosystemRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib
 
 - name: EcosystemRegistryDb
   deploy:

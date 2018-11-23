@@ -29,8 +29,8 @@ contract ContractManagerTest {
         contractsDb.transferSystemOwnership(mgr);
         if (!mgr.acceptDatabase(contractsDb)) return "DB not accepted in manager";
 
-        Service1 s1 = new Service1();
-        Service2 s2 = new Service2();
+        TestServiceWithDependency s1 = new TestServiceWithDependency([1,0,0]);
+        DefaultTestService s2 = new DefaultTestService([1,2,0]);
         ServiceDb service1Db = new ServiceDb(s1);
         ServiceDb service2Db = new ServiceDb(s2);
         s1.acceptDatabase(service1Db);
@@ -51,10 +51,15 @@ contract ContractManagerTest {
         if (listeners.length != 1) return "There should be 1 change listener for service2";
         if (listeners[0] != address(s1)) return "Service1 should be a change listener for service2";
 
-        // perform an update to service B and check if dependencies were updated
-        Service2_1 s2_1 = new Service2_1();
+        // perform an update to service 2 and check if dependencies were updated
+        DefaultTestService s2_1 = new DefaultTestService([2,4,0]);
         if (mgr.addContract(keyService2, s2_1) != 2) return "The number of contracts should still be 2 after updating service2";
         if (s1.getDependency1() != address(s2_1)) return "Dependency on service2 in service1 should've been updated to service2_1";
+
+        // perform an upgrade to service 1 and check if dependency to service2 is intact as well as listener 
+        TestServiceWithDependency s1_1 = new TestServiceWithDependency([2,0,0]);
+        if (mgr.addContract(keyService1, s1_1) != 2) return "The number of contracts should still be 2 after updating service1";
+        if (s1.getDependency1() != address(s2_1)) return "Dependency on service2 in service1_1 should point to latest service2_1";
 
         // finally, upgrade ContractManager to a new version and verify that all contracts are pointing to the new ContractLocator
         NewVersionContractManager mgrNew = new NewVersionContractManager();
@@ -62,15 +67,15 @@ contract ContractManagerTest {
 
         if (!mgr.upgrade(mgrNew)) return "Upgrading to a new ContractManager should succeed";
 
-        // address addr;
-        // for (uint i=0; i<contractsDb.getNumberOfContracts(); i++) {
-        //     addr = contractsDb.getContract(contractsDb.getContractKeyAtIndex(i));
-        //     if (ERC165Utils.implementsInterface(addr, ERC165_ID_ContractLocatorEnabled)) {
-        //         // at this point we can assume we're dealing with a test service contract defined below that actually uses a contractLocator
-        //         if (AbstractTestService(addr).getContractLocator() != address(mgrNew))
-        //             return "ContractLocatorEnabled services should point to the new ContractManager";
-        //     }
-        // }
+        address addr;
+        for (uint i=0; i<contractsDb.getNumberOfContracts(); i++) {
+            addr = contractsDb.getContract(contractsDb.getContractKeyAtIndex(i));
+            if (ERC165Utils.implementsInterface(addr, ERC165_ID_ContractLocatorEnabled)) {
+                // at this point we can assume we're dealing with a test service contract defined below that actually uses a contractLocator
+                if (TestServiceWithDependency(addr).getContractLocator() != address(mgrNew))
+                    return "ContractLocatorEnabled services should point to the new ContractManager";
+            }
+        }
         
         return "success";
     }
@@ -80,19 +85,31 @@ contract ContractManagerTest {
     }
 }
 
-contract AbstractTestService is AbstractDbUpgradeable {
+/**
+ * @dev A versioned service implementation with an upgradeable DB
+ */
+contract DefaultTestService is Versioned, AbstractDbUpgradeable {
+
+    constructor(uint8[3] _version) Versioned(_version[0], _version[1], _version[2]) {
+
+    }
 
     function getDatabase() public view returns (address) {
         return database;
     }
-
-    function getContractLocator() public view returns (address);
 }
 
-contract Service1 is Versioned(1,0,0), AbstractTestService, ContractLocatorEnabled {
+/**
+ * @dev Extends the DefaultTestService with capabilities for dependency injection via a ContractLocator
+ */
+contract TestServiceWithDependency is DefaultTestService, ContractLocatorEnabled {
 
     address dependency1;
     string dep1Name = "io.monax/agreements-network/services/Service2";
+
+    constructor(uint8[3] _version) DefaultTestService(_version) {
+
+    }
 
     function contractChanged(string _name, address, address _newAddress) external pre_onlyByLocator {
         if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked(dep1Name))){
@@ -116,14 +133,6 @@ contract Service1 is Versioned(1,0,0), AbstractTestService, ContractLocatorEnabl
     }
 }
 
-contract Service2 is Versioned(1,2,0), AbstractTestService {
-    function getContractLocator() public view returns (address) {}
-}
-
-contract Service2_1 is Versioned(2,4,0), AbstractTestService {
-    function getContractLocator() public view returns (address) {}
-}
-
 contract ServiceDb is SystemOwned {
 
     constructor(address _systemOwner) public {
@@ -132,8 +141,13 @@ contract ServiceDb is SystemOwned {
 
 }
 
-// The following ContractManager implementation produces a warning during compilation due to the redundant use of the Versioned() constructor.
-// This is a small workaround in order to create a ContractManager with a higher version to test manager upgrades.
-contract NewVersionContractManager is Versioned(8,3,2), DefaultContractManager {
+/**
+ * ContractManager with a higher version to test manager upgrades.
+ */
+contract NewVersionContractManager is DefaultContractManager {
+
+    constructor() public DefaultContractManager() {
+        semanticVersion = [8,3,2]; // overriding DefaultContractManager version
+    }
 
 }

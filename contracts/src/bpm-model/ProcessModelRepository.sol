@@ -16,6 +16,23 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	event UpdateProcessDefinition(string table, address model, address processDefinition);
 	event UpdateActivityDefinition(string table, address model, address processDefinition, bytes32 activityId);
 
+	event LogProcessModelCreation(
+		bytes32 indexed eventId,
+		address model_address,
+		bytes32 id,
+		string name,
+		uint version_major,
+		uint version_minor,
+		uint version_patch,
+		address author,
+		bool is_private,
+		bool active,
+		bytes32 diagram_address,
+		bytes32 diagram_secret
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_MODELS = "AN://process-models";
+
 	/**
 	 * @dev Factory function to instantiate a ProcessModel. The model is automatically added to this repository.
 	 * @param _id the model ID
@@ -26,7 +43,7 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	function createProcessModel(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress);
 
 	/**
 	 * @dev Adds the given ProcessModel to this repository.
@@ -84,7 +101,7 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @return diagramAddress - the HOARD address of the model diagram file
 	 * @return diagramSecret - the HOARD secret of the model diagram file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, bytes32 name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret);
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret);
 
 	/**
 	 * @dev Returns the process definition address when the model ID and process definition ID are provided

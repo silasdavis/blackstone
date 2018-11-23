@@ -6,6 +6,7 @@ import "commons-events/EventEmitter.sol";
 /**
  * @title Organization Interface
  * @dev Describes functionality of a contract representing an organization in an ecosystem application.
+ * Also provides access to constants required when dealing with organizations.
  */
 contract Organization is EventEmitter, ERC165 {
 
@@ -13,8 +14,16 @@ contract Organization is EventEmitter, ERC165 {
 	bytes4 public constant ERC165_ID_Organization = bytes4(keccak256(abi.encodePacked("addUser(address)"))) ^
 													bytes4(keccak256(abi.encodePacked("removeUser(address)"))) ^
 													bytes4(keccak256(abi.encodePacked("authorizeUser(address,bytes32)")));
+
+	bytes32 public constant DEFAULT_DEPARTMENT_ID = "DEFAULT_DEPARTMENT";
 	
-	function addDepartment(bytes32 _id, string _name) external returns (uint error);
+	/**
+	 * @dev Adds the department with the specified ID and name to this Organization.
+	 * @param _id the department ID (must be unique)
+	 * @param _name the name/label for the department
+	 * @return true if the department was added successfully, false otherwise
+	 */
+	function addDepartment(bytes32 _id, string _name) public returns (bool);
 
 	function getNumberOfDepartments() external view returns (uint size);
 
@@ -22,6 +31,8 @@ contract Organization is EventEmitter, ERC165 {
 
 	function getDepartmentData(bytes32 _id) external view returns (uint userCount, string name);
 
+	function getDepartmentName(bytes32 _id) external view returns (string name);
+	
 	function departmentExists(bytes32 _id) external view returns (bool);
 
 	/**
@@ -111,4 +122,8 @@ contract Organization is EventEmitter, ERC165 {
 	 * @return true if authorized, false otherwise
 	 */
 	function authorizeUser(address _userAccount, bytes32 _department) external view returns (bool);
+
+	function getOrganizationKey() public view returns (bytes32);
+
+  function getOrganizationDetails() external view returns (uint numberOfApprovers, bytes32 organizationKey);
 }

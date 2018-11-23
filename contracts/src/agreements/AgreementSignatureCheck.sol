@@ -1,47 +1,26 @@
 pragma solidity ^0.4.23;
 
-import "commons-base/ErrorsLib.sol";
-import "commons-management/ContractLocator.sol";
-import "commons-management/ContractLocatorEnabled.sol";
 import "bpm-runtime/Application.sol";
-import "bpm-runtime/BpmService.sol";
+import "bpm-runtime/ProcessInstance.sol";
 
 import "agreements/ActiveAgreement.sol";
 
-contract AgreementSignatureCheck is ContractLocatorEnabled, Application {
+contract AgreementSignatureCheck is Application {
     
-    string constant serviceIdBpmService = "BpmService";
-    BpmService bpmService;
-
     /**
-     * @dev Treats the provided DataStorage as the agreement and checks if the TX performer has applied a signature.
-     * The function will REVERT if the presence of the signature could not be established.
+     * @dev Accesses the "agreement" IN data mapping to retrieve the address of an ActiveAgreement and verifies that the TX performer has applied a signature.
+     * REVERTS if:
+     * - the IN data mapping "agreement" cannot be accessed or results in an empty address
+     * - the presence of the signature on the agreement cannot be established.
+     * @param _piAddress the address of the ProcessInstance in which context the application is invoked
+     * @param _activityInstanceId the globally unique ID of the ActivityInstance invoking this contract
+     * param _activityId the ID of the activity definition
      * @param _txPerformer the address performing the transaction
      */
-    function complete(bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
-        address agreement = bpmService.getActivityInDataAsAddress(_activityInstanceId, "agreement");
-        require(agreement != 0x0);
-        require(ActiveAgreement(agreement).isSignedBy(_txPerformer));
-    }
-
-    /**
-     * @dev Overrides ContractLocatorEnabled.setContractLocator(address)
-     */
-    function setContractLocator(address _locator) public {
-        super.setContractLocator(_locator);
-        bpmService = BpmService(ContractLocator(_locator).getContract(serviceIdBpmService));
-        ErrorsLib.revertIf(address(bpmService) == 0x0,
-			ErrorsLib.DEPENDENCY_NOT_FOUND(), "AgreementSignatureCheck.setContractLocator", "BpmService not found");
-        ContractLocator(_locator).addContractChangeListener(serviceIdBpmService);
-    }
-
-    /**
-     * @dev Implements ContractLocatorEnabled.setContractLocator(address)
-     */
-    function contractChanged(string _name, address, address _newAddress) external pre_onlyByLocator {
-        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked(serviceIdBpmService))) {
-            bpmService = BpmService(_newAddress);
-        }
+    function complete(address _piAddress, bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
+        address agreement = ProcessInstance(_piAddress).getActivityInDataAsAddress(_activityInstanceId, "agreement");
+        require(agreement != 0x0, "Unable to locate an ActiveAgreement.");
+        require(ActiveAgreement(agreement).isSignedBy(_txPerformer), "ActiveAgreement is not signed by the performing user. Reverting ...");
     }
 
 }

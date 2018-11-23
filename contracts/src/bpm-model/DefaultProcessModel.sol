@@ -35,7 +35,7 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	constructor(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret)
+	constructor(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret)
 		Versioned(_version[0], _version[1], _version[2])
 		AbstractNamedElement(_id, _name) public {
 		hoardAddress = _hoardAddress;
@@ -55,6 +55,14 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		newAddress = new DefaultProcessDefinition(_id, this);
 		error = processDefinitions.insert(_id, newAddress);
 		emitEvent("UPDATE_PROCESS_DEFINITION", newAddress);
+		emit LogProcessDefinitionCreation(
+			EVENT_ID_PROCESS_DEFINITIONS,
+			newAddress,
+			_id,
+			bytes32(""),
+			ProcessModel(this).getId(),
+			address(this)
+		);
 	}
 	
 	/**
@@ -101,7 +109,6 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		if (processInterfaces[_interfaceId]) return BaseErrors.RESOURCE_ALREADY_EXISTS();
 		processInterfaces[_interfaceId] = true;
 		processInterfaceKeys.push(_interfaceId);
-		emitEvent("UPDATE_PROCESS_MODEL", this);
 		return BaseErrors.NO_ERROR();
 	}
 

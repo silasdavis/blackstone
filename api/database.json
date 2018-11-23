@@ -1,12 +1,13 @@
 {
+  "defaultEnv": {"ENV": "NODE_ENV"},
+
   "dev": {
     "driver": "pg",
     "user": "blackstone_development",
     "password": "blackstone_development",
     "host": "postgres",
     "port": "5432",
-    "database": "blackstone_development",
-    "schema": "blackstone_development"
+    "database": "blackstone_development"
   },
 
   "cluster": {
@@ -15,11 +16,10 @@
     "password": "blackstone_development",
     "host": "localhost",
     "port": "5432",
-    "database": "blackstone_development",
-    "schema": "blackstone_development"
+    "database": "blackstone_development"
   },
 
-  "prod": {
+  "production": {
     "driver": "pg",
     "user": {"ENV": "POSTGRES_DB_USER"},
     "password": {"ENV": "POSTGRES_DB_PASSWORD"},

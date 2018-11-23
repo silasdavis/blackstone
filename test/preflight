@@ -4,62 +4,31 @@
 # read variables
 for var in "$@"
 do
-  if [[ $var == "--runAPI" ]]; then runAPI=true; fi
-  if [[ $var == "--skipChain" ]]; then skipChain=true; fi
+    if [[ $var == "--runAPI" ]]; then
+        runAPI=true;
+    fi
 done
 
 # ----------------------------------------------------------
 #  variables
 if [[ "$CI_PROJECT_DIR" == "" ]]; then
-  export CI_PROJECT_DIR=`pwd`
+    export CI_PROJECT_DIR=`pwd`
 fi
 
 export NODE_ENV=${NODE_ENV:-"production"}
 export API_ABI_DIRECTORY_LOCAL=${API_ABI_DIRECTORY_LOCAL:-"$CI_PROJECT_DIR/api/public-abi"}
 export CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$CI_PROJECT_DIR/contracts/src"}
+export API_DIRECTORY=${API_DIRECTORY:-"$CI_PROJECT_DIR"}
 export WEBAPP_NAME=${WEBAPP_NAME:-"Monax Application"}
 export WEBAPP_EMAIL=${WEBAPP_EMAIL:-"help@$org_url"}
-export CHAIN_SOURCE_DIRECTORY=$CI_PROJECT_DIR/test/chain
-export CONTRACTS_DEPLOYMENT_ADDRESS="F390C8CA854874472CAD38C0135F78097BCB632D"
 
-# ----------------------------------------------------------
-#  functions
-test_setup(){
-  echo "Setting up..."
-  cd $CHAIN_SOURCE_DIRECTORY
-
-  if [[ "$skipChain" = true ]]; then
-    echo "Not booting Burrow, but expecting burrow to be running default ports"
-  else
-    rm -rf $CHAIN_SOURCE_DIRECTORY/.burrow
-    burrow start 2>>$CI_PROJECT_DIR/burrow.log &
-    burrow_pid=$!
-  fi
-
-  cd $CI_PROJECT_DIR
-  echo "Setup complete"
-}
-
-test_teardown(){
-  echo "Cleaning up..."
-
-  if ! [[ "$skipChain" = true ]]; then
-    kill ${burrow_pid}
-    wait ${burrow_pid} 2> /dev/null &
-    sleep 1 #ensure it's dead
-    rm -rf $CHAIN_SOURCE_DIRECTORY/.burrow
-  fi
-
-  if [ ${#failures[@]} -eq 0 ]
-  then
-    echo "Tests are Green. :)"
-  else
-    cat $CI_PROJECT_DIR/test-contracts.log
+config_app() {
     echo
-    echo "Tests are Red. :("
-    printf 'Failed bundle:\n\n%s\n' "${failures[@]}"
-  fi
-
-  cd $CI_PROJECT_DIR
-  exit ${#failures[@]}
+    echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
+    set +e
+    mkdir -p $API_ABI_DIRECTORY_LOCAL
+    while read -r abi; do
+        cp $CONTRACTS_DIRECTORY/bin/$abi.bin $API_ABI_DIRECTORY_LOCAL/$abi.bin
+    done < $CI_PROJECT_DIR/contracts/abi.csv
+    set -e
 }

@@ -1,6 +1,4 @@
 
-##########
-# Mappings
 jobs:
 
 - name: ErrorsLib
@@ -27,6 +25,8 @@ jobs:
     instance: DataStorageUtils
     libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
 
+#####
+# MappingLib Test
 - name: MappingsLibTest
   deploy:
     contract: MappingsLibTest.bin
@@ -188,6 +188,27 @@ jobs:
     key: $testStringAddressMap
     relation: eq
     val: success
+
+#####
+# DataStorageUtils Test
+- name: DataStorageUtilsTest
+  deploy:
+    contract: DataStorageUtilsTest.bin
+    instance: DataStorageUtilsTest
+    libraries: ErrorsLib:$ErrorsLib, DataStorageUtils:$DataStorageUtils
+
+- name: testConditionalDataHandling
+  call:
+    destination: $DataStorageUtilsTest
+    bin: DataStorageUtilsTest
+    function: testConditionalDataHandling
+
+- name: assertConditionalDataHandling
+  assert:
+    key: $testConditionalDataHandling
+    relation: eq
+    val: success
+
 
 #####
 # DataStorage Test

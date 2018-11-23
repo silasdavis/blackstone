@@ -1,30 +1,36 @@
 #!/usr/bin/env bash
 
+set -e
+
 # Preflight checks
-if [ -z $CHAIN_URL_GRPC ]; then
-  echo "Please set \$CHAIN_URL_GRPC and then rerun me. Exiting."
-  exit 1
+if [[ -z "$CHAIN_URL_GRPC" ]]; then
+    echo "Please set \$CHAIN_URL_GRPC and then rerun me. Exiting."
+    exit 1
 fi
-if [ -z $CONTRACTS_DEPLOYMENT_ADDRESS ]; then
-  echo "Please set \$CONTRACTS_DEPLOYMENT_ADDRESS and then rerun me. Exiting."
-  exit 1
+if [[ -z "$CONTRACTS_DEPLOYMENT_ADDRESS" ]]; then
+    echo "Please set \$CONTRACTS_DEPLOYMENT_ADDRESS and then rerun me. Exiting."
+    exit 1
 fi
 
 main() {
-  echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
-  echo -e "Using chain url: $CHAIN_URL_GRPC"
-  set -e
-  cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/src
-  burrow deploy \
-    --file=build.yaml
-  burrow deploy \
-    --chain-url="$CHAIN_URL_GRPC" \
-    --mempool-signing="true" \
-    --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
-    --file=deploy.yaml
+    sleep 3
+    echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
+    echo -e "Using chain url: $CHAIN_URL_GRPC"
 
-  cp ../abi.csv ./bin/.
-  exit 0
+    cd "$(dirname "${BASH_SOURCE[0]}")/src"
+
+    deploy_file="deploy.yaml"
+    [[ -z "$1" ]] || deploy_file="deploy-$1.yaml"
+
+    echo "Deploying contract suite from $(readlink -f "$deploy_file")"
+
+    burrow deploy \
+ --chain-url="$CHAIN_URL_GRPC" \
+ --mempool-signing="true" \
+ --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
+ --file="$deploy_file"
+
+    exit 0
 }
 
 main $@

@@ -18,7 +18,94 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	event UpdateActiveAgreementCollectionMap(string name, bytes32 key1, address key2);
 	event UpdateGoverningAgreements(string name, address key1, address key2);
 
+	// Vent specific events
+	event LogAgreementCreation(
+		bytes32 indexed eventId, 
+		address	agreement_address,
+		address	archetype_address,
+		string name,
+		address	creator,
+		bool is_private,
+		uint8	legal_state,
+		uint32 max_event_count,
+		address	formation_process_instance,
+		address	execution_process_instance,
+		bytes32 hoard_address,
+		bytes32 hoard_secret,
+		bytes32 event_log_hoard_address,
+		bytes32 event_log_hoard_secret
+	);
+
+	event LogAgreementFormationProcessUpdate(
+		bytes32 indexed eventId, 
+		address agreement_address,
+		address formation_process_instance
+	);
+
+	event LogAgreementExecutionProcessUpdate(
+		bytes32 indexed eventId, 
+		address agreement_address,
+		address execution_process_instance
+	);
+
+	event LogAgreementMaxEventCountUpdate(
+		bytes32 indexed eventId,
+		address agreement_address,
+		uint32 max_event_count
+	);
+
+	event LogAgreementEventLogReference(
+		bytes32 indexed eventId,
+		address agreement_address, 
+		bytes32 event_log_hoard_address,
+		bytes32 event_log_hoard_secret
+	);
+
+	event LogAgreementCollectionCreation(
+		bytes32 indexed eventId,
+		bytes32 collection_id,
+		string name,
+		address author,
+		uint8 collection_type,
+		bytes32 package_id
+	);
+
+	event LogAgreementToCollectionUpdate(
+		bytes32 indexed eventId,
+		bytes32 collection_id,
+		address agreement_address,
+		string agreement_name,
+		address archetype_address
+	);
+
+	event LogActiveAgreementToPartyUpdate(
+		bytes32 indexed eventId,
+		address agreement_address,
+		address party,
+		address signed_by,
+		uint signature_timestamp
+	);
+
+	event LogGoverningAgreementUpdate(
+		bytes32 indexed eventId,
+		address agreement_address,
+		address governing_agreement_address,
+		string governing_agreement_name
+	);
+
+	event LogAgreementLegalStateUpdate(
+		bytes32 indexed eventId,
+		address agreement_address,
+		uint8 legal_state
+	);
+
 	bytes32 public constant DATA_ID_AGREEMENT = "agreement";
+
+	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
+	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTIONS = "AN://agreement-collections";
+	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTION_MAP = "AN://agreement-to-collection";
+	bytes32 public constant EVENT_ID_AGREEMENT_PARTY_MAP = "AN://agreement-to-party";
+	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreements";
 
 	/**
 	 * @dev Creates an Active Agreement with the given parameters
@@ -27,9 +114,6 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _creator address
 	 * @param _hoardAddress Address of agreement params in hoard
 	 * @param _hoardSecret Secret for hoard retrieval
-	 * @param _eventLogHoardAddress Address of events log in hoard
-	 * @param _eventLogHoardSecret Secret for hoard retrieval
-	 * @param _maxNumberOfEvents Max number of events allowed
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
@@ -43,18 +127,20 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 */
 	function createAgreement(
 		address _archetype,
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
-		bool _isPrivate, 
+		bytes32 _hoardSecret,
+		bool _isPrivate,
 		address[] _parties, 
 		bytes32 _collectionId, 
 		address[] _governingAgreements) 
 		external returns (address activeAgreement);
+
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(address _agreement, uint32 _maxNumberOfEvents) external;
 
 	/**
 	 * @dev Adds an agreement to given collection
@@ -136,7 +222,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, bytes32 name, address creator, bytes32 hoardAddress, bytes32 hoardSecret, bytes32 eventLogHoardAddress, bytes32 eventLogHoardSecret, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, bytes32 hoardAddress, bytes32 hoardSecret, bytes32 eventLogHoardAddress, bytes32 eventLogHoardSecret, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -182,17 +268,6 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _eventLogHoardSecret New hoard secret key of event log for agreement
 	 */
 	 function setEventLogReference(address _activeAgreement, bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external;
-
-	 /**
- 	 * @dev Creates a AgreementPartyAccount with the specified parameters and adds it to the ParticipantsManager
- 	 * @param _accountsManager the ParticipantsManager address
-	 * @param _id an identifier for the user
-	 * @param _owner the owner of the user account
-	 * @param _ecosystem the address of an Ecosystem to which the user account is connected
-	 * @return an error code indicating success or failure
-	 * @return userAccount user account address, or 0x0 if not successful
-	 */
-	function createUserAccount(address _accountsManager, bytes32 _id, address _owner, address _ecosystem) external returns (uint error, address userAccount);
 
 	/**
 	 * @dev Creates a new agreement collection
@@ -248,7 +323,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return agreementName name of agreement
 	 * @return archetype address of archetype
 	 */
-	function getAgreementDataInCollection(bytes32 _id, address _agreement) external view returns (bytes32 agreementName, address archetype);	
+	function getAgreementDataInCollection(bytes32 _id, address _agreement) external view returns (string agreementName, address archetype);	
 
 	/**
 	 * @dev Returns the number governing agreements for given agreement
@@ -270,5 +345,5 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _governingAgreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (bytes32 name);
+	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name);
 }

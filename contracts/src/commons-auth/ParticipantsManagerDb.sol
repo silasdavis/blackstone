@@ -12,10 +12,9 @@ import "commons-collections/MappingsLib.sol";
  */
 contract ParticipantsManagerDb is SystemOwned {
   
-  using MappingsLib for Mappings.Bytes32AddressMap;
   using MappingsLib for Mappings.AddressBoolMap;
 
-  Mappings.Bytes32AddressMap userAccounts;
+  Mappings.AddressBoolMap userAccounts;
   Mappings.AddressBoolMap organizations;
 
   /**
@@ -25,27 +24,25 @@ contract ParticipantsManagerDb is SystemOwned {
     systemOwner = msg.sender;
   }
  
-  function addUserAccount(bytes32 _id, address _account) external pre_onlyBySystemOwner returns (uint error) {
-    error = userAccounts.insert(_id, _account);
+  function addUserAccount(address _account) external pre_onlyBySystemOwner returns (uint error) {
+    error = userAccounts.insert(_account, true);
   }
 
-  function userAccountExists(bytes32 _id) external view returns (bool) {
-    return userAccounts.exists(_id);
+  function userAccountExists(address _account) external view returns (bool) {
+    return userAccounts.exists(_account);
   }
 
   function getNumberOfUserAccounts() external view returns (uint) {
     return userAccounts.keys.length;
   }
 
-  function getUserAccount(bytes32 _id) external view returns (uint, address) {
-    if (!userAccounts.exists(_id)) return (BaseErrors.RESOURCE_NOT_FOUND(), 0x0);
-    return (BaseErrors.NO_ERROR(), userAccounts.get(_id));
+  function getUserAccount(address _account) external view returns (bool) {
+    return userAccounts.get(_account);
   }
 
-  function getUserAccountAtIndex(uint _index) external view returns (address userAccount) {
-    uint error;
-    uint next;
-    (error, userAccount, next) = userAccounts.valueAtIndexHasNext(_index);
+  function getUserAccountAtIndex(uint _index) external view returns (address) {
+    ( , address account) = userAccounts.keyAtIndex(_index);
+    return account;
   }
 
   function addOrganization(address _address) external pre_onlyBySystemOwner returns (uint error) {

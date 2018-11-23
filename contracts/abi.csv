@@ -1,7 +1,7 @@
 ParticipantsManager
+UserAccount
 ActiveAgreement
 ActiveAgreementRegistry
-AgreementPartyAccount
 ApplicationRegistry
 Archetype
 ArchetypeRegistry
@@ -16,4 +16,5 @@ ParameterTypesAccess
 ProcessDefinition
 ProcessModel
 ProcessModelRepository
-WorkflowUserAccount
+ProcessInstance
+BpmRuntimeLib

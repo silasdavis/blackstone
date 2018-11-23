@@ -37,7 +37,7 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 * @param _agreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement) external view returns (bytes32 agreementName);
+	function getGoverningAgreementData(address _agreement) external view returns (string agreementName);
 
 	/**
 	 * @dev Gets number of parties
@@ -58,6 +58,10 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 */
 	function getArchetype() external view returns (address);
 
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external;
 
 	/**
 	 * @dev Returns the Hoard Address
@@ -88,7 +92,7 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 * @dev Returns the max number of events for the event log
 	 * @return the max number of events for the event log
 	 */
-	function getMaxNumberOfEvents() external view returns (uint maxNumberOfEvents);
+	function getMaxNumberOfEvents() external view returns (uint32);
 
 	/**
 	 * @dev Returns the creator
@@ -107,6 +111,20 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	 * This function should REVERT if the cancel operation could not be carried out successfully.
 	 */
 	function sign() external;
+
+	/**
+	 * @dev Returns the signee of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the address of the signee (if the party authorized a signee other than itself)
+	 */
+	function getSignee(address _party) external view returns (address signee);
+
+	/**
+	 * @dev Returns the timestamp of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the time of signing or 0 if the address is not a party to this agreement or has not signed yet
+	 */
+	function getSignatureTimestamp(address _party) external view returns (uint signatureTimestamp);
 
 	/**
 	 * @dev Returns the timestamp of the signature of the given party.

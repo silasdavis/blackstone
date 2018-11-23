@@ -4,6 +4,7 @@ const toml = require('toml')
 const path = require('path')
 const _ = require('lodash')
 const monax = require('@monax/burrow')
+const crypto = require('crypto');
 
 // Set up global directory constants
 global.__common = path.resolve(__dirname, '../', 'common')
@@ -50,14 +51,14 @@ global.__monax_constants = require(path.join(__common, 'monax-constants'));
   const logger = require(__common + '/monax-logger')
   const log = logger.getLogger('monax')
 
-  const pool = require(__common + '/postgres-db')
-  log.info('Postgres DB pool created.')
+  const { appPool, chainPool } = require(__common + '/postgres-db');
+  log.info('Postgres DB pools created.')
 
   const contracts = require(__controllers + '/contracts-controller')
   let client
 
   try {
-    client = await pool.connect()
+    client = await appPool.connect()
     await client.query('BEGIN')
 
     // Check if 'users' table exists; exit if it doesn't
@@ -82,12 +83,13 @@ global.__monax_constants = require(path.join(__common, 'monax-constants'));
       try {
         // See if user already exists on chain first, and if they do, just return the existing address
         // This is in case this script is run after users have signed up on the new chain
-        const { address } = await contracts.getUserById(username)
+        const hashedId = crypto.createHash('sha256').update(username).digest('hex');
+        const { address } = await contracts.getUserById(hashedId)
         log.info(`User ${username} already exists at address: ${address}`)
         return new Promise((resolve) => resolve({}))
       } catch (err) {
         // If not, create a new user on chain and return the new address; mark this as a new user
-        return contracts.createUser({ id: username }).then((address) => {
+        return contracts.createUser({ id: crypto.createHash('sha256').update(username).digest('hex') }).then((address) => {
           return { id, address, newUser: true }
         })
       }

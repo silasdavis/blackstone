@@ -19,6 +19,99 @@ contract ArchetypeRegistry is Upgradeable {
 	event UpdateArchetypePackageMap(string name, bytes32 key1, address key2);
 	event UpdateGoverningArchetypes(string name, address key1, address key2);
 
+	event LogArchetypeCreation(
+		bytes32 indexed eventId,
+		address archetype_address,
+		string name,
+		string description,
+		uint32 price,
+		address author,
+		bool active,
+		bool is_private,
+		address successor,
+		address formation_process_Definition,
+		address execution_process_Definition
+	);
+
+	event LogArchetypeSuccessorUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		address successor
+	);
+
+	event LogArchetypePriceUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		uint32 price
+	);
+
+	event LogArchetypeActive(
+		bytes32 indexed eventId,
+		address archetype_address,
+		bool active
+	);
+
+	event LogArchetypePackageCreation(
+		bytes32 indexed eventId,
+		bytes32 package_id,
+		string name,
+		string description,
+		address author,
+		bool is_private,
+		bool active
+	);
+
+	event LogArchetypePackageActive(
+		bytes32 indexed eventId,
+		bytes32 package_id,
+		bool active
+	);
+
+	event LogArchetypeToPackageUpdate(
+		bytes32 indexed eventId,
+		bytes32 package_id,
+		address archetype_address,
+		string archetype_name
+	);
+
+	event LogArchetypeParameterUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		bytes32 parameter_name,
+		uint8 parameter_type,
+		uint position		
+	);
+
+	event LogArchetypeDocumentUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		bytes32 document_key,
+		bytes32 hoard_address,
+		bytes32 secret_key
+	);
+
+	event LogArchetypeJurisdictionUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		bytes2 country,
+		bytes32 region
+	);
+
+	event LogGoverningArchetypeUpdate(
+		bytes32 indexed eventId,
+		address archetype_address,
+		address governing_archetype_address,
+		string governing_archetype_name
+	);
+
+	bytes32 public constant EVENT_ID_ARCHETYPES = "AN://archetypes";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGES = "AN://archetype-packages";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGE_MAP = "AN://archetype-to-package";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETERS = "AN://archetype/parameters";
+	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENTS = "AN://archetype/documents";
+	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetype/jurisdictions";
+	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
+
 	/**
 	 * @dev Creates a new archetype
 	 * @param _name name
@@ -35,33 +128,17 @@ contract ArchetypeRegistry is Upgradeable {
 	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
-		bytes32 _name, 
-		address _author, 
-		string _description, 
-		uint _price, 
+		uint32 _price, 
 		bool _isPrivate, 
 		bool _active, 
+		string _name,
+		address _author, 
+		string _description,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
 		address[] _governingArchetypes) 
 		external returns (address archetype);
-
-	// /**
-	//  * @dev Detects if governing archetypes array has duplicates and returns true/false accordingly.
-	//  * Also returns the true count of governing archetypes in the array, since the array is a static array of length 100.
-	//  * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	//  * @param _archetypes the address[100] array of governing archetypes
-	//  * @return bool indicating if there are duplicates
-	//  * @return uint count of unique governing archetypes (0 if there are duplicates)
-	//  */
-	// function hasDuplicates(address[100] _archetypes) internal returns (bool, uint);
-
-	// /**
-	//  * @dev Clears the temporary mapping that is used to check for duplicate governing archetypes
-	//  * @param _archetypes the address[100] array of governing archetypes
-	//  */
-	// function clearDuplicateMap (address[100] _archetypes) internal;
 
 	/**
 	 * @dev Adds archetype to package
@@ -157,22 +234,18 @@ contract ArchetypeRegistry is Upgradeable {
 		* @return active bool
 		* @return isPrivate bool
 		* @return successor address
-		* @return formationProcessId
 		* @return formationProcessDefinition
-		* @return executionProcessId
 		* @return executionProcessDefinition
 		*/
 	function getArchetypeData(address _archetype) external view returns (
-		bytes32 name,
+		string name,
 		string description,
-		uint price,
+		uint32 price,
 		address author,
 		bool active,
 		bool isPrivate,
 		address successor,
-		bytes32 formationProcessId,
 		address formationProcessDefinition,
-		bytes32 executionProcessId,
 		address executionProcessDefinition
 	);
 
@@ -193,7 +266,7 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _archetype archetype
 	 * @param _price price
 	 */
-	function setArchetypePrice(address _archetype, uint _price) external;
+	function setArchetypePrice(address _archetype, uint32 _price) external;
 
 	/**
 	 * @dev Adds a new archetype package
@@ -266,7 +339,7 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _archetype address of archetype
 	 * @return archetypeName name of archetype
 	 */
-	function getArchetypeDataInPackage(bytes32 _id, address _archetype) external view returns (bytes32 archetypeName);
+	function getArchetypeDataInPackage(bytes32 _id, address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Determines whether given archetype address is in the package identified by the packageId
@@ -369,5 +442,5 @@ contract ArchetypeRegistry is Upgradeable {
 	 * @param _governingArchetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (bytes32 name);
+	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (string name);
 }

@@ -2,16 +2,17 @@ const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const passportJwt = require('passport-jwt');
 const bcrypt = require('bcryptjs');
-const pool = require(`${global.__common}/postgres-db`);
+const { chainPool, appPool } = require(`${global.__common}/postgres-db`);
 const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
-const sqlCache = require(`${global.__controllers}/sqlsol-query-helper`);
+const sqlCache = require(`${global.__controllers}/postgres-query-helper`);
+const { getSHA256Hash } = require(`${global.__common}/controller-dependencies`);
 
 module.exports = (passport) => {
   const isValidUser = async (id) => {
     try {
-      await contracts.getUserById(id);
+      await contracts.getUserById(getSHA256Hash(id));
       return true;
     } catch (err) {
       if (err.output.statusCode === 404) {
@@ -39,8 +40,14 @@ module.exports = (passport) => {
     },
   };
 
-  const localOpts = {
-    usernameField: 'user',
+  const usernameOpts = {
+    usernameField: 'username',
+    passwordField: 'password',
+    passReqToCallback: true,
+  };
+
+  const emailOpts = {
+    usernameField: 'email',
     passwordField: 'password',
     passReqToCallback: true,
   };
@@ -56,43 +63,48 @@ module.exports = (passport) => {
   /*
   Local Strategy Flow:
   Get address hashed userId from chain
-  Get address from sqlsol using hashed userId
-  Compare chain address to sqlsol address and return unauthorized on mismatch
+  Get address from vent using hashed userId
+  Compare chain address to vent address and return unauthorized on mismatch
   Get address and password digest from pg
   Compare chain address to pg address and return unauthorized on mismatch
   Compare given password with password digest and return unauthorized on mismatch
   Return success
   */
-  const localStrategy = new LocalStrategy(localOpts, async (req, _user, password, done) => {
+  const authenticate = async (id, idType, password, done) => {
+    const text = `SELECT username, email, address, password_digest, created_at FROM users WHERE LOWER(${idType}) = LOWER($1)`;
     try {
-      const user = _user.toLowerCase();
-      const { address: addressFromChain, hashedId } = await contracts.getUserById(user);
-      const data = (await sqlCache.getUsers({ id: hashedId }))[0];
-      if (!data || data.address !== addressFromChain) return done(null, false, { message: 'Invalid login credentials' });
-      const { rows } = await pool.query({
-        text: 'SELECT address, password_digest, created_at FROM users WHERE username = $1',
-        values: [user],
+      const { rows } = await appPool.query({
+        text,
+        values: [id],
       });
       if (!rows[0]) {
         return done(null, false, { message: 'Invalid login credentials' });
       }
-      const { password_digest: pwDigest, address: addressFromPg, created_at: createdAt } = rows[0];
+      const {
+        username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
+      } = rows[0];
+      const hashedId = getSHA256Hash(id);
+      const { address: addressFromChain } = await contracts.getUserById(hashedId);
+      const data = (await sqlCache.getUsers({ id: hashedId }))[0];
+      if (!data) return done(null, false, { message: 'Invalid login credentials' });
       const isPassword = await bcrypt.compare(password, pwDigest);
       if (isPassword) {
-        if (addressFromChain === addressFromPg) {
+        if (addressFromChain === addressFromPg && data.address === addressFromChain) {
           const token = jwt.sign(
             {
               address: addressFromChain,
-              id: user,
+              id: username,
             },
             global.__settings.monax.jwt.secret,
             {
               expiresIn: global.__settings.monax.jwt.expiresIn,
-              subject: user,
+              subject: username,
               issuer: global.__settings.monax.jwt.issuer,
             },
           );
-          return done(null, { token, address: addressFromChain, createdAt }, { message: 'Login successful' });
+          return done(null, {
+            token, address: addressFromChain, createdAt, username,
+          }, { message: 'Login successful' });
         }
         return done(null, false, { message: 'Failed to login - User account address mismatch' });
       }
@@ -103,6 +115,13 @@ module.exports = (passport) => {
       }
       return done(boom.badImplementation(err));
     }
+  };
+  const usernameStrategy = new LocalStrategy(usernameOpts, async (req, username, password, done) => {
+    await authenticate(username, 'username', password, done);
+  });
+
+  const emailStrategy = new LocalStrategy(emailOpts, async (req, email, password, done) => {
+    await authenticate(email, 'email', password, done);
   });
 
   const jwtStrategy = new JwtStrategy(jwtOpts, async (req, jwtPayload, done) => {
@@ -121,6 +140,7 @@ module.exports = (passport) => {
     }
   });
 
-  passport.use('local-login', localStrategy);
+  passport.use('username-login', usernameStrategy);
+  passport.use('email-login', emailStrategy);
   passport.use('jwt', jwtStrategy);
 };

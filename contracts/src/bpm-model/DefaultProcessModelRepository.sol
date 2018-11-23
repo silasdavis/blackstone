@@ -38,7 +38,7 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 	 * @param _hoardAddress the HOARD address of the model file
 	 * @param _hoardSecret the HOARD secret of the model file
 	 */
-	function createProcessModel(bytes32 _id, bytes32 _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress) {
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress) {
 		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _hoardAddress, _hoardSecret);
 		error = addModel(pm);
 		if (error != BaseErrors.NO_ERROR())
@@ -67,6 +67,27 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 		_model.addEventListener("UPDATE_PROCESS_DEFINITION", this);
 		_model.addEventListener("UPDATE_ACTIVITY_DEFINITION", this);
 		emit UpdateProcessModel(TABLE_PROCESS_MODELS, _model);
+		emitModelCreationEvent(_model);
+	}
+
+	function emitModelCreationEvent(ProcessModel _model) internal {
+		bytes32 hoardAddress;
+		bytes32 hoardSecret;
+		(hoardAddress, hoardSecret) = _model.getDiagram();
+		emit LogProcessModelCreation(
+			EVENT_ID_PROCESS_MODELS,
+			address(_model),
+			_model.getId(),
+			_model.getName(),
+			_model.major(),
+			_model.minor(),
+			_model.patch(),
+			_model.getAuthor(),
+			_model.isPrivate(),
+			ProcessModelRepositoryDb(database).getActiveModel(_model.getId()) == address(_model),
+			hoardAddress,
+			hoardSecret
+		);
 	}
 	
 	/**
@@ -141,7 +162,7 @@ contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListene
 	 * @return diagramAddress - the HOARD address of the model diagram file
 	 * @return diagramSecret - the HOARD secret of the model diagram file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, bytes32 name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret) {
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret) {
 		ProcessModel m = DefaultProcessModel(_model);
 		id = m.getId();
 		name = m.getName();

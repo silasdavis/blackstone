@@ -13,5 +13,9 @@ contract Ecosystem is Owned {
     function removeExternalAddress(address _address) external;
 
     function isKnownExternalAddress(address _address) external view returns (bool);
+    
+    function addUserAccount(bytes32 _id, address _userAccount) external;
+
+    function getUserAccount(bytes32 _id) external view returns (address _account);
 
 }

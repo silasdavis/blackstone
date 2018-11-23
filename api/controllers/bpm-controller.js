@@ -15,38 +15,33 @@ const {
   hoard,
   getModelFromHoard,
 } = require(`${global.__controllers}/hoard-controller`);
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
 
 const getActivityInstances = asyncMiddleware(async (req, res) => {
-  let retData = [];
-  const activities = await sqlCache.getActivityInstances(req.query);
-  activities.forEach((instance) => {
-    retData.push(format('Task', instance));
-  });
-  retData = await pgCache.populateTaskNames(retData);
-  return res.status(200).json(retData);
+  const data = await sqlCache.getActivityInstances(req.query);
+  const activities = await pgCache.populateTaskNames(data);
+  return res.status(200).json(activities);
 });
 
 const _getDataMappingDetails = async (userAddress, activityInstanceId, dataMappingIds = [], direction) => {
   if (!activityInstanceId) throw boom.badRequest('Activity instance id required');
   try {
     let dataMappingDetails;
-    let accessPointDetails;
     // validations
-    const aiData = await sqlCache.getActivityInstanceData(activityInstanceId);
+    const aiData = (await sqlCache.getActivityInstanceData(activityInstanceId, userAddress))[0];
     const {
       performer,
       processDefinitionAddress,
       activityId,
       application,
       state,
-    } = format('Task', aiData);
+    } = aiData;
     if (!application) {
       throw boom.badData(`Cannot resolve data type since no application has been configured for activity ${activityInstanceId}`);
     }
-    const profileData = await sqlCache.getProfile(userAddress);
+    const profileData = await (sqlCache.getProfile(userAddress))[0];
     if (performer !== userAddress && !profileData.find(({ organization }) => organization === performer)) {
       throw boom.forbidden('User is not authorized to access this activity');
     }
@@ -60,12 +55,11 @@ const _getDataMappingDetails = async (userAddress, activityInstanceId, dataMappi
       delete mapping.dataStorage;
       return format('Data Mapping', mapping);
     });
-    // get access point details from sqlsol
-    accessPointDetails = await sqlCache.getAccessPointDetails(dataMappingDetails, application);
+    // get access point details from vent
+    const accessPointDetails = await sqlCache.getAccessPointDetails(dataMappingDetails, application);
     if (dataMappingDetails.length === 0 || accessPointDetails.length === 0) {
       throw boom.notFound(`No ${direction ? 'out-' : 'in-'}data mapping details found for activity ${activityInstanceId}`);
     }
-    accessPointDetails = accessPointDetails.map(_ap => format('Access Point', _ap));
     // merge the data mapping and access point objects
     dataMappingDetails = dataMappingDetails.map((_mapping) => {
       const matchingAp = accessPointDetails.filter(ap => ap.accessPointId === _mapping.dataMappingId)[0];
@@ -178,19 +172,8 @@ const _getOutDataForActivity = async (userAddress, activityInstanceId, dataMappi
 };
 
 const getActivityInstance = asyncMiddleware(async (req, res) => {
-  let activityInstanceResult = await sqlCache.getActivityInstanceData(req.params.id);
-  if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found`);
-  const profileData = await sqlCache.getProfile(req.user.address);
-  if (activityInstanceResult.isModelPrivate &&
-    activityInstanceResult.modelAuthor !== req.user.address &&
-    !profileData.find(({ organization }) => organization === activityInstanceResult.modelAuthor)) {
-    throw boom.forbidden('Task belongs to a process model the user is not authorized to access');
-  } else if (activityInstanceResult.taskType === 1 &&
-    activityInstanceResult.performer !== req.user.address &&
-    !profileData.find(({ organization }) => organization === activityInstanceResult.performer)) {
-    throw boom.forbidden('Task can only be accessed by the assigned performer');
-  }
-  activityInstanceResult = format('Task', activityInstanceResult);
+  let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
+  if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found or user not authorized`);
   activityInstanceResult = (await pgCache.populateTaskNames([activityInstanceResult]))[0];
   activityInstanceResult.data = {};
   try {
@@ -227,14 +210,10 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
 });
 
 const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res) => {
-  let retData = [];
   if (!address) throw boom.badRequest('No logged in user found');
-  const tasks = await sqlCache.getTasksByUserAddress(address);
-  tasks.forEach((task) => {
-    retData.push(format('Task', task));
-  });
-  retData = await pgCache.populateTaskNames(retData);
-  return res.status(200).json(retData);
+  const data = await sqlCache.getTasksByUserAddress(address);
+  const tasks = await pgCache.populateTaskNames(data);
+  return res.status(200).json(tasks);
 });
 
 const getModels = asyncMiddleware(async (req, res) => {
@@ -299,16 +278,16 @@ const completeActivity = asyncMiddleware(async (req, res) => {
       // are carried out as part of a single transaction in solidity
       // via the appropriately mapped function in
       // contracts-controller.js::getCompletionFunctionByParamType
-      await contracts.completeActivityByUser(userAddr, activityInstanceId,
+      await contracts.completeActivity(userAddr, activityInstanceId,
         preparedData[0].id, preparedData[0].dataType, preparedData[0].value);
     } else {
       // in case of multiple data mappings, they are written as a series of promises
       // and then the activity is completed as a separate transaction
       await writeDataForActivity(userAddr, activityInstanceId, preparedData);
-      await contracts.completeActivityByUser(userAddr, activityInstanceId);
+      await contracts.completeActivity(userAddr, activityInstanceId);
     }
   } else {
-    await contracts.completeActivityByUser(userAddr, activityInstanceId);
+    await contracts.completeActivity(userAddr, activityInstanceId);
   }
   return res.sendStatus(200);
 });
@@ -320,8 +299,8 @@ const signAndCompleteActivity = asyncMiddleware(async (req, res) => {
   const id = req.params.activityInstanceId;
   const agreementAddr = req.params.agreementAddress;
   const userAddr = req.user.address;
-  await contracts.signAgreementByUser(userAddr, agreementAddr);
-  await contracts.completeActivityByUser(userAddr, id);
+  await contracts.signAgreement(userAddr, agreementAddr);
+  await contracts.completeActivity(userAddr, id);
   return res.sendStatus(200);
 });
 
@@ -333,28 +312,23 @@ const getProcessInstanceCount = asyncMiddleware(async (req, res) => {
 
 const getDefinitions = asyncMiddleware(async (req, res) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
-  let retData = [];
-  const processes = await sqlCache.getProcessDefinitions(req.user.address, req.query.interfaceId);
-  processes.forEach((p) => {
-    retData.push(format('Definition', p));
-  });
-  retData = await pgCache.populateProcessNames(retData);
-  return res.status(200).json(retData);
+  const data = await sqlCache.getProcessDefinitions(req.user.address, req.query.interfaceId);
+  const processes = await pgCache.populateProcessNames(data);
+  return res.status(200).json(processes);
 });
 
 const getDefinition = asyncMiddleware(async (req, res) => {
-  let retData;
-  const processDefn = await sqlCache.getProcessDefinitionData(req.params.address);
-  const profileData = await sqlCache.getProfile(req.user.address);
+  const processDefn = (await sqlCache.getProcessDefinitionData(req.params.address))[0];
+  const profileData = (await sqlCache.getProfile(req.user.address))[0];
   if (!processDefn) throw boom.notFound(`Data for process definition ${req.params.address} not found`);
-  if (processDefn.private &&
+  if (processDefn.isPrivate &&
     processDefn.author !== req.user.address &&
     !profileData.find(({ organization }) => organization === processDefn.author)) {
     throw boom.forbidden('You are not authorized to view process details from this private model');
   }
-  retData = format('Definition', processDefn);
-  retData = await pgCache.populateProcessNames([retData]);
-  return res.status(200).json(retData[0]);
+  // retData = format('Definition', processDefn);
+  const data = await pgCache.populateProcessNames([processDefn]);
+  return res.status(200).json(data[0]);
 });
 
 const parseBpmnModel = async (rawXml) => {
@@ -371,10 +345,10 @@ const parseBpmnModel = async (rawXml) => {
 };
 
 const getModelDiagram = asyncMiddleware(async (req, res) => {
-  const model = await sqlCache.getProcessModelData(req.params.address);
+  const model = (await sqlCache.getProcessModelData(req.params.address))[0];
   if (!model) throw boom.notFound(`Data for process model ${req.params.address} not found`);
-  const profileData = await sqlCache.getProfile(req.user.address);
-  if (model.private &&
+  const profileData = (await sqlCache.getProfile(req.user.address))[0];
+  if (model.isPrivate &&
     model.author !== req.user.address &&
     !profileData.find(({ organization }) => organization === model.author)) {
     throw boom.forbidden('You are not authorized to view this private model');
@@ -430,31 +404,39 @@ const addTransitionsFromBpmn = (pdAddress, transitions) => {
       throw boom
         .badRequest(`Transition source and target IDs are required for transition id ${transition.id} in process definition at ${pdAddress}`);
     }
-    if (transition.condition) {
-      const transitionPromise = contracts.createTransition(pdAddress, transition.source, transition.target)
-        .then(() => {
-          contracts.createTransitionCondition(
-            pdAddress,
-            transition.condition.dataType,
-            transition.source,
-            transition.target,
-            transition.condition.lhDataPath,
-            transition.condition.lhDataStorageId,
-            0x0,
-            transition.condition.operator,
-            transition.condition.rhValue,
-          );
-        });
-      transitionPromises.push(transitionPromise);
-    } else {
-      transitionPromises.push(contracts.createTransition(pdAddress, transition.source, transition.target));
-    }
+    transitionPromises.push(contracts.createTransition(pdAddress, transition.source, transition.target));
   });
   // TODO - Implemented chaining of individual promises in the loop above. - this seems to have solved the out of sequence creation of transitions and transition conditions
   // Need to keep an eye out for the time being to ensure we don't get such failure with the above strategy
   return Promise.all(transitionPromises)
     .then(() => Promise.resolve())
-    .catch(err => Promise.reject(boom.badImplementation(`Failed to create transition(s) and condition(s): ${err.stack}`)));
+    .catch(err => Promise.reject(boom.badImplementation(`Failed to create transition(s): ${err.stack}`)));
+};
+
+const addTransitionConditionsFromBpmn = (pdAddress, transitions) => {
+  const conditionPromises = [];
+  transitions.forEach((transition) => {
+    if (transition.condition) {
+      conditionPromises.push(
+        contracts.createTransitionCondition(
+          pdAddress,
+          transition.condition.dataType,
+          transition.source,
+          transition.target,
+          transition.condition.lhDataPath,
+          transition.condition.lhDataStorageId,
+          0x0,
+          transition.condition.operator,
+          transition.condition.rhValue,
+        ),
+      );
+    }
+  });
+  // TODO - Implemented chaining of individual promises in the loop above. - this seems to have solved the out of sequence creation of transitions and transition conditions
+  // Need to keep an eye out for the time being to ensure we don't get such failure with the above strategy
+  return Promise.all(conditionPromises)
+    .then(() => Promise.resolve())
+    .catch(err => Promise.reject(boom.badImplementation(`Failed to create condition(s): ${err.stack}`)));
 };
 
 const addBpmnGateways = (pdAddress, gateways) => {
@@ -547,6 +529,7 @@ const addProcessToModel = (pmAddress, pd) => new Promise(async (resolve, reject)
     await addBpmnGateways(proc.address, pd.xorGateways);
     await addBpmnGateways(proc.address, pd.andGateways);
     await addTransitionsFromBpmn(proc.address, pd.transitions);
+    await addTransitionConditionsFromBpmn(proc.address, pd.transitions);
     await setDefaultTransitions(proc.address, pd.defaultTransitions);
     await contracts.isValidProcess(proc.address);
     await contracts.getStartActivity(proc.address);
@@ -581,7 +564,7 @@ const createModelFromBpmn = asyncMiddleware(async (req, res) => {
   const hoardRef = await pushModelXmlToHoard(rawXml);
   response.model.address = await contracts.createProcessModel(model.id, model.name, model.version, model.author, model.private, hoardRef.address, hoardRef.secretKey);
   response.processes = await addProcessesToModel(response.model.address, processes);
-  response.processes = response.processes.map(_proc => Object.assign(_proc, { private: model.private, author: model.author }));
+  response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));
   response.parsedDiagram = parsedResponse;
   return res.status(200).json(response);
 });

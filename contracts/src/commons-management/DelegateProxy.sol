@@ -35,19 +35,6 @@ contract DelegateProxy is StorageDefProxied {
         }
     }
 
-    // High-level delegatecall which seems a bit more elegant, less code
-
-    // bool callSuccess = upgradableContractAddress.delegatecall(msg.data);
-
-    // if (callSuccess) {
-    //     assembly {
-            // let m := mload(0x40)
-            // returndatacopy(m, 0, returndatasize)
-            // return(0, returndatasize)    //     }
-    // } else {
-    //     revert();d
-    // }
-
     /**
      * @dev Returns the proxied contract
      * @return the address of the proxied contract

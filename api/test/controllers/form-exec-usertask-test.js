@@ -10,13 +10,13 @@ const expect = chai.expect
 const assert = chai.assert
 const _ = require('lodash')
 const monax = require('@monax/burrow')
+const crypto = require('crypto');
 
 global.__appDir = path.resolve()
 global.__common = path.resolve(__appDir, 'common')
 global.__config = path.resolve(__appDir, 'config')
 global.__contracts = path.resolve(__appDir, 'contracts')
 global.__abi = path.resolve(__appDir, 'public-abi')
-global.__sqlsol = path.resolve(__appDir, 'sqlsol')
 global.__routes = path.resolve(__appDir, 'routes')
 global.__controllers = path.resolve(__appDir, 'controllers')
 global.__data = path.resolve(__appDir, 'data')
@@ -50,15 +50,12 @@ const contracts = require(path.join(__controllers, 'contracts-controller'))
 const agreementsController = require(path.join(__controllers, 'agreements-controller'))
 const bpm = require(path.join(__controllers, 'bpm-controller'))
 const createModel = require('./model-creation-helper').createModel
-const sqlCache = require(path.join(__controllers, 'sqlsol-query-helper'))
+const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 
 before(function (done) {
   this.timeout(99999999)
   contracts.load().then(() => {
     log.info('Contracts loaded.')
-    return contracts.initCache()
-  }).then(() => {
-    log.info('SQL Cache initiated.')
     log.info('Application started. Running Contracts Test Suite ...')
     done()
   }).catch(error => {
@@ -155,8 +152,8 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }
 
   it('Should create a buyer and a seller', async () => {
-    let resBuyer = await contracts.createUser(buyer)
-    let resSeller = await contracts.createUser(seller)
+    let resBuyer = await contracts.createUser({ id: crypto.createHash('sha256').update(buyer.id).digest('hex') });
+    let resSeller = await contracts.createUser({ id: crypto.createHash('sha256').update(seller.id).digest('hex') });
     resBuyer.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     resSeller.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     buyer.address = resBuyer
@@ -270,14 +267,14 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should validate agreement parameters', async () => {
-    let params = await agreementsController.getAgreementParameters(agreement.address)
-    let buyerExists = false, sellerExists = false
+    const params = await agreementsController.getAgreementParameters(agreement.address);
+    let buyerExists = false, sellerExists = false;
     params.forEach(param => {
-      if (param.name === 'Buyer' && param.value.match(/[0-9A-Fa-f]{40}/)) buyerExists = true
-      if (param.name === 'Seller' && param.value.match(/[0-9A-Fa-f]{40}/)) sellerExists = true
-    })
-    expect(buyerExists).to.be.true
-    expect(sellerExists).to.be.true
+      if (param.name === 'Buyer' && param.value.match(/[0-9A-Fa-f]{40}/)) buyerExists = true;
+      if (param.name === 'Seller' && param.value.match(/[0-9A-Fa-f]{40}/)) sellerExists = true;
+    });
+    expect(buyerExists).to.be.true;
+    expect(sellerExists).to.be.true;
   }).timeout(10000)
 
   /************************************
@@ -298,7 +295,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
         let tasks = await sqlCache.getTasksByUserAddress(buyer.address)
         expect(tasks.length).to.equal(1)
         expect(tasks[0].processAddress).to.equal(piAddress)
-        expect(global.hexToString(tasks[0].activityId)).to.equal(buyTask.activityId)
+        expect(tasks[0].activityId).to.equal(buyTask.activityId)
         expect(tasks[0].agreementAddress).to.equal(agreement.address)
         expect(tasks[0].state).to.equal(4)
         aiId = tasks[0].activityInstanceId
@@ -310,11 +307,11 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should sign agreement by buyer', async () => {
-    await assert.isFulfilled(contracts.signAgreementByUser(buyer.address, agreement.address))
+    await assert.isFulfilled(contracts.signAgreement(buyer.address, agreement.address))
   }).timeout(10000)
 
   it('Should complete task by buyer', async () => {
-    await assert.isFulfilled(contracts.completeActivityByUser(buyer.address, aiId))
+    await assert.isFulfilled(contracts.completeActivity(buyer.address, aiId))
   }).timeout(10000)
 
   it('Should confirm NO pending user task for buyer', done => {
@@ -333,14 +330,14 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   it('Should confirm pending user task for seller', async () => {
     let tasks = await sqlCache.getTasksByUserAddress(seller.address)
     expect(tasks.length).to.equal(1)
-    expect(global.hexToString(tasks[0].activityId)).to.equal(sellTask.activityId)
+    expect(tasks[0].activityId).to.equal(sellTask.activityId)
     expect(tasks[0].agreementAddress).to.equal(agreement.address)
     expect(tasks[0].state).to.equal(4)
     aiId = tasks[0].activityInstanceId
   }).timeout(10000)
 
   it('Should complete task by seller', async () => {
-    await assert.isFulfilled(contracts.completeActivityByUser(seller.address, aiId))
+    await assert.isFulfilled(contracts.completeActivity(seller.address, aiId))
   }).timeout(10000)
 
   it('Should confirm NO pending user task for seller', done => {

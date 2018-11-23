@@ -22,14 +22,14 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	using MappingsLib for Mappings.Bytes32Bytes32Map;
 
 	address archetype;
-	bytes32 name;
+	string name;
 	address creator;
 	bool privateFlag;
 	bytes32 hoardAddress;
 	bytes32 hoardSecret;
 	bytes32 eventLogHoardAddress;
 	bytes32 eventLogHoardSecret;
-	uint maxNumberOfEvents;
+	uint32 maxNumberOfEvents;
 	address[] parties;
 	Agreements.LegalState legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 	mapping(address => Agreements.Signature) signatures;
@@ -43,22 +43,16 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _creator the account that created this agreement
 	 * @param _hoardAddress the address of the prose document in Hoard
 	 * @param _hoardSecret the secret to accessing the prose document in Hoard
-	 * @param _eventLogHoardAddress the address of the event log document in Hoard
-	 * @param _eventLogHoardSecret the secret to accessing the event log document in Hoard
-	 * @param _maxNumberOfEvents the maximum number of events that can be logged to the agreement
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 */
 	constructor(
 		address _archetype, 
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
+		bytes32 _hoardSecret,
 		bool _isPrivate, 
 		address[] _parties, 
 		address[] _governingAgreements) public 
@@ -68,9 +62,6 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		creator = _creator;
 		hoardAddress = _hoardAddress;
 		hoardSecret = _hoardSecret;
-		eventLogHoardAddress = _eventLogHoardAddress;
-		eventLogHoardSecret = _eventLogHoardSecret;
-		maxNumberOfEvents = _maxNumberOfEvents;
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
@@ -98,7 +89,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _agreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement) external view returns (bytes32 agreementName) {
+	function getGoverningAgreementData(address _agreement) external view returns (string agreementName) {
 		return ActiveAgreement(_agreement).getName();
 	}
 
@@ -106,7 +97,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @dev Gets name
 	 * @return name name
 	 */
-	function getName() public view returns (bytes32) {
+	function getName() public view returns (string) {
 		return name;
 	}
 
@@ -155,6 +146,13 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	}
 
 	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external {
+		maxNumberOfEvents = _maxNumberOfEvents;
+	}
+
+	/**
 	 * @dev Sets the Hoard Address and Hoard Secret for the Event Log
 	 */
 	function setEventLogReference(bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external {
@@ -176,7 +174,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @dev Returns the max number of events for the event log
 	 * @return the max number of events for the event log
 	 */
-	function getMaxNumberOfEvents() external view returns (uint) {
+	function getMaxNumberOfEvents() external view returns (uint32) {
 		return maxNumberOfEvents;
 	}
 
@@ -225,6 +223,24 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	}
 
 	/**
+	 * @dev Returns the signee of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the address of the signee (if the party authorized a signee other than itself)
+	 */
+	function getSignee(address _party) external view returns (address signee) {
+		signee = signatures[_party].signee;
+	}
+
+	/**
+	 * @dev Returns the timestamp of the signature of the given party.
+	 * @param _party the signing party
+	 * @return the time of signing or 0 if the address is not a party to this agreement or has not signed yet
+	 */
+	function getSignatureTimestamp(address _party) external view returns (uint signatureTimestamp) {
+		signatureTimestamp = signatures[_party].timestamp;
+	}
+
+	/**
 	 * @dev Returns the signee and timestamp of the signature of the given party.
 	 * @param _party the signing party
 	 * @return the address of the signee (if the party authorized a signee other than itself)
@@ -254,29 +270,26 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _id the bytes32 ID of an address array
 	 * @return the address array
 	 */
-	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[100]) {
+	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[]) {
 		if (_id == DATA_FIELD_AGREEMENT_PARTIES) {
-			address[100] memory response;
-			for (uint i = 0; i < parties.length; i++) {
-				response[i] = parties[i];
-			}
-			return response;
-		} else {
+			return parties;
+		}
+		else {
 			return dataStorageMap.get(_id).addressArrayValue;
 		}
 	}
 
 	/**
-	 * @dev Overridden method of DataStorage to return the number of parties for special ID DATA_FIELD_AGREEMENT_PARTIES.
+	 * @dev Overrides DataStorage.getArrayLength(bytes32).
+	 * Returns the number of parties for special ID DATA_FIELD_AGREEMENT_PARTIES. Otherwise behaves identical to DataStorage.getArrayLength(bytes32).
 	 * @param _id the ID of the data field
-	 * @param _fullscan whether to scan beyond non-default values
 	 * @return the size of the specified array
 	 */
-	function getNumberOfArrayEntries(bytes32 _id, bool _fullscan) public view returns (uint) {
+	function getArrayLength(bytes32 _id) public view returns (uint) {
 		if (_id == DATA_FIELD_AGREEMENT_PARTIES) {
 			return parties.length;
 		}
-		return super.getNumberOfArrayEntries(_id, _fullscan);
+		return super.getArrayLength(_id);
 	}
 
 	/**

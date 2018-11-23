@@ -1,7 +1,6 @@
 const boom = require('boom');
 const bcrypt = require('bcryptjs');
 const Joi = require('joi');
-const Analytics = require('analytics-node');
 const _ = require('lodash');
 
 const {
@@ -10,26 +9,29 @@ const {
   setUserIds,
   getNamesOfOrganizations,
   asyncMiddleware,
+  getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
-const pool = require(`${global.__common}/postgres-db`);
-const analytics = new Analytics(global.__settings.monax.analyticsID);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
-const sqlCache = require('./sqlsol-query-helper');
+const sqlCache = require('./postgres-query-helper');
 
 const getOrganizations = asyncMiddleware(async (req, res) => {
-  if (req.query.approver === 'true') req.query.approver = req.user.address;
+  if (req.query.approver === 'true') {
+    req.query.approver_address = req.user.address;
+    delete req.query.approver;
+  }
   try {
     const data = await sqlCache.getOrganizations(req.query);
-    // Sqlsol query has join that results in multiple rows for each org
+    // Vent query has join that results in multiple rows for each org
     // Consolidate data by storing in object 'aggregated'
     const aggregated = {};
-    data.forEach(({ address, approver }) => {
+    data.forEach(({ address, organizationKey, approver }) => {
       if (!aggregated[address]) {
-        aggregated[address] = { address, approvers: [] };
+        aggregated[address] = { address, organizationKey, approvers: [] };
       }
       aggregated[address].approvers.push(approver);
     });
@@ -44,7 +46,7 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
 const getOrganization = asyncMiddleware(async (req, res) => {
   try {
     const data = await sqlCache.getOrganization(req.params.address);
-    // Sqlsol query has left join that results in multiple rows for the org for each approver, user, department, and department member
+    // Vent query has left join that results in multiple rows for the org for each approver, user, department, and department member
     // Consolidate data by storing approvers and users in objects
     let approvers = {};
     let users = {};
@@ -76,10 +78,10 @@ const getOrganization = asyncMiddleware(async (req, res) => {
     if (!approvers.find(({ address }) => address === req.user.address) && !users.find(({ address }) => address === req.user.address)) {
       throw boom.forbidden('User is not an approver or member of this organization and not allowed access');
     }
-    const { address } = data[0];
+    const { address, organizationKey } = data[0];
     const { 0: { name } } = await getNamesOfOrganizations([{ address }]);
     const org = {
-      address, name, approvers, users, departments,
+      address, organizationKey, name, approvers, users, departments,
     };
     org.approvers = await setUserIds(org.approvers);
     org.users = await setUserIds(org.users);
@@ -100,7 +102,7 @@ const createOrganization = asyncMiddleware(async (req, res) => {
   }
   try {
     const address = await contracts.createOrganization(org);
-    await pool.query({
+    await appPool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
@@ -113,20 +115,20 @@ const createOrganization = asyncMiddleware(async (req, res) => {
 });
 
 const createOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': req.params.address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': req.params.address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
-  await contracts.addUserToOrganization(req.params.userAddress, req.params.address);
+  await contracts.addUserToOrganization(req.params.userAddress, req.params.address, req.user.address);
   return res.status(200).send();
 });
 
 const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': req.params.address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': req.params.address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
-  await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address);
+  await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address, req.user.address);
   return res.status(200).send();
 });
 
@@ -138,13 +140,13 @@ const createDepartment = asyncMiddleware(async (req, res) => {
   } else if (!/^[a-zA-Z0-9_]+/.test(id)) {
     throw boom.badRequest('Id cannot include spaces');
   }
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to create departments');
   }
-  await contracts.createDepartment(address, { id, name });
+  await contracts.createDepartment(address, { id, name }, req.user.address);
   // Optionally also add users in the same request
-  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user));
+  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
     .then(() => res.status(200).send({ id, name, users }))
     .catch((err) => {
@@ -155,22 +157,22 @@ const createDepartment = asyncMiddleware(async (req, res) => {
 
 const removeDepartment = asyncMiddleware(async (req, res) => {
   const { address, id } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove departments');
   }
-  await contracts.removeDepartment(address, id);
+  await contracts.removeDepartment(address, id, req.user.address);
   res.status(200).send();
 });
 
 const addDepartmentUsers = asyncMiddleware(async (req, res) => {
   const { address, id } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
   }
   const { users } = req.body;
-  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user));
+  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
     .then(() => res.status(200).send())
     .catch((err) => {
@@ -181,17 +183,17 @@ const addDepartmentUsers = asyncMiddleware(async (req, res) => {
 
 const removeDepartmentUser = asyncMiddleware(async (req, res) => {
   const { address, id, userAddress } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization': address });
+  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
   }
-  await contracts.removeDepartmentUser(address, id, userAddress);
+  await contracts.removeDepartmentUser(address, id, userAddress, req.user.address);
   res.status(200).send();
 });
 
 const _userExistsOnChain = async (id) => {
   try {
-    await contracts.getUserById(id);
+    await contracts.getUserById(getSHA256Hash(id));
     return true;
   } catch (err) {
     if (err.output.statusCode === 404) {
@@ -205,35 +207,33 @@ const registerUser = asyncMiddleware(async ({ body }, res) => {
   const { error, value } = Joi.validate(body, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
-    user: id, email, password, isProducer,
+    username: id, email, password, isProducer,
   } = value;
-  // check if email is registered in pg
-  const { rows } = await pool.query({
-    text: 'SELECT email FROM users WHERE email = $1',
-    values: [email],
+  // check if email or username already registered in pg
+  const { rows } = await appPool.query({
+    text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
+    values: [email, id],
   });
-  if (rows[0]) throw boom.badData(`Email ${email} already registered`);
+  if (rows[0]) {
+    if (rows[0].email === email.toLowerCase()) {
+      throw boom.badData(`Email ${email} already registered`);
+    } else if (rows[0].username === id.toLowerCase()) {
+      throw boom.badData(`Username ${id} already registered`);
+    }
+  }
 
   // check if username is registered on chain
   const userInCache = await _userExistsOnChain(id);
   if (userInCache) throw boom.badData(`Username ${id} already exists`);
 
   // create user on chain
-  const address = await contracts.createUser({ id });
+  const address = await contracts.createUser({ id: getSHA256Hash(id) });
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
 
-  // insert/update in user db
+  // insert in user db
   const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5)';
-  await pool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
-  analytics.identify({
-    userId: id,
-    traits: { userContract: address },
-  });
-  analytics.track({
-    event: 'Signed up',
-    userId: id,
-  });
+  await appPool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
   return res.status(200).json({ address, id });
 });
 
@@ -250,9 +250,11 @@ const getProfile = asyncMiddleware(async (req, res) => {
   // Multiple rows returned because of left join for organization departments.
   // Consolidating data in object.
   const organizations = {};
-  data.forEach(({ organization, department, departmentName }) => {
+  data.forEach(({
+    organization, organizationKey, department, departmentName,
+  }) => {
     if (organization && !organizations[organization]) {
-      organizations[organization] = { address: organization, departments: [] };
+      organizations[organization] = { address: organization, organizationKey, departments: [] };
     }
     if (department) {
       const { id } = format('Department', { id: department });
@@ -261,7 +263,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
   });
   user.organizations = await getNamesOfOrganizations(Object.values(organizations));
   try {
-    const { rows } = await pool.query({
+    const { rows } = await appPool.query({
       text: 'SELECT username AS id, email, created_at, first_name, last_name, country, region, is_producer, onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
@@ -281,7 +283,7 @@ const editProfile = asyncMiddleware(async (req, res) => {
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
   let client;
   try {
-    client = await pool.connect();
+    client = await appPool.connect();
     await client.query('BEGIN');
     if (req.body.newPassword) {
       const { rows } = await client.query({

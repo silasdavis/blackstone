@@ -5,6 +5,7 @@ import "commons-base/BaseErrors.sol";
 import "commons-events/AbstractEventListener.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 
+import "commons-auth/Ecosystem.sol";
 import "commons-auth/ParticipantsManager.sol";
 import "commons-auth/ParticipantsManagerDb.sol";
 import "commons-auth/UserAccount.sol";
@@ -27,7 +28,6 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     bytes32 constant EVENT_REMOVE_DEPARTMENT_USER = "RemoveDepartmentUser";
 
     // SQLSOL metadata
-    string constant TABLE_USERS = "USERS";
     string constant TABLE_ORGANIZATIONS = "ORGANIZATIONS";
     string constant TABLE_ORGANIZATION_USERS = "ORGANIZATION_USERS";
     string constant TABLE_ORGANIZATION_APPROVERS = "ORGANIZATION_APPROVERS";
@@ -35,49 +35,35 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     string constant TABLE_DEPARTMENT_USERS = "DEPARTMENT_USERS";
 
     /**
-     * @dev Creates and adds a user account
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
      * @param _id id (required)
      * @param _owner owner (optional)
      * @param _ecosystem owner (optional)
      * @return userAccount user account
      */
     function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount) {
-        ErrorsLib.revertIf(_id == "",
-            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultParticipantsManager.createUserAccount", "User ID must not be empty");
-        bytes32 hashedId = keccak256(abi.encodePacked(_id)); //TODO the ID should be hashed client-side and not here
-        ErrorsLib.revertIf(ParticipantsManagerDb(database).userAccountExists(hashedId),
-            ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultParticipantsManager.createUserAccount", "User with same ID already exists");
-        userAccount = new DefaultUserAccount(_id, _owner, _ecosystem); // passing user-readable id since DefaultUserAccount hashes it before storing
-        require(addUserAccount(userAccount) == BaseErrors.NO_ERROR(),
-            ErrorsLib.format(ErrorsLib.INVALID_STATE(), "DefaultParticipantsManager.createUserAccount", "Unable to add new UserAccount to DB"));
-    }
-
-    /**
-     * @dev Adds the specified UserAccount.
-     * @return NO_ERROR, RESOURCE_ALREADY_EXISTS if the user account ID is already registered
-     */
-    function addUserAccount(address _account) public returns (uint error) {
-        error = ParticipantsManagerDb(database).addUserAccount(UserAccount(_account).getId(), _account);
+        userAccount = new DefaultUserAccount(_owner, _ecosystem);
+        uint error = ParticipantsManagerDb(database).addUserAccount(userAccount);
         if (error == BaseErrors.NO_ERROR()) {
-            emit UpdateUserAccount(TABLE_USERS, _account);
+            if (_id != "" && _ecosystem != 0x0) {
+                Ecosystem(_ecosystem).addUserAccount(_id, userAccount);
+            }
+            emit LogUserCreation(
+                EVENT_ID_USER_ACCOUNTS,
+                userAccount,
+                _id,
+                _owner
+            );
         }
     }
 
     /**
-     * @dev Indicates whether the specified user account exists for the given userAccount ID
-     * @param _id userAccount ID
+     * @dev Indicates whether the specified user account exists for the given userAccount address
+     * @param _userAccount user account address
      * @return bool exists
      */
-    function userAccountExists(bytes32 _id) external view returns (bool) {
-        return ParticipantsManagerDb(database).userAccountExists(keccak256(abi.encodePacked(_id)));
-    }
-
-	/**
-	 * @dev Returns the user account address for the specified user account ID.
-	 */
-    function getUserAccount(bytes32 _id) external view returns (uint, address) {
-        bytes32 hashedId = keccak256(abi.encodePacked(_id)); // hashing the user-readable id before lookup
-        return ParticipantsManagerDb(database).getUserAccount(hashedId);
+    function userAccountExists(address _userAccount) external view returns (bool) {
+        return ParticipantsManagerDb(database).userAccountExists(_userAccount);
     }
 
     /**
@@ -96,17 +82,34 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
             Organization(_address).addEventListener(EVENT_UPDATE_DEPARTMENT_USER);
             Organization(_address).addEventListener(EVENT_REMOVE_DEPARTMENT_USER);
             emit UpdateOrganization(TABLE_ORGANIZATIONS, _address);
+            emit LogOrganizationCreation(
+                EVENT_ID_ORGANIZATION_ACCOUNTS,
+                _address,
+                Organization(_address).getNumberOfApprovers(),
+                Organization(_address).getOrganizationKey()
+            );
             fireOrganizationApproverEvents(_address);
+            fireDepartmentEvents(_address);
         }
     }
+
 	/**
 	 * @dev Creates and adds a new Organization with the specified parameters
-	 * @param _approvers the initial owners. If left empty, the msg.sender will be added as an owner.
+	 * @param _initialApprovers the initial owners/admins of the Organization. If left empty, the msg.sender will be set as an approver.
+	 * @param _defaultDepartmentName an optional custom name/label for the default department of this organization.
 	 * @return BaseErrors.NO_ERROR() if successful
 	 * @return the address of the newly created Organization, or 0x0 if not successful
 	 */
-    function createOrganization(address[10] _approvers) external returns (uint error, address organization) {
-        organization = new DefaultOrganization(_approvers);
+    function createOrganization(address[] _initialApprovers, string _defaultDepartmentName) external returns (uint error, address organization) {
+        address[] memory approvers;
+        if (_initialApprovers.length == 0) {
+            approvers = new address[](1);
+            approvers[0] = msg.sender;
+        }
+        else {
+            approvers = _initialApprovers;
+        }
+        organization = new DefaultOrganization(approvers, _defaultDepartmentName);
         error = ParticipantsManagerDb(database).addOrganization(organization);
         if (error == BaseErrors.NO_ERROR()) {
             Organization(organization).addEventListener(EVENT_UPDATE_ORGANIZATION_USER);
@@ -116,7 +119,14 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
             Organization(organization).addEventListener(EVENT_UPDATE_DEPARTMENT_USER);
             Organization(organization).addEventListener(EVENT_REMOVE_DEPARTMENT_USER);
             emit UpdateOrganization(TABLE_ORGANIZATIONS, organization);
+            emit LogOrganizationCreation(
+                EVENT_ID_ORGANIZATION_ACCOUNTS,
+                organization,
+                Organization(organization).getNumberOfApprovers(),
+                Organization(organization).getOrganizationKey()
+            );
             fireOrganizationApproverEvents(organization);
+            fireDepartmentEvents(organization);
 		}
     }
 
@@ -160,9 +170,9 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
 	 * @param _organization the address of an organization
 	 * @return the organization's ID and name
 	 */
-    function getOrganizationData(address _organization) external view returns (uint numApprovers) {
+    function getOrganizationData(address _organization) external view returns (uint numApprovers, bytes32 organizationKey) {
         Organization org = Organization(_organization);
-        numApprovers = org.getNumberOfApprovers();
+        (numApprovers, organizationKey) = org.getOrganizationDetails();
     }
 
     function departmentExists(address _organization, bytes32 _departmentId) external view returns (bool) {
@@ -263,41 +273,6 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         size = ParticipantsManagerDb(database).getNumberOfUserAccounts();
     }
 
-    /**
-     * @dev Gets data for the specified user account.
-     * @param _userAccount the user account address
-     * @return id user account ID
-     * @return owner user account owner
-     */
-    function getUserAccountData(address _userAccount) external view returns (bytes32 id, address owner) {
-        UserAccount acc = UserAccount(_userAccount);
-        id = acc.getId();
-        owner = acc.getOwner();
-    }
-
-    /**
-     * @dev Gets hashed user account ID and user account address for the specified user account ID.
-     * @param _id the user account ID
-     * @return error RESOURCE_NOT_FOUND or NO_ERROR
-     * @return addr user account address
-     * @return hashedId hashed user account ID
-     */
-    function getUserAccountDataById(bytes32 _id) external view returns (uint error, address addr, bytes32 hashedId) {
-        hashedId = keccak256(abi.encodePacked(_id)); // hashing the user-readable id before lookup
-        (error, addr) = ParticipantsManagerDb(database).getUserAccount(hashedId);
-        if (error != BaseErrors.NO_ERROR()) return (error, 0x0, "");
-        error = BaseErrors.NO_ERROR();
-    }
-
-    /**
-     * @dev Gets user account at the given position.
-     * @param _pos position
-     * @return userAccount user account address
-     */
-    function getUserAccountAtIndex(uint _pos) external view returns (address) {
-        return ParticipantsManagerDb(database).getUserAccountAtIndex(_pos);
-    }
-
 	/**
 	 * @dev Implementation of the EventListener interface. Can be called by a registered organization to trigger an UpdateOrganization event.
 	 * @param _event the event that was fired. Currently supports custom event EVENT_UPDATE_ORGANIZATION_USER
@@ -307,9 +282,20 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_ORGANIZATION_USER &&
              ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateOrganizationUser(TABLE_ORGANIZATION_USERS, _source, _data);
+            emit LogOrganizationUserUpdate(
+                EVENT_ID_ORGANIZATION_USERS,
+                _source,
+                _data
+            );
         } else if (_event == EVENT_REMOVE_ORGANIZATION_USER &&
              ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveOrganizationUser(TABLE_ORGANIZATION_USERS, _source, _data);
+            emit LogOrganizationUserRemoval(
+                EVENT_ID_ORGANIZATION_USERS,
+                bytes32("delete"),
+                _source,
+                _data
+            );
         }
     }
 
@@ -323,9 +309,23 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_ORGANIZATION_DEPARTMENT &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _source, _id);            
+            emit LogOrganizationDepartmentUpdate(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS,
+                _source,
+                _id,
+                Organization(_source).getNumberOfDepartmentUsers(_id),
+                Organization(_source).getDepartmentName(_id)
+            );
         } else if (_event == EVENT_REMOVE_ORGANIZATION_DEPARTMENT &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _source, _id);            
+            emit LogOrganizationDepartmentRemoval(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS, 
+                bytes32("delete"), 
+                _source, 
+                _id
+            );
+            
         }
     }
 
@@ -340,9 +340,22 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
         if (_event == EVENT_UPDATE_DEPARTMENT_USER &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit UpdateDepartmentUser(TABLE_DEPARTMENT_USERS, _source, _id, _userAccount);
+            emit LogDepartmentUserUpdate(
+                EVENT_ID_DEPARTMENT_USERS,
+                _source,
+                _id,
+                _userAccount
+            );
         } else if (_event == EVENT_REMOVE_DEPARTMENT_USER &&
             ParticipantsManagerDb(database).organizationExists(_source)) {
             emit RemoveDepartmentUser(TABLE_DEPARTMENT_USERS, _source, _id, _userAccount);
+            emit LogDepartmentUserRevomal(
+                EVENT_ID_DEPARTMENT_USERS,
+                bytes32("delete"),
+                _source,
+                _id,
+                _userAccount
+            );
         }
     }
 
@@ -353,6 +366,30 @@ contract DefaultParticipantsManager is Versioned(1,0,0), AbstractEventListener, 
     function fireOrganizationApproverEvents(address _address) internal {
         for (uint i=0; i<Organization(_address).getNumberOfApprovers(); i++) {
             emit UpdateOrganizationApprover(TABLE_ORGANIZATION_APPROVERS, _address, Organization(_address).getApproverAtIndex(i));
+            emit LogOrganizationApproverUpdate(
+                EVENT_ID_ORGANIZATION_APPROVERS,
+                _address,
+                Organization(_address).getApproverAtIndex(i)
+            );
+        }
+    }
+
+	/**
+	 * @dev Internal convenience function to emit a UpdateDepartment event for each of the current departments of the given organization.
+	 * @param _address the organization address
+	 */
+    function fireDepartmentEvents(address _address) internal {
+        bytes32 deptId;
+        for (uint i=0; i<Organization(_address).getNumberOfDepartments(); i++) {
+            deptId = Organization(_address).getDepartmentAtIndex(i);
+            emit UpdateOrganizationDepartment(TABLE_ORGANIZATION_DEPARTMENTS, _address, deptId);
+            emit LogOrganizationDepartmentUpdate(
+                EVENT_ID_ORGANIZATION_DEPARTMENTS,
+                _address,
+                deptId,
+                Organization(_address).getNumberOfDepartmentUsers(deptId),
+                Organization(_address).getDepartmentName(deptId)
+            );
         }
     }
 

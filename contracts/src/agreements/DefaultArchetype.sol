@@ -29,9 +29,9 @@ contract DefaultArchetype is Archetype {
 		bytes32 region;
 	}
 
-	bytes32 name;
+	string name;
 	string description;
-	uint price;
+	uint32 price;
 	address author;
 	bool active;
 	bool privateFlag;
@@ -63,7 +63,7 @@ contract DefaultArchetype is Archetype {
 	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
 	 * @param _governingArchetypes array of governing archetype addresses (optional)
 	 */
-	constructor(bytes32 _name, address _author, string _description, uint _price, bool _isPrivate, bool _active, address _formationProcess, address _executionProcess, address[] _governingArchetypes) public {
+	constructor(uint32 _price, bool _isPrivate, bool _active, string _name, address _author, string _description, address _formationProcess, address _executionProcess, address[] _governingArchetypes) public {
 		name = _name;
 		author = _author;
 		description = _description;
@@ -97,20 +97,20 @@ contract DefaultArchetype is Archetype {
 	 * @dev Adds parameter
 	 * @param _parameterType parameter type (enum)
 	 * @param _parameterName parameter name
-	 * @return BaseErrors.NO_ERROR() if successful,
+	 * @return 
+	 *	 		 BaseErrors.NO_ERROR() and position of parameter, if successful,
 	 *		   BaseErrors.NULL_PARAM_NOT_ALLOWED() if _parameter is empty,
 	 *		   BaseErrors.RESOURCE_ALREADY_EXISTS() if _parameter already exists
 	 */
-	function addParameter(Agreements.ParameterType _parameterType, bytes32 _parameterName) external returns (uint error) {
+	function addParameter(Agreements.ParameterType _parameterType, bytes32 _parameterName) external returns (uint error, uint position) {
 		if (_parameterName == "")
-			return BaseErrors.NULL_PARAM_NOT_ALLOWED();
+			return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), 0);
 		if (parameters.contains(_parameterName))
-			return BaseErrors.RESOURCE_ALREADY_EXISTS();
+			return (BaseErrors.RESOURCE_ALREADY_EXISTS(), 0);
 
 		parameters.push(_parameterName);
 		parameterTypes.insert(_parameterName, uint8(_parameterType));
-
-		return BaseErrors.NO_ERROR();
+		return (BaseErrors.NO_ERROR(), parameterTypes.rows[_parameterName].keyIdx);
 	}
 
 	/**
@@ -175,7 +175,7 @@ contract DefaultArchetype is Archetype {
 	 * @dev Returns the archetype name
 	 * @return the name
 	 */
-	function getName() public view returns (bytes32) {
+	function getName() public view returns (string) {
 		return name;
 	}
 
@@ -191,7 +191,7 @@ contract DefaultArchetype is Archetype {
 	 * @dev Gets price
 	 * @return price
 	 */
-	function getPrice() external view returns (uint) {
+	function getPrice() external view returns (uint32) {
 		return price;
 	}
 
@@ -199,7 +199,7 @@ contract DefaultArchetype is Archetype {
 	 * @dev Sets price
 	 * @param _price price of archetype
 	 */
-	function setPrice(uint _price) external {
+	function setPrice(uint32 _price) external {
 		price = _price;
 	}
 
@@ -347,7 +347,7 @@ contract DefaultArchetype is Archetype {
 	 * @param _archetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype) external view returns (bytes32 archetypeName) {
+	function getGoverningArchetypeData(address _archetype) external view returns (string archetypeName) {
 		return Archetype(_archetype).getName();
 	}
 

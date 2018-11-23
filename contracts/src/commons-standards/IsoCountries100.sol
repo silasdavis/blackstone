@@ -1195,11 +1195,26 @@ contract IsoCountries100 is VersionLinkedAppendOnly([1,0,0]), IsoCountries {
         bytes32[] memory regionKeys;
         countries[_alpha2] = Country({ alpha2: _alpha2, alpha3: _alpha3, m49: _m49, name: _name, regionKeys: regionKeys, exists: true });
         countryKeys.push(_alpha2);
+        emit LogCountryRegistration(
+            EVENT_ID_ISO_COUNTRIES,
+            _alpha2,
+            _alpha3,
+            _m49,
+            _name
+        );
     }
 
-    function registerRegion(bytes2 _alpha2, bytes2 _code2, bytes3 _code3, string _name, bytes32 regionKey) internal returns (Region) {
-        countries[_alpha2].regions[regionKey] = Region({ country: _alpha2, code2: _code2, code3: _code3, name: _name, exists: true });
-        countries[_alpha2].regionKeys.push(regionKey);
+    function registerRegion(bytes2 _alpha2, bytes2 _code2, bytes3 _code3, string _name, bytes32 _regionKey) internal returns (Region) {
+        countries[_alpha2].regions[_regionKey] = Region({ country: _alpha2, code2: _code2, code3: _code3, name: _name, exists: true });
+        countries[_alpha2].regionKeys.push(_regionKey);
+        emit LogRegionRegistration(
+            EVENT_ID_ISO_REGIONS,
+            _alpha2,
+            _regionKey,
+            _code2,
+            _code3,
+            _name
+        );
     }
 
 }

@@ -20,12 +20,15 @@ contract Archetype is Named {
 	function addDocument(bytes32 _name, bytes32 _hoardAddress, bytes32 _secretKey) external returns (uint error);
 
 	/**
-	 * @dev Adds a parameter with the specified type and name to the archetype
+	 * @dev Adds parameter
 	 * @param _parameterType parameter type (enum)
-	 * @param _parameter parameter
-	 * @return error code indicating success or failure
+	 * @param _parameterName parameter name
+	 * @return 
+	 *	 		 BaseErrors.NO_ERROR() and position of parameter, if successful,
+	 *		   BaseErrors.NULL_PARAM_NOT_ALLOWED() if _parameter is empty,
+	 *		   BaseErrors.RESOURCE_ALREADY_EXISTS() if _parameter already exists
 	 */
-	function addParameter(Agreements.ParameterType _parameterType, bytes32 _parameter) external returns (uint error);
+	function addParameter(Agreements.ParameterType _parameterType, bytes32 _parameterName) external returns (uint error, uint position);
 
 	/**
 	 * @dev Adds the given jurisdiction in the form of a country code and region identifier to this archetype.
@@ -47,13 +50,13 @@ contract Archetype is Named {
 	 * @dev Gets price
 	 * @return price
 	 */
-	function getPrice() external view returns (uint);
+	function getPrice() external view returns (uint32);
 
 	/**
 	 * @dev Sets price
 	 * @param _price price of archetype
 	 */
-	function setPrice(uint _price) external;
+	function setPrice(uint32 _price) external;
 
 	/**
 	 * @dev Gets Author
@@ -144,7 +147,7 @@ contract Archetype is Named {
 	 * @param _archetype the governing archetype address
 	 * @return the name of the governing archetype
 	 */
-	function getGoverningArchetypeData(address _archetype) external view returns (bytes32 archetypeName);
+	function getGoverningArchetypeData(address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Returns all governing archetype address for this archetype

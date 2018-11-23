@@ -12,13 +12,13 @@ const should = chai.should()
 const expect = chai.expect
 const assert = chai.assert
 const monax = require('@monax/burrow')
+const crypto = require('crypto');
 
 global.__appDir = path.resolve()
 global.__common = path.resolve(__appDir, 'common')
 global.__config = path.resolve(__appDir, 'config')
 global.__contracts = path.resolve(__appDir, 'contracts')
 global.__abi = path.resolve(__appDir, 'public-abi')
-global.__sqlsol = path.resolve(__appDir, 'sqlsol')
 global.__routes = path.resolve(__appDir, 'routes')
 global.__controllers = path.resolve(__appDir, 'controllers')
 global.__data = path.resolve(__appDir, 'data')
@@ -48,16 +48,14 @@ global.global.stringToHex = (str) => { return monax.utils.asciiToHex(str || '') 
 
 global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_BUNDLES
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
-const sqlCache = require(path.join(__controllers, 'sqlsol-query-helper'))
+const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
+const { chainPool } = require(`${global.__common}/postgres-db`);
 
 before(function (done) {
   this.timeout(99999999)
   contracts.load().then(() => {
     log.info('Contracts loaded.')
-    return contracts.initCache()
-  }).then(() => {
-    log.info('SQL Cache initiated.')
     log.info('Application started. Running Contracts Test Suite ...')
     done()
   }).catch(error => {
@@ -152,15 +150,12 @@ describe('CONTRACTS', () => {
     values: [],
     hoardAddress: 'hoardAddress',
     hoardSecret: 'hoardSecret',
-    eventLogHoardAddress: 0x0,
-    eventLogHoardSecret: 0x0,
-    maxNumberOfEvents: 5,
     governingAgreements: []
   }
 
   it('Should create a user', async () => {
     let user = { id: rid(16, 'aA0') }
-    let res = await contracts.createUser(user)
+    let res = await contracts.createUser({id: crypto.createHash('sha256').update(user.id).digest('hex')})
     res.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     pAccount.address = res
     arch.author = pAccount.address
@@ -327,7 +322,7 @@ describe('CONTRACTS', () => {
       try {
         let res = await sqlCache.getArchetypesInPackage(arch.packageId)
         expect(res.length).to.equal(1)
-        expect(global.hexToString(res[0].name)).to.equal(arch.name)
+        expect(res[0].name).to.equal(arch.name)
         expect(res[0].address).to.equal(archAddress)
         done()
       } catch (err) {
@@ -337,10 +332,10 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    contracts.cache.db.all('select * from process_models', (err, data) => {
-      expect(data.length).to.be.greaterThan(0)
-      let model = data.filter(item => {
-        return item.modelAddress === pmAddress
+    chainPool.query('select * from process_models;', [], (err, { rows }) => {
+      expect(rows.length).to.be.greaterThan(0)
+      let model = rows.filter(item => {
+        return item.model_address === pmAddress
       })[0]
       expect(model).to.exist
       done()
@@ -427,7 +422,7 @@ describe('CONTRACTS', () => {
 
   // TODO - Fails, needs some digging
   // it('Should complete activity by user', async () => {
-  //   return assert.isFulfilled(contracts.completeActivityByUser(pAccount.address, aiId));
+  //   return assert.isFulfilled(contracts.completeActivity(pAccount.address, aiId));
   // }).timeout(10000);
 
   it('Should cancel an agreement', async () => {

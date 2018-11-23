@@ -1,8 +1,9 @@
 const path = require('path');
 const boom = require('boom');
 const Joi = require('joi');
-const Analytics = require('analytics-node');
 const _ = require('lodash');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const pgCache = require('./postgres-cache-helper');
 
 const {
@@ -13,7 +14,9 @@ const {
   addMeta,
   asyncMiddleware,
   getBooleanFromString,
+  getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
 const archetypeSchema = require(`${global.__schemas}/archetype`);
@@ -21,10 +24,8 @@ const agreementSchema = require(`${global.__schemas}/agreement`);
 const { hoard } = require(`${global.__controllers}/hoard-controller`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements');
-const sqlCache = require('./sqlsol-query-helper');
-const { PARAMETER_TYPE: PARAM_TYPE } = global.__monax_constants;
-
-const analytics = new Analytics(global.__settings.monax.analyticsID);
+const sqlCache = require('./postgres-query-helper');
+const { PARAMETER_TYPE: PARAM_TYPE, AGREEMENT_PARTIES } = global.__monax_constants;
 
 const getArchetypes = asyncMiddleware(async (req, res) => {
   const retData = [];
@@ -33,7 +34,7 @@ const getArchetypes = asyncMiddleware(async (req, res) => {
   archData.forEach((_archetype) => {
     const archetype = Object.assign(_archetype, { countries: [] });
     jurisData.forEach((juris) => {
-      if (juris.address === archetype.address) archetype.countries.push(global.hexToString(juris.country));
+      if (juris.address === archetype.address) archetype.countries.push(juris.country);
     });
     retData.push(format('Archetype', archetype));
   });
@@ -86,8 +87,8 @@ const getArchetype = asyncMiddleware(async (req, res) => {
       modelAddress: data.executionModelAddress,
       processDefinitionId: data.executionProcessId,
     }]);
-  data.formationProcessName = formationProcess[0].name;
-  data.executionProcessName = executionProcess[0].name;
+  data.formationProcessName = formationProcess[0].processName;
+  data.executionProcessName = executionProcess[0].processName;
   delete data.formationModelId;
   delete data.formationProcessId;
   delete data.executionModelId;
@@ -127,8 +128,15 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   type.price = parseFloat(type.price, 10);
   type.active = type.active || false;
   if (type.packageId) {
-    const packageData = await sqlCache.getArchetypePackages({ package_key: type.packageId }, req.user.address);
-    if (!packageData) throw boom.badRequest(`Given packageId ${type.packageId} does not exist, or may not be accessible to user`);
+    let packageData;
+    try {
+      packageData = await sqlCache.getArchetypePackage(type.packageId, req.user.address);
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === 404) {
+        throw boom.badRequest(`Given packageId ${type.packageId} does not exist, or may not be accessible to user`);
+      }
+      throw boom.badImplementation(err);
+    }
     if (packageData.author !== req.user.address) throw boom.forbidden(`Package with id ${type.packageId} is not modifiable by user at address ${req.user.address}`);
     if (type.isPrivate && !packageData.isPrivate) throw boom.badRequest(`Private archetype ${type.name} cannot be added to public package with id ${type.packageId}`);
   }
@@ -155,15 +163,6 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   if (type.jurisdictions) {
     await contracts.addJurisdictions(archetypeAddress, type.jurisdictions);
   }
-
-  analytics.track({
-    event: 'Archetype created',
-    userId: req.user.id,
-    properties: {
-      userContract: req.user.address,
-      archetypeContract: archetypeAddress,
-    },
-  });
 
   return res
     .status(200)
@@ -256,17 +255,17 @@ const deactivateArchetypePackage = asyncMiddleware(async (req, res) => {
 
 const getArchetypePackages = asyncMiddleware(async (req, res) => {
   let packages = await sqlCache.getArchetypePackages(req.query, req.user.address);
-  packages = packages.map((pkg) => format('Archetype Package', pkg));
+  packages = packages.map(pkg => format('Archetype Package', pkg));
   res.status(200).json(packages);
 });
 
 const getArchetypePackage = asyncMiddleware(async (req, res) => {
-  const { package_key } = req.params;
-  const archPackage = await sqlCache.getArchetypePackages({ package_key }, req.user.address);
-  if (!archPackage) throw boom.notFound(`Archetype Package with id ${package_key} not found or user has insufficient privileges`);
-  const archetypes = await sqlCache.getArchetypesInPackage(package_key);
+  const { id } = req.params;
+  const archPackage = await sqlCache.getArchetypePackage(id, req.user.address);
+  if (!archPackage) throw boom.notFound(`Archetype Package with id ${id} not found or user has insufficient privileges`);
+  const archetypes = await sqlCache.getArchetypesInPackage(id);
   archPackage.archetypes = archetypes.map(elem => ({
-    name: global.hexToString(elem.name),
+    name: elem.name,
     address: elem.address,
     active: Boolean(elem.active),
   }));
@@ -276,9 +275,8 @@ const getArchetypePackage = asyncMiddleware(async (req, res) => {
 const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   const { packageId, archetypeAddress } = req.params;
   if (!packageId || !archetypeAddress) throw boom.badRequest('Package id and archetype address are required');
-  const packageData = await sqlCache.getArchetypePackages({ package_key: packageId }, req.user.address);
-  const archetypeData = (await sqlCache.getArchetypeData({ address: archetypeAddress }, req.user.address))[0];
-  if (!packageData) throw boom.forbidden(`Package with id ${packageId} is not accessible by user ${req.user.address}`);
+  const packageData = (await sqlCache.getArchetypePackage(packageId, req.user.address));
+  const archetypeData = (await sqlCache.getArchetypeData({ archetype_address: archetypeAddress }, req.user.address))[0];
   if (!archetypeData) {
     throw boom.forbidden(`User at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
       `and thus not allowed to add it to the package with id ${packageId}`);
@@ -289,15 +287,90 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   res.sendStatus(200);
 });
 
+const createOrFindAccountsWithEmails = async (params) => {
+  const newParams = {
+    notAccountOrEmail: [],
+    withEmail: [],
+    forExistingUser: [],
+    forNewUser: [],
+  };
+  params.forEach((param) => {
+    if (param.type !== PARAM_TYPE.USER_ORGANIZATION && param.type !== PARAM_TYPE.SIGNING_PARTY) {
+      // Ignore non-account parameters
+      newParams.notAccountOrEmail.push({ ...param });
+    } else if (/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)) {
+      // Select parameters with email values
+      newParams.withEmail.push({ ...param });
+    } else {
+      // Ignore parameters with non-email values
+      newParams.notAccountOrEmail.push({ ...param });
+    }
+  });
+  const client = await appPool.connect();
+  try {
+    if (newParams.withEmail.length) {
+      const { rows } = await client.query({
+        text: `SELECT LOWER(email) AS email, address FROM users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
+        values: newParams.withEmail.map(({ value }) => value),
+      });
+      newParams.forNewUser = {};
+      newParams.withEmail.forEach((param) => {
+        const emailAddr = param.value.toLowerCase();
+        const existingUser = rows.find(({ email }) => emailAddr === email);
+        if (existingUser) {
+          // Use existing accounts info if email already registered
+          newParams.forExistingUser.push({ ...param, value: existingUser.address });
+        } else if (newParams.forNewUser[emailAddr]) {
+          // Consolidate users that need to be registered into obj in case the same email was entered for multiple parameters
+          // Also save the parameters that each email was used for
+          newParams.forNewUser[emailAddr].push(param);
+        } else {
+          newParams.forNewUser[emailAddr] = [param];
+        }
+      });
+      const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
+        // Create user on chain
+        const address = await contracts.createUser({ id: getSHA256Hash(email) });
+        const password = crypto.randomBytes(32).toString('hex');
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+        // Create user in db
+        const queryString = `INSERT INTO users(
+          address, username, email, password_digest, is_producer, external_user
+          ) VALUES(
+            $1, $2, $3, $4, $5, $6
+            );`;
+        await client.query({ text: queryString, values: [address, email, email, hash, false, true] });
+        return { email, address };
+      });
+      const newUsers = await Promise.all(createNewUserPromises);
+      newParams.forNewUser = Object.keys(newParams.forNewUser).reduce((acc, emailAddr) => {
+        const { address } = newUsers.find(({ email }) => email === emailAddr);
+        const newUserParams = newParams.forNewUser[emailAddr].map(param => ({ ...param, value: address }));
+        return acc.concat(newUserParams);
+      }, []);
+    }
+    // Release client
+    client.release();
+    // Return all parameters
+    return newParams.notAccountOrEmail.concat(newParams.forExistingUser).concat(newParams.forNewUser);
+  } catch (err) {
+    client.release();
+    if (boom.isBoom(err)) throw err;
+    throw boom.badImplementation(err);
+  }
+};
+
 const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agreementParams) => {
   const promises = [];
   const invalidParams = [];
   agreementParams.forEach((param) => {
+    log.trace('Processing parameter data for agreement %s: %s', agreementAddr, JSON.stringify(param));
     const matchingParam = archetypeParamDetails.filter(item => param.name === item.name)[0];
     if (matchingParam) {
       const setterFunction = dataStorage.agreementDataSetters[`${matchingParam.parameterType}`];
       if (setterFunction) {
-        log.debug(`Setting value: ${param.value} for parameter: ${matchingParam.name} in agremeement at agreement address ${agreementAddr}`);
+        log.debug('Setting value: %s for parameter %s with type %d in agremeement %s', param.value, matchingParam.name, matchingParam.parameterType, agreementAddr);
         const formattedParam = format('Parameter Value', { parameterType: matchingParam.parameterType, value: param.value });
         promises.push(setterFunction(agreementAddr, matchingParam.name, formattedParam.value));
       } else {
@@ -328,9 +401,12 @@ const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
 };
 
 const createAgreement = asyncMiddleware(async (req, res) => {
-  const password = req.body.password || null;
-  const parameters = req.body.parameters || [];
+  let parameters = req.body.parameters || [];
+  parameters = await createOrFindAccountsWithEmails(parameters);
   const parties = req.body.parties || [];
+  const hoardRef = {};
+  hoardRef.address = req.body.eventLogHoardAddress || '';
+  hoardRef.secretKey = req.body.eventLogHoardSecret || '';
   parameters.forEach((param) => {
     if (parseInt(param.type, 10) === PARAM_TYPE.SIGNING_PARTY) parties.push(param.value);
   });
@@ -342,9 +418,6 @@ const createAgreement = asyncMiddleware(async (req, res) => {
     parties,
     hoardAddress: '',
     hoardSecret: '',
-    eventLogHoardAddress: req.body.eventLogHoardAddress || '',
-    eventLogHoardSecret: req.body.eventLogHoardSecret || '',
-    maxNumberOfEvents: parseInt(req.body.maxNumberOfEvents, 10),
     collectionId: req.body.collectionId,
     governingAgreements: req.body.governingAgreements || [],
   };
@@ -372,24 +445,19 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   //     log.debug('Request to create new agreement: ' + agreement.name);
 
   const agreementAddress = await contracts.createAgreement(agreement);
+  await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
+  await contracts.updateAgreementEventLog(agreementAddress, hoardRef);
   await setAgreementParameters(agreementAddress, req.body.archetype, parameters);
+  await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));
+  await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters
+    .filter(({ scope, value: paramVal }) => scope && parties.includes(paramVal))
+    .map(param => ({ ...param, name: AGREEMENT_PARTIES })));
   const { formation } = await contracts.getArchetypeProcesses(req.body.archetype);
   if (!formation) {
     throw boom.badImplementation(`No formation process found for archetype ${req.body.archetype}`);
   }
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
   log.debug(`Process Instance Address: ${piAddress}`);
-  analytics.track({
-    event: 'Agreement created',
-    userId: req.user.id,
-    properties: {
-      userContract: agreement.creator,
-      archetypeContract: agreement.archetype,
-      agreementContract: agreementAddress,
-      agreementName: agreement.name,
-      agreementParties: JSON.stringify(agreement.parties),
-    },
-  });
   res
     .status(200)
     .set('content-type', 'application/json')
@@ -399,7 +467,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
 const _generateParamGetterPromises = (agreementAddr, agreementParams, reqParams) => {
   const promises = [];
   const invalidParams = [];
-  reqParams.forEach((name) => {
+  reqParams.forEach(({ name }) => {
     const matchingParam = agreementParams.filter(item => name === item.name)[0];
     if (matchingParam) {
       const getterFunction = dataStorage.agreementDataGetters[`${matchingParam.parameterType}`];
@@ -422,7 +490,7 @@ const getAgreementParameters = async (agreementAddr, reqParams) => {
     const params = reqParams || [];
     if (params.length === 0) {
       agreementParams.forEach((param) => {
-        params.push(param.name);
+        params.push(param);
       });
     }
     const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams, params);
@@ -430,7 +498,7 @@ const getAgreementParameters = async (agreementAddr, reqParams) => {
       return reject(boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`));
     }
     return Promise.all(promises)
-      .then(results => resolve(results))
+      .then(results => resolve(results.map(({ name, value }, i) => ({ name, value, type: params[i].parameterType }))))
       .catch(err => reject(boom.badImplementation(`Failed to get agreement parameters: ${err}`)));
   });
 };
@@ -449,15 +517,17 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   const retData = {};
   if (!req.params.address) throw boom.badRequest('Agreement address is required');
   const addr = req.params.address;
-  const data = await sqlCache.getAgreementData(addr, req.user.address);
+  const data = (await sqlCache.getAgreementData(addr, req.user.address))[0];
   if (!data) throw boom.notFound(`Agreement at ${addr} not found or user has insufficient privileges`);
   const parameters = await getAgreementParameters(addr, null);
   const parties = await sqlCache.getAgreementParties(addr);
   Object.assign(retData, format('Agreement', data));
-  retData.parameters = parameters.map((param) => format('Parameter Value', param));
-  retData.parties = parties.map((party) => format('Parameter Value', party));
-  const governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
-  retData.governingAgreements = governingAgreements.map(agreement => format('Agreement', agreement));
+  const password = req.query.password || null;
+  const documentMetadata = await sqlCache.getArchetypeDocuments(retData.archetype);
+  retData.documents = await getDocumentsFromHoard(documentMetadata, password);
+  retData.parameters = parameters.map(param => format('Parameter Value', param));
+  retData.parties = parties.map(party => format('Parameter Value', party));
+  retData.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
   delete retData.hoardAddress;
   delete retData.hoardSecret;
   return res.status(200).json(retData);
@@ -507,7 +577,7 @@ const signAgreement = asyncMiddleware(async (req, res) => {
   if (!req.params.address) throw boom.badRequest('Agreement address required');
   const userAddr = req.user.address;
   const agreementAddr = req.params.address;
-  await contracts.signAgreementByUser(userAddr, agreementAddr);
+  await contracts.signAgreement(userAddr, agreementAddr);
   log.debug(`Signed agreement ${agreementAddr} by user ${userAddr}`);
   res.status(200).send();
 });
@@ -554,7 +624,7 @@ const getAgreementCollection = asyncMiddleware(async (req, res) => {
       };
     }
     if (agreementAddress) {
-      const agrName = global.hexToString(agreementName);
+      const agrName = agreementName;
       collection.agreements.push({
         address: agreementAddress, name: agrName, archetype,
       });

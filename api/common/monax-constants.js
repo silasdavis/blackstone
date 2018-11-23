@@ -2,7 +2,6 @@ const MONAX_BUNDLES = {
   AGREEMENTS: {
     contracts: {
       ACTIVE_AGREEMENT: 'ActiveAgreement',
-      AGREEMENT_PARTY_ACCOUNT: 'AgreementPartyAccount',
       ARCHETYPE: 'Archetype',
     },
   },
@@ -14,12 +13,13 @@ const MONAX_BUNDLES = {
   },
   BPM_RUNTIME: {
     contracts: {
-      WORKFLOW_USER_ACCOUNT: 'WorkflowUserAccount',
+      PROCESS_INSTANCE: 'ProcessInstance',
     },
   },
   COMMONS_AUTH: {
     contracts: {
       ECOSYSTEM: 'Ecosystem',
+      USER_ACCOUNT: 'UserAccount',
     },
   },
   PARTICIPANTS_MANAGER: {
@@ -89,6 +89,13 @@ const ERROR_CODES = {
   DEPENDENCY_NOT_FOUND: 'ERR704',
 };
 
+const AGREEMENT_PARTIES = 'AGREEMENT_PARTIES';
+const DEFAULT_DEPARTMENT_ID = 'DEFAULT_DEPARTMENT';
+
+const NOTIFICATION = {
+  ACTIVITY_INSTANCE_STATE_CHANGED: 'activityinstancestatechanged',
+};
+
 module.exports = {
   MONAX_BUNDLES,
   PARAMETER_TYPE,
@@ -97,4 +104,7 @@ module.exports = {
   PARAM_TYPE_TO_DATA_TYPE_MAP,
   COMPARISON_OPERATOR,
   ERROR_CODES,
+  AGREEMENT_PARTIES,
+  DEFAULT_DEPARTMENT_ID,
+  NOTIFICATION,
 };

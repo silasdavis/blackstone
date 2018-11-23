@@ -20,7 +20,6 @@ import "agreements/ActiveAgreementRegistry.sol";
 import "agreements/ActiveAgreementRegistryDb.sol";
 import "agreements/Archetype.sol";
 import "agreements/ArchetypeRegistry.sol";
-import "agreements/AgreementPartyAccount.sol";
 
 /**
  * @title DefaultActiveAgreementRegistry Interface
@@ -64,9 +63,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @param _creator address
 	 * @param _hoardAddress Address of agreement params in hoard
 	 * @param _hoardSecret Secret for hoard retrieval
-	 * @param _eventLogHoardAddress Address of events log in hoard
-	 * @param _eventLogHoardSecret Secret for hoard retrieval
-	 * @param _maxNumberOfEvents Max number of events allowed
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
@@ -80,13 +76,10 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	function createAgreement(
 		address _archetype,
-		bytes32 _name, 
+		string _name, 
 		address _creator, 
 		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret, 
-		bytes32 _eventLogHoardAddress, 
-		bytes32 _eventLogHoardSecret, 
-		uint _maxNumberOfEvents, 
+		bytes32 _hoardSecret,
 		bool _isPrivate, 
 		address[] _parties, 
 		bytes32 _collectionId, 
@@ -94,16 +87,18 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		external returns (address activeAgreement)
 	{
 		validateAgreementRequirements(_archetype, _name, _governingAgreements);
-		activeAgreement = new DefaultActiveAgreement(_archetype, _name, _creator, _hoardAddress, _hoardSecret, _eventLogHoardAddress, _eventLogHoardSecret, _maxNumberOfEvents, _isPrivate, _parties, _governingAgreements);
-		register(activeAgreement, _name, _governingAgreements);
+		activeAgreement = new DefaultActiveAgreement(_archetype, _name, _creator, _hoardAddress, _hoardSecret, _isPrivate, _parties, _governingAgreements);
+		register(activeAgreement, _name);
 		if (_collectionId != "") addAgreementToCollection(_collectionId, activeAgreement);
+		emitAgreementCreationEvent(activeAgreement);
+		emitAgreementRelationshipsEvents(activeAgreement, _collectionId, _governingAgreements);
 	}
 
 	/**
 	 * @dev Validates agreement creation requirements
 	 */
-	function validateAgreementRequirements(address _archetype, bytes32 _name, address[] _governingAgreements)	internal {
-		ErrorsLib.revertIf(_name == "" || _archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Agreement name and Archetype address are required");
+	function validateAgreementRequirements(address _archetype, string _name, address[] _governingAgreements)	internal {
+		ErrorsLib.revertIf(bytes(_name).length == 0 || _archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Agreement name and Archetype address are required");
 		validateGoverningAgreements(_archetype, _governingAgreements);
 		ErrorsLib.revertIf(!Archetype(_archetype).isActive(), ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.createAgreement", "Archetype must be active");
 	}
@@ -171,6 +166,85 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	}
 
 	/**
+	 * @dev Registers the provided ActiveAgreement and adds event listeners
+	 * @param _activeAgreement the Active Agreement
+	 * @param _name the agreement name
+	 * @return a return code indicating success or failure
+	 */
+	function register(address _activeAgreement, string _name) internal {
+		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(_activeAgreement, _name);
+		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.register", "Active Agreement already exists");
+		ActiveAgreement agreement = ActiveAgreement(_activeAgreement);
+		agreement.addEventListener(agreement.EVENT_ID_SIGNATURE_ADDED());
+		agreement.addEventListener(agreement.EVENT_ID_STATE_CHANGED());
+		agreement.addEventListener(agreement.EVENT_ID_EVENT_LOG_UPDATED());
+	}
+
+	function emitAgreementCreationEvent(address _activeAgreement) internal {
+		emit UpdateActiveAgreements(TABLE_AGREEMENTS, _activeAgreement);
+		emit LogAgreementCreation(
+			EVENT_ID_AGREEMENTS,
+			_activeAgreement,
+			ActiveAgreement(_activeAgreement).getArchetype(),
+			ActiveAgreement(_activeAgreement).getName(),
+			ActiveAgreement(_activeAgreement).getCreator(),
+			ActiveAgreement(_activeAgreement).isPrivate(),
+			ActiveAgreement(_activeAgreement).getLegalState(),
+			uint32(0),
+			address(0x0),
+			address(0x0),
+			ActiveAgreement(_activeAgreement).getHoardAddress(),
+			ActiveAgreement(_activeAgreement).getHoardSecret(),
+			bytes32(""),
+			bytes32("")
+		);
+	}
+
+	function emitAgreementRelationshipsEvents(address _activeAgreement, bytes32 _collectionId, address[] _governingAgreements) internal {
+		address party;
+		uint numberOfParties = ActiveAgreement(_activeAgreement).getNumberOfParties();
+		for (uint i = 0; i < numberOfParties; i++) {
+			party = getPartyByActiveAgreementAtIndex(_activeAgreement, i);
+			emit UpdateActiveAgreementToParty(TABLE_AGREEMENTS_TO_PARTIES, _activeAgreement, party);
+			emit LogActiveAgreementToPartyUpdate(
+				EVENT_ID_AGREEMENT_PARTY_MAP,
+				_activeAgreement,
+				party,
+				ActiveAgreement(_activeAgreement).getSignee(party),
+				ActiveAgreement(_activeAgreement).getSignatureTimestamp(party)
+			);
+		}
+		for (i = 0; i < _governingAgreements.length; i++) {
+			emit UpdateGoverningAgreements(TABLE_GOVERNING_AGREEMENTS, _activeAgreement, _governingAgreements[i]);
+			emit LogGoverningAgreementUpdate(
+				EVENT_ID_GOVERNING_AGREEMENT,
+				_activeAgreement,
+				_governingAgreements[i],
+				ActiveAgreement(_governingAgreements[i]).getName()
+			);
+		}
+		if (_collectionId != "") {
+			emit UpdateActiveAgreementCollectionMap(TABLE_AGREEMENT_TO_COLLECTION, _collectionId, _activeAgreement);
+			emit LogAgreementToCollectionUpdate(
+				EVENT_ID_AGREEMENT_COLLECTION_MAP, 
+				_collectionId, 
+				_activeAgreement,
+				ActiveAgreement(_activeAgreement).getName(),
+				ActiveAgreement(_activeAgreement).getArchetype()
+			);
+		}
+	}
+
+	/**
+	 * @dev Sets the max number of events for this agreement
+	 */
+	function setMaxNumberOfEvents(address _agreement, uint32 _maxNumberOfEvents) external {
+		ActiveAgreement(_agreement).setMaxNumberOfEvents(_maxNumberOfEvents);
+		emit UpdateActiveAgreements(TABLE_AGREEMENTS, _agreement);
+		emit LogAgreementMaxEventCountUpdate(EVENT_ID_AGREEMENTS, _agreement, _maxNumberOfEvents);
+	}
+
+	/**
 	 * @dev Adds an agreement to given collection
 	 * @param _collectionId the bytes32 collection id
 	 * @param _agreement agreement address
@@ -184,7 +258,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		ErrorsLib.revertIf(!archetypeRegistry.packageHasArchetype(packageId, archetype), ErrorsLib.INVALID_INPUT(), "DefaultActiveAgreementRegistry.addAgreementToCollection", "Agreement archetype not found in given collection's package");
 		uint error = ActiveAgreementRegistryDb(database).addAgreementToCollection(_collectionId, _agreement);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.addAgreementToCollection", "Collection not found");
-		emit UpdateActiveAgreementCollectionMap(TABLE_AGREEMENT_TO_COLLECTION, _collectionId, _agreement);
 	}
 
 	/**
@@ -206,6 +279,11 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		// keep track of the process for the agreement, regardless of whether the start (below) actually succeeds, because the PI is created
 		ActiveAgreementRegistryDb(database).setAgreementFormationProcess(address(_agreement), address(pi));
 		emit UpdateActiveAgreements(TABLE_AGREEMENTS, address(_agreement));
+		emit LogAgreementFormationProcessUpdate(
+			EVENT_ID_AGREEMENTS,
+			_agreement,
+			address(pi)
+		);
 		error = bpmService.startProcessInstance(pi);
 		return (error, pi);
 	}
@@ -237,7 +315,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	function createExecutionProcess(ActiveAgreement _agreement) internal returns (ProcessInstance processInstance) {
 		address pd = Archetype(_agreement.getArchetype()).getExecutionProcessDefinition();
 		ErrorsLib.revertIf(pd == 0x0,
-			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.createFormationProcess", "No ProcessDefinition found on the agreement's archetype");
+			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.createExecutionProcess", "No ProcessDefinition found on the agreement's archetype");
 		processInstance = bpmService.createDefaultProcessInstance(pd, msg.sender, bytes32(""));
 		processInstance.addProcessStateChangeListener(this);
 		processInstance.setDataValueAsAddress(DATA_ID_AGREEMENT, address(_agreement));
@@ -326,33 +404,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		return address(archetypeRegistry);
 	}
 
-	/**
-	 * @dev Registers the provided ActiveAgreement and adds event listeners
-	 * @param _activeAgreement the Active Agreement
-	 * @param _name the agreement name
-	 * @param _governingAgreements governing agreements
-	 * @return a return code indicating success or failure
-	 */
-	function register(address _activeAgreement, bytes32 _name, address[] _governingAgreements) internal {
-		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(_activeAgreement, _name);
-		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(), ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.register", "Active Agreement already exists");
-		ActiveAgreement agreement = ActiveAgreement(_activeAgreement);
-		agreement.addEventListener(agreement.EVENT_ID_SIGNATURE_ADDED());
-		agreement.addEventListener(agreement.EVENT_ID_STATE_CHANGED());
-		agreement.addEventListener(agreement.EVENT_ID_EVENT_LOG_UPDATED());
-
-		emit UpdateActiveAgreements(TABLE_AGREEMENTS, _activeAgreement);
-		address party;
-		uint numberOfParties = agreement.getNumberOfParties();
-		for (uint i = 0; i < numberOfParties; i++) {
-			party = getPartyByActiveAgreementAtIndex(_activeAgreement, i);
-			emit UpdateActiveAgreementToParty(TABLE_AGREEMENTS_TO_PARTIES, _activeAgreement, party);
-		}
-		for (i = 0; i < _governingAgreements.length; i++) {
-			emit UpdateGoverningAgreements(TABLE_GOVERNING_AGREEMENTS, _activeAgreement, _governingAgreements[i]);
-		}
-	}
-
     /**
      * @dev Overrides ContractLocatorEnabled.setContractLocator(address)
      */
@@ -434,7 +485,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	function getActiveAgreementData(address _activeAgreement) external view returns (
 		address archetype,
-		bytes32 name,
+		string name,
 		address creator,
 		bytes32 hoardAddress,
 		bytes32 hoardSecret,
@@ -448,7 +499,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	) {
 		name = ActiveAgreementRegistryDb(database).getActiveAgreementName(_activeAgreement);
 
-		if (name != "") {
+		if (bytes(name).length != 0) {
 			archetype = ActiveAgreement(_activeAgreement).getArchetype();
 			creator = ActiveAgreement(_activeAgreement).getCreator();
 			hoardAddress = ActiveAgreement(_activeAgreement).getHoardAddress();
@@ -520,23 +571,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	}
 
 	/**
-	 * @dev Creates an AgreementPartyAccount with the specified parameters and adds it to the ParticipantsManager
- 	 * @param _accountsManager the ParticipantsManager address
-	 * @param _id an identifier for the user
-	 * @param _owner the owner of the user account
-	 * @param _ecosystem the address of an Ecosystem to which the user account is connected
-	 * @return error BaseErrors.RESOURCE_ALREADY_EXISTS() or BaseErrors.NO_ERROR()
-	 * @return userAccount user account address, or 0x0 if not successful
-	 */
-	function createUserAccount(address _accountsManager, bytes32 _id, address _owner, address _ecosystem) external returns (uint error, address userAccount) {
-			if (ParticipantsManager(_accountsManager).userAccountExists(_id)) {
-					return (BaseErrors.RESOURCE_ALREADY_EXISTS(), 0x0);
-			}
-			userAccount = new AgreementPartyAccount(_id, _owner, _ecosystem);
-			error = ParticipantsManager(_accountsManager).addUserAccount(userAccount);
-	}
-
-	/**
 	 * @dev Creates a new agreement collection
 	 * @param _name name
 	 * @param _author address of author
@@ -549,6 +583,14 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 		error = ActiveAgreementRegistryDb(database).createCollection(id, _name, _author, _collectionType, _packageId);
 		if (error == BaseErrors.NO_ERROR()) {
 			emit UpdateActiveAgreementCollections(TABLE_AGREEMENT_COLLECTIONS, id);
+			emit LogAgreementCollectionCreation(
+				EVENT_ID_AGREEMENT_COLLECTIONS,
+				id,
+				_name,
+				_author,
+				_collectionType,
+				_packageId
+			);
 		}
 	}
 
@@ -608,7 +650,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @return agreementName name of agreement
 	 * @return archetype address of archetype
 	 */
-	function getAgreementDataInCollection(bytes32 /*_id*/, address _agreement) external view returns (bytes32 agreementName, address archetype) {
+	function getAgreementDataInCollection(bytes32 /*_id*/, address _agreement) external view returns (string agreementName, address archetype) {
 		agreementName = DefaultActiveAgreement(_agreement).getName();
 		archetype = DefaultActiveAgreement(_agreement).getArchetype();
 	}
@@ -637,7 +679,7 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 * @param _governingAgreement the governing agreement address
 	 * @return the name of the governing agreement
 	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (bytes32 name) {
+	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name) {
 		return ActiveAgreement(_agreement).getGoverningAgreementData(_governingAgreement);
 	}
 
@@ -651,6 +693,13 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	function eventFired(bytes32 _event, address /*_source*/, address _data) external pre_OnlyByRegisteredAgreements {
 		if (_event == ActiveAgreement(msg.sender).EVENT_ID_SIGNATURE_ADDED()) {
 			emit UpdateActiveAgreementToParty(TABLE_AGREEMENTS_TO_PARTIES, msg.sender, _data);
+			emit LogActiveAgreementToPartyUpdate(
+				EVENT_ID_AGREEMENT_PARTY_MAP, 
+				msg.sender, 
+				_data,
+				ActiveAgreement(msg.sender).getSignee(_data),
+				ActiveAgreement(msg.sender).getSignatureTimestamp(_data)
+			);
 		}
 	}
 
@@ -671,9 +720,19 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 					}
 			}
 			emit UpdateActiveAgreements(TABLE_AGREEMENTS, msg.sender);
+			emit LogAgreementLegalStateUpdate(
+				EVENT_ID_AGREEMENTS,
+				msg.sender,
+				ActiveAgreement(msg.sender).getLegalState()
+			);
 		}
 		if (_event == ActiveAgreement(msg.sender).EVENT_ID_EVENT_LOG_UPDATED()) {
 			emit UpdateActiveAgreements(TABLE_AGREEMENTS, _source);
+			emit LogAgreementLegalStateUpdate(
+				EVENT_ID_AGREEMENTS,
+				_source,
+				ActiveAgreement(_source).getLegalState()
+			);
 		}
 	}
 
@@ -698,6 +757,11 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 				// keep track of the execution process for the agreement
 				// NOTE: we're currently not checking if there is already a tracked execution process, because no execution path can currently lead to that situation
 				ActiveAgreementRegistryDb(database).setAgreementExecutionProcess(address(agreement), address(newPi));
+				emit LogAgreementExecutionProcessUpdate(
+					EVENT_ID_AGREEMENTS,
+					address(agreement),
+					address(newPi)
+				);
 				emit UpdateActiveAgreements(TABLE_AGREEMENTS, address(agreement));
 				bpmService.startProcessInstance(newPi); // Note: Disregarding the error code here. If there was an error in the execution process, it should either REVERT or leave the PI in INTERRUPTED state
 			}
@@ -719,6 +783,18 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	 */
 	 function setEventLogReference(address _activeAgreement, bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external {
 		ActiveAgreement(_activeAgreement).setEventLogReference(_eventLogHoardAddress, _eventLogHoardSecret);
+		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, _activeAgreement, _eventLogHoardAddress, _eventLogHoardSecret);
 	 }
-	
+
+	/**
+	 * @dev Overwrites the Upgradeable.upgrade(address) function to remove this contract as a contract change listener.
+	 */
+    function upgrade(address _successor) public returns (bool success) {
+        success = super.upgrade(_successor);
+        if (success && address(locator) != address(0)) {
+            locator.removeContractChangeListener(serviceIdArchetypeRegistry);
+            locator.removeContractChangeListener(serviceIdBpmService);
+        }
+    }
+
 }

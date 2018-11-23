@@ -1,35 +1,32 @@
 {
   "name": "agreements-network-api",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "REST API for the Agreements Network",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "start:dev": "npm run-script db:migrate:up:dev && node app.js",
-    "start:debug": "npm run-script db:migrate:up:dev && node --inspect=0.0.0.0:9222 app.js",
-    "start:debug:cluster": "node --inspect=0.0.0.0:9222 app.js",
-    "test": "npm run-script db:migrate:up:dev && npm run-script test:contracts && npm run-script test:contracts:fe && npm run-script test:parser && npm run-script test:api && npm run-script test:api:bpm",
-    "test:api": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-test.js --timeout 99999999",
-    "test:api:debug": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "test:api:bpm": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-bpm-test.js --timeout 99999999",
-    "test:api:bpm:debug": "npm run-script db:migrate:up:dev && mocha --exit test/api/web-api-bpm-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "start": "node -e 'require(\"./app.js\")()'",
+    "start:dev": "npm run-script db:migrate:up && node -e 'require(\"./app.js\")()'",
+    "start:debug": "npm run-script db:migrate:up && node --inspect=0.0.0.0:9222 -e 'require(\"./app.js\")()'",
+    "start:debug:cluster": "node --inspect=0.0.0.0:9222 -e 'require(\"./app.js\")()'",
+    "test": "npm run-script db:migrate:up && npm run-script test:contracts && npm run-script test:contracts:fe && npm run-script test:parser && npm run-script test:api && npm run-script test:api:bpm",
+    "test:api": "npm run-script db:migrate:up && mocha --exit test/api/web-api-test.js --timeout 99999999",
+    "test:api:debug": "npm run-script db:migrate:up && mocha --exit test/api/web-api-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
+    "test:api:bpm": "npm run-script db:migrate:up && mocha --exit test/api/web-api-bpm-test.js --timeout 99999999",
+    "test:api:bpm:debug": "npm run-script db:migrate:up && mocha --exit test/api/web-api-bpm-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
     "test:contracts": "mocha --exit test/controllers/contracts-test.js --timeout 99999999",
     "test:contracts:debug": "mocha --exit test/controllers/contracts-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
     "test:contracts:fe": "mocha --exit test/controllers/form-exec-usertask-test.js --timeout 99999999",
     "test:contracts:fe:debug": "mocha --exit test/controllers/form-exec-usertask-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
     "test:parser": "mocha --exit test/parser/parser-test.js --timeout 99999999",
     "test:parser:debug": "mocha --exit test/parser/parser-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "db:migrate:up": "node node_modules/db-migrate/bin/db-migrate up -e prod",
-    "db:migrate:up:dev": "node node_modules/db-migrate/bin/db-migrate up",
-    "db:migrate:up:dev:cluster": "node node_modules/db-migrate/bin/db-migrate up -e cluster",
+    "db:migrate:up": "node node_modules/db-migrate/bin/db-migrate up",
     "db:migrate:create": "node node_modules/db-migrate/bin/db-migrate create",
     "migrate-users": "node scripts/migrateUsers.js"
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
-    "@monax/burrow": "^0.20.5",
+    "@monax/burrow": "^0.20.8",
     "@sendgrid/mail": "^6.2.1",
-    "analytics-node": "^3.3.0",
     "async": "^2.1.4",
     "bcryptjs": "^2.4.3",
     "binstring": "^0.2.1",
@@ -45,7 +42,7 @@
     "express-healthcheck": "^0.1.0",
     "express-jwt": "^5.3.0",
     "format": "^0.2.2",
-    "grpc": "^1.11.3",
+    "grpc": "^1.16.1",
     "helmet": "^3.12.1",
     "iteray": "^0.5.1",
     "joi": "^13.4.0",
@@ -70,6 +67,9 @@
     "chai": "^4.0.2",
     "chai-as-promised": "^7.1.1",
     "chai-http": "^4.2.0",
+    "eslint": "^5.6.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0",
     "mocha": "^5.2.0",
     "random-id": "0.0.2",
     "supertest": "^3.1.0"
@@ -80,10 +80,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://code.monax.io/monax/paas.git"
+    "url": "git+https://github.com/agreements-network/blackstone.git"
   },
   "bugs": {
-    "url": "https://code.monax.io/monax/paas/issues"
+    "url": "https://github.com/agreements-network/blackstone/issues"
   },
-  "homepage": "https://code.monax.io/monax/paas"
+  "homepage": "https://agreements.network"
 }

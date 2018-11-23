@@ -2,18 +2,17 @@
 set +e
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/preflight"
 
-pkill -f "monax-keys"
 pkill -f "burrow"
 
-if ! [ "$CI" = true ]; then
+if ! [[ "$CI" = true ]]; then
   # files and dirs accumulated during chain deployment/testing
-  rm $CI_PROJECT_DIR/burrow.log
+  rm -f $CI_PROJECT_DIR/test/chain/burrow.log
   rm -rf $CI_PROJECT_DIR/test/chain/.burrow
 
   #files and dirs accumulated during contracts deployment/testing
-  rm $CI_PROJECT_DIR/contracts/src/*.output.json
-  rm $CI_PROJECT_DIR/test*.log
-  rm -rf $CI_PROJECT_DIR/contracts/src/bin
+  rm -f $CI_PROJECT_DIR/contracts/src/*.output.json
+  rm -f $CI_PROJECT_DIR/test*.log
+  rm -rf $CI_PROJECT_DIR/contracts/src/bin/*
 
   # files and dirs accumulated by API deployment/testing
   rm -rf $CI_PROJECT_DIR/api/public-abi

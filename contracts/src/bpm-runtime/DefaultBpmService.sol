@@ -18,7 +18,6 @@ import "bpm-runtime/BpmService.sol";
 import "bpm-runtime/BpmServiceDb.sol";
 import "bpm-runtime/ProcessInstance.sol";
 import "bpm-runtime/DefaultProcessInstance.sol";
-import "bpm-runtime/WorkflowUserAccount.sol";
 
 /**
  * @title DefaultBpmService
@@ -31,6 +30,10 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
     string constant TABLE_PROCESS_INSTANCES = "PROCESS_INSTANCES";
     string constant TABLE_ACTIVITY_INSTANCES = "ACTIVITY_INSTANCES";
     string constant TABLE_PROCESS_DATA = "PROCESS_DATA";
+    string constant TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES = "PROCESS_INSTANCE_ADDRESS_SCOPES";
+	bytes32 constant EVENT_ID_PROCESS_INSTANCES = "AN://process-instances";
+	bytes32 constant EVENT_ID_PROCESS_DATA = "AN://process-instance/data";
+	bytes32 constant EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES = "AN://process-instance/scopes";
 
     //TODO these string should not be hardcoded. Inject via constructor after AN-307 fixed
     string constant serviceIdProcessModelRepository = "ProcessModelRepository";
@@ -38,62 +41,6 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
 
     ProcessModelRepository modelRepository;
     ApplicationRegistry applicationRegistry;
-
-    /**
-     * @dev REVERTS if
-     * - the activity instance is not found in the database
-     * - the activity is of task type USER, but not in SUSPENDED state
-     * - the activity is of task type SERVICE or EVENT, but not in APPLICATION state
-     * - the msg.sender or tx.origin cannot be authorized as the performer of the activity instance for all activity types except BpmModel.TaskType.NONE.
-     */
-    modifier pre_inDataPermissionCheck(bytes32 _activityInstanceId) {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        ErrorsLib.revertIf(piAddress == 0x0,
-            ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultBpmService.pre_inDataPermissionCheck", "ProcessInstance for provided ActivityInstance ID not found");
-        (bytes32 activityId, , , , , uint8 state) = ProcessInstance(piAddress).getActivityInstanceData(_activityInstanceId);
-        ( , uint8 taskType, , , , , , ) = ProcessDefinition(ProcessInstance(piAddress).getProcessDefinition()).getActivityData(activityId);
-        if (taskType == uint8(BpmModel.TaskType.USER)) {
-            ErrorsLib.revertIf(state != uint(BpmRuntime.ActivityInstanceState.SUSPENDED),
-                ErrorsLib.INVALID_STATE(), "DefaultBpmService.pre_inDataPermissionCheck", "USER task state must be SUSPENDED for IN mappings");
-        }
-        else if (taskType == uint8(BpmModel.TaskType.SERVICE) || taskType == uint8(BpmModel.TaskType.EVENT)) {
-            ErrorsLib.revertIf(state != uint(BpmRuntime.ActivityInstanceState.APPLICATION),
-                ErrorsLib.INVALID_STATE(), "DefaultBpmService.pre_inDataPermissionCheck", "SERVICE or EVENT task state must be APPLICATION for IN mappings");
-        }
-        if (taskType != uint8(BpmModel.TaskType.NONE)) {
-            ErrorsLib.revertIf(BpmRuntimeLib.authorizePerformer(_activityInstanceId, ProcessInstance(piAddress)) == address(0),
-                ErrorsLib.UNAUTHORIZED(), "DefaultBpmService.pre_inDataPermissionCheck", "Unable to authorize msg.sender/tx.origin as performer of a USER/SERVICE/EVENT task for IN mappings");
-        }
-        _;
-    }
-
-    /**
-     * @dev REVERTS if
-     * - the activity instance is not found in the database
-     * - the activity is of task type USER or EVENT, but not in SUSPENDED state
-     * - the activity is of task type SERVICE, but not in APPLICATION state
-     * - the msg.sender is not set as the performer of the activity instance for all activity types except BpmModel.TaskType.NONE.
-     */
-    modifier pre_outDataPermissionCheck(bytes32 _activityInstanceId) {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        ErrorsLib.revertIf(piAddress == 0x0,
-            ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultBpmService.pre_outDataPermissionCheck", "ProcessInstance for provided ActivityInstance ID not found");
-        (bytes32 activityId, , , , , uint8 state) = ProcessInstance(piAddress).getActivityInstanceData(_activityInstanceId);
-        ( , uint8 taskType, , , , , , ) = ProcessDefinition(ProcessInstance(piAddress).getProcessDefinition()).getActivityData(activityId);
-        if (taskType == uint8(BpmModel.TaskType.USER) || taskType == uint8(BpmModel.TaskType.EVENT)) {
-            ErrorsLib.revertIf(state != uint(BpmRuntime.ActivityInstanceState.SUSPENDED),
-                ErrorsLib.INVALID_STATE(), "DefaultBpmService.pre_outDataPermissionCheck", "USER or EVENT task state must be SUSPENDED for OUT mappings");
-        }
-        else if (taskType == uint8(BpmModel.TaskType.SERVICE)) {
-            ErrorsLib.revertIf(state != uint(BpmRuntime.ActivityInstanceState.APPLICATION),
-                ErrorsLib.INVALID_STATE(), "DefaultBpmService.pre_outDataPermissionCheck", "SERVICE task state must be APPLICATION for OUT mappings");
-        }
-        if (taskType != uint8(BpmModel.TaskType.NONE)) {
-            ErrorsLib.revertIf(BpmRuntimeLib.authorizePerformer(_activityInstanceId, ProcessInstance(piAddress)) == address(0),
-                ErrorsLib.UNAUTHORIZED(), "DefaultBpmService.pre_outDataPermissionCheck", "Unable to authorize msg.sender/tx.origin as performer of a USER/SERVICE/EVENT task for OUT mappings");
-        }
-        _;
-    }
 
 	/**
 	 * @dev Creates a new ProcessInstance based on the specified ProcessDefinition and starts its execution
@@ -147,9 +94,58 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         for (uint i=0; i<_pi.getSize(); i++) {
             ( ,dataId) = _pi.getDataIdAtIndex(i);
             emit UpdateProcessData(TABLE_PROCESS_DATA, _pi, dataId);
+            emit LogProcessDataCreation(
+                EVENT_ID_PROCESS_DATA,
+                address(_pi),
+                dataId,
+                _pi.getDataValueAsBool(dataId),
+                _pi.getDataValueAsUint(dataId),
+                _pi.getDataValueAsInt(dataId),
+                _pi.getDataValueAsBytes32(dataId),
+                _pi.getDataValueAsAddress(dataId),
+                _pi.getDataValueAsString(dataId)
+            );
         }
+        emitProcessInstanceAddressScopeEvents(_pi);
         error = _pi.execute(this);
         emit UpdateProcesses(TABLE_PROCESS_INSTANCES, _pi);
+        emit LogProcessInstanceStateUpdate(
+            EVENT_ID_PROCESS_INSTANCES,
+            address(_pi),
+            _pi.getState()
+        );
+    }
+
+    function emitProcessInstanceAddressScopeEvents(ProcessInstance _pi) internal {
+        bytes32[] memory keys = _pi.getAddressScopeKeys();
+        address keyAddress;
+        bytes32 keyContext;
+        bytes32 fixedScope;
+        bytes32 dataPath;
+        bytes32 dataStorageId;
+        address dataStorage;
+        for (uint i = 0; i<keys.length; i++) {
+            emit UpdateProcessInstanceAddressScopes(TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES, _pi, keys[i]);
+            (
+                keyAddress,
+                keyContext,
+                fixedScope,
+                dataPath,
+                dataStorageId,
+                dataStorage
+            ) = _pi.getAddressScopeDetailsForKey(keys[i]);
+            emit LogProcessInstanceAddressScopesUpdate(
+                EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES,
+                address(_pi),
+                keys[i],
+                keyAddress,
+                keyContext,
+                fixedScope,
+                dataPath,
+                dataStorageId,
+                dataStorage
+            );
+        }
     }
 
 	/**
@@ -170,210 +166,15 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultBpmService.createDefaultProcessInstance", "ProcessDefinition is NULL");
         processInstance = new DefaultProcessInstance(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
         processInstance.transferOwnership(msg.sender);
-    }
-
-	/**
-	 * @dev Returns the bool value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the bool value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (bool)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsBool(dataPath);
-    }
-
-	/**
-	 * @dev Returns the string value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the string value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (string)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsString(dataPath);
-    }
-
-	/**
-	 * @dev Returns the bytes32 value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the bytes32 value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (bytes32)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsBytes32(dataPath);
-    }
-
-	/**
-	 * @dev Returns the uint value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the uint value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (uint)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsUint(dataPath);
-    }
-
-	/**
-	 * @dev Returns the int value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the int value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (int)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsInt(dataPath);
-    }
-
-	/**
-	 * @dev Returns the address value of the specified IN data mapping in the context of the given activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_inDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
-	 * @return the address value resulting from resolving the data mapping
-	 */
-	function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
-        pre_inDataPermissionCheck(_activityInstanceId)
-        returns (address)
-    {
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId)).resolveInDataLocation(_activityInstanceId, _dataMappingId);
-        return DataStorage(storageAddress).getDataValueAsAddress(dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId, bool _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsBool(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsString(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId, bytes32 _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsBytes32(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId, uint _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsUint(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId, int _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsInt(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
-    }
-
-	/**
-	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
-     * Note: This function triggers a REVERT under conditions set in the pre_outDataPermissionCheck(bytes32) modifier!
-	 * @param _activityInstanceId the ID of an activity instance managed by this BpmService
-	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
-	 * @param _value the value to set
-	 */
-	function setActivityOutDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId, address _value)
-        external
-        pre_outDataPermissionCheck(_activityInstanceId)
-    {
-        address piAddress = BpmServiceDb(database).getProcessInstanceForActivity(_activityInstanceId);
-        (address storageAddress, bytes32 dataPath) = ProcessInstance(piAddress).resolveOutDataLocation(_activityInstanceId, _dataMappingId);
-        DataStorage(storageAddress).setDataValueAsAddress(dataPath, _value);
-        if (storageAddress == piAddress)
-            emit UpdateProcessData(TABLE_PROCESS_DATA, piAddress, dataPath);
+        ErrorsLib.revertIf(address(processInstance) == 0x0,
+                ErrorsLib.INVALID_STATE(), "DefaultBpmService.createDefaultProcessInstance", "Process Instance address empty");
+        emit LogProcessInstanceCreation(
+			EVENT_ID_PROCESS_INSTANCES,
+			address(processInstance),
+			processInstance.getProcessDefinition(),
+			processInstance.getState(),
+			processInstance.getStartedBy()
+		);
     }
 
     /**
@@ -444,9 +245,9 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
     }
 
     /**
-    * @dev Returns the number of activity instances.
-    * @return the activity instance count as size
-    */
+     * @dev Returns the number of activity instances.
+     * @return the activity instance count as size
+     */
     function getNumberOfActivityInstances(address _address) external view returns (uint size) {
         return ProcessInstance(_address).getNumberOfActivityInstances();
     }
@@ -525,6 +326,48 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         boolValue = ProcessInstance(_address).getDataValueAsBool(_dataId);
     }
 
+	/**
+	 * @dev Returns the number of address scopes for the given ProcessInstance.
+	 * @param _processInstance the address of a ProcessInstance
+	 * @return the number of scopes
+	 */
+	function getNumberOfAddressScopes(address _processInstance) external view returns (uint size) {
+        size = ProcessInstance(_processInstance).getAddressScopeKeys().length;
+    }
+
+	/**
+	 * @dev Returns the address scope key at the given index position of the specified ProcessInstance.
+	 * @param _processInstance the address of a ProcessInstance
+	 * @param _index the index position
+	 * @return the bytes32 scope key
+	 */
+	function getAddressScopeKeyAtIndex(address _processInstance, uint _index) external view returns (bytes32) {
+        return ProcessInstance(_processInstance).getAddressScopeKeys()[_index];
+    }
+
+	/**
+	 * @dev Returns detailed information about the address scope with the given key in the specified ProcessInstance
+	 * @param _processInstance the address of a ProcessInstance
+	 * @param _key a scope key
+	 * @return keyAddress - the address encoded in the key
+	 * @return keyContext - the context encoded in the key
+	 * @return fixedScope - a bytes32 representing a fixed scope
+	 * @return dataPath - the dataPath of a ConditionalData defining the scope
+	 * @return dataStorageId - the dataStorageId of a ConditionalData defining the scope
+	 * @return dataStorage - the dataStorgage address of a ConditionalData defining the scope
+	 */
+	function getAddressScopeDetails(address _processInstance, bytes32 _key)
+		external view
+		returns (address keyAddress,
+				 bytes32 keyContext,
+				 bytes32 fixedScope,
+				 bytes32 dataPath,
+				 bytes32 dataStorageId,
+				 address dataStorage)
+    {
+        return ProcessInstance(_processInstance).getAddressScopeDetailsForKey(_key);
+    }
+
     /**
      * @dev Returns the address of the ProcessInstance of the specified ActivityInstance ID
      * @param _aiId the ID of an ActivityInstance
@@ -574,6 +417,29 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
      */
     function fireProcessDataUpdateEvent(address _piAddress, bytes32 _dataId) external {
         emit UpdateProcessData(TABLE_PROCESS_DATA, _piAddress, _dataId);
+    }
+
+    /**
+     * @dev Emits a state change event for the process instance
+     * @param _processInstance address of process intance
+     */
+    function emitProcessStateChangeEvent(address _processInstance) external {
+        emit LogProcessInstanceStateUpdate(
+            EVENT_ID_PROCESS_INSTANCES,
+            _processInstance,
+            ProcessInstance(_processInstance).getState()
+        );
+    }
+
+	/**
+	 * @dev Overwrites the Upgradeable.upgrade(address) function to remove this contract as a contract change listener.
+	 */
+    function upgrade(address _successor) public returns (bool success) {
+        success = super.upgrade(_successor);
+        if (success && address(locator) != address(0)) {
+            locator.removeContractChangeListener(serviceIdApplicationRegistry);
+            locator.removeContractChangeListener(serviceIdProcessModelRepository);
+        }
     }
 
 }

@@ -20,21 +20,84 @@ contract ParticipantsManager is EventListener, Upgradeable {
     event UpdateDepartmentUser(string name, address key1, bytes32 key2, address key3);
     event RemoveDepartmentUser(string name, address key1, bytes32 key2, address key3);
 
-    /**
-    * @dev Creates and adds a user account
-    * @param _id id (required)
-    * @param _owner owner (optional)
-    * @param _ecosystem owner (optional)
-    * @return error code indicating success or failure
-    * @return userAccount user account
-    */
-    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
+    event LogUserCreation(
+        bytes32 indexed eventId,
+        address user_account_address,
+        bytes32 id,
+        address owner
+    );
+
+    event LogOrganizationCreation(
+        bytes32 indexed eventId,
+        address organization_address,
+        uint approver_count,
+        bytes32 organization_id
+    );
+
+    event LogOrganizationApproverUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        address approver_address
+    );
+
+    event LogOrganizationUserUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        address user_address
+    );
+
+    event LogOrganizationUserRemoval(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        address user_address
+    ); 
+
+    event LogOrganizationDepartmentUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        bytes32 department_id,
+        uint user_count,
+        string name        
+    );
+
+    event LogOrganizationDepartmentRemoval(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        bytes32 department_id
+    );
+
+    event LogDepartmentUserUpdate(
+        bytes32 indexed eventId,
+        address organization_address,
+        bytes32 department_id,
+        address user_address
+    );
+
+    event LogDepartmentUserRevomal(
+        bytes32 indexed eventId,
+        bytes32 CRUD_ACTION,
+        address organization_address,
+        bytes32 department_id,
+        address user_address
+    );
+    
+    bytes32 public constant EVENT_ID_USER_ACCOUNTS = "AN://user-accounts";
+    bytes32 public constant EVENT_ID_ORGANIZATION_ACCOUNTS = "AN://organization-accounts";
+    bytes32 public constant EVENT_ID_ORGANIZATION_APPROVERS = "AN://organizations/approvers";
+    bytes32 public constant EVENT_ID_ORGANIZATION_USERS = "AN://organizations/users";
+    bytes32 public constant EVENT_ID_ORGANIZATION_DEPARTMENTS = "AN://organizations/departments";
+    bytes32 public constant EVENT_ID_DEPARTMENT_USERS = "AN://departments/users";
 
     /**
-     * @dev Adds the specified UserAccount
-     * @return an error code
+     * @dev Creates and adds a user account, and optionally registers the user with an ecosystem if an address is provided
+     * @param _id id (required)
+     * @param _owner owner (optional)
+     * @param _ecosystem owner (optional)
+     * @return userAccount user account
      */
-    function addUserAccount(address _account) public returns (uint);
+    function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount);
 
 	/**
 	 * @dev Adds the organization at the specified address
@@ -45,10 +108,11 @@ contract ParticipantsManager is EventListener, Upgradeable {
 
 	/**
 	 * @dev Creates and adds a new Organization with the specified parameters
-	 * @param _approvers the initial owners.
+	 * @param _initialApprovers the initial owners/admins of the Organization.
+	 * @param _defaultDepartmentName an optional custom name/label for the default department of this organization.
 	 * @return error code and the address of the newly created organization, if successful
 	 */
-    function createOrganization(address[10] _approvers) external returns (uint, address);
+    function createOrganization(address[] _initialApprovers, string _defaultDepartmentName) external returns (uint, address);
 
 	/**
 		* @dev Indicates whether the specified organization exists for the given organization id
@@ -82,7 +146,7 @@ contract ParticipantsManager is EventListener, Upgradeable {
 	 * @param _organization the address of an organization
 	 * @return the organization's ID and name
 	 */
-    function getOrganizationData(address _organization) external view returns (uint numApprovers);
+    function getOrganizationData(address _organization) external view returns (uint numApprovers, bytes32 organizationKey);
 
     function departmentExists(address _organization, bytes32 _departmentId) external view returns (bool);
 
@@ -145,32 +209,14 @@ contract ParticipantsManager is EventListener, Upgradeable {
 
     /**
      * @dev Indicates whether the specified user account exists for the given userAccount ID
-     * @param _id userAccount ID
+     * @param _userAccount user account address
      * @return bool exists
      */
-    function userAccountExists(bytes32 _id) external view returns (bool);
-
-    /**
-     * @dev Returns the user account address for the specified user account ID.
-     */
-    function getUserAccount(bytes32 _id) external view returns (uint, address);
+    function userAccountExists(address _userAccount) external view returns (bool);
 
     /**
      * SQLSOL support functions
      */
 
     function getUserAccountsSize() external view returns (uint size);
-
-    function getUserAccountData(address _userAccount) external view returns (bytes32 id, address owner);
-
-    /**
-     * @dev Gets hashed user account ID and user account address for the specified user account ID.
-     * @param _id the user account ID
-     * @return error RESOURCE_NOT_FOUND or NO_ERROR
-     * @return addr user account address
-     * @return hashedId hashed user account ID
-     */
-    function getUserAccountDataById(bytes32 _id) external view returns (uint error, address addr, bytes32 hashedId);
-
-    function getUserAccountAtIndex(uint _pos) external view returns (address userAccount);
 }

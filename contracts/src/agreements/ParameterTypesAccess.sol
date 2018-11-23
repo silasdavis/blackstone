@@ -15,16 +15,33 @@ contract ParameterTypesAccess is Versioned(1,0,0) {
 
     mapping(uint => bytes32) labels;
 
+    event LogParameterTypeRegistry(
+        bytes32 indexed eventId,
+        uint parameter_type,
+        bytes32 label
+    );
+
+    bytes32 public constant EVENT_ID_PARAMETER_TYPES = "AN://agreements/parameter-types";
+
     constructor() public {
-        labels[uint(Agreements.ParameterType.BOOLEAN)] = "Boolean";
-        labels[uint(Agreements.ParameterType.STRING)] = "String";
-        labels[uint(Agreements.ParameterType.NUMBER)] = "Number";
-        labels[uint(Agreements.ParameterType.DATE)] = "Date";
-        labels[uint(Agreements.ParameterType.DATETIME)] = "Datetime";
-        labels[uint(Agreements.ParameterType.MONETARY_AMOUNT)] = "Monetary Amount";
-        labels[uint(Agreements.ParameterType.USER_ORGANIZATION)] = "User/Organization";
-        labels[uint(Agreements.ParameterType.CONTRACT_ADDRESS)] = "Contract Address";
-        labels[uint(Agreements.ParameterType.SIGNING_PARTY)] = "Signing Party";
+        registerParameterType(Agreements.ParameterType.BOOLEAN, "Boolean");
+        registerParameterType(Agreements.ParameterType.STRING, "String");
+        registerParameterType(Agreements.ParameterType.NUMBER, "Number");
+        registerParameterType(Agreements.ParameterType.DATE, "Date");
+        registerParameterType(Agreements.ParameterType.DATETIME, "Datetime");
+        registerParameterType(Agreements.ParameterType.MONETARY_AMOUNT, "Monetary Amount");
+        registerParameterType(Agreements.ParameterType.USER_ORGANIZATION, "User/Organization");
+        registerParameterType(Agreements.ParameterType.CONTRACT_ADDRESS, "Contract Address");
+        registerParameterType(Agreements.ParameterType.SIGNING_PARTY, "Signing Party");
+    }
+
+    function registerParameterType(Agreements.ParameterType _parameterType, bytes32 _label) internal {
+        labels[uint(_parameterType)] = _label;
+        emit LogParameterTypeRegistry(
+            EVENT_ID_PARAMETER_TYPES,
+            uint(_parameterType),
+            _label
+        );
     }
 
     function getNumberOfParameterTypes() external pure returns (uint size) {

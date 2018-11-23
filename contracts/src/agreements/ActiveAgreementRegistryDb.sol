@@ -10,10 +10,10 @@ import "agreements/Agreements.sol";
 
 contract ActiveAgreementRegistryDb is SystemOwned {
 
-  using MappingsLib for Mappings.AddressBytes32Map;
+  using MappingsLib for Mappings.AddressStringMap;
   using ArrayUtilsAPI for address[];
 
-  Mappings.AddressBytes32Map activeAgreements;
+  Mappings.AddressStringMap activeAgreements;
   Agreements.AgreementCollectionMap collections;
   
   // Tracks the formation and execution workflows per agreement
@@ -28,7 +28,7 @@ contract ActiveAgreementRegistryDb is SystemOwned {
     return activeAgreements.exists(_activeAgreement);
   }
 
-  function registerActiveAgreement(address _activeAgreement, bytes32 _name) external pre_onlyBySystemOwner returns (uint error) {
+  function registerActiveAgreement(address _activeAgreement, string _name) external pre_onlyBySystemOwner returns (uint error) {
     error = activeAgreements.insert(_activeAgreement, _name);
   }
 
@@ -57,7 +57,7 @@ contract ActiveAgreementRegistryDb is SystemOwned {
     (error, activeAgreement) = activeAgreements.keyAtIndex(_index);
   }
 
-  function getActiveAgreementName(address _activeAgreement) external view returns (bytes32 name) {
+  function getActiveAgreementName(address _activeAgreement) external view returns (string name) {
     return activeAgreements.get(_activeAgreement);
   }
 

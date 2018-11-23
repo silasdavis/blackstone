@@ -9,11 +9,10 @@ const _ = require('lodash')
 const hexToString = require('@monax/burrow').utils.hexToAscii;
 const stringToHex = require('@monax/burrow').utils.asciiToHex;
 
-const app = require('../../app')
-const server = require(__common + '/aa-web-api')
+const app = require('../../app')();
+const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger')
-const log = logger.getLogger('agreements.tests')
-const pool = require(__common + '/postgres-db');
+const log = logger.getLogger('agreements.tests');
 
 const api = require('./api-helper')(server)
 const { rightPad } = require(__common + '/controller-dependencies')
@@ -38,13 +37,13 @@ before(function (done) {
 });
 
 const credentials = {
-  user: rid(10, 'aA0'),
+  username: rid(10, 'aA0'),
   password: 'IREALLYLOVEBOATS',
   email: `${rid(10, 'aA0')}@test.com`
 }
 
 const baduser = {
-  user: 'Bob',
+  username: 'Bob',
   password: 'Thisdoesntmatteryet'
 }
 
@@ -195,8 +194,8 @@ describe('User Profile', () => {
           if (err) return done(err)
           res.body.should.be.a('object')
           res.body.address.toUpperCase().should.equal(userData.address)
-          res.body.id.should.equal(credentials.user.toLowerCase())
-          res.body.email.should.equal(credentials.email.toLowerCase())
+          res.body.id.should.equal(credentials.username)
+          res.body.email.should.equal(credentials.email)
           res.body.firstName.should.equal(newProfileInfo.firstName)
           res.body.lastName.should.equal(newProfileInfo.lastName)
           res.body.should.have.property('firstName')
@@ -253,22 +252,22 @@ describe('Organizations', () => {
     name: 'Accounting Department',
   };
   const approver = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'approver',
   };
   const accountant = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'accountant',
   };
   const employee = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'employee',
   };
   const nonEmployee = {
-    user: rid(10, 'aA0'),
+    username: rid(10, 'aA0'),
     email: `${rid(10, 'aA0')}@test.com`,
     password: 'nonemployee',
   };
@@ -301,7 +300,7 @@ describe('Organizations', () => {
         res.body.name.should.exist;
         acme.address = res.body.address;
         setTimeout(function () {
-          // verify organization in sqlsol
+          // verify organization in vent
           chai
           .request(server)
           .get(`/organizations?approver=true`)
@@ -347,7 +346,7 @@ describe('Organizations', () => {
                 res.body.users[0].address.should.exist;
                 res.body.users[0].address.should.equal(approver.address);
                 res.body.users[0].id.should.exist;
-                res.body.users[0].id.should.equal(approver.user.toLowerCase());
+                res.body.users[0].id.should.equal(approver.username);
                 done();
               });
           }, 2000);
@@ -448,13 +447,15 @@ describe('Organizations', () => {
                 res.should.have.status(200);
                 res.body.should.be.a('object');
                 res.body.departments.should.be.a('array');
-                res.body.departments.should.have.length(1);
-                res.body.departments[0].should.be.a('object');
-                res.body.departments[0].id.should.exist;
-                res.body.departments[0].id.should.equal(accounting.id);
-                res.body.departments[0].name.should.exist;
-                res.body.departments[0].name.should.equal(accounting.name);
-                res.body.departments[0].users.should.be.a('array');
+                // Length should be 2 now because the default department should have been created upon organization creation
+                res.body.departments.should.have.length(2);
+                const acctDep = res.body.departments[1];
+                acctDep.should.be.a('object');
+                acctDep.id.should.exist;
+                acctDep.id.should.equal(accounting.id);
+                acctDep.name.should.exist;
+                acctDep.name.should.equal(accounting.name);
+                acctDep.users.should.be.a('array');
                 done();
               });
           }, 2000);
@@ -485,7 +486,7 @@ describe('Organizations', () => {
           .end((err, res) => {
             if (err) return done(err);
             res.should.have.status(200);
-            res.body.departments[0].users[0].should.equal(accountant.address);
+            res.body.departments[1].users[0].should.equal(accountant.address);
             done();
           });
       }, 2000);
@@ -1417,7 +1418,7 @@ describe('Agreement with parameters', () => {
 
 //   it('Should have a suspended activity for user 1', done => {
 //     // TODO bypassing the getTaskForUser REST API call since that query retrieve empty array for some reason,
-//     // although the data is there in sqlsol cache. This may be a timing issue with the test.
+//     // although the data is there in vent cache. This may be a timing issue with the test.
 //     setTimeout(() => {
 //       chai
 //         .request(server)

@@ -2,19 +2,65 @@ version: "3"
 services:
   hoard:
     image: quay.io/monax/hoard:1.1.3
+    ports:
+      - "53431"
   postgres:
     image: postgres:9-alpine
+    ports:
+    - "5432"
     environment:
       POSTGRES_USER: blackstone_development
       POSTGRES_PASSWORD: blackstone_development
       POSTGRES_DB: blackstone_development
   chain:
-    image: quay.io/monax/build:latest
+    # We could reference hyperledger/burrow:$version directly here but for the sake of only specifying our dependency version
+    # once we do it in the project Dockerfile
+    build: .
+    ports:
+    # GRPC port for most interaction
+    - "10997"
+    # HTTP status/information port
+    - "26658"
+    volumes:
+    - ./test/chain:/chain
+    working_dir: /chain
+    command:
+    - /bin/sh
+    - -c
+    - burrow start &> burrow.log
+  vent:
+    image: quay.io/monax/vent:0.0.1
+    restart: always
+    command:
+    - --db-adapter
+    - postgres
+    - --db-url
+    - postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development?sslmode=disable
+    - --db-schema
+    - blackstone_development
+    - --grpc-addr
+    - chain:10997
+    - --log-level
+    - info
+    - --spec-file
+    - /app/api/sqlsol/Tables.spec
+    - --abi-dir
+    - /app/contracts/src/bin
+    volumes:
+    - .:/app
+    depends_on:
+    - postgres
+    - chain
+  api:
+    build: .
     environment:
       CI_PROJECT_DIR: /app
+      API_DIRECTORY: /app/api
+      NODE_ENV: dev
       HOARD_IP: hoard:53431
-      NODE_ENV: testing
       MONAX_ECOSYSTEM: MONAX_PLATFORM
+      CONTRACTS_DEPLOYMENT_ADDRESS: F390C8CA854874472CAD38C0135F78097BCB632D
+      CHAIN_URL_GRPC: chain:10997
     volumes:
     - .:/app
     ports:
@@ -24,7 +70,6 @@ services:
     depends_on:
     - postgres
     - hoard
-    links:
-    - hoard
-    - postgres
+    - vent
+    - chain
     command: "test/test_api.sh --runAPI"

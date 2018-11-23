@@ -4,7 +4,7 @@ const boom = require('boom');
 
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const pool = require(`${global.__common}/postgres-db`);
+const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
   PARAMETER_TYPE,
@@ -55,14 +55,7 @@ const dependencies = {
         element.accessPointId = global.hexToString(element.accessPointId);
         break;
       case 'Archetype':
-        element.name = global.hexToString(element.name);
-        if (Object.prototype.hasOwnProperty.call(element, 'active')) element.active = parseInt(element.active, 10) !== 0;
-        if (Object.prototype.hasOwnProperty.call(element, 'isPrivate')) element.isPrivate = parseInt(element.isPrivate, 10) !== 0;
         if (!_.isEmpty(element.description)) element.description = _.unescape(element.description);
-        if (element.formationModelId) element.formationModelId = global.hexToString(element.formationModelId);
-        if (element.executionModelId) element.executionModelId = global.hexToString(element.executionModelId);
-        if (element.formationProcessId) element.formationProcessId = global.hexToString(element.formationProcessId);
-        if (element.executionProcessId) element.executionProcessId = global.hexToString(element.executionProcessId);
         if (element.successor) element.successor = Number(element.successor) === 0 ? null : element.successor;
         if (element.price) element.price = parseInt(element.price, 10) / 100; // converting to dollars from cents (recorded uint on chain)
         break;
@@ -71,18 +64,14 @@ const dependencies = {
         element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Agreement':
-        element.name = global.hexToString(element.name);
         element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Application':
         element.id = global.hexToString(element.id);
         element.webForm = global.hexToString(element.webForm);
         break;
-      case 'Country':
-        element.country = global.hexToString(element.country);
-        element.alpha2 = global.hexToString(element.alpha2);
-        element.alpha3 = global.hexToString(element.alpha3);
-        element.m49 = global.hexToString(element.m49);
+      case 'Country': // TODO Temporary until front-end is updated to rely on alpha2
+        element.country = element.alpha2;
         break;
       case 'Currency':
         element.currency = global.hexToString(element.currency);
@@ -114,6 +103,7 @@ const dependencies = {
         break;
       case 'Model':
         if ('active' in element) element.active = element.active === 1;
+        element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Region':
         element.country = global.hexToString(element.country);
@@ -125,16 +115,20 @@ const dependencies = {
         if (element.processDefinitionId != null) element.processDefinitionId = global.hexToString(element.processDefinitionId);
         if (element.interfaceId != null) element.interfaceId = global.hexToString(element.interfaceId);
         if (element.modelId != null) element.modelId = global.hexToString(element.modelId);
-        // Nothing yet
+        element.isPrivate = Boolean(element.isPrivate);
         break;
       case 'Task':
         if (element.activityId) element.activityId = global.hexToString(element.activityId);
         if (element.processDefinitionId) element.processDefinitionId = global.hexToString(element.processDefinitionId);
         if (element.modelId) element.modelId = global.hexToString(element.modelId);
         if (element.processName) element.processName = global.hexToString(element.processName);
-        if (element.agreementName) element.agreementName = global.hexToString(element.agreementName);
         if (element.application) element.application = global.hexToString(element.application);
         if (element.webForm) element.webForm = global.hexToString(element.webForm || '');
+        if (element.scope && element.scope !== element.organizationKey) {
+          // organizationKey was originally entered in bytes32 and doesn't need to be converted to string
+          element.scope = global.hexToString(element.scope || '');
+        }
+        delete element.organizationKey;
         if (element.created) element.created *= 1000;
         if (element.completed) element.completed *= 1000;
         break;
@@ -288,10 +282,13 @@ const dependencies = {
     };
   },
 
-  setUserIds: (users, ...formats) => new Promise((resolve, reject) => {
+  setUserIds: (users, registeredUsersOnly, ...formats) => new Promise((resolve, reject) => {
+    const text = `SELECT username AS id, address FROM users 
+    WHERE address = ANY ($1)
+    ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
     try {
-      pool.query({
-        text: 'SELECT username AS id, address FROM users WHERE address = ANY ($1)',
+      appPool.query({
+        text,
         values: [users.map(user => user.address)],
       }, (err, res) => {
         if (err) reject(boom.badImplementation(err));
@@ -301,12 +298,12 @@ const dependencies = {
         });
         const _users = users.map((_user) => {
           let user = Object.assign({}, _user);
-          user.id = userIds[user.address] || '';
+          user.id = userIds[user.address];
           formats.forEach((format) => {
             user = dependencies.format(format, user);
           });
           return user;
-        });
+        }).filter(({ id }) => id);
         resolve(_users);
       });
     } catch (err) {
@@ -316,7 +313,7 @@ const dependencies = {
 
   getNamesOfOrganizations: async (organizations) => {
     try {
-      const { rows } = await pool.query({
+      const { rows } = await appPool.query({
         text: 'SELECT DISTINCT address, name FROM organizations WHERE address = ANY ($1)',
         values: [organizations.map(({ address }) => address)],
       });
@@ -358,6 +355,8 @@ const dependencies = {
     }
     return false;
   },
+
+  getSHA256Hash: data => crypto.createHash('sha256').update(data).digest('hex'),
 
 };
 

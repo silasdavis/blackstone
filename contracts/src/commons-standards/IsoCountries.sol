@@ -4,7 +4,27 @@ import "commons-collections/VersionLinkedAppendOnly.sol";
 
 contract IsoCountries is VersionLinkedAppendOnly {
 
-    // Struct representing ISO 3166-1 Country Codes
+	event LogCountryRegistration(
+		bytes32 indexed eventId,
+		bytes2 alpha2,
+		bytes3 alpha3,
+		bytes3 m49,
+		string name
+	);
+
+	event LogRegionRegistration(
+		bytes32 indexed eventId,
+		bytes2 country,
+		bytes32 region,
+		bytes2 code2,
+		bytes3 code3,
+		string name
+	);
+
+	bytes32 public constant EVENT_ID_ISO_COUNTRIES = "AN://standards/countries";
+	bytes32 public constant EVENT_ID_ISO_REGIONS = "AN://standards/regions";
+
+  // Struct representing ISO 3166-1 Country Codes
 	struct Country {			
 		bytes2 alpha2;												// 2-letter country code
 		bytes3 alpha3; 												// 3-letter country code

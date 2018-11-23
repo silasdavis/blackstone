@@ -12,6 +12,30 @@ import "bpm-model/ProcessModel.sol";
  */
 contract ProcessDefinition is Bytes32Identifiable {
 
+	event LogProcessDefinitionInterfaceIdUpdate(
+		bytes32 indexed eventId,
+		address process_definition_address,
+		bytes32 interface_id
+	);
+
+	event LogActivityDefinitionCreation(
+		bytes32 indexed eventId,
+		address model_address,
+		address process_definition_address,
+		bytes32 activity_id,
+		uint8 activity_type,
+		uint8 task_type,
+		uint8 task_behavior,
+		bytes32 participant_id,
+		bool multi_instance,
+		bytes32 application,
+		bytes32 sub_process_model_id,
+		bytes32 sub_process_definition_id
+	);
+
+	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
+	bytes32 public constant EVENT_ID_ACTIVITY_DEFINITIONS = "AN://activity-definitions";
+
 	/**
 	 * @dev Creates a new activity definition with the specified parameters.
 	 * @param _id the activity ID
@@ -43,6 +67,13 @@ contract ProcessDefinition is Bytes32Identifiable {
 	function createTransition(bytes32 _source, bytes32 _target) external returns (uint error);
 
 	/**
+	 * @dev Sets the specified activity to be the default output (default transition) of the specified gateway.
+	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
+	 */
+	function setDefaultTransition(bytes32 _gatewayId, bytes32 _targetElementId) external;
+
+	/**
 	 * @dev Create a data mapping for the specified activity and direction.
 	 * @param _activityId the ID of the activity in this ProcessDefinition
 	 * @param _direction the BpmModel.Direction [IN|OUT]
@@ -65,86 +96,86 @@ contract ProcessDefinition is Bytes32Identifiable {
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value) external;
+	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForBytes32(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bytes32 _value) external;
+	function createTransitionConditionForBytes32(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bytes32 _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForAddress(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, address _value) external;
+	function createTransitionConditionForAddress(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, address _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForBool(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bool _value) external;
+	function createTransitionConditionForBool(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, bool _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForUint(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, uint _value) external;
+	function createTransitionConditionForUint(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, uint _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The parameters dataPath, dataStorageId, and dataStorage are used to construct a left-hand side DataStorageUtils.ConditionalData object.
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _dataPath the left-hand side dataPath condition
 	 * @param _dataStorageId the left-hand side dataStorageId condition
 	 * @param _dataStorage the left-hand side dataStorage condition
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForInt(bytes32 _gatewayId, bytes32 _activityId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, int _value) external;
+	function createTransitionConditionForInt(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, int _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
 	 * The "lh..." parameters are used to construct a left-hand side DataStorageUtils.ConditionalData object while the "rh..." ones are used
 	 * for a right-hand side DataStorageUtils.ConditionalData as comparison
 	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
+	 * @param _targetElementId the ID of a graph element (activity or gateway) in this ProcessDefinition
 	 * @param _lhDataPath the left-hand side dataPath condition
 	 * @param _lhDataStorageId the left-hand side dataStorageId condition
 	 * @param _lhDataStorage the left-hand side dataStorage condition
@@ -153,14 +184,7 @@ contract ProcessDefinition is Bytes32Identifiable {
 	 * @param _rhDataStorageId the right-hand side dataStorageId condition
 	 * @param _rhDataStorage the right-hand side dataStorage condition
 	 */
-	function createTransitionConditionForDataStorage(bytes32 _gatewayId, bytes32 _activityId, bytes32 _lhDataPath, bytes32 _lhDataStorageId, address _lhDataStorage, uint8 _operator, bytes32 _rhDataPath, bytes32 _rhDataStorageId, address _rhDataStorage) external;
-
-	/**
-	 * @dev Sets the specified activity to be the default output (default transition) of the specified gateway.
-	 * @param _gatewayId the ID of a gateway in this ProcessDefinition
-	 * @param _activityId the ID of an activity in this ProcessDefinition
-	 */
-	function setDefaultTransition(bytes32 _gatewayId, bytes32 _activityId) external;
+	function createTransitionConditionForDataStorage(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _lhDataPath, bytes32 _lhDataStorageId, address _lhDataStorage, uint8 _operator, bytes32 _rhDataPath, bytes32 _rhDataStorageId, address _rhDataStorage) external;
 
 	/**
 	 * @dev Resolves a transition condition between the given source and target model elements using the provided DataStorage to lookup data.
