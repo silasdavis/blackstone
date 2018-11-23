@@ -36,7 +36,7 @@ jobs:
     docker:
       - image: alpine/git
     environment:
-      CHAIN_INFO: "t5"
+      CHAIN_INFO: "t6"
       CHAIN_INFO_HOST: "info.agreements.network"
     steps:
       - <<: *add_ssh_key
