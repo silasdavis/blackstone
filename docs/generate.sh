@@ -9,7 +9,10 @@ tar -xzf /tmp/burrow.tar.gz -C /usr/local/bin/
 curl -L https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/solc-static-linux > /usr/local/bin/solc
 chmod +x /usr/local/bin/solc
 npm config set unsafe-perm true # https://github.com/npm/uid-number/issues/3
-npm install -g apidoc apidocjs-markdown json2md
+npm install -g apidoc apidocjs-markdown
+cd $CI_PROJECT_DIR/docs/generator
+npm install
+cd $CI_PROJECT_DIR
 
 # Setup Git
 echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > $HOME/.ssh/config
