@@ -15,7 +15,7 @@ npm install -g apidoc apidocjs-markdown json2md
 # Setup Git
 git config --global user.name "Billings, a Bot"
 git config --global user.email "billings@monax.io"
-git clone https://github.com/agreements-network/docs ../docs.agreements.network
+git clone git@github.com:agreements-network/docs ../docs.agreements.network
 cd ../docs.agreements.network
 git checkout staging
 cd $CI_PROJECT_DIR
