@@ -15,11 +15,11 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = function(db) {
-  return db.changeColumn('users', 'username', { type: 'varchar(255)' });
+  return db.changeColumn('users', 'username', { type: 'string', length: 255 });
 };
 
 exports.down = function(db) {
-  return db.changeColumn('users', 'username', { type: 'varchar(20)' });
+  return db.changeColumn('users', 'username', { type: 'string', length: 20 });
 };
 
 exports._meta = {
