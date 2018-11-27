@@ -2,6 +2,10 @@ const boom = require('boom');
 const bcrypt = require('bcryptjs');
 const Joi = require('joi');
 const _ = require('lodash');
+const crypto = require('crypto');
+const sendgrid = require('@sendgrid/mail');
+sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+const sqlCache = require('./postgres-query-helper');
 
 const {
   format,
@@ -17,7 +21,6 @@ const log = logger.getLogger('participants');
 const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
-const sqlCache = require('./postgres-query-helper');
 
 const getOrganizations = asyncMiddleware(async (req, res) => {
   if (req.query.approver === 'true') {
@@ -203,38 +206,127 @@ const _userExistsOnChain = async (id) => {
   }
 };
 
-const registerUser = asyncMiddleware(async ({ body }, res) => {
-  const { error, value } = Joi.validate(body, userSchema, { abortEarly: false });
+const registerUser = async (userData) => {
+  let address;
+  let userId;
+  const client = await appPool.connect();
+  const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
-    username: id, email, password, isProducer,
+    username, email, password, isProducer,
   } = value;
   // check if email or username already registered in pg
-  const { rows } = await appPool.query({
-    text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
-    values: [email, id],
-  });
-  if (rows[0]) {
-    if (rows[0].email === email.toLowerCase()) {
-      throw boom.badData(`Email ${email} already registered`);
-    } else if (rows[0].username === id.toLowerCase()) {
-      throw boom.badData(`Username ${id} already registered`);
+  try {
+    const { rows } = await client.query({
+      text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
+      values: [email, username],
+    });
+    if (rows[0]) {
+      if (rows[0].email === email.toLowerCase()) {
+        throw boom.badData(`Email ${email} already registered`);
+      } else if (rows[0].username === username.toLowerCase()) {
+        throw boom.badData(`Username ${username} already registered`);
+      }
     }
+  } catch (err) {
+    client.release();
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to validate if username already registered : ${err.stack}`);
   }
 
   // check if username is registered on chain
-  const userInCache = await _userExistsOnChain(id);
-  if (userInCache) throw boom.badData(`Username ${id} already exists`);
+  try {
+    const userInCache = await _userExistsOnChain(username);
+    if (userInCache) throw boom.badData(`Username ${username} already exists`);
+  } catch (err) {
+    client.release();
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to validate if user exists on chain: ${err.stack}`);
+  }
 
   // create user on chain
-  const address = await contracts.createUser({ id: getSHA256Hash(id) });
+  try {
+    address = await contracts.createUser({ id: getSHA256Hash(username) });
+  } catch (err) {
+    client.release();
+    throw boom.badImplementation(`Failed to create user on chain: ${err.stack}`);
+  }
   const salt = await bcrypt.genSalt(10);
-  const hash = await bcrypt.hash(password, salt);
+  let hash = await bcrypt.hash(password, salt);
 
   // insert in user db
-  const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5)';
-  await appPool.query({ text: queryString, values: [address, id, email, hash, isProducer] });
-  return res.status(200).json({ address, id });
+  try {
+    const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5);';
+    await client.query({ text: queryString, values: [address, username, email, hash, isProducer] });
+    userId = (await sqlCache.getDbUserIdByAddress(address))[0].id;
+  } catch (err) {
+    client.release();
+    throw boom.badImplementation(`Failed to save user in db: ${err.stack}`);
+  }
+
+  // generate and persist activation code
+  hash = crypto.createHash('sha256');
+  const activationCode = crypto.randomBytes(32).toString('hex');
+  hash.update(activationCode);
+  try {
+    await client.query({
+      text: 'INSERT INTO user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);',
+      values: [userId, hash.digest('hex')],
+    });
+  } catch (err) {
+    client.release();
+    throw boom.badImplementation(`Failed to save user activation code: ${err.stack}`);
+  }
+
+  client.release();
+  return {
+    address, username, email, activationCode,
+  };
+};
+
+const sendUserActivationEmail = async (userEmail, senderEmail, webappName, apiUrl, activationCode) => {
+  const message = {
+    to: userEmail,
+    from: `${senderEmail}`,
+    subject: `${webappName} - Activate Account`,
+    text: `Your account has been successfully created on the ${webappName}. In order to login please activate your user account by clicking <a href="${apiUrl}/users/activate/${activationCode}">here</a>.`,
+    html: `Your account has been successfully created on the ${webappName}. In order to login please activate your user account by clicking <a href="${apiUrl}/users/activate/${activationCode}">here</a>.`,
+  };
+  await sendgrid.send(message);
+};
+
+const registrationHandler = asyncMiddleware(async ({ body }, res) => {
+  const result = await registerUser(body);
+  if (process.env.WEBAPP_EMAIL && process.env.WEBAPP_URL) {
+    await sendUserActivationEmail(
+      result.email,
+      process.env.WEBAPP_EMAIL,
+      process.env.WEBAPP_NAME,
+      process.env.API_URL,
+      result.activationCode,
+    );
+  }
+  return res.status(200).json({
+    address: result.address,
+    username: result.username,
+  });
+});
+
+const activateUser = asyncMiddleware(async (req, res) => {
+  const hash = crypto.createHash('sha256');
+  hash.update(req.params.activationCode);
+  const codeHex = hash.digest('hex');
+  const rows = await sqlCache.getUserByActivationCode(codeHex);
+  if (!rows.length) {
+    throw boom.badRequest('Activation code does not match any user account');
+  }
+  try {
+    await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
+    res.redirect(`${process.env.WEBAPP_URL}/?activated=true`);
+  } catch (err) {
+    log.error(`Failed to activate user account at ${rows[0].address}: ${err}`);
+    res.redirect(`${process.env.WEBAPP_URL}/help`);
+  }
 });
 
 const getUsers = asyncMiddleware(async (req, res) => {
@@ -327,5 +419,7 @@ module.exports = {
   getUsers,
   getProfile,
   editProfile,
+  registrationHandler,
   registerUser,
+  activateUser,
 };

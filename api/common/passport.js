@@ -71,7 +71,7 @@ module.exports = (passport) => {
   Return success
   */
   const authenticate = async (id, idType, password, done) => {
-    const text = `SELECT username, email, address, password_digest, created_at FROM users WHERE LOWER(${idType}) = LOWER($1)`;
+    const text = `SELECT username, email, address, password_digest, created_at, activated FROM users WHERE LOWER(${idType}) = LOWER($1)`;
     try {
       const { rows } = await appPool.query({
         text,
@@ -79,6 +79,9 @@ module.exports = (passport) => {
       });
       if (!rows[0]) {
         return done(null, false, { message: 'Invalid login credentials' });
+      }
+      if (!rows[0].activated) {
+        return done(null, false, { message: 'User account not yet activated' });
       }
       const {
         username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
