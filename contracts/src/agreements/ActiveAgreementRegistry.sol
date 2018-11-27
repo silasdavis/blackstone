@@ -151,12 +151,14 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	function addAgreementToCollection(bytes32 _collectionId, address _agreement) public;
 
 	/**
-	 * @dev Creates a starts a ProcessInstance to handle the formation workflow as defined by the given agreement's archetype.
+	 * @dev Creates and starts a ProcessInstance to handle the workflows as defined by the given agreement's archetype.
+	 * Depending on the configuration in the archetype, the returned address could be a formation process or
+	 * execution process.
 	 * @param _agreement an ActiveAgreement
 	 * @return error - an error code indicating success or failure
-	 * @return the address of the ProcessInstance, if successful
+	 * @return the address of a ProcessInstance, if successful
 	 */
-	function startFormation(ActiveAgreement _agreement) external returns (uint error, address processInstance);
+	function startProcessLifecycle(ActiveAgreement _agreement) external returns (uint error, address processInstance);
 
 	/**
 	 * @dev Sets address scopes on the given ProcessInstance based on the scopes defined in the ActiveAgreement referenced in the ProcessInstance.
@@ -178,32 +180,32 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 */
 	function getArchetypeRegistry() external returns (address);
 
-  /**
-   * @dev Gets number of activeAgreements
-   * @return size size
-   */
-  function getActiveAgreementsSize() external view returns (uint size);
+	/**
+	 * @dev Gets number of activeAgreements
+	 * @return size size
+	 */
+	function getActiveAgreementsSize() external view returns (uint size);
 
-  /**
-   * @dev Gets activeAgreement address at given index
-   * @param _index index
-   * @return the Active Agreement address
-   */
-  function getActiveAgreementAtIndex(uint _index) external view returns (address activeAgreement);
+	/**
+	 * @dev Gets activeAgreement address at given index
+	 * @param _index index
+	 * @return the Active Agreement address
+	 */
+	function getActiveAgreementAtIndex(uint _index) external view returns (address activeAgreement);
 
-  /**
-   * @dev Gets parties size for given Active Agreement
-   * @param _activeAgreement Active Agreement
-   * @return size size
-   */
+	/**
+	 * @dev Gets parties size for given Active Agreement
+	 * @param _activeAgreement Active Agreement
+	 * @return size size
+	 */
 	function getPartiesByActiveAgreementSize(address _activeAgreement) external view returns (uint size);
 
-  /**
-   * @dev Gets getPartyByActiveAgreementAtIndex
-   * @param _activeAgreement Active Agreement
-   * @param _index index
-   * @return party party
-   */
+	/**
+	 * @dev Gets getPartyByActiveAgreementAtIndex
+	 * @param _activeAgreement Active Agreement
+	 * @param _index index
+	 * @return party party
+	 */
 	function getPartyByActiveAgreementAtIndex(address _activeAgreement, uint _index) public view returns (address party);
 
     /**

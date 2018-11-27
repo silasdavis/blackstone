@@ -181,7 +181,6 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	}
 
 	function emitAgreementCreationEvent(address _activeAgreement) internal {
-		emit UpdateActiveAgreements(TABLE_AGREEMENTS, _activeAgreement);
 		emit LogAgreementCreation(
 			EVENT_ID_AGREEMENTS,
 			_activeAgreement,
@@ -261,31 +260,62 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 	}
 
 	/**
-	 * @dev Creates a starts a ProcessInstance to handle the formation workflow as defined by the given agreement's archetype.
+	 * @dev Creates and starts a ProcessInstance to handle the workflows as defined by the given agreement's archetype.
+	 * Depending on the configuration in the archetype, the returned address can be either a formation process or an execution process.
+	 * An execution process will only be started if *no* formation process is defined for the archetype. Otherwise,
+	 * the execution process will automatically start after the formation process (see #processStateChanged(ProcessInstance))
+	 * REVERTS if:
+	 * - the provided ActiveAgreement is a 0x0 address
+	 * - a formation process should be started, but the legal state of the agreement is not FORMULATED
+	 * - a formation process should be started, but there is already an ongoing formation ProcessInstance registered for this agreement
+	 * - an execution process should be started, but the legal state of the agreement is not EXECUTED
+	 * - an execution process should be started, but there is already an ongoing execution ProcessInstance registered for this agreement
 	 * @param _agreement an ActiveAgreement
-	 * @return error - BaseErrors.INVALID_PARAM_STATE() if the agreement is not in legal state FORMULATED
-	 * @return error - BaseErrors.OVERWRITE_NOT_ALLOWED() if there is an ongoing formation process for the agreement
-	 * @return error - BaseErrors.NO_ERROR() if the formation process was started successfully, or a different error code if there were problems in the process
-	 * @return the address of the ProcessInstance, if successful
+	 * @return error - BaseErrors.NO_ERROR() if a ProcessInstance was started successfully, or a different error code if there were problems in the process
+	 * @return the address of a ProcessInstance, if successful
 	 */
-	function startFormation(ActiveAgreement _agreement) external returns (uint error, address) {
-		if (_agreement.getLegalState() != uint8(Agreements.LegalState.FORMULATED)) {
-			return (BaseErrors.INVALID_PARAM_STATE(), 0x0);
+	function startProcessLifecycle(ActiveAgreement _agreement)
+		external
+		returns (uint error, address)
+	{
+		ErrorsLib.revertIf(address(_agreement) == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The provided ActiveAgreement must exist");
+
+		// FORMATION PROCESS
+		if (Archetype(_agreement.getArchetype()).getFormationProcessDefinition() != address(0)) {
+			ErrorsLib.revertIf(_agreement.getLegalState() != uint8(Agreements.LegalState.FORMULATED),
+				ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The ActiveAgreement must be in state FORMULATED to start the formation process");
+			ErrorsLib.revertIf(ActiveAgreementRegistryDb(database).getAgreementFormationProcess(address(_agreement)) != address(0),
+				ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The provided agreement already has an ongoing formation ProcessInstance");
+			
+			ProcessInstance pi = createFormationProcess(_agreement);
+			// keep track of the process for the agreement, regardless of whether the start (below) actually succeeds, because the PI is created
+			ActiveAgreementRegistryDb(database).setAgreementFormationProcess(address(_agreement), address(pi));
+			emit LogAgreementFormationProcessUpdate(
+				EVENT_ID_AGREEMENTS,
+				_agreement,
+				address(pi)
+			);
+			error = bpmService.startProcessInstance(pi);
+			return(error, address(pi));
 		}
-		if (ActiveAgreementRegistryDb(database).getAgreementFormationProcess(address(_agreement)) != 0x0) {
-			return (BaseErrors.OVERWRITE_NOT_ALLOWED(), 0x0);
+		// EXECUTION PROCESS
+		else if (Archetype(_agreement.getArchetype()).getExecutionProcessDefinition() != address(0)) {
+			ErrorsLib.revertIf(_agreement.getLegalState() != uint8(Agreements.LegalState.EXECUTED),
+				ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The ActiveAgreement must be in state EXECUTED to start the execution process");
+			ErrorsLib.revertIf(ActiveAgreementRegistryDb(database).getAgreementExecutionProcess(address(_agreement)) != address(0),
+				ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The provided agreement already has an ongoing execution ProcessInstance");
+
+			pi = createExecutionProcess(_agreement);
+			ActiveAgreementRegistryDb(database).setAgreementExecutionProcess(address(_agreement), address(pi));
+			emit LogAgreementExecutionProcessUpdate(
+				EVENT_ID_AGREEMENTS,
+				address(_agreement),
+				address(pi)
+			);
+			error = bpmService.startProcessInstance(pi);
+			return(error, address(pi));
 		}
-		ProcessInstance pi = createFormationProcess(_agreement);
-		// keep track of the process for the agreement, regardless of whether the start (below) actually succeeds, because the PI is created
-		ActiveAgreementRegistryDb(database).setAgreementFormationProcess(address(_agreement), address(pi));
-		emit UpdateActiveAgreements(TABLE_AGREEMENTS, address(_agreement));
-		emit LogAgreementFormationProcessUpdate(
-			EVENT_ID_AGREEMENTS,
-			_agreement,
-			address(pi)
-		);
-		error = bpmService.startProcessInstance(pi);
-		return (error, pi);
 	}
 
 	/**
@@ -753,20 +783,22 @@ contract DefaultActiveAgreementRegistry is Versioned(1,0,0), AbstractEventListen
 			// the agreement must be in legal state EXECUTED to trigger the execution process
 			if (_processInstance.getProcessDefinition() == Archetype(agreement.getArchetype()).getFormationProcessDefinition() &&
 				agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) {
-				ProcessInstance newPi = createExecutionProcess(agreement);
-				// keep track of the execution process for the agreement
-				// NOTE: we're currently not checking if there is already a tracked execution process, because no execution path can currently lead to that situation
-				ActiveAgreementRegistryDb(database).setAgreementExecutionProcess(address(agreement), address(newPi));
-				emit LogAgreementExecutionProcessUpdate(
-					EVENT_ID_AGREEMENTS,
-					address(agreement),
-					address(newPi)
-				);
-				emit UpdateActiveAgreements(TABLE_AGREEMENTS, address(agreement));
-				bpmService.startProcessInstance(newPi); // Note: Disregarding the error code here. If there was an error in the execution process, it should either REVERT or leave the PI in INTERRUPTED state
+				// if the archetype has an execution process defined, start it
+				if (Archetype(agreement.getArchetype()).getExecutionProcessDefinition() != address(0)) {
+					ProcessInstance newPi = createExecutionProcess(agreement);
+					// keep track of the execution process for the agreement
+					// NOTE: we're currently not checking if there is already a tracked execution process, because no execution path can currently lead to that situation
+					ActiveAgreementRegistryDb(database).setAgreementExecutionProcess(address(agreement), address(newPi));
+					emit LogAgreementExecutionProcessUpdate(
+						EVENT_ID_AGREEMENTS,
+						address(agreement),
+						address(newPi)
+					);
+					bpmService.startProcessInstance(newPi); // Note: Disregarding the error code here. If there was an error in the execution process, it should either REVERT or leave the PI in INTERRUPTED state
+				}
 			}
 			// EXECUTION PROCESS
-			// the agreement must be NOT be in legal states DEFAULT or CANCELED in order to be regarded as FULFILLED
+			// the agreement must NOT be in legal states DEFAULT or CANCELED in order to be regarded as FULFILLED
 			else if (_processInstance.getProcessDefinition() == Archetype(agreement.getArchetype()).getExecutionProcessDefinition() &&
 					 agreement.getLegalState() != uint8(Agreements.LegalState.DEFAULT) &&
 					 agreement.getLegalState() != uint8(Agreements.LegalState.CANCELED)) {
