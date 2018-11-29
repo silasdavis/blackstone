@@ -1075,7 +1075,7 @@ const isValidProcess = processAddress => new Promise((resolve, reject) => {
 
 const startProcessFromAgreement = agreementAddress => new Promise((resolve, reject) => {
   log.trace(`Starting formation process from agreement at address: ${agreementAddress}`);
-  appManager.contracts['ActiveAgreementRegistry'].factory.startFormation(agreementAddress, (error, data) => {
+  appManager.contracts['ActiveAgreementRegistry'].factory.startProcessLifecycle(agreementAddress, (error, data) => {
     if (error || !data.raw) {
       return reject(boom
         .badImplementation(`Failed to start formation process from agreement at ${agreementAddress}: ${error}`));
