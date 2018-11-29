@@ -2,9 +2,32 @@
 
 ## Release History
 
-- Version [0.5.0](#v0.5.0)
+- Version [0.5.1](#v0.5.1)
+- Version [0.5.2](#v0.5.2)
 
-## <a name="v0.5.0">Release v0.5.0</a>
+## <a name="v0.5.2">Release v0.5.2</a>
+
+### Compatibility
+
+This release was tested with the following software and versions:
+
+|                    |        |
+| :----------------- | :----- |
+| Hyperledger Burrow | 0.23.1 |
+| Solc               | 0.4.25 |
+
+### Breaking Changes
+
+- The function `ActiveAgreementRegistry.startFormation(ActiveAgreement)` was renamed to `startProcessLifecycle(ActiveAgreement)` and the returned ProcessInstance address can now represent a started Formation or Execution process or be empty, depending on the setup of the Archetype (see Features below).
+
+### Features
+
+- The `DefaultArchetypeRegistry.createArchetype` function now allows the `_formationProcess` and `_executionProcess` parameters to be empty, thus adding support for archetypes with optional business process setups. IMPORTANT: Agreements created from archetypes that do not have Formation and/or Execution processes are responsible for their legal state changes. Especially for agreements without an execution process, these agreements will no longer switch their legal state to "fulfilled" automatically!</br>
+Agreements without a formation process who want to run an execution process must be fully executed (which can be achieved by all signatories calling the `sign()` function on the agreement) **before** calling `ActiveAgreementRegistry.startProcessLifecycle(ActiveAgreement)`.
+- User activation via email for new user accounts has been added. A new user signing up via the API is by default "deactivated" and has to click on the activation link in an email before being able to login for the first time. This serves to validate the user's email account used for notifications, etc.
+
+
+## <a name="v0.5.1">Release v0.5.1</a>
 
 ### Compatibility
 
