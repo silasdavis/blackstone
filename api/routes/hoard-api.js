@@ -19,7 +19,7 @@ module.exports = (app) => {
   *     curl -i /hoard
   *
   */
-  app.get('/hoard', ensureAuth, getHoard);
+  app.get('/hoard', getHoard);
 
   /**
   * @api {post} /hoard Read Content Object
