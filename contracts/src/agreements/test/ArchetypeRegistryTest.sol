@@ -48,19 +48,9 @@ contract ArchetypeRegistryTest {
 	address[] ndaGovArchetypes;
 	address[] emptyArray;
 
-	// TODO: Reinstate the constructor when the issue below is resolved.
-	// ISSUE: EPM does not pass params via a constructor when it deploys a contract from binary.
-	// So had to add a getter/setter below instead of using constructor. See AN-307
-	// constructor(address _isoCountries) {
-	// 	isoCountries = IsoCountries100(_isoCountries);
-	// }
-
-	function setIsoCountries(address _isoCountries) external {
+	constructor (address _isoCountries) public {
+		require(_isoCountries != address(0), "The test contract requires an instance of IsoCountries");
 		isoCountries = IsoCountries100(_isoCountries);
-	}
-
-	function getIsoCountries() external view returns (address) {
-		return address(isoCountries);
 	}
 
 	/**
@@ -85,7 +75,7 @@ contract ArchetypeRegistryTest {
 			"createArchetype(bytes32,address,string,bool,bool,address,address,bytes32,address[])"))),
 			name, 0x0, description, false, true, 0x0, 0x0, EMPTY, addrArrayWithDupes)) 
 		{
-			return "Creating archetype with empty author expected to fail with NULL_PARAM_NOT_ALLOWED";
+			return "Creating archetype with empty author expected to fail";
 		}
 
 		archetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);

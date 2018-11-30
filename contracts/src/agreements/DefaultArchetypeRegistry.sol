@@ -58,7 +58,9 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 		address[] _governingArchetypes) 
 		external returns (address archetype)
 	{
-		validateArchetypeRequirements(_name, _author, _formationProcess, _executionProcess, _governingArchetypes);
+		ErrorsLib.revertIf(bytes(_name).length == 0 || _author == 0x0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name and author address must not be empty");
+		verifyNoDuplicates(_governingArchetypes);
 		archetype = new DefaultArchetype(_price, _isPrivate, _active, _name, _author, _description,  _formationProcess, _executionProcess, _governingArchetypes);
 		registerArchetype(archetype, _name);
 		for (uint i = 0; i < _governingArchetypes.length; i++) {
@@ -71,18 +73,6 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 			);
 		}
 		if (_packageId != "") addArchetypeToPackage(_packageId, archetype);
-	}
-
-	function validateArchetypeRequirements(string _name, address _author, address _formationProcess, address _executionProcess, address[] _governingArchetypes) internal {
-		validateArchetypeProperties(_name, _author);
-		ErrorsLib.revertIf(_formationProcess == 0x0 || _executionProcess == 0x0,
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name, author address, formation and execution process definitions are required");
-		verifyNoDuplicates(_governingArchetypes);
-	}
-
-	function validateArchetypeProperties(string _name, address _author) internal pure {
-		ErrorsLib.revertIf(bytes(_name).length == 0 || _author == 0x0,
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name, author address, formation and execution process definitions are required");
 	}
 
 	function registerArchetype(address _archetype, string _name) internal {

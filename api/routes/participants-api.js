@@ -11,7 +11,8 @@ const {
   getUsers,
   getProfile,
   editProfile,
-  registerUser,
+  registrationHandler,
+  activateUser,
 } = require(`${global.__controllers}/participants-controller`);
 
 const {
@@ -161,11 +162,10 @@ module.exports = (app) => {
   *    If no approvers are passed, the currently logged-in user's address is used as the single
   *    approver of for the new organization.
   * @apiBodyParameterExample {json} Param Object
-  *     {
-  *        "name": "ACME Corp",
-  *        "approvers": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E", "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
-  *      }
-  *
+    {
+      "name": "ACME Corp",
+      "approvers": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E", "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
+    }
   * @apiExample {curl} Simple:
   *     curl -iX POST /organizations
   *
@@ -233,12 +233,11 @@ module.exports = (app) => {
    * @apiBodyParameter {String[] Optional} users Addresses of the members to add to the Department
    * If not given, department will be created with no members and members can be added later
    * @apiBodyParameterExample {json} Param Object
-   *     {
-   *        "id": "accounting",
-   *        "name": "Accounting",
-   *        "users": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
-   *      }
-   *
+    {
+      "id": "accounting",
+      "name": "Accounting",
+      "users": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
+    }
    * @apiExample {curl} Simple:
    *     curl -iX PUT /organizations/6EDC6101F0B64156ED867BAE925F6CD240635656/departments
    *
@@ -284,10 +283,9 @@ module.exports = (app) => {
    *
    * @apiBodyParameter {String[]} users Addresses of the members to add to the Department.
    * @apiBodyParameterExample {json} Param Object
-   *     {
-   *        "users": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
-   *      }
-   *
+      {
+        "users": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
+      }
    * @apiExample {curl} Simple:
    *     curl -iX PUT /organizations/6EDC6101F0B64156ED867BAE925F6CD240635656/departments/accounting/users
    *
@@ -349,15 +347,13 @@ module.exports = (app) => {
    * @apiSuccess {String} organizationId Organization's machine readable ID
    * @apiSuccess {String} organizationName Organization's human readable name
    * @apiSuccessExample {json} Success Objects Array
-   [
-  {
-  "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
-  "id": "j.smith",
-  "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
-  "organizationId": "acmecorp92",
-  "organizationName": "ACME Corp"
-  }
-  ]
+   [{
+     "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
+     "id": "j.smith",
+     "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
+     "organizationId": "acmecorp92",
+     "organizationName": "ACME Corp"
+   }]
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
@@ -389,24 +385,24 @@ module.exports = (app) => {
    * @apiSuccess {String} createdAt Timestamp of user account creation
    * @apiSuccessExample {json} Success Object
    {
-  "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
-  "id": "j.smith",
-  "email": "jsmith@monax.io",
-  "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
-  "organizationId": "acmecorp92",
-  "organizationName": "ACME Corp",
-  "firstName": "Joe",
-  "lastName": "Smith",
-  "country": "CA",
-  "region": "1232SDFF3EC680332BEFDDC3CA12CBBD",
-  "isProducer": false,
-  "onboarding": true,
-  "createdAt": ""
-  }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  */
+     "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
+     "id": "j.smith",
+     "email": "jsmith@monax.io",
+     "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
+     "organizationId": "acmecorp92",
+     "organizationName": "ACME Corp",
+     "firstName": "Joe",
+     "lastName": "Smith",
+     "country": "CA",
+     "region": "1232SDFF3EC680332BEFDDC3CA12CBBD",
+     "isProducer": false,
+     "onboarding": true,
+     "createdAt": ""
+   }
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   */
   app.get('/users/profile', ensureAuth, getProfile);
 
   /**
@@ -439,49 +435,49 @@ module.exports = (app) => {
    *
    * @apiSuccess {String} address Users's Controller Contract
    * @apiSuccessExample {json} Success Object
-  {
-  "address": "605401BB8B9E597CC40C35D1F0185DE94DBCE533",
-  }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  */
+    {
+      "address": "605401BB8B9E597CC40C35D1F0185DE94DBCE533",
+    }
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   */
   app.put('/users/profile', ensureAuth, editProfile);
 
   /**
-  * @api {post} /users Create a New User
-  * @apiName RegisterUser
-  * @apiGroup Users
-  *
-  * @apiDescription Creating a new user
-  *
-  * @apiBodyParameter {String} user The user's userName
-  * @apiBodyParameter {String} email The user's email address
-  * @apiBodyParameter {String} password The user's password
-  * @apiBodyParameter {Boolean} isProducer Set to true to create a producer account instead of a consumer account (optional)
-  * @apiBodyParameter {json} Param Object
-  {
-  "username": "username_id-123",
-  "email": "myemail@mycompany.com",
-  "password": "superhardtoguess",
-  "isProducer": false
-  }
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX POST /users
-  *
-  * @apiSuccess {Object} userData The "address" and "id" of the User
-  * @apiSuccessExample {json} Success Object
-  {
-  "address": "605401BB8B9E597CC40C35D1F0185DE94DBCE533",
-  "id": "johnsmith"
-  }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
-  app.post('/users', registerUser);
+   * @api {post} /users Create a New User
+   * @apiName RegisterUser
+   * @apiGroup Users
+   *
+   * @apiDescription Creating a new user
+   *
+   * @apiBodyParameter {String} user The user's userName
+   * @apiBodyParameter {String} email The user's email address
+   * @apiBodyParameter {String} password The user's password
+   * @apiBodyParameter {Boolean} isProducer Set to true to create a producer account instead of a consumer account (optional)
+   * @apiBodyParameter {json} Param Object
+     {
+       "username": "username_id-123",
+       "email": "myemail@mycompany.com",
+       "password": "superhardtoguess",
+       "isProducer": false
+     }
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX POST /users
+   *
+   * @apiSuccess {Object} userData The "address" and "id" of the User
+   * @apiSuccessExample {json} Success Object
+     {
+       "address": "605401BB8B9E597CC40C35D1F0185DE94DBCE533",
+       "id": "johnsmith"
+     }
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   *
+   */
+  app.post('/users', registrationHandler);
 
   /**
    * @api {post} /users/login Log in as a User
@@ -491,25 +487,25 @@ module.exports = (app) => {
    * @apiBodyParameter {String} user The user's userName
    * @apiBodyParameter {String} password The user's password
    * @apiBodyParameter {json} Param Object
-   {
-  "username": "username/id",
-  "password": "superhardtoguess"
-  }
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX PUT /users/login
-  *
-  * @apiSuccess {String} address The address of the user
-  * @apiSuccess {String} id The id (username) of the user
-  * @apiSuccess {String} A timestamp of the account creation
-  * @apiSuccessExample {json} Success Object
-  {
-  "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
-  "id": "jsmith",
-  "createdAt": "2018-06-25T13:44:26.925Z"
-  }
-  *
-  */
+    {
+      "username": "username/id",
+      "password": "superhardtoguess"
+    }
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX PUT /users/login
+   *
+   * @apiSuccess {String} address The address of the user
+   * @apiSuccess {String} id The id (username) of the user
+   * @apiSuccess {String} A timestamp of the account creation
+   * @apiSuccessExample {json} Success Object
+    {
+      "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
+      "id": "jsmith",
+      "createdAt": "2018-06-25T13:44:26.925Z"
+    }
+   *
+   */
   app.put('/users/login', login);
 
   /**
@@ -535,15 +531,15 @@ module.exports = (app) => {
    *     curl -iX GET /users/token/validate
    *
    * @apiSuccessExample {json} Success Object
-   {
-  "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
-  "id": "jsmith",
-  }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+    {
+      "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
+      "id": "jsmith",
+    }
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   *
+   */
   app.get('/users/token/validate', ensureAuth, validateToken);
 
   /**
@@ -556,13 +552,13 @@ module.exports = (app) => {
    *
    * @apiBodyParameter {String} email The user's email address
    * @apiBodyParameter {json} Param Object
-   {
-  "email": "hello@monax.io",
-  }
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX POST /users/password-recovery
-  */
+    {
+      "email": "hello@monax.io",
+    }
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX POST /users/password-recovery
+   */
   app.post('/users/password-recovery', createRecoveryCode);
 
   /**
@@ -588,12 +584,27 @@ module.exports = (app) => {
    *
    * @apiURLParameter recoveryCode The password recovery code
    * @apiBodyParameter {json} Param Object
-   {
-  "password": "newpassword",
-  }
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX PUT /users/password-recovery/vdk7bd2esdf3234...
-  */
+    {
+      "password": "newpassword",
+    }
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX PUT /users/password-recovery/vdk7bd2esdf3234...
+   */
   app.put('/users/password-recovery/:recoveryCode', resetPassword);
+
+  /**
+   * @api {get} /users/activate/:activationCode Activate user account
+   * @apiName ActivateUser
+   * @apiGroup Users
+   *
+   * @apiDescription
+   * Activates the user account
+   *
+   * @apiURLParameter activationCode The activation code
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX GET /users/activate/vdk7bd2esdf3234...
+   */
+  app.get('/users/activate/:activationCode', activateUser);
 };

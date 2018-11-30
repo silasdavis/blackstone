@@ -145,6 +145,90 @@ contract ActiveAgreementWorkflowTest {
 	}
 
 	/**
+	 * @dev Tests the handling of combinations of formation and execution processes, i.e. the lack of processes, in the ActiveAgreementRegistry.startProcessLifecycle function
+	 */
+	function testAgreementProcessLifecycle() external returns (string) {
+
+		uint error;
+		address addr;
+		bool success;
+		bytes32 errorMsg;
+
+		// service / test setup
+		agreementRegistry = new TestRegistry();
+		registryDb = new ActiveAgreementRegistryDb();
+		SystemOwned(registryDb).transferSystemOwnership(agreementRegistry);
+		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
+		agreementRegistry.setBpmService(bpmService);
+
+		ProcessModel pm;
+		ProcessDefinition formationPD;
+		ProcessDefinition executionPD;
+		delete parties;
+		// the parties to the agreement are: one user, one org, and one org with department scope
+		parties.push(address(this));
+
+		(error, addr) = processModelRepository.createProcessModel("FormationExecution", "Formation Execution", [1,0,0], userAccount1, false, EMPTY, EMPTY);
+		if (addr == 0x0) return "Unable to create a ProcessModel";
+		pm = ProcessModel(addr);
+		// Formation Process
+		(error, addr) = pm.createProcessDefinition("FormationProcess");
+		if (addr == 0x0) return "Unable to create FormationProcess definition";
+		formationPD = ProcessDefinition(addr);
+		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for formation process definition";
+		(success, errorMsg) = formationPD.validate();
+		if (!success) return errorMsg.toString();
+		// Execution Process
+		(error, addr) = pm.createProcessDefinition("ExecutionProcess");
+		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
+		executionPD = ProcessDefinition(addr);
+		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
+		(success, errorMsg) = executionPD.validate();
+		if (!success) return errorMsg.toString();
+
+		ActiveAgreement agreement;
+
+		//
+		// COMBO 1: Formation, but no execution
+		//
+		addr = archetypeRegistry.createArchetype(10, false, true, "Combo1Archetype", this, "description", formationPD, address(0), EMPTY, governingArchetypes);
+		if (addr == 0x0) return "Error creating Combo1Archetype, address is empty";
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements));
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
+		if (error != BaseErrors.NO_ERROR()) return "Error starting formation / no execution combo";
+		if (addr == address(0)) return "Starting formation / no execution combo should return a PI address for formation";
+		if (ProcessInstance(addr).getProcessDefinition() != address(formationPD)) return "Starting formation / no execution combo should return an instance of formationPD";
+
+		//
+		// COMBO 2: Execution, but no formation
+		//
+		addr = archetypeRegistry.createArchetype(10, false, true, "Combo2Archetype", this, "description", address(0), executionPD, EMPTY, governingArchetypes);
+		if (addr == 0x0) return "Error creating Combo2Archetype, address is empty";
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements));
+		// First try fail, because agreement is not executed
+		if (address(agreementRegistry).call(abi.encodeWithSignature("startProcessLifecycle(address)", address(agreement)))) return "Starting no formation / execution combo with a non-executed agreement should fail ";
+		agreement.sign();
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
+		if (error != BaseErrors.NO_ERROR()) return "Error starting no formation / execution combo";
+		if (addr == address(0)) return "Starting no formation / execution combo should return a PI address for execution";
+		if (ProcessInstance(addr).getProcessDefinition() != address(executionPD)) return "Starting no formation / execution combo should return an instance of executionPD";
+
+		//
+		// COMBO 1: No formation, no execution
+		//
+		addr = archetypeRegistry.createArchetype(10, false, true, "Combo3Archetype", this, "description", address(0), address(0), EMPTY, governingArchetypes);
+		if (addr == 0x0) return "Error creating Combo3Archetype, address is empty";
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, EMPTY, EMPTY, false, parties, EMPTY, governingAgreements));
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
+		if (error != 0) return "Expected empty error code starting no formation / no execution combo";
+		if (addr != address(0)) return "Expected no address starting no formation / no execution combo";
+
+		return SUCCESS;
+	}
+
+	/**
 	 * Tests a typical AN workflow with a multi-instance signing activity that produces an executed agreement
 	 */
 	function testExecutedAgreementWorkflow() external returns (string) {
@@ -156,6 +240,8 @@ contract ActiveAgreementWorkflowTest {
 		bytes memory returnData;
 		bytes32 errorMsg;
 		uint8 state;
+		uint piCounter;
+		uint aiCounter;
 		ProcessDefinition formationPD;
 		ProcessDefinition executionPD;
 	
@@ -212,7 +298,7 @@ contract ActiveAgreementWorkflowTest {
 		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
-		if (error != BaseErrors.NO_ERROR()) return "Error creating SERVICE task for execution process definition";
+		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
 		(success, errorMsg) = executionPD.validate();
 		if (!success) return errorMsg.toString();
 
@@ -234,15 +320,16 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// FORMATION / EXECUTION
 		//
-		if (bpmService.getNumberOfProcessInstances() != 0) return "here should be 0 PIs in the system at test start";
-		(error, addr) = agreementRegistry.startFormation(ActiveAgreement(agreement));
+		piCounter = bpmService.getNumberOfProcessInstances();
+		aiCounter = bpmService.getBpmServiceDb().getNumberOfActivityInstances();
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting the formation on agreement";
 		if (ActiveAgreement(agreement).getLegalState() != uint8(Agreements.LegalState.FORMULATED)) return "The agreement should be in FORMULATED state";
 
 		ProcessInstance pi;
-		if (bpmService.getNumberOfProcessInstances() != 1) return "There should be 1 PI in the system after agreement formation start";
-		if (bpmService.getBpmServiceDb().getNumberOfActivityInstances() != 3) return "There should be 3 AIs total";
-		pi = ProcessInstance(bpmService.getProcessInstanceAtIndex(0));
+		if (bpmService.getNumberOfProcessInstances() != piCounter+1) return "There should be +1 PI in the system after agreement formation start";
+		if (bpmService.getBpmServiceDb().getNumberOfActivityInstances() != aiCounter+3) return "There should be +3 AIs total";
+		pi = ProcessInstance(bpmService.getProcessInstanceAtIndex(piCounter));
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The Formation PI should be active";
 		( , , , addr, , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should be suspended";
@@ -294,9 +381,9 @@ contract ActiveAgreementWorkflowTest {
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 3 in Formation Process should be completed";
 
 		// AIs 1-3 should all be completed now and the process has moved into execution
-		if (bpmService.getNumberOfProcessInstances() != 2) return "There should be 2 PIs in the system after agreement formation is completed";
-		if (bpmService.getBpmServiceDb().getNumberOfActivityInstances() != 4) return "There should be 4 AIs total";
-		pi = ProcessInstance(bpmService.getProcessInstanceAtIndex(1));
+		if (bpmService.getNumberOfProcessInstances() != piCounter+2) return "There should be +2 PIs in the system after agreement formation is completed";
+		if (bpmService.getBpmServiceDb().getNumberOfActivityInstances() != aiCounter+4) return "There should be +4 AIs total";
+		pi = ProcessInstance(bpmService.getProcessInstanceAtIndex(piCounter+1));
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The Execution PI should be completed";
 		if (ActiveAgreement(agreement).getLegalState() != uint8(Agreements.LegalState.FULFILLED)) return "The agreement should be in FULFILLED state";
 
@@ -375,13 +462,13 @@ contract ActiveAgreementWorkflowTest {
 		//
 		numberOfPIs = bpmService.getNumberOfProcessInstances();
 		ProcessInstance[3] memory pis; // to collect the created PIs
-		(error, addr) = agreementRegistry.startFormation(ActiveAgreement(agreement1));
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement1));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting the formation process 1 on agreement1";
 		pis[0] = ProcessInstance(addr);
 		if (agreementRegistry.getTrackedFormationProcess(agreement1) == 0x0) return "There should be a tracked formation process for agreement1";
 		if (agreementRegistry.getTrackedExecutionProcess(agreement1) != 0x0) return "There should be NO tracked execution process for agreement1";
 		if (agreementRegistry.getTrackedFormationProcess(agreement1) != address(pis[0])) return "The tracked formation process should match the started formation PI for agreement1";
-		(error, addr) = agreementRegistry.startFormation(ActiveAgreement(agreement2));
+		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement2));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting the formation process 2 on agreement2";
 		pis[1] = ProcessInstance(addr);
 		if (agreementRegistry.getTrackedFormationProcess(agreement2) == 0x0) return "There should be a tracked formation process for agreement2";

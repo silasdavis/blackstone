@@ -56,25 +56,7 @@ jobs:
     contract: ArchetypeRegistryTest.bin
     instance: ArchetypeRegistryTest
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
-
-- name: setIsoCountries
-  call:
-    destination: $ArchetypeRegistryTest
-    bin: ArchetypeRegistryTest
-    function: setIsoCountries
     data: [$IsoCountries]
-
-- name: getIsoCountries
-  call:
-    destination: $ArchetypeRegistryTest
-    bin: ArchetypeRegistryTest
-    function: getIsoCountries
-
-- name: assertIsoCountries
-  assert:
-    key: $getIsoCountries
-    relation: eq
-    val: $IsoCountries
 
 - name: testArchetypeCreation
   call:
@@ -437,6 +419,18 @@ jobs:
 - name: assertAddressScopeTransfer
   assert:
     key: $testAddressScopeTransfer
+    relation: eq
+    val: success
+
+- name: testAgreementProcessLifecycle
+  call:
+    destination: $ActiveAgreementWorkflowTest
+    bin: ActiveAgreementWorkflowTest
+    function: testAgreementProcessLifecycle
+
+- name: assertAgreementProcessLifecycle
+  assert:
+    key: $testAgreementProcessLifecycle
     relation: eq
     val: success
 
