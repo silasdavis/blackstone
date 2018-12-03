@@ -123,12 +123,12 @@ const createEcosystem = name => new Promise((resolve, reject) => {
   });
 });
 
-const addExternalAddressToEcosystem = externalAddress => new Promise((resolve, reject) => {
-  log.trace(`Adding external address ${externalAddress} to Ecosystem at ${appManager.ecosystemAddress}`);
-  const ecosystem = getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.ECOSYSTEM, appManager.ecosystemAddress);
+const addExternalAddressToEcosystem = (externalAddress, ecosystemAddress) => new Promise((resolve, reject) => {
+  log.trace(`Adding external address ${externalAddress} to Ecosystem at ${ecosystemAddress}`);
+  const ecosystem = getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
   ecosystem.addExternalAddress(externalAddress, (err) => {
-    if (err) return reject(boom.badImplementation(`Failed to add external address ${externalAddress} to ecosystem at ${appManager.ecosystemAddress}: ${err.stack}`));
-    log.debug(`Added external address ${externalAddress} to ecosystem at ${appManager.ecosystemAddress}`);
+    if (err) return reject(boom.badImplementation(`Failed to add external address ${externalAddress} to ecosystem at ${ecosystemAddress}: ${err.stack}`));
+    log.debug(`Added external address ${externalAddress} to ecosystem at ${ecosystemAddress}`);
     return resolve();
   });
 });
@@ -151,6 +151,18 @@ const getFromNameRegistry = name => new Promise((resolve, reject) => {
     log.debug(`Get name-value pair ${name}:${JSON.stringify(result)} from namereg`);
     return resolve((result && result.Data) ? result.Data : undefined);
   });
+});
+
+const registerEcosystem = ecosystemName => new Promise(async (resolve, reject) => {
+  try {
+    const address = await createEcosystem(ecosystemName);
+    log.debug(`Adding external address ${db.burrow.account} to ecosystem ${ecosystemName} at address ${address}`);
+    await addExternalAddressToEcosystem(db.burrow.account, address);
+    await setToNameRegistry(ecosystemName, address, 0);
+    return resolve(address);
+  } catch (err) {
+    return reject(new Error(`Failed to register ecosystem [ ${ecosystemName}]: ${err.stack}`));
+  }
 });
 
 /**
@@ -182,21 +194,19 @@ const load = () => new Promise((resolve, reject) => {
   // Resolve the Ecosystem address for this ContractsManager
   if (global.__settings.monax.ecosystem) {
     const ecosystemName = global.__settings.monax.ecosystem;
-    log.trace(`Looking up address for Ecosystem ${ecosystemName} in NameReg`);
+    log.info(`Validating if Ecosystem ${ecosystemName} is in NameReg`);
     try {
       appManager.ecosystemAddress = await getFromNameRegistry(ecosystemName);
       if (!appManager.ecosystemAddress) {
-        log.info(`No registered address found for Ecosystem ${ecosystemName}. Attempting to create and register it ...`);
-        appManager.ecosystemAddress = await createEcosystem(ecosystemName);
-        await addExternalAddressToEcosystem(db.burrow.account);
-        await setToNameRegistry(ecosystemName, appManager.ecosystemAddress, 0);
+        appManager.ecosystemAddress = await registerEcosystem(ecosystemName);
+        // This should not happen, but just in case, double-check the AppManager.ecosystemAddress
+        if (!appManager.ecosystemAddress) {
+          return reject(boom.badImplementation('Failed to configure the AppManager with an ecosystem address'));
+        }
+        log.info(`AppManager configured for Ecosystem ${ecosystemName} at address ${appManager.ecosystemAddress}`);
+        return resolve();
       }
-      // This should not happen, but just in case, double-check the AppManager.ecosystemAddress
-      if (!appManager.ecosystemAddress) {
-        return reject(boom.badImplementation('Failed to configure the AppManager with an ecosystem address'));
-      }
-      log.info(`AppManager configured for Ecosystem ${ecosystemName} at address ${appManager.ecosystemAddress}`);
-      resolve();
+      return resolve();
     } catch (err) {
       return reject(err);
     }
@@ -591,11 +601,11 @@ const addAgreementToCollection = (collectionId, agreement) => new Promise((resol
     });
 });
 
-const createUser = user => new Promise((resolve, reject) => {
-  log.trace(`Creating a new user with ID: ${user.id}`);
+const createUserInEcosystem = (user, ecosystemAddress) => new Promise((resolve, reject) => {
+  log.trace(`Creating a new user with ID: ${user.id} in ecosystem at ${ecosystemAddress}`);
   appManager
     .contracts['ParticipantsManager']
-    .factory.createUserAccount(user.id, '0x0', appManager.ecosystemAddress, (error, data) => {
+    .factory.createUserAccount(user.id, '0x0', ecosystemAddress, (error, data) => {
       if (error || !data.raw) {
         return reject(boom.badImplementation(`Failed to create user ${user.id}: ${error}`));
       }
@@ -604,9 +614,11 @@ const createUser = user => new Promise((resolve, reject) => {
     });
 });
 
-const getUserById = userId => new Promise((resolve, reject) => {
-  log.trace(`Getting user by Id: ${userId}`);
-  const ecosystem = getEcosystem(appManager.ecosystemAddress);
+const createUser = user => createUserInEcosystem(user, appManager.ecosystemAddress);
+
+const getUserByIdAndEcosystem = (userId, ecosystemAddress) => new Promise((resolve, reject) => {
+  log.info(`Getting user by Id: ${userId} in ecosystem at ${ecosystemAddress}`);
+  const ecosystem = getEcosystem(ecosystemAddress);
   ecosystem
     .getUserAccount(userId)
     .then((data) => {
@@ -620,6 +632,8 @@ const getUserById = userId => new Promise((resolve, reject) => {
       return reject(boomify(err, `Failed to get address for user with id ${userId}`));
     });
 });
+
+const getUserById = userId => getUserByIdAndEcosystem(userId, appManager.ecosystemAddress);
 
 const addUserToOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to organization %s', userAddress, organizationAddress);
@@ -1226,6 +1240,8 @@ module.exports = {
   listen: chainEvents,
   db,
   boomify,
+  registerEcosystem,
+  getFromNameRegistry,
   getContract,
   getBpmService,
   getProcessInstance,
@@ -1252,7 +1268,9 @@ module.exports = {
   cancelAgreement,
   createAgreementCollection,
   addAgreementToCollection,
+  createUserInEcosystem,
   createUser,
+  getUserByIdAndEcosystem,
   getUserById,
   addUserToOrganization,
   removeUserFromOrganization,
