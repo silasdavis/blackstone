@@ -617,7 +617,7 @@ const createUserInEcosystem = (user, ecosystemAddress) => new Promise((resolve, 
 const createUser = user => createUserInEcosystem(user, appManager.ecosystemAddress);
 
 const getUserByIdAndEcosystem = (userId, ecosystemAddress) => new Promise((resolve, reject) => {
-  log.info(`Getting user by Id: ${userId} in ecosystem at ${ecosystemAddress}`);
+  log.trace(`Getting user by Id: ${userId} in ecosystem at ${ecosystemAddress}`);
   const ecosystem = getEcosystem(ecosystemAddress);
   ecosystem
     .getUserAccount(userId)
