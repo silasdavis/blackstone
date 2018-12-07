@@ -902,5 +902,32 @@
         "primary": true
       }
     }
+  },
+  {
+    "TableName": "MEAN_TEMPERATURES",
+    "Filter": "Log1Text = 'AN://oracles/wolfram/mean-temp'",
+    "Columns": {
+      "uuid": {
+        "name": "uuid",
+        "type": "bytes32",
+        "primary": true
+      },
+      "location": {
+        "name": "location",
+        "type": "string"
+      },
+      "mean_temperature_start": {
+        "name": "mean_temperature_start",
+        "type": "uint"
+      },
+      "mean_temperature_end": {
+        "name": "mean_temperature_end",
+        "type": "uint"
+      },
+      "result_temperature": {
+        "name": "result_temperature",
+        "type": "string"
+      }
+    }
   }
 ]
