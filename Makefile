@@ -12,6 +12,7 @@ DCB_ARGS := --build-arg UID=$(shell id -u) --build-arg GID=$(shell id -g)
 .PHONY: build_contracts
 build_contracts:
 	docker-compose run api contracts/build_contracts $(tgt)
+	docker-compose rm -f
 
 .PHONY: deploy_contracts
 deploy_contracts: build_contracts
