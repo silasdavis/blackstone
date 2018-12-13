@@ -58,6 +58,8 @@ const dependencies = {
         if (!_.isEmpty(element.description)) element.description = _.unescape(element.description);
         if (element.successor) element.successor = Number(element.successor) === 0 ? null : element.successor;
         if (element.price) element.price = parseInt(element.price, 10) / 100; // converting to dollars from cents (recorded uint on chain)
+        if (Number(element.formationProcessDefinition) === 0) element.formationProcessDefinition = null;
+        if (Number(element.executionProcessDefinition) === 0) element.executionProcessDefinition = null;
         break;
       case 'Archetype Package':
         element.active = Boolean(element.active);
