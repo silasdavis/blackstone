@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 export CI_PROJECT_DIR=`pwd`
-export BURROW_VERSION="0.23.1"
+export BURROW_VERSION="0.23.2"
 export SOLC_VERSION="0.4.25"
 
 # Prerequisites

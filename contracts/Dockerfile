@@ -1,4 +1,4 @@
-FROM hyperledger/burrow:0.23.1
+FROM hyperledger/burrow:0.23.2
 USER root
 
 RUN apk add --update --no-cache bash curl jq
