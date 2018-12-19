@@ -998,35 +998,36 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     const bpmService = appManager.contracts['BpmService'];
     const piAddress = await bpmService.factory.getProcessInstanceForActivity(activityInstanceId).then(data => data.raw[0]);
     log.trace('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
+    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
     let payload;
     if (dataMappingId) {
+      log.trace('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
-          payload = bpmService.factory.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.STRING:
-          payload = bpmService.factory.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithStringData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.BYTES32:
-          payload = bpmService.factory.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithBytes32Data.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.UINT:
-          payload = bpmService.factory.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithUintData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.INT:
-          payload = bpmService.factory.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithIntData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.ADDRESS:
-          payload = bpmService.factory.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithAddressData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         default:
           return reject(boom.badImplementation(`Unsupported dataType parameter ${dataType}`));
       }
-      log.trace('Setting OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
-      await callOnBehalfOf(actingUserAddress, bpmService.address, payload);
+    } else {
+      payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
     }
-    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
-    payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
+
     const returnData = await callOnBehalfOf(actingUserAddress, piAddress, payload);
 
     const data = processInstance.completeActivity.decode(returnData);
