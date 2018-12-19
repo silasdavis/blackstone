@@ -65,7 +65,7 @@ const getDocumentsFromHoard = (docMetadata, password) => {
         return Promise.reject(boom.unauthorized('Archetype could not be unlocked'));
       });
   }
-  return {};
+  return [];
 };
 
 const getArchetype = asyncMiddleware(async (req, res) => {
@@ -75,20 +75,26 @@ const getArchetype = asyncMiddleware(async (req, res) => {
   data = await sqlCache.getArchetypeDataWithProcessDefinitions(req.params.address, req.user.address);
   if (!data) throw boom.notFound(`Archetype at ${req.params.address} not found or user has insufficient privileges`);
   data = format('Archetype', data);
-  const formationProcess = await pgCache.populateProcessNames([
-    {
-      modelId: data.formationModelId,
-      modelAddress: data.formationModelAddress,
-      processDefinitionId: data.formationProcessId,
-    }]);
-  const executionProcess = await pgCache.populateProcessNames([
-    {
-      modelId: data.executionModelId,
-      modelAddress: data.executionModelAddress,
-      processDefinitionId: data.executionProcessId,
-    }]);
-  data.formationProcessName = formationProcess[0].processName;
-  data.executionProcessName = executionProcess[0].processName;
+  let formationProcess;
+  let executionProcess;
+  if (data.formationProcessId) {
+    formationProcess = await pgCache.populateProcessNames([
+      {
+        modelId: data.formationModelId,
+        modelAddress: data.formationModelAddress,
+        processDefinitionId: data.formationProcessId,
+      }]);
+  }
+  if (data.executionProcessId) {
+    executionProcess = await pgCache.populateProcessNames([
+      {
+        modelId: data.executionModelId,
+        modelAddress: data.executionModelAddress,
+        processDefinitionId: data.executionProcessId,
+      }]);
+  }
+  data.formationProcessName = formationProcess ? formationProcess[0].processName : null;
+  data.executionProcessName = executionProcess ? executionProcess[0].processName : null;
   delete data.formationModelId;
   delete data.formationProcessId;
   delete data.executionModelId;
