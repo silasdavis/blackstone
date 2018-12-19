@@ -32,19 +32,6 @@ jobs:
       - checkout
       - run: ./docs/generate.sh
 
-  update_info:
-    docker:
-      - image: alpine/git
-    environment:
-      CHAIN_INFO: "t6"
-      CHAIN_INFO_HOST: "info.agreements.network"
-    steps:
-      - <<: *add_ssh_key
-      - checkout
-      - attach_workspace:
-          at: /tmp
-      - run: ./scripts/update_info.sh
-
 workflows:
   version: 2
   test_and_deploy:
@@ -55,11 +42,3 @@ workflows:
             branches:
               only:
                 - master
-      - update_info:
-          requires:
-            - test
-          filters:
-            branches:
-              only:
-                - master
-                - develop
