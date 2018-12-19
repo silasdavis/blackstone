@@ -735,11 +735,10 @@ describe(':: DATA MAPPING TEST ::', () => {
     }
   }).timeout(10000);
 
-  it('Should be able to set data and complete suspended task', done => {
+  it('Should be able to set single data and complete suspended task in one transaction', done => {
     setTimeout(async () => {
       let data = [
-        { id: 'writeApproved', value: true },
-        { id: 'writeName', value: "Jane Doe" },
+        { id: 'writeApproved', value: true } //IMPORTANT: test completing an activity with only one data in order to trigger the completeActivityWithData single transaction path in the API!
       ];
       try {
         await assert.isFulfilled(api.completeTaskForUser(managerTask.activityInstanceId, data, manager.token));
@@ -774,9 +773,7 @@ describe(':: DATA MAPPING TEST ::', () => {
         expect(aiData.data).to.exist;
         expect(aiData.data.in.length).to.equal(2);
         expect(aiData.data.out).to.not.exist;
-        let readName = aiData.data.in.filter(d => d.dataMappingId === 'readName')[0];
         let readApproved = aiData.data.in.filter(d => d.dataMappingId === 'readApproved')[0];
-        expect(readName.value).to.equal('Jane Doe');
         expect(readApproved.value).to.equal(true);
         done();
       } catch (err) {
