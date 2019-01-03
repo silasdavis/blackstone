@@ -22,7 +22,7 @@ const dataStorage = require(path.join(`${global.__controllers}/data-storage-cont
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
   const activities = await pgCache.populateTaskNames(data);
-  return res.status(200).json(activities);
+  return res.status(200).json(activities.map(activity => format('Task', activity)));
 });
 
 const _getDataMappingDetails = async (userAddress, activityInstanceId, dataMappingIds = [], direction) => {
@@ -182,7 +182,7 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
     return res.status(200).json(activityInstanceResult);
   } catch (err) {
     log.error(`Failed to get data mappings for activity ${req.params.id} and user ${req.user.address}: ${err}`);
-    return res.status(200).json(activityInstanceResult);
+    return res.status(200).json(format('Task', activityInstanceResult));
   }
 });
 
@@ -213,7 +213,7 @@ const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res) => {
   if (!address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getTasksByUserAddress(address);
   const tasks = await pgCache.populateTaskNames(data);
-  return res.status(200).json(tasks);
+  return res.status(200).json(tasks.map(task => format('Task', task)));
 });
 
 const getModels = asyncMiddleware(async (req, res) => {
