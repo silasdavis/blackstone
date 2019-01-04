@@ -70,12 +70,12 @@ module.exports = (passport) => {
   Compare given password with password digest and return unauthorized on mismatch
   Return success
   */
-  const authenticate = async (id, idType, password, done) => {
+  const authenticate = async (usernameOrEmail, idType, password, done) => {
     const text = `SELECT username, email, address, password_digest, created_at, activated FROM users WHERE LOWER(${idType}) = LOWER($1)`;
     try {
       const { rows } = await appPool.query({
         text,
-        values: [id],
+        values: [usernameOrEmail],
       });
       if (!rows[0]) {
         return done(null, false, { message: 'Invalid login credentials' });
@@ -86,7 +86,7 @@ module.exports = (passport) => {
       const {
         username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
       } = rows[0];
-      const hashedId = getSHA256Hash(id);
+      const hashedId = getSHA256Hash(username);
       const { address: addressFromChain } = await contracts.getUserById(hashedId);
       const data = (await sqlCache.getUsers({ id: hashedId }))[0];
       if (!data) return done(null, false, { message: 'Invalid login credentials' });
