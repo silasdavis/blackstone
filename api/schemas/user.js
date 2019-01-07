@@ -13,7 +13,7 @@ sample user:
 const userSchema = Joi.object().keys({
   username: Joi.string()
     .max(255, 'utf8')
-    .regex(/^[a-zA-Z0-9-_.]+$/)
+    .regex(/^[a-zA-Z0-9-_.@&+]+$/)
     .required(),
   email: Joi.string()
     .email()
