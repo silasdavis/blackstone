@@ -635,6 +635,14 @@ const getUserByIdAndEcosystem = (userId, ecosystemAddress) => new Promise((resol
 
 const getUserById = userId => getUserByIdAndEcosystem(userId, appManager.ecosystemAddress);
 
+const addUserToEcosystem = (userId, address) => new Promise((resolve, reject) => {
+  const ecosystem = getEcosystem(appManager.ecosystemAddress);
+  ecosystem
+    .addUserAccount(userId, address)
+    .then(() => resolve())
+    .catch(err => reject(boomify(err, `Failed to add user with id ${userId} and address ${address} to ecosystem`)));
+});
+
 const addUserToOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to organization %s', userAddress, organizationAddress);
   const organization = getOrganization(organizationAddress);
@@ -1273,6 +1281,7 @@ module.exports = {
   createUser,
   getUserByIdAndEcosystem,
   getUserById,
+  addUserToEcosystem,
   addUserToOrganization,
   removeUserFromOrganization,
   createDepartment,

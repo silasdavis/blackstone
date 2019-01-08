@@ -957,4 +957,17 @@ describe(':: External Users ::', () => {
       }
     }, 3000);
   }).timeout(10000);
+
+  it('Should allow external user to register', async () => {
+    // REGISTER USER
+    externalUser1.username = 'new_username';
+    externalUser1.password = 'externaluser';
+    const registerResult = await api.registerUser({
+      email: externalUser1.email,
+      username: externalUser1.username,
+      password: externalUser1.password,
+    });
+    expect(registerResult.address).to.equal(externalUser1.address);
+  }).timeout(5000);
+
 });
