@@ -21,10 +21,9 @@ const BPMN_TYPE_EXCLUSIVE_GATEWAY = 'bpmn:ExclusiveGateway';
 const BPMN_EXTENSION_PROPERTIES = 'camunda:properties';
 const BPMN_EXTENTION_ELEMENTS = 'extensionElements';
 
-const BPMN_DATAMAPPINGS_INDATA = 'INDATA';
-const BPMN_DATAMAPPINGS_INDATAID = 'INDATAID';
-const BPMN_DATAMAPPINGS_OUTDATA = 'OUTDATA';
-const BPMN_DATAMAPPINGS_OUTDATAID = 'OUTDATAID';
+const BPMN_DATAMAPPINGS_IN = 'IN';
+const BPMN_DATAMAPPINGS_OUT = 'OUT';
+const BPMN_DATAMAPPINGS_INOUT = 'INOUT';
 const BPMN_DATASTORAGEID_PROCESS_INSTANCE = 'PROCESS_INSTANCE';
 
 const BPM_MODEL_TASK_BEHAVIORS = {
@@ -125,20 +124,36 @@ const validateProcess = (process, dataStoreFields) => {
 
 const getDataMappings = (dataMappings) => {
   const retData = [];
-  const idKeys = Object.keys(dataMappings).filter(elem => _.startsWith(elem, BPMN_DATAMAPPINGS_INDATAID) || _.startsWith(elem, BPMN_DATAMAPPINGS_OUTDATAID));
+  const idKeys = Object.keys(dataMappings).filter(elem => _.startsWith(elem, `${BPMN_DATAMAPPINGS_IN}DATAID`) || _.startsWith(elem, `${BPMN_DATAMAPPINGS_OUT}DATAID`) || _.startsWith(elem, `${BPMN_DATAMAPPINGS_INOUT}DATAID`));
   idKeys.forEach((key) => {
     const id = dataMappings[key];
-    const direction = _.startsWith(key, 'IN') ? 0 : 1;
-    const dataPathKey = direction ? `${BPMN_DATAMAPPINGS_OUTDATA}_${id}_dataPath` : `${BPMN_DATAMAPPINGS_INDATA}_${id}_dataPath`;
+    let direction = key.split('DATAID_')[0];
+    const dataPathKey = `${direction}DATA_${id}_dataPath`;
     const dataPath = dataMappings[dataPathKey];
-    const dataStorageIdKey = direction ? `${BPMN_DATAMAPPINGS_OUTDATA}_${id}_dataStorageId` : `${BPMN_DATAMAPPINGS_INDATA}_${id}_dataStorageId`;
+    const dataStorageIdKey = `${direction}DATA_${id}_dataStorageId`;
     const dataStorageId = dataMappings[dataStorageIdKey] === BPMN_DATASTORAGEID_PROCESS_INSTANCE ? '' : dataMappings[dataStorageIdKey];
-    retData.push({
-      id,
-      direction,
-      dataPath,
-      dataStorageId,
-    });
+    if (direction === BPMN_DATAMAPPINGS_IN) direction = 0;
+    if (direction === BPMN_DATAMAPPINGS_OUT) direction = 1;
+    if (direction === 0 || direction === 1) {
+      retData.push({
+        id,
+        direction,
+        dataPath,
+        dataStorageId,
+      });
+    } else if (direction === BPMN_DATAMAPPINGS_INOUT) {
+      retData.push({
+        id,
+        direction: 0,
+        dataPath,
+        dataStorageId,
+      }, {
+        id,
+        direction: 1,
+        dataPath,
+        dataStorageId,
+      });
+    }
   });
   return retData;
 };
@@ -154,7 +169,7 @@ const getExtensionElementsFromNode = (node) => {
           extensionElements.properties.dataMappings = {};
           const _children = _.get(val, '$children', []);
           _children.forEach((child) => {
-            if (_.startsWith(child.name, BPMN_DATAMAPPINGS_OUTDATA) || _.startsWith(child.name, BPMN_DATAMAPPINGS_INDATA)) {
+            if (_.startsWith(child.name, `${BPMN_DATAMAPPINGS_OUT}DATA`) || _.startsWith(child.name, `${BPMN_DATAMAPPINGS_IN}DATA`) || _.startsWith(child.name, `${BPMN_DATAMAPPINGS_INOUT}DATA`)) {
               extensionElements.properties.dataMappings[`${child.name}`] = child.value;
             } else {
               extensionElements.properties[`${child.name}`] = child.value || '';
