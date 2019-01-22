@@ -844,10 +844,6 @@
         "type": "address",
         "primary": true
       },
-      "id": {
-        "name": "id",
-        "type": "bytes32"
-      },
       "owner": {
         "name": "owner",
         "type": "address"
