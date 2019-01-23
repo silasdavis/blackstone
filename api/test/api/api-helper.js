@@ -339,13 +339,13 @@ module.exports = (server) => {
       });
     },
 
-    setActivityDataValue: (activityInstanceId, dataMappingId, value, token) => {
+    setActivityDataValue: (activityInstanceId, dataMappingId, value, dataType, token) => {
       return new Promise((resolve, reject) => {
         chai
           .request(server)
           .put(`/bpm/activity-instances/${activityInstanceId}/data-mappings/${dataMappingId}`)
           .set('Cookie', [`access_token=${token}`])
-          .send({value})
+          .send({value, dataType})
           .end((err, res) => {
             if (err) return reject(err);
             if (res.status !== 200) return reject(new Error('setActivityDataValue value NOT OK'));

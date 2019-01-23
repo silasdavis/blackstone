@@ -40,7 +40,8 @@ contract ProcessDefinition is Bytes32Identifiable {
 		bytes32 dataPath,
 		bytes32 dataStorageId,
 		address dataStorage,
-		uint direction
+		uint direction,
+    bytes32 accessPath
 	);
 
 	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";

@@ -606,7 +606,13 @@
       },
       "direction": {
         "name": "direction",
-        "type": "uint"
+        "type": "uint",
+        "primary": true
+      },
+      "accessPath": {
+        "name": "access_path",
+        "type": "bytes32",
+        "bytesToString": true
       }
     }
   },
