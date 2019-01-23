@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "commons-base/BaseErrors.sol";
+import "commons-utils/DataTypes.sol";
 
 import "bpm-model/DefaultProcessModel.sol";
 import "bpm-model/DefaultProcessDefinition.sol";
@@ -33,6 +34,20 @@ contract ProcessModelTest {
 		(location, secret) = pm.getDiagram();
 		if (location != "hoardAddress") return "wrong hoard location retrieved";
 		if (secret != "hoardSecret") return "wrong hoard secret retrieved";
+
+		// data definitions
+		if (pm.getNumberOfDataDefinitions() != 0) return "There should not be any data definitions in the model after creation";
+		pm.addDataDefinition(EMPTY, "Age", DataTypes.ParameterType.POSITIVE_NUMBER);
+		pm.addDataDefinition("agreement", "Hash", DataTypes.ParameterType.BYTES32);
+		if (pm.getNumberOfDataDefinitions() != 2) return "There should 2 data definitions in the model";
+		bytes32 key;
+		uint paramType;
+		(key, paramType) = pm.getDataDefinitionDetailsAtIndex(0);
+		if (key != keccak256(abi.encodePacked(EMPTY,bytes32("Age")))) return "Hashed key for Age data definition should match";
+		if (paramType != uint(DataTypes.ParameterType.POSITIVE_NUMBER)) return "Parameter type for Age data definition should be Number";
+		(key, paramType) = pm.getDataDefinitionDetailsAtIndex(1);
+		if (key != keccak256(abi.encodePacked(bytes32("agreement"),bytes32("Hash")))) return "Hashed key for Hash data definition should match";
+		if (paramType != uint(DataTypes.ParameterType.BYTES32)) return "Parameter type for Hash data definition should be Bytes32";
 
 		(error, newAddress) = pm.createProcessDefinition("p1");
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error creating ProcessDefinition p1";

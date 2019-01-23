@@ -467,7 +467,7 @@
     "TableName": "PROCESS_DEFINITIONS",
     "Filter": "Log1Text = 'AN://process-definitions'",
     "Columns": {
-      "process_definition_address": {
+      "processDefinitionAddress": {
         "name": "process_definition_address",
         "type": "address",
         "primary": true
@@ -477,17 +477,17 @@
         "type": "bytes32",
         "bytesToString": true
       },
-      "interface_id": {
+      "interfaceId": {
         "name": "interface_id",
         "type": "bytes32",
         "bytesToString": true
       },
-      "model_id": {
+      "modelId": {
         "name": "model_id",
         "type": "bytes32",
         "bytesToString": true
       },
-      "model_address": {
+      "modelAddress": {
         "name": "model_address",
         "type": "address"
       }
@@ -542,6 +542,33 @@
       "diagram_secret": {
         "name": "diagram_secret",
         "type": "bytes32"
+      }
+    }
+  },
+  {
+    "TableName": "PROCESS_MODEL_DATA",
+    "Filter": "Log1Text = 'AN://process-model-data'",
+    "Columns": {
+      "dataId": {
+        "name": "data_id",
+        "type": "bytes32",
+        "bytesToString": true,
+        "primary": true
+      },
+      "dataPath": {
+        "name": "data_path",
+        "type": "bytes32",
+        "bytesToString": true,
+        "primary": true
+      },
+      "modelAddress": {
+        "name": "model_address",
+        "type": "address",
+        "primary": true
+      },
+      "parameterType": {
+        "name": "parameter_type",
+        "type": "uint"
       }
     }
   },
@@ -769,7 +796,7 @@
   },
   {
     "TableName": "PARAMETER_TYPES",
-    "Filter": "Log1Text = 'AN://agreements/parameter-types'",
+    "Filter": "Log1Text = 'AN://parameter-types'",
     "Columns": {
       "parameter_type": {
         "name": "parameter_type",
@@ -778,8 +805,7 @@
       },
       "label": {
         "name": "label",
-        "type": "bytes32",
-        "bytesToString": true
+        "type": "string"
       }
     }
   },

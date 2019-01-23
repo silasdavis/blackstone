@@ -14,14 +14,23 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 
 	event LogProcessDefinitionCreation(
 		bytes32 indexed eventId,
-		address process_definition_address,
+		address processDefinitionAddress,
 		bytes32 id,
-		bytes32 interface_id,
-		bytes32 model_id,
-		address model_address
+		bytes32 interfaceId,
+		bytes32 modelId,
+		address modelAddress
+	);
+
+	event LogProcessModelDataCreation(
+		bytes32 indexed eventId,
+		bytes32 dataId,
+		bytes32 dataPath,
+		address modelAddress,
+		uint parameterType
 	);
 
 	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
+	bytes32 public constant EVENT_ID_PROCESS_MODEL_DATA = "AN://process-model-data";
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel
@@ -147,6 +156,28 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 	 * @return true if it exists, false otherwise
 	 */
 	function hasParticipant(bytes32 _id) external view returns (bool);
+
+	/**
+	 * @dev Adds a data definition to this ProcessModel
+	 * @param _dataId the ID of the data object
+	 * @param _dataPath the path to a data value
+	 * @param _parameterType the DataTypes.ParameterType of the data object
+	 */
+	function addDataDefinition(bytes32 _dataId, bytes32 _dataPath, DataTypes.ParameterType _parameterType) external;
+
+	/**
+	 * @dev Returns the number of data definitions in the ProcessModel
+	 * @return the number of data definitions
+	 */
+	function getNumberOfDataDefinitions() external view returns (uint);
+
+	/**
+	 * @dev Returns details about the data definition at the given index position
+	 * @param _index the index position
+	 * @return key - the key of the data definition
+	 * @return parameterType - the uint representation of the DataTypes.ParameterType
+	 */
+	function getDataDefinitionDetailsAtIndex(uint _index) external view returns (bytes32 key, uint parameterType);
 
 	/**
 	 * @dev To be called by a registered process definition to signal an update.
