@@ -1020,11 +1020,11 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
   try {
     const bpmService = appManager.contracts['BpmService'];
     const piAddress = await bpmService.factory.getProcessInstanceForActivity(activityInstanceId).then(data => data.raw[0]);
-    log.trace('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
+    log.info('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
     const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
     let payload;
     if (dataMappingId) {
-      log.trace('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
+      log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
           payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
@@ -1061,6 +1061,7 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     if (errorCode === 1001) return reject(boom.notFound(`No activity instance found with ID ${activityInstanceId}`));
     if (errorCode === 4103) return reject(boom.forbidden(`User ${actingUserAddress} not authorized to complete activity ID ${activityInstanceId}`));
     if (errorCode !== 1) return reject(boom.badImplementation(`Error code returned from completing activity ${activityInstanceId} by user ${actingUserAddress}: ${errorCode}`));
+    log.info('Successfully completed task %s by user %s', activityInstanceId, actingUserAddress);
   } catch (error) {
     return reject(boom.badImplementation(`Error completing activity instance ID ${activityInstanceId} by user ${actingUserAddress}! Error: ${error}`));
   }

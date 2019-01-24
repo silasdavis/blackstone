@@ -19,7 +19,7 @@ const { chainPool } = require(`${global.__common}/postgres-db`);
 let app;
 
 (function startApp() {
-  module.exports = (existingApp, addCustomEndpoints, customMiddleware, configureCustomPassport) => {
+  module.exports = (existingApp, addCustomEndpoints, customMiddleware = [], configureCustomPassport) => {
     if (!app) {
       const log = logger.getLogger('agreements.web');
 
