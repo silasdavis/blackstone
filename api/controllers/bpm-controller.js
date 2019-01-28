@@ -20,6 +20,7 @@ const {
 const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
+const { createOrFindAccountsWithEmails } = require(path.join(`${global.__controllers}/agreements-controller`));
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
@@ -136,6 +137,7 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
     dataMappings = body;
     if (!Array.isArray(dataMappings)) throw boom.badRequest('Expected array of data mapping objects');
   }
+  dataMappings = await createOrFindAccountsWithEmails(dataMappings, 'parameterType');
   _validateDataMappings(dataMappings);
   const setValuePromises = dataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
   await Promise.all(setValuePromises)
@@ -205,9 +207,10 @@ const writeDataForActivity = (userAddr, activityInstanceId, dataMappings) => {
 const completeActivity = asyncMiddleware(async (req, res) => {
   const { activityInstanceId } = req.params;
   const userAddr = req.user.address;
-  const { data } = req.body;
+  let { data } = req.body;
   if (!activityInstanceId) throw boom.badRequest('Activity instance Id required');
   if (data) {
+    data = await createOrFindAccountsWithEmails(data, 'parameterType');
     _validateDataMappings(data);
     if (data.length === 1) {
       // if only one data mapping then writing data and completing activity
