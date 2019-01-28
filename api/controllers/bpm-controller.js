@@ -20,158 +20,81 @@ const {
 const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
-
+const { createOrFindAccountsWithEmails } = require(path.join(`${global.__controllers}/agreements-controller`));
+const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
   const activities = await pgCache.populateTaskNames(data);
   return res.status(200).json(activities.map(activity => format('Task', activity)));
 });
 
-const _getDataMappingDetails = async (userAddress, activityInstanceId, dataMappingIds = [], direction) => {
-  if (!activityInstanceId) throw boom.badRequest('Activity instance id required');
-  try {
-    let dataMappingDetails;
-    // validations
-    const aiData = (await sqlCache.getActivityInstanceData(activityInstanceId, userAddress))[0];
-    const {
-      performer,
-      processDefinitionAddress,
-      activityId,
-      application,
-      state,
-    } = aiData;
-    if (!application) {
-      throw boom.badData(`Cannot resolve data type since no application has been configured for activity ${activityInstanceId}`);
+const _validateDataMappings = (dataMappings) => {
+  dataMappings.forEach((dataMapping) => {
+    const errMessage = `Value ${dataMapping.value} not valid input for data type ${dataMapping.dataType}`;
+    switch (dataMapping.dataType) {
+      case 1:
+        // bool
+        if (dataMapping.value !== true && dataMapping.value !== false) {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      case 2:
+        // string
+        if (typeof dataMapping.value !== 'string') {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      case 59:
+        // bytes32
+        if (typeof dataMapping.value === 'string' && byteLength(dataMapping.value) > 32) {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      case 8:
+        // uint
+        if (typeof dataMapping.value !== 'number' || dataMapping.value < 0) {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      case 18:
+        // int
+        if (typeof dataMapping.value !== 'number') {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      case 40:
+        // address
+        if (!dataMapping.value.match(/^[0-9A-Fa-f]{40}$/)) {
+          throw boom.badRequest(errMessage);
+        }
+        break;
+      default:
+        break;
     }
-    const profileData = await (sqlCache.getProfile(userAddress))[0];
-    if (performer !== userAddress && !profileData.find(({ organization }) => organization === performer)) {
-      throw boom.forbidden('User is not authorized to access this activity');
-    }
-    if (state !== 4) throw boom.forbidden('Data mappings can only be accessed while activity is in SUSPENDED state');
-    // get data mapping details from smart contracts
-    dataMappingDetails = await contracts.getDataMappingDetailsForActivity(processDefinitionAddress, activityId,
-      (dataMappingIds.length > 0 ? dataMappingIds : null), direction);
-    dataMappingDetails = dataMappingDetails.map((_mapping) => {
-      const mapping = _mapping;
-      delete mapping.accessPath;
-      delete mapping.dataStorage;
-      return format('Data Mapping', mapping);
-    });
-    // get access point details from vent
-    const accessPointDetails = await sqlCache.getAccessPointDetails(dataMappingDetails, application);
-    if (dataMappingDetails.length === 0 || accessPointDetails.length === 0) {
-      throw boom.notFound(`No ${direction ? 'out-' : 'in-'}data mapping details found for activity ${activityInstanceId}`);
-    }
-    // merge the data mapping and access point objects
-    dataMappingDetails = dataMappingDetails.map((_mapping) => {
-      const matchingAp = accessPointDetails.filter(ap => ap.accessPointId === _mapping.dataMappingId)[0];
-      const mapping = Object.assign(_mapping, matchingAp);
-      return mapping;
-    });
-    return dataMappingDetails;
-  } catch (err) {
-    if (boom.isBoom(err)) throw err;
-    else throw boom.badImplementation(`Failed to get access point details for activity ${activityInstanceId}`);
-  }
-};
-
-const _validateDataMapping = (dataMapping) => {
-  const errMessage = `Value ${dataMapping.value} not valid input for data type ${dataMapping.dataType}`;
-  switch (dataMapping.dataType) {
-    case 1:
-      // bool
-      if (dataMapping.value !== true && dataMapping.value !== false) {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    case 2:
-      // string
-      if (typeof dataMapping.value !== 'string') {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    case 59:
-      // bytes32
-      if (typeof dataMapping.value === 'string' && byteLength(dataMapping.value) > 32) {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    case 8:
-      // uint
-      if (typeof dataMapping.value !== 'number' || dataMapping.value < 0) {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    case 18:
-      // int
-      if (typeof dataMapping.value !== 'number') {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    case 40:
-      // address
-      if (!dataMapping.value.match(/^[0-9A-Fa-f]{40}$/)) {
-        throw boom.badRequest(errMessage);
-      }
-      break;
-    default:
-      break;
-  }
-};
-
-const _prepareDataMappings = async (userAddress, activityInstanceId, dataMappings, direction) => {
-  dataMappings.forEach((mapping) => {
-    if (!mapping.id) throw boom.badRequest('Data mapping id required');
-  });
-  try {
-    const details = await _getDataMappingDetails(userAddress, activityInstanceId, dataMappings.map(({ id }) => id), direction);
-    if (dataMappings.length > 0) {
-      dataMappings.forEach((mapping) => {
-        Object.assign(mapping, details.filter(d => d.accessPointId === mapping.id)[0]);
-        if (mapping.direction !== direction) throw boom.forbidden(`Data mapping does not allow ${direction === 0 ? 'read' : 'write'} access`);
-        if (direction === global.__monax_constants.DIRECTION.OUT) _validateDataMapping(mapping);
-      });
-      return dataMappings;
-    }
-    return details;
-  } catch (err) {
-    if (boom.isBoom(err)) throw err;
-    else throw boom.badImplementation(`Failed to prepare data mappings for activity ${activityInstanceId}: ${err}`);
-  }
-};
-
-const _getInDataForActivity = async (userAddress, activityInstanceId, dataMappingId) => {
-  const preparedDataMappings = await _prepareDataMappings(
-    userAddress,
-    activityInstanceId,
-    dataMappingId ? [{ id: dataMappingId }] : [],
-    global.__monax_constants.DIRECTION.IN,
-  );
-  const getValuePromises = preparedDataMappings.map(data => dataStorage.activityInDataGetters[`${data.dataType}`](userAddress, activityInstanceId, data.accessPointId));
-  return new Promise((resolve, reject) => {
-    Promise.all(getValuePromises)
-      .then((dataValues) => {
-        const data = preparedDataMappings.map((_mapping, i) => {
-          const mapping = _mapping;
-          mapping.value = dataValues[i];
-          delete mapping.id;
-          return format('Data', mapping);
-        });
-        return resolve(dataMappingId ? data[0] : data);
-      })
-      .catch(err => reject(boom.badImplementation(err)));
   });
 };
 
-const _getOutDataForActivity = async (userAddress, activityInstanceId, dataMappingId) => {
-  const preparedDataMappings = await _prepareDataMappings(
-    userAddress,
-    activityInstanceId,
-    dataMappingId ? [{ id: dataMappingId }] : [],
-    global.__monax_constants.DIRECTION.OUT,
-  );
-  return preparedDataMappings;
+const _getValuesForDataMappings = (userAddress, activityInstanceId, dataMappings) => {
+  const getValuePromises = dataMappings
+    .map(async (data) => {
+      if (data.direction === 0) {
+        let value = await dataStorage.activityInDataGetters[data.dataType](userAddress, activityInstanceId, data.dataMappingId);
+        if (data.dataType === DATA_TYPES.ADDRESS && Number(value) === 0) value = null;
+        if (data.parameterType === 5) value /= 100;
+        return {
+          ...data,
+          value,
+        };
+      }
+      return data;
+    });
+  return Promise.all(getValuePromises);
 };
+
+const addDataTypes = dataMappings => dataMappings.map(dm => ({
+  ...dm,
+  dataType: PARAM_TYPE_TO_DATA_TYPE_MAP[dm.parameterType].dataType,
+}));
 
 const getActivityInstance = asyncMiddleware(async (req, res) => {
   let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
@@ -182,20 +105,28 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
     activityInstanceResult.performerName = (await getNamesOfOrganizations([{ address: activityInstanceResult.performer }]))[0];
   }
   activityInstanceResult.performerName = activityInstanceResult.performerName.id || activityInstanceResult.performerName.name;
-  activityInstanceResult.data = {};
+  activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
+  activityInstanceResult.data = addDataTypes(activityInstanceResult.data);
   try {
-    activityInstanceResult.data.in = await _getInDataForActivity(req.user.address, activityInstanceResult.activityInstanceId, null);
-    activityInstanceResult.data.out = await _getOutDataForActivity(req.user.address, activityInstanceResult.activityInstanceId, null);
-    return res.status(200).json(activityInstanceResult);
+    activityInstanceResult.data = await _getValuesForDataMappings(req.user.address, req.params.id, activityInstanceResult.data);
   } catch (err) {
-    log.error(`Failed to get data mappings for activity ${req.params.id} and user ${req.user.address}: ${err}`);
-    return res.status(200).json(format('Task', activityInstanceResult));
+    throw boom.badImplementation(`Failed to get values for IN data mappings for activity instance id ${req.params.id}: ${err}`);
   }
+  return res.status(200).json(format('Task', activityInstanceResult));
 });
 
 const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId } }, res) => {
-  const data = await _getInDataForActivity(user.address, activityInstanceId, dataMappingId);
-  return res.status(200).json(data);
+  let dataMappings = await sqlCache.getDataMappingsForActivity(activityInstanceId, dataMappingId);
+  if (dataMappingId && !dataMappings[0]) throw boom.notFound(`Data mapping with id ${dataMappingId} for activity instance ${activityInstanceId} does not exist`);
+  dataMappings = addDataTypes(dataMappings);
+  try {
+    dataMappings = await _getValuesForDataMappings(user.address, activityInstanceId, dataMappings);
+  } catch (err) {
+    let msg = `Failed to get values for IN data mappings for activity instance id ${activityInstanceId}: ${err.stack}`;
+    if (dataMappingId) msg = `Failed to get IN values for activity instance id ${activityInstanceId} and data mapping id ${dataMappingId}: ${err.stack}`;
+    throw boom.badImplementation(msg);
+  }
+  return res.status(200).json(dataMappingId ? dataMappings[0] : dataMappings);
 });
 
 const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId }, body }, res) => {
@@ -206,9 +137,9 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
     dataMappings = body;
     if (!Array.isArray(dataMappings)) throw boom.badRequest('Expected array of data mapping objects');
   }
-  const preparedDataMappings = await _prepareDataMappings(user.address,
-    activityInstanceId, dataMappings, global.__monax_constants.DIRECTION.OUT);
-  const setValuePromises = preparedDataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
+  dataMappings = await createOrFindAccountsWithEmails(dataMappings, 'parameterType');
+  _validateDataMappings(dataMappings);
+  const setValuePromises = dataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
   await Promise.all(setValuePromises)
     .then(() => res.sendStatus(200))
     .catch((err) => {
@@ -276,21 +207,22 @@ const writeDataForActivity = (userAddr, activityInstanceId, dataMappings) => {
 const completeActivity = asyncMiddleware(async (req, res) => {
   const { activityInstanceId } = req.params;
   const userAddr = req.user.address;
-  const { data } = req.body;
+  let { data } = req.body;
   if (!activityInstanceId) throw boom.badRequest('Activity instance Id required');
   if (data) {
-    const preparedData = await _prepareDataMappings(userAddr, activityInstanceId, data, global.__monax_constants.DIRECTION.OUT);
-    if (preparedData.length === 1) {
+    data = await createOrFindAccountsWithEmails(data, 'parameterType');
+    _validateDataMappings(data);
+    if (data.length === 1) {
       // if only one data mapping then writing data and completing activity
       // are carried out as part of a single transaction in solidity
       // via the appropriately mapped function in
       // contracts-controller.js::getCompletionFunctionByParamType
       await contracts.completeActivity(userAddr, activityInstanceId,
-        preparedData[0].id, preparedData[0].dataType, preparedData[0].value);
+        data[0].id, data[0].dataType, data[0].value);
     } else {
       // in case of multiple data mappings, they are written as a series of promises
       // and then the activity is completed as a separate transaction
-      await writeDataForActivity(userAddr, activityInstanceId, preparedData);
+      await writeDataForActivity(userAddr, activityInstanceId, data);
       await contracts.completeActivity(userAddr, activityInstanceId);
     }
   } else {

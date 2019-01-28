@@ -352,7 +352,7 @@ agreementDataSetters[`${PARAM_TYPE.POSITIVE_NUMBER}`] = setDataValueAsUint;
 
 agreementDataGetters[`${PARAM_TYPE.BOOLEAN}`] = getDataValueAsBool;
 agreementDataGetters[`${PARAM_TYPE.STRING}`] = getDataValueAsString;
-agreementDataGetters[`${PARAM_TYPE.NUMBER}`] = getDataValueAsUint;
+agreementDataGetters[`${PARAM_TYPE.NUMBER}`] = getDataValueAsInt;
 agreementDataGetters[`${PARAM_TYPE.DATE}`] = getDataValueAsUint;
 agreementDataGetters[`${PARAM_TYPE.DATETIME}`] = getDataValueAsUint;
 agreementDataGetters[`${PARAM_TYPE.MONETARY_AMOUNT}`] = getDataValueAsInt;

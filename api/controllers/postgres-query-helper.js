@@ -555,6 +555,31 @@ const getApplications = () => {
     .catch((err) => { throw boom.badImplementation(`Failed to get applications: ${err}`); });
 };
 
+const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
+  const queryString = `SELECT dm.data_mapping_id AS "dataMappingId", dm.data_path AS "dataPath", COALESCE(NULLIF(dm.data_storage_id, ''), 'PROCESS_INSTANCE') AS "dataStorageId", dm.direction::integer,
+  pmd.parameter_type::integer AS "parameterType", encode(scopes.fixed_scope, 'hex') AS scope
+  FROM activity_instances ai
+  JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
+  JOIN process_definitions pd ON pi.process_definition_address = pd.process_definition_address
+  JOIN process_model_data pmd ON pd.model_address = pmd.model_address
+  JOIN data_mappings dm ON (
+    ai.activity_id = dm.activity_id AND
+    pd.process_definition_address = dm.process_definition_address AND
+    pmd.data_id = COALESCE(NULLIF(dm.data_storage_id, ''), 'PROCESS_INSTANCE') AND
+    pmd.data_path = dm.data_path
+  )
+  LEFT JOIN process_instance_address_scopes scopes ON (
+    ai.process_instance_address = scopes.process_instance_address AND 
+    ai.activity_id = scopes.key_context AND
+    pmd.data_id = COALESCE(NULLIF(scopes.data_storage_id, ''), 'PROCESS_INSTANCE') AND
+    pmd.data_path = scopes.data_path
+  )
+  WHERE UPPER(encode(ai.activity_instance_id::bytea, 'hex')) = $1
+  ${dataMappingId ? 'AND dm.data_mapping_id = $2' : ''};`;
+  return runChainDbQuery(queryString, dataMappingId ? [activityInstanceId, dataMappingId] : [activityInstanceId])
+    .catch((err) => { throw boom.badImplementation(`Failed to get data mappings for activity instance ${activityInstanceId}: ${err}`); });
+};
+
 const getProcessDefinitions = (author, { interfaceId, processDefinitionId, modelId }) => {
   const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId", encode(pm.diagram_address::bytea, \'hex\') as "diagramAddress", encode(pm.diagram_secret::bytea, \'hex\') as "diagramSecret", pm.is_private as "isPrivate", pm.author ' +
     'FROM process_definitions pd JOIN process_models pm ' +
@@ -671,6 +696,7 @@ module.exports = {
   getTasksByUserAddress,
   getModels,
   getApplications,
+  getDataMappingsForActivity,
   getProcessDefinitions,
   getProcessDefinitionData,
   getProcessModelData,

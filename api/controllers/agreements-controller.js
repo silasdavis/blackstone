@@ -293,7 +293,7 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   res.sendStatus(200);
 });
 
-const createOrFindAccountsWithEmails = async (params) => {
+const createOrFindAccountsWithEmails = async (params, typeKey) => {
   const newParams = {
     notAccountOrEmail: [],
     withEmail: [],
@@ -301,7 +301,7 @@ const createOrFindAccountsWithEmails = async (params) => {
     forNewUser: [],
   };
   params.forEach((param) => {
-    if (param.type !== PARAM_TYPE.USER_ORGANIZATION && param.type !== PARAM_TYPE.SIGNING_PARTY) {
+    if (param[typeKey] !== PARAM_TYPE.USER_ORGANIZATION && param[typeKey] !== PARAM_TYPE.SIGNING_PARTY) {
       // Ignore non-account parameters
       newParams.notAccountOrEmail.push({ ...param });
     } else if (/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)) {
@@ -408,7 +408,7 @@ const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
 
 const createAgreement = asyncMiddleware(async (req, res) => {
   let parameters = req.body.parameters || [];
-  parameters = await createOrFindAccountsWithEmails(parameters);
+  parameters = await createOrFindAccountsWithEmails(parameters, 'type');
   const parties = req.body.parties || [];
   const hoardRef = {};
   hoardRef.address = req.body.eventLogHoardAddress || '';
@@ -655,6 +655,7 @@ module.exports = {
   getArchetypeSuccessor,
   updateArchetypeConfiguration,
   addParametersToArchetype,
+  createOrFindAccountsWithEmails,
   setArchetypePrice,
   createArchetypePackage,
   activateArchetypePackage,

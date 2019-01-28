@@ -587,22 +587,25 @@
         "bytesToString": true,
         "primary": true
       },
-      "dataPath": {
-        "name": "data_path",
+      "dataMappingId": {
+        "name": "data_mapping_id",
         "type": "bytes32",
         "bytesToString": true,
         "primary": true
+      },
+      "dataPath": {
+        "name": "data_path",
+        "type": "bytes32",
+        "bytesToString": true
       },
       "dataStorageId": {
         "name": "data_storage_id",
         "type": "bytes32",
-        "bytesToString": true,
-        "primary": true
+        "bytesToString": true
       },
       "dataStorage": {
         "name": "data_storage",
-        "type": "address",
-        "primary": true
+        "type": "address"
       },
       "direction": {
         "name": "direction",

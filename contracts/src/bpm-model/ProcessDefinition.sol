@@ -37,6 +37,7 @@ contract ProcessDefinition is Bytes32Identifiable {
 		bytes32 indexed eventId,
 		address processDefinitionAddress,
 		bytes32 activityId,
+    bytes32 dataMappingId,
 		bytes32 dataPath,
 		bytes32 dataStorageId,
 		address dataStorage,
