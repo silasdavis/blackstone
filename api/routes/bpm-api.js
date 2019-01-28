@@ -449,38 +449,41 @@ module.exports = (app) => {
       "modelAuthor": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
       "private": 0,
       "agreementName": "Drone Lease Agreement",
-      "data": {
-        "in": [{
-            "accessPointId": "readName",
-            "dataMappingId": "readName",
-            "dataPath": "name"
-            "dataStorageId": ""
-            "value": "John Doe",
-            "dataType": 2 "direction": 0
-          },
-          {
-            "accessPointId": "readApproved",
-            "dataMappingId": "readApproved",
-            "dataPath": "approved"
-            "value": true "dataType": 1 "direction": 0
-          },
-        ],
-        "out": [{
-            "accessPointId": "writeName",
-            "dataMappingId": "writeName",
-            "dataPath": "name"
-            "dataStorageId": ""
-            "dataType": 2 "direction": 1
-          },
-          {
-            "accessPointId": "writeApproved",
-            "dataMappingId": "writeApproved",
-            "dataPath": "approved"
-            "dataStorageId": ""
-            "dataType": 2 "direction": 1
-          }
-        ]
-      }
+      "data": [
+        {
+          "dataMappingId": "readName",
+          "dataPath": "name"
+          "dataStorageId": ""
+          "value": "John Doe",
+          "dataType": 2,
+          "parameterType": 1,
+          "direction": 0
+        },
+        {
+          "dataMappingId": "readApproved",
+          "dataPath": "approved"
+          "value": true,
+          "dataType": 1,
+          "parameterType": 0,
+          "direction": 0
+        },
+        {
+          "dataMappingId": "writeName",
+          "dataPath": "name"
+          "dataStorageId": ""
+          "dataType": 2,
+          "parameterType": 1,
+          "direction": 1
+        },
+        {
+          "dataMappingId": "writeApproved",
+          "dataPath": "approved"
+          "dataStorageId": ""
+          "dataType": 1,
+          "parameterType": 0,
+          "direction": 1
+        }
+      ]
     }
   *
   * @apiUse NotLoggedIn
@@ -503,12 +506,11 @@ module.exports = (app) => {
    * @apiSuccessExample {json} Success Object
     [{
       "dataMappingId": "readApproved",
-      "accessPointId": "readApproved",
-      "dataPath": "approved",
-      "dataStorageId": "",
+      "dataPath": "approved"
       "value": true,
       "dataType": 1,
-      "direction": 0,
+      "parameterType": 0,
+      "direction": 0
     }]
   *
   * @apiUse NotLoggedIn
@@ -530,13 +532,12 @@ module.exports = (app) => {
    * @apiSuccess {Object} object Data mapping objects
    * @apiSuccessExample {json} Success Object
     {
-      "accessPointId": "readApproved",
       "dataMappingId": "readApproved",
-      "dataPath": "approved",
-      "dataStorageId": "",
+      "dataPath": "approved"
       "value": true,
       "dataType": 1,
-      "direction": 0,
+      "parameterType": 0,
+      "direction": 0
     }
   *
   * @apiUse NotLoggedIn
@@ -558,11 +559,13 @@ module.exports = (app) => {
    * @apiParamExample {json} Sample request body with data mapping id/value pairs in an array
     [{
         "id": "writeApproved",
-        "value": true
+        "value": true,
+        "dataType": 1
       },
       {
         "id": "writeName",
-        "value": "John Doe"
+        "value": "John Doe",
+        "dataType": 2
       }
     ]
   *
@@ -585,6 +588,7 @@ module.exports = (app) => {
    * @apiParamExample {json} Sample request body with data mapping value
     {
       "value": true,
+      "dataType": 1
     }
   *
   * @apiUse NotLoggedIn
@@ -639,8 +643,9 @@ module.exports = (app) => {
    * @apiParam {json} Optional request body with out data
     {
       data: [{
-        id: “writeApproved,
-        value: true
+        "id": "writeApproved",
+        "value": true,
+        "dataType": 1,
       }]
     }
   *
