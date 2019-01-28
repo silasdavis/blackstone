@@ -556,7 +556,7 @@ const getApplications = () => {
 };
 
 const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
-  const queryString = `SELECT dm.access_path AS "dataMappingId", dm.data_path AS "dataPath", COALESCE(NULLIF(dm.data_storage_id, ''), 'PROCESS_INSTANCE') AS "dataStorageId", dm.direction::integer,
+  const queryString = `SELECT dm.data_mapping_id AS "dataMappingId", dm.data_path AS "dataPath", COALESCE(NULLIF(dm.data_storage_id, ''), 'PROCESS_INSTANCE') AS "dataStorageId", dm.direction::integer,
   pmd.parameter_type::integer AS "parameterType", encode(scopes.fixed_scope, 'hex') AS scope
   FROM activity_instances ai
   JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
@@ -575,7 +575,7 @@ const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
     pmd.data_path = scopes.data_path
   )
   WHERE UPPER(encode(ai.activity_instance_id::bytea, 'hex')) = $1
-  ${dataMappingId ? 'AND dm.access_path = $2' : ''};`;
+  ${dataMappingId ? 'AND dm.data_mapping_id = $2' : ''};`;
   return runChainDbQuery(queryString, dataMappingId ? [activityInstanceId, dataMappingId] : [activityInstanceId])
     .catch((err) => { throw boom.badImplementation(`Failed to get data mappings for activity instance ${activityInstanceId}: ${err}`); });
 };

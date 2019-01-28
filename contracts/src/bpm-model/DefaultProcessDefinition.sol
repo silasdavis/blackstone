@@ -260,7 +260,7 @@ contract DefaultProcessDefinition is ProcessDefinition, Owned {
 			}
 			graphElements.rows[_activityId].activity.outMappings[_accessPath] = DataStorageUtils.ConditionalData({dataPath: _dataPath, dataStorageId: _dataStorageId, dataStorage: _dataStorage, exists: true});
 		}
-		emit LogDataMappingCreation(EVENT_ID_DATA_MAPPINGS, address(this), _activityId, _dataPath, _dataStorageId, _dataStorage, uint(_direction), _accessPath);
+		emit LogDataMappingCreation(EVENT_ID_DATA_MAPPINGS, address(this), _activityId, _accessPath, _dataPath, _dataStorageId, _dataStorage, uint(_direction));
 	}
 
 	/**

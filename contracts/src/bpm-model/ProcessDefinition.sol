@@ -37,11 +37,11 @@ contract ProcessDefinition is Bytes32Identifiable {
 		bytes32 indexed eventId,
 		address processDefinitionAddress,
 		bytes32 activityId,
+    bytes32 dataMappingId,
 		bytes32 dataPath,
 		bytes32 dataStorageId,
 		address dataStorage,
-		uint direction,
-    bytes32 accessPath
+		uint direction
 	);
 
 	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
