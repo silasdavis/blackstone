@@ -54,6 +54,13 @@ jobs:
     data: [DataStorageUtils]
 
 #####
+# Updated static data: DataTypesAccess
+#####
+- name: DataTypesAccess
+  deploy:
+    contract: DataTypesAccess.bin
+
+#####
 # ProcessModelRepository (old)
 #####
 - name: OldProcessModelRepository

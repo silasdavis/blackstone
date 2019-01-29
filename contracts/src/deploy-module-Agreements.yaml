@@ -206,10 +206,3 @@ jobs:
     key: $getArchetypeRegistryFromAgreementRegistry
     relation: eq
     val: $ArchetypeRegistry
-
-#####
-# DataTypesAccess
-#####
-- name: DataTypesAccess
-  deploy:
-    contract: DataTypesAccess.bin

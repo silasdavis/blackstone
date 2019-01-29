@@ -9,8 +9,8 @@ contract UpgradeableTest {
         UpgradeDummy v110 = new UpgradeDummy("b", 12, 1, 1, 0);
         UpgradeDummy v227 = new UpgradeDummy("c", 13, 2, 2, 7);
 
-        v110.upgrade(v100); // TODO upgrade to lower version should not work. Should show original states
-        if (v110.state() != "b" || v110.num() != 12 || v100.state() != "a" || v100.num() != 11) { return "v1.1.0 to v1.0.0 upgrade should not succeed!"; }
+        if (v110.call(abi.encodeWithSignature("upgrade(address)", address(v100)))) return "Upgrading to a lower version should revert";
+        if (v110.state() != "b" || v110.num() != 12 || v100.state() != "a" || v100.num() != 11) { return "v1.1.0 to v1.0.0 upgrade should not be successful!"; }
         v110.upgrade(v227);
         if (v110.state() != "b" || v110.num() != 12 || v227.state() != "b" || v227.num() != 12) { return "v1.1.0 to v2.2.7 upgrade failed!"; }
         v100.upgrade(v110);
