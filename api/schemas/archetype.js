@@ -105,7 +105,7 @@ const archetypeSchema = Joi.object().keys({
     Joi.object().keys({
       type: Joi.number()
         .min(0)
-        .max(8),
+        .max(12),
       name: Joi.string().max(32, 'utf8'),
       signatory: Joi.boolean(),
     }),
