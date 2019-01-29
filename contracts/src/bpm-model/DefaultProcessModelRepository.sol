@@ -17,7 +17,7 @@ import "bpm-model/ProcessModelRepositoryDb.sol";
  * @title DefaultProcessModelRepository
  * @dev Default implementation of the ProcessModelRepository interface
  */
-contract DefaultProcessModelRepository is Versioned(1,0,0), AbstractEventListener, ProcessModelRepository, AbstractDbUpgradeable {
+contract DefaultProcessModelRepository is Versioned(1,1,0), AbstractEventListener, ProcessModelRepository, AbstractDbUpgradeable {
 	
 	string constant TABLE_PROCESS_MODELS = "PROCESS_MODELS";
 	string constant TABLE_PROCESS_DEFINITIONS = "PROCESS_DEFINITIONS";
