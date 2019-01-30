@@ -136,16 +136,11 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     formationProcessDefinition: '',
     governingArchetypes: []
   }
-
   let agreement = {
     name: 'user tasks agreement',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    hoardAddress: '',
-    hoardSecret: '',
-    eventLogHoardAddress: '',
-    eventLogHoardSecret: '',
     maxNumberOfEvents: 0,
     governingAgreements: []
   }
@@ -252,8 +247,6 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
         agreement.parameters.push({ name: 'Incorporator', type: 8, value: signer.address });
         agreement.parameters.push({ name: 'Receiver', type: 6, value: receiver.address });
         agreement.parameters.push({ name: 'Confirmer', type: 6, value: confirmer.address });
-        agreement.hoardAddress = hoardRef.address;
-        agreement.hoardSecret = hoardRef.secretKey;
         Object.assign(agreement, await api.createAgreement(agreement, signer.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         done();
@@ -597,16 +590,11 @@ describe(':: DATA MAPPING TEST ::', () => {
     formationProcessDefinition: '',
     governingArchetypes: []
   }
-
   let agreement = {
     name: 'data mapping agreement 1',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    hoardAddress: '',
-    hoardSecret: '',
-    eventLogHoardAddress: '',
-    eventLogHoardSecret: '',
     maxNumberOfEvents: 0,
     governingAgreements: []
   }
@@ -852,16 +840,11 @@ describe(':: GATEWAY TEST ::', () => {
     formationProcessDefinition: '',
     governingArchetypes: []
   }
-
   let agreement = {
     name: 'Rental Agreement 1',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    hoardAddress: '',
-    hoardSecret: '',
-    eventLogHoardAddress: '',
-    eventLogHoardSecret: '',
     maxNumberOfEvents: 0,
     governingAgreements: []
   }
@@ -935,8 +918,6 @@ describe(':: GATEWAY TEST ::', () => {
         agreement.parameters.length = 0; // reset parameters
         agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
         agreement.parameters.push({ name: 'Building Completed', type: 2, value: 1950 });
-        agreement.hoardAddress = hoardRef.address;
-        agreement.hoardSecret = hoardRef.secretKey;
         Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         setTimeout(async () => {
@@ -959,8 +940,6 @@ describe(':: GATEWAY TEST ::', () => {
         agreement.parameters.length = 0; // reset parameters
         agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
         agreement.parameters.push({ name: 'Building Completed', type: 2, value: 2007 });
-        agreement.hoardAddress = hoardRef.address;
-        agreement.hoardSecret = hoardRef.secretKey;
         Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         setTimeout(async () => {

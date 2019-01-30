@@ -797,16 +797,11 @@ describe(':: External Users ::', () => {
     formationProcessDefinition: '',
     governingArchetypes: []
   }
-
   let agreement = {
     name: 'external users agreement',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    hoardAddress: '',
-    hoardSecret: '',
-    eventLogHoardAddress: '',
-    eventLogHoardSecret: '',
     maxNumberOfEvents: 0,
     governingAgreements: []
   }
