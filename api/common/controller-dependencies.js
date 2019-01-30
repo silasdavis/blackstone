@@ -170,6 +170,12 @@ const dependencies = {
             err.message = 'Accounts must be 40-digit hexadecimals';
             throw err;
           }
+        } else if (paramTypeInt === PARAMETER_TYPES.POSITIVE_NUMBER) {
+          if (typeof element.value === 'string') element.value = Number(element.value);
+          if (element.value < 0) {
+            err.message = 'Value must be positive';
+            throw err;
+          }
         }
         return element;
       }
