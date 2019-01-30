@@ -609,7 +609,8 @@
       },
       "direction": {
         "name": "direction",
-        "type": "uint"
+        "type": "uint",
+        "primary": true
       }
     }
   },
