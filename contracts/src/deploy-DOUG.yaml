@@ -1,7 +1,7 @@
 jobs:
 
 #####
-# Library Requirements for DOUG
+# Libraries
 #####
 
 - name: ErrorsLib
@@ -44,6 +44,13 @@ jobs:
   deploy:
     contract: AgreementsAPI.bin
     libraries: ERC165Utils:$ERC165Utils
+
+#####
+# Static Data
+#####
+- name: DataTypesAccess
+  deploy:
+    contract: DataTypesAccess.bin
 
 #####
 # Main Contract (DOUG) + DougProxy
