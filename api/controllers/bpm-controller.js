@@ -74,7 +74,7 @@ const _validateDataMappings = (dataMappings) => {
   });
 };
 
-const _getValuesForDataMappings = (userAddress, activityInstanceId, dataMappings) => {
+const getValuesForDataMappings = (userAddress, activityInstanceId, dataMappings) => {
   const getValuePromises = dataMappings
     .map(async (data) => {
       if (data.direction === 0) {
@@ -108,7 +108,7 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
   activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
   activityInstanceResult.data = addDataTypes(activityInstanceResult.data);
   try {
-    activityInstanceResult.data = await _getValuesForDataMappings(req.user.address, req.params.id, activityInstanceResult.data);
+    activityInstanceResult.data = await getValuesForDataMappings(req.user.address, req.params.id, activityInstanceResult.data);
   } catch (err) {
     throw boom.badImplementation(`Failed to get values for IN data mappings for activity instance id ${req.params.id}: ${err}`);
   }
@@ -120,7 +120,7 @@ const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
   if (dataMappingId && !dataMappings[0]) throw boom.notFound(`Data mapping with id ${dataMappingId} for activity instance ${activityInstanceId} does not exist`);
   dataMappings = addDataTypes(dataMappings);
   try {
-    dataMappings = await _getValuesForDataMappings(user.address, activityInstanceId, dataMappings);
+    dataMappings = await getValuesForDataMappings(user.address, activityInstanceId, dataMappings);
   } catch (err) {
     let msg = `Failed to get values for IN data mappings for activity instance id ${activityInstanceId}: ${err.stack}`;
     if (dataMappingId) msg = `Failed to get IN values for activity instance id ${activityInstanceId} and data mapping id ${dataMappingId}: ${err.stack}`;
@@ -533,6 +533,8 @@ module.exports = {
   getActivityInstance,
   getDataMappings,
   setDataMappings,
+  addDataTypes,
+  getValuesForDataMappings,
   getTasksForUser,
   getModels,
   getApplications,
