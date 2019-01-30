@@ -30,7 +30,11 @@ const {
  * @apiParam {String{20}} Cookie `access_token` containing the JsonWebToken is required, cookie is set upon successful login
  */
 
-module.exports = (app) => {
+module.exports = (app, customMiddleware) => {
+  // Use custom middleware if passed, otherwise use plain old ensureAuth
+  let middleware = [];
+  middleware = middleware.concat(customMiddleware.length ? customMiddleware : [ensureAuth]);
+
   /* **************
    * BPM Model
    ************** */
@@ -64,7 +68,7 @@ module.exports = (app) => {
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   */
-  app.get('/bpm/process-models', ensureAuth, getModels);
+  app.get('/bpm/process-models', middleware, getModels);
 
   /**
    * @api {get} /bpm/process-models/:address/diagram Read Diagram of Process Model
@@ -142,7 +146,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/process-models/:address/diagram', ensureAuth, getModelDiagram);
+  app.get('/bpm/process-models/:address/diagram', middleware, getModelDiagram);
 
   /**
    * @api {post} /bpm/process-models Parse BPMN XML and from it create a process model and definition
@@ -272,7 +276,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.post('/bpm/process-models', ensureAuth, createModelFromBpmn);
+  app.post('/bpm/process-models', middleware, createModelFromBpmn);
 
 
   /**
@@ -308,7 +312,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/applications', ensureAuth, getApplications);
+  app.get('/bpm/applications', middleware, getApplications);
 
   /**
    * @api {get} /bpm/process-definitions Read All Process Definitions
@@ -316,36 +320,33 @@ module.exports = (app) => {
    * @apiGroup BPMModel
    *
    * @apiParam {String} [interfaceId] Optional query parameter `interfaceId` can be used to filter by interface
+   * @apiParam {String} [processDefinitionId] Optional query parameter `processDefinitionId` can be used to filter by processDefinitionId
+   * @apiParam {String} [modelId] Optional query parameter `modelId` can be used to filter by modelId
    *
    * @apiExample {curl} Simple:
    *     curl -i /bpm/process-definitions
-   *     curl -i /bpm/process-definitions?interfaceId=Default%20Formation%20Process
+   *     curl -i /bpm/process-definitions?interfaceId=Agreement%20Execution
    *
    * @apiSuccess {Object[]} object Process Definition object
    * @apiSuccessExample {json} Success Objects Array
     [{
-      "address": "81A817870C6C6A209150FA26BC52D835CA6E17D2",
-      "modelAddress": "912A82D4C72847EF1EC76426544EAA992993EE20",
-      "id": "defaultFormationProcess",
-      "name": "Default Formation Process",
-      "interfaceId": "Agreement Formation",
-      "diagramAddress": "7D85BB76DB402B752F84792FF50B40483922673CF277CD2045D3D9637D4CE8F9",
-      "diagramSecret": "4AF3A863BF6F2AD79E4919F562252866CBDA58E3E5AA27E2C5C94BAE9931BE74"
-    }, {
-      "address": "A043C06EB2FB91F4811F51F6500744906FD0903E",
-      "modelAddress": "912A82D4C72847EF1EC76426544EAA992993EE20",
-      "id": "defaultExecutionProcess",
-      "name": "Default Execution Process",
+      "processDefinitionId": "Process_00pj23z",
+      "address": "65BF0FB03BA5C140B1584A290B157F8907B8FEBE",
+      "modelAddress": "6025AF7E4FBB2FCCCFBB855E68025CF20038E142",
       "interfaceId": "Agreement Execution",
-      "diagramAddress": "7D85BB76DB402B752F84792FF50B40483922673CF277CD2045D3D9637D4CE8F9",
-      "diagramSecret": "4AF3A863BF6F2AD79E4919F562252866CBDA58E3E5AA27E2C5C94BAE9931BE74"
+      "diagramAddress": "904cad90af9f665716b7f191969d877cf252dabae1e409f2adeac51da778c285",
+      "diagramSecret": "6828c97c05e8ad45fcdec60538944a88a0a5b419081383cf4993268381cfc4b8",
+      "isPrivate": false,
+      "author": "DAE988ADED111E6AE82DBFD9AE4FFFE97ADBC23D",
+      "modelId": "INC_EXEC_2018",
+      "processName": "Inc Exec Process"
     }]
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/process-definitions', ensureAuth, getDefinitions);
+  app.get('/bpm/process-definitions', middleware, getDefinitions);
 
   /**
    * @api {get} /bpm/process-definitions/:address Read Single Process Definition
@@ -357,29 +358,35 @@ module.exports = (app) => {
    * @apiExample {curl} Simple:
    *     curl -i /bpm/process-definitions/81A817870C6C6A209150FA26BC52D835CA6E17D2
    *
+   * @apiSuccess {String} processDefinitionId Id of the process definition
    * @apiSuccess {String} address Address of the process definition
    * @apiSuccess {String} modelAddress Address of the model the process definition was created under
-   * @apiSuccess {String} id Id of the process definition
-   * @apiSuccess {String} name Human-readable name of the process definition
    * @apiSuccess {String} interfaceId 'Agreement Formation' or 'Agreement Execution'
    * @apiSuccess {String} diagramAddress Hoard address for the xml file representing the process
    * @apiSuccess {String} diagramSecret Hoard secret for the xml file representing the process
+   * @apiSuccess {String} isPrivate Whether model is private
+   * @apiSuccess {String} author Address of the model author
+   * @apiSuccess {String} modelId Id of the process model
+   * @apiSuccess {String} processName Human-readable name of the process definition
    * @apiSuccessExample {json} Success Object
     {
-      "address": "81A817870C6C6A209150FA26BC52D835CA6E17D2",
-      "modelAddress": "912A82D4C72847EF1EC76426544EAA992993EE20",
-      "id": "defaultFormationProcess",
-      "name": "Default Formation Process",
-      "interfaceId": "Agreement Formation",
-      "diagramAddress": "7D85BB76DB402B752F84792FF50B40483922673CF277CD2045D3D9637D4CE8F9",
-      "diagramSecret": "4AF3A863BF6F2AD79E4919F562252866CBDA58E3E5AA27E2C5C94BAE9931BE74"
+      "processDefinitionId": "Process_00pj23z",
+      "address": "65BF0FB03BA5C140B1584A290B157F8907B8FEBE",
+      "modelAddress": "6025AF7E4FBB2FCCCFBB855E68025CF20038E142",
+      "interfaceId": "Agreement Execution",
+      "diagramAddress": "904cad90af9f665716b7f191969d877cf252dabae1e409f2adeac51da778c285",
+      "diagramSecret": "6828c97c05e8ad45fcdec60538944a88a0a5b419081383cf4993268381cfc4b8",
+      "isPrivate": false,
+      "author": "DAE988ADED111E6AE82DBFD9AE4FFFE97ADBC23D",
+      "modelId": "INC_EXEC_2018",
+      "processName": "Inc Exec Process"
     }
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/process-definitions/:address', ensureAuth, getDefinition);
+  app.get('/bpm/process-definitions/:address', middleware, getDefinition);
 
   /**
    * @api {get} /activity-instances Read Activities of a process instance
@@ -414,7 +421,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/activity-instances', ensureAuth, getActivityInstances);
+  app.get('/bpm/activity-instances', middleware, getActivityInstances);
 
   /**
    * @api {get} /activity-instances/:id Read activity instance
@@ -446,45 +453,48 @@ module.exports = (app) => {
       "modelAuthor": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
       "private": 0,
       "agreementName": "Drone Lease Agreement",
-      "data": {
-        "in": [{
-            "accessPointId": "readName",
-            "dataMappingId": "readName",
-            "dataPath": "name"
-            "dataStorageId": ""
-            "value": "John Doe",
-            "dataType": 2 "direction": 0
-          },
-          {
-            "accessPointId": "readApproved",
-            "dataMappingId": "readApproved",
-            "dataPath": "approved"
-            "value": true "dataType": 1 "direction": 0
-          },
-        ],
-        "out": [{
-            "accessPointId": "writeName",
-            "dataMappingId": "writeName",
-            "dataPath": "name"
-            "dataStorageId": ""
-            "dataType": 2 "direction": 1
-          },
-          {
-            "accessPointId": "writeApproved",
-            "dataMappingId": "writeApproved",
-            "dataPath": "approved"
-            "dataStorageId": ""
-            "dataType": 2 "direction": 1
-          }
-        ]
-      }
+      "data": [
+        {
+          "dataMappingId": "readName",
+          "dataPath": "name"
+          "dataStorageId": ""
+          "value": "John Doe",
+          "dataType": 2,
+          "parameterType": 1,
+          "direction": 0
+        },
+        {
+          "dataMappingId": "readApproved",
+          "dataPath": "approved"
+          "value": true,
+          "dataType": 1,
+          "parameterType": 0,
+          "direction": 0
+        },
+        {
+          "dataMappingId": "writeName",
+          "dataPath": "name"
+          "dataStorageId": ""
+          "dataType": 2,
+          "parameterType": 1,
+          "direction": 1
+        },
+        {
+          "dataMappingId": "writeApproved",
+          "dataPath": "approved"
+          "dataStorageId": ""
+          "dataType": 1,
+          "parameterType": 0,
+          "direction": 1
+        }
+      ]
     }
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/activity-instances/:id', ensureAuth, getActivityInstance);
+  app.get('/bpm/activity-instances/:id', middleware, getActivityInstance);
 
   /**
    * @api {get} /activity-instances/:activityInstanceId/data-mappings Read data mappings of activity instance
@@ -500,19 +510,18 @@ module.exports = (app) => {
    * @apiSuccessExample {json} Success Object
     [{
       "dataMappingId": "readApproved",
-      "accessPointId": "readApproved",
-      "dataPath": "approved",
-      "dataStorageId": "",
+      "dataPath": "approved"
       "value": true,
       "dataType": 1,
-      "direction": 0,
+      "parameterType": 0,
+      "direction": 0
     }]
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/activity-instances/:activityInstanceId/data-mappings', ensureAuth, getDataMappings);
+  app.get('/bpm/activity-instances/:activityInstanceId/data-mappings', middleware, getDataMappings);
 
   /**
    * @api {get} /activity-instances/:activityInstanceId/data-mappings/:dataMappingId Read single data mapping of an activity instance
@@ -527,20 +536,19 @@ module.exports = (app) => {
    * @apiSuccess {Object} object Data mapping objects
    * @apiSuccessExample {json} Success Object
     {
-      "accessPointId": "readApproved",
       "dataMappingId": "readApproved",
-      "dataPath": "approved",
-      "dataStorageId": "",
+      "dataPath": "approved"
       "value": true,
       "dataType": 1,
-      "direction": 0,
+      "parameterType": 0,
+      "direction": 0
     }
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', ensureAuth, getDataMappings);
+  app.get('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', middleware, getDataMappings);
 
   /**
    * @api {get} /activity-instances/:activityInstanceId/data-mappings Write data mappings of activity instance
@@ -555,11 +563,13 @@ module.exports = (app) => {
    * @apiParamExample {json} Sample request body with data mapping id/value pairs in an array
     [{
         "id": "writeApproved",
-        "value": true
+        "value": true,
+        "dataType": 1
       },
       {
         "id": "writeName",
-        "value": "John Doe"
+        "value": "John Doe",
+        "dataType": 2
       }
     ]
   *
@@ -567,7 +577,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.put('/bpm/activity-instances/:activityInstanceId/data-mappings', ensureAuth, setDataMappings);
+  app.put('/bpm/activity-instances/:activityInstanceId/data-mappings', middleware, setDataMappings);
 
   /**
    * @api {get} /activity-instances/:activityInstanceId/data-mappings/:dataMappingId Write single data mapping of an activity instance
@@ -582,13 +592,14 @@ module.exports = (app) => {
    * @apiParamExample {json} Sample request body with data mapping value
     {
       "value": true,
+      "dataType": 1
     }
   *
   * @apiUse NotLoggedIn
   * @apiUse AuthTokenRequired
   *
   */
-  app.put('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', ensureAuth, setDataMappings);
+  app.put('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', middleware, setDataMappings);
 
   /**
    * @api {get} /tasks Read Tasks
@@ -619,7 +630,7 @@ module.exports = (app) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/tasks', ensureAuth, getTasksForUser);
+  app.get('/tasks', middleware, getTasksForUser);
 
   /**
    * @api {put} /tasks/:activityInstanceId/complete Complete task identified by the activityInstanceId
@@ -636,13 +647,14 @@ module.exports = (app) => {
    * @apiParam {json} Optional request body with out data
     {
       data: [{
-        id: “writeApproved,
-        value: true
+        "id": "writeApproved",
+        "value": true,
+        "dataType": 1,
       }]
     }
   *
   */
-  app.put('/tasks/:activityInstanceId/complete', ensureAuth, completeActivity);
+  app.put('/tasks/:activityInstanceId/complete', middleware, completeActivity);
 
   /**
    * @api {put} /tasks/:activityInstanceId/complete/:agreementAddress/sign Sign the agreement and complete the activity
@@ -659,5 +671,5 @@ module.exports = (app) => {
    *     curl -i /tasks/:activityInstanceId/complete/:agreementAddress/sign
    *
    */
-  app.put('/tasks/:activityInstanceId/complete/:agreementAddress/sign', ensureAuth, signAndCompleteActivity);
+  app.put('/tasks/:activityInstanceId/complete/:agreementAddress/sign', middleware, signAndCompleteActivity);
 };

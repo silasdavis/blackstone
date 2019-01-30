@@ -635,6 +635,14 @@ const getUserByIdAndEcosystem = (userId, ecosystemAddress) => new Promise((resol
 
 const getUserById = userId => getUserByIdAndEcosystem(userId, appManager.ecosystemAddress);
 
+const addUserToEcosystem = (userId, address) => new Promise((resolve, reject) => {
+  const ecosystem = getEcosystem(appManager.ecosystemAddress);
+  ecosystem
+    .addUserAccount(userId, address)
+    .then(() => resolve())
+    .catch(err => reject(boomify(err, `Failed to add user with id ${userId} and address ${address} to ecosystem`)));
+});
+
 const addUserToOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to organization %s', userAddress, organizationAddress);
   const organization = getOrganization(organizationAddress);
@@ -755,6 +763,21 @@ const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate,
         log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
         return resolve(data.raw[1]);
       });
+});
+
+const addDataDefinitionToModel = (pmAddress, dataStoreField) => new Promise((resolve, reject) => {
+  const processModel = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
+  log.trace('Adding data definition %s to process model %s', JSON.stringify(dataStoreField), pmAddress);
+  const dataIdHex = global.stringToHex(dataStoreField.dataStorageId);
+  const dataPathHex = global.stringToHex(dataStoreField.dataPath);
+  processModel.addDataDefinition(dataIdHex, dataPathHex, dataStoreField.parameterType, (err) => {
+    if (err) {
+      return reject(boom
+        .badImplementation(`Failed to add data definition for dataId: ${dataStoreField.dataStorageId}, dataPath: ${dataStoreField.dataPath}, parameterType: ${dataStoreField.parameterType}: ${err}`));
+    }
+    log.info('Data definition %s added to Process Model at %s', JSON.stringify(dataStoreField), pmAddress);
+    return resolve(dataStoreField);
+  });
 });
 
 const addProcessInterface = (pmAddress, interfaceId) => new Promise((resolve, reject) => {
@@ -997,36 +1020,37 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
   try {
     const bpmService = appManager.contracts['BpmService'];
     const piAddress = await bpmService.factory.getProcessInstanceForActivity(activityInstanceId).then(data => data.raw[0]);
-    log.trace('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
+    log.info('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
+    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
     let payload;
     if (dataMappingId) {
+      log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
-          payload = bpmService.factory.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.STRING:
-          payload = bpmService.factory.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithStringData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.BYTES32:
-          payload = bpmService.factory.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithBytes32Data.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.UINT:
-          payload = bpmService.factory.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithUintData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.INT:
-          payload = bpmService.factory.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithIntData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         case DATA_TYPES.ADDRESS:
-          payload = bpmService.factory.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+          payload = processInstance.completeActivityWithAddressData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
           break;
         default:
           return reject(boom.badImplementation(`Unsupported dataType parameter ${dataType}`));
       }
-      log.trace('Setting OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
-      await callOnBehalfOf(actingUserAddress, bpmService.address, payload);
+    } else {
+      payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
     }
-    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
-    payload = processInstance.completeActivity.encode(activityInstanceId, bpmService.address);
+
     const returnData = await callOnBehalfOf(actingUserAddress, piAddress, payload);
 
     const data = processInstance.completeActivity.decode(returnData);
@@ -1037,6 +1061,7 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     if (errorCode === 1001) return reject(boom.notFound(`No activity instance found with ID ${activityInstanceId}`));
     if (errorCode === 4103) return reject(boom.forbidden(`User ${actingUserAddress} not authorized to complete activity ID ${activityInstanceId}`));
     if (errorCode !== 1) return reject(boom.badImplementation(`Error code returned from completing activity ${activityInstanceId} by user ${actingUserAddress}: ${errorCode}`));
+    log.info('Successfully completed task %s by user %s', activityInstanceId, actingUserAddress);
   } catch (error) {
     return reject(boom.badImplementation(`Error completing activity instance ID ${activityInstanceId} by user ${actingUserAddress}! Error: ${error}`));
   }
@@ -1272,6 +1297,7 @@ module.exports = {
   createUser,
   getUserByIdAndEcosystem,
   getUserById,
+  addUserToEcosystem,
   addUserToOrganization,
   removeUserFromOrganization,
   createDepartment,
@@ -1279,6 +1305,7 @@ module.exports = {
   addDepartmentUser,
   removeDepartmentUser,
   createProcessModel,
+  addDataDefinitionToModel,
   addProcessInterface,
   addParticipant,
   createProcessDefinition,

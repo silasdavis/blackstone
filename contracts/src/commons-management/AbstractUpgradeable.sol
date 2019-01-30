@@ -23,11 +23,14 @@ contract AbstractUpgradeable is Versioned, UpgradeOwned, AbstractERC165, Upgrade
     }
 
     /**
-     * @dev Blocks the call to a function if the supplied Versioned contract address is not higher than this contract's version
+     * @dev Checks if the supplied Versioned contract address is higher than this contract's version.
+     * REVERTS if:
+     * - the supplied Versioned contract does not have a higher version than this contract.
      */
     modifier pre_higherVersionOnly(address _newVersion) {
-        if (compareVersion(_newVersion) > 0)
-            _;
+        ErrorsLib.revertIf(compareVersion(_newVersion) < 1,
+            ErrorsLib.INVALID_INPUT(), "AbstractUpgradeable.pre_higherVersionOnly", "The upgrade successor must have a higher version than the current contract.");
+        _;
     }
 
     /**

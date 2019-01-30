@@ -4,13 +4,14 @@
     <bpmn:extensionElements>
       <camunda:properties>
         <camunda:property name="agreement" value="7" />
-        <camunda:property name="approved" value="0" />
       </camunda:properties>
     </bpmn:extensionElements>
     </bpmn:dataStore>
     <bpmn:dataStore id="agreement" name="Agreement">
     <bpmn:extensionElements>
       <camunda:properties>
+      <camunda:property name="approved" value="0" />
+      <camunda:property name="name" value="0" />
       <camunda:property name="Administrator" value="8" />
       </camunda:properties>
     </bpmn:extensionElements>

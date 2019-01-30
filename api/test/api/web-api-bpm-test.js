@@ -245,7 +245,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     }, 3000);
   }).timeout(10000);
 
-  it('Should create an angreement and start formation process', done => {
+  it('Should create an agreement and start formation process', done => {
     // CREATE AGREEMENT
     setTimeout(async () => {
       try {
@@ -423,6 +423,13 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     archetype1.executionProcessDefinition = process2.address;
     expect(String(archetype1.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype1.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    let modelDataResults = await chainPool.query({
+      text: 'SELECT data_id, data_path, parameter_type FROM PROCESS_MODEL_DATA WHERE model_address = $1',
+      values: [model.address]
+    });
+    // merely checks the number of created data definitions in the table
+    expect(modelDataResults.rows.length).to.equal(3);
+
   }).timeout(30000);
 
   it('Should create an archetype', async () => {
@@ -653,6 +660,13 @@ describe(':: DATA MAPPING TEST ::', () => {
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    let dataMappingResults = await chainPool.query({
+      text: 'SELECT data_path, data_storage_id, data_storage, direction FROM DATA_MAPPINGS WHERE process_definition_address = $1',
+      values: [archetype.executionProcessDefinition]
+    });
+    // merely checks the number of data mappings to be created for the execution model
+    expect(dataMappingResults.rows.length).to.equal(2);
+
   }).timeout(30000);
 
   it('Should create an archetype', done => {
@@ -692,23 +706,23 @@ describe(':: DATA MAPPING TEST ::', () => {
     setTimeout(async () => {
       try {
         let managerTasks = await api.getTasksForUser(manager.token);
+        managerTask = managerTasks[0];
         expect(managerTasks.length).to.be.greaterThan(0);
         expect(managerTasks[0].activityId).to.equal('apprTask_123');
         await assert.isFulfilled(api.setActivityDataValues(
           managerTasks[0].activityInstanceId,
           [
-            { id: 'writeName', value: 'John Doe' },
-            { id: 'writeApproved', value: true }
+            { id: 'writeName', value: 'John Doe', dataType: 2 },
+            { id: 'writeApproved', value: true, dataType: 1 }
           ],
           manager.token
         ));
         let data = await assert.isFulfilled(api.getActivityDataValues(managerTasks[0].activityInstanceId, manager.token));
-        expect(data.length).to.equal(2);
-        let name = data.filter(d => d.accessPointId === 'readName')[0].value;
-        let approved = data.filter(d => d.accessPointId === 'readApproved')[0].value;
+        expect(data.length).to.equal(4);
+        let name = data.filter(d => d.dataMappingId === 'readName')[0].value;
+        let approved = data.filter(d => d.dataMappingId === 'readApproved')[0].value;
         expect(name).to.equal('John Doe');
         expect(approved).to.equal(true);
-        managerTask = managerTasks[0];
         done();
       } catch (err) {
         done(err);
@@ -720,12 +734,11 @@ describe(':: DATA MAPPING TEST ::', () => {
     try {
       let aiData = await api.getActivityInstance(managerTask.activityInstanceId, manager.token);
       expect(aiData.data).to.exist;
-      expect(aiData.data.in.length).to.equal(2);
-      expect(aiData.data.out.length).to.equal(2);
-      let readName = aiData.data.in.filter(d => d.dataMappingId === 'readName')[0];
-      let readApproved = aiData.data.in.filter(d => d.dataMappingId === 'readApproved')[0];
-      let writeName = aiData.data.out.filter(d => d.dataMappingId === 'writeName')[0];
-      let writeApproved = aiData.data.out.filter(d => d.dataMappingId === 'writeApproved')[0];
+      expect(aiData.data.length).to.equal(4);
+      let readName = aiData.data.filter(d => d.dataMappingId === 'readName')[0];
+      let readApproved = aiData.data.filter(d => d.dataMappingId === 'readApproved')[0];
+      let writeName = aiData.data.filter(d => d.dataMappingId === 'writeName')[0];
+      let writeApproved = aiData.data.filter(d => d.dataMappingId === 'writeApproved')[0];
       expect(readName.value).to.equal('John Doe');
       expect(readApproved.value).to.equal(true);
       expect(writeName.dataPath).to.equal('name');
@@ -735,11 +748,10 @@ describe(':: DATA MAPPING TEST ::', () => {
     }
   }).timeout(10000);
 
-  it('Should be able to set data and complete suspended task', done => {
+  it('Should be able to set single data and complete suspended task in one transaction', done => {
     setTimeout(async () => {
       let data = [
-        { id: 'writeApproved', value: true },
-        { id: 'writeName', value: "Jane Doe" },
+        { id: 'writeApproved', value: true, dataType: 1 } //IMPORTANT: test completing an activity with only one data in order to trigger the completeActivityWithData single transaction path in the API!
       ];
       try {
         await assert.isFulfilled(api.completeTaskForUser(managerTask.activityInstanceId, data, manager.token));
@@ -772,11 +784,8 @@ describe(':: DATA MAPPING TEST ::', () => {
         expect(adminTasks.length).to.equal(1);
         let aiData = await api.getActivityInstance(adminTasks[0].activityInstanceId, admin.token);
         expect(aiData.data).to.exist;
-        expect(aiData.data.in.length).to.equal(2);
-        expect(aiData.data.out).to.not.exist;
-        let readName = aiData.data.in.filter(d => d.dataMappingId === 'readName')[0];
-        let readApproved = aiData.data.in.filter(d => d.dataMappingId === 'readApproved')[0];
-        expect(readName.value).to.equal('Jane Doe');
+        expect(aiData.data.length).to.equal(2);
+        let readApproved = aiData.data.filter(d => d.dataMappingId === 'readApproved')[0];
         expect(readApproved.value).to.equal(true);
         done();
       } catch (err) {

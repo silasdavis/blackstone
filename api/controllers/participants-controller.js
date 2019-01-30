@@ -206,9 +206,32 @@ const _userExistsOnChain = async (id) => {
   }
 };
 
+const upgradeExternalUser = async (client, {
+  username,
+  email,
+  passwordDigest,
+  isProducer,
+}) => {
+  try {
+    const queryString = `UPDATE users
+    SET external_user = false, username = $1, password_digest = $2, is_producer = $3
+    WHERE email = $4
+    RETURNING id, address;`;
+    const { rows } = await client.query({ text: queryString, values: [username, passwordDigest, isProducer, email] });
+    await contracts.addUserToEcosystem(getSHA256Hash(username), rows[0].address);
+    return rows[0];
+  } catch (err) {
+    client.release();
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to upgrade external user to regular user: ${err.stack}`);
+  }
+};
+
 const registerUser = async (userData) => {
   let address;
   let userId;
+  let existingEmail;
+  let isExternalUser; // indicates user already exists as "external user"
   const client = await appPool.connect();
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
@@ -218,10 +241,12 @@ const registerUser = async (userData) => {
   // check if email or username already registered in pg
   try {
     const { rows } = await client.query({
-      text: 'SELECT LOWER(email) AS email, LOWER(username) AS username FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
+      text: 'SELECT LOWER(email) AS email, LOWER(username) AS username, external_user AS "externalUser" FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
       values: [email, username],
     });
-    if (rows[0]) {
+    if (rows[0]) existingEmail = rows[0].email;
+    isExternalUser = rows[0] && rows[0].externalUser && rows[0].email === email.toLowerCase();
+    if (rows[0] && !isExternalUser) {
       if (rows[0].email === email.toLowerCase()) {
         throw boom.badData(`Email ${email} already registered`);
       } else if (rows[0].username === username.toLowerCase()) {
@@ -234,34 +259,50 @@ const registerUser = async (userData) => {
     throw boom.badImplementation(`Failed to validate if username already registered : ${err.stack}`);
   }
 
-  // check if username is registered on chain
-  try {
-    const userInCache = await _userExistsOnChain(username);
-    if (userInCache) throw boom.badData(`Username ${username} already exists`);
-  } catch (err) {
-    client.release();
-    if (err.isBoom) throw err;
-    throw boom.badImplementation(`Failed to validate if user exists on chain: ${err.stack}`);
-  }
+  if (!isExternalUser) {
+    // check if username is registered on chain
+    try {
+      const userInCache = await _userExistsOnChain(username);
+      if (userInCache) throw boom.badData(`Username ${username} already exists`);
+    } catch (err) {
+      client.release();
+      if (err.isBoom) throw err;
+      throw boom.badImplementation(`Failed to validate if user exists on chain: ${err.stack}`);
+    }
 
-  // create user on chain
-  try {
-    address = await contracts.createUser({ id: getSHA256Hash(username) });
-  } catch (err) {
-    client.release();
-    throw boom.badImplementation(`Failed to create user on chain: ${err.stack}`);
+    // create user on chain
+    try {
+      address = await contracts.createUser({ id: getSHA256Hash(username) });
+    } catch (err) {
+      client.release();
+      throw boom.badImplementation(`Failed to create user on chain: ${err.stack}`);
+    }
   }
   const salt = await bcrypt.genSalt(10);
   let hash = await bcrypt.hash(password, salt);
 
-  // insert in user db
-  try {
-    const queryString = 'INSERT INTO users(address, username, email, password_digest, is_producer) VALUES($1, $2, $3, $4, $5);';
-    await client.query({ text: queryString, values: [address, username, email, hash, isProducer] });
-    userId = (await sqlCache.getDbUserIdByAddress(address))[0].id;
-  } catch (err) {
-    client.release();
-    throw boom.badImplementation(`Failed to save user in db: ${err.stack}`);
+  if (isExternalUser) {
+    ({ id: userId, address } = await upgradeExternalUser(client, {
+      username,
+      email: existingEmail,
+      passwordDigest:
+      hash,
+      isProducer,
+    }));
+  } else {
+    // insert in user db
+    try {
+      const queryString = `INSERT INTO users(
+        address, username, email, password_digest, is_producer
+        ) VALUES(
+          $1, $2, $3, $4, $5
+        ) RETURNING id;`;
+      const { rows } = await client.query({ text: queryString, values: [address, username, email, hash, isProducer] });
+      userId = rows[0].id;
+    } catch (err) {
+      client.release();
+      throw boom.badImplementation(`Failed to save user in db: ${err.stack}`);
+    }
   }
 
   // generate and persist activation code

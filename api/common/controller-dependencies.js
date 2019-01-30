@@ -7,7 +7,7 @@ const log = logger.getLogger('monax.controllers');
 const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
-  PARAMETER_TYPE,
+  PARAMETER_TYPES,
 } = global.__monax_constants;
 
 const trimBufferPadding = (buf) => {
@@ -144,7 +144,7 @@ const dependencies = {
       case 'Parameter Value': {
         err.status = 400;
         const paramTypeInt = parseInt(element.parameterType, 10);
-        if (paramTypeInt === PARAMETER_TYPE.BOOLEAN) {
+        if (paramTypeInt === PARAMETER_TYPES.BOOLEAN) {
           if (element.value === 'false' || element.value === '0' || !element.value) {
             element.value = 0;
           } else if (element.value === '1' || element.value === true || element.value === 'true') {
@@ -153,9 +153,9 @@ const dependencies = {
             err.message = 'Invalid boolean value';
             throw err;
           }
-        } else if (paramTypeInt === PARAMETER_TYPE.STRING && typeof element.value !== 'string') {
+        } else if (paramTypeInt === PARAMETER_TYPES.STRING && typeof element.value !== 'string') {
           element.value = JSON.stringify(element.value);
-        } else if (paramTypeInt === PARAMETER_TYPE.NUMBER) {
+        } else if (paramTypeInt === PARAMETER_TYPES.NUMBER) {
           if (typeof element.value === 'string') {
             element.value = parseFloat(element.value, 10);
           }
@@ -163,7 +163,7 @@ const dependencies = {
             err.message = 'Number values must be integers';
             throw err;
           }
-        } else if (paramTypeInt === PARAMETER_TYPE.DATE || paramTypeInt === PARAMETER_TYPE.DATETIME) {
+        } else if (paramTypeInt === PARAMETER_TYPES.DATE || paramTypeInt === PARAMETER_TYPES.DATETIME) {
           if (typeof element.value === 'string') {
             element.value = new Date(element.value).getTime();
             if (Number.isNaN(parseInt(element.value, 10))) {
@@ -171,14 +171,14 @@ const dependencies = {
               throw err;
             }
           }
-        } else if (paramTypeInt === PARAMETER_TYPE.MONETARY_AMOUNT) {
+        } else if (paramTypeInt === PARAMETER_TYPES.MONETARY_AMOUNT) {
           if (typeof element.value === 'string') {
             element.value = parseFloat(element.value, 10);
           }
           element.value = Math.round(element.value * 100);
-        } else if (paramTypeInt === PARAMETER_TYPE.USER_ORGANIZATION ||
-          paramTypeInt === PARAMETER_TYPE.CONTRACT_ADDRESS ||
-          paramTypeInt === PARAMETER_TYPE.SIGNING_PARTY) {
+        } else if (paramTypeInt === PARAMETER_TYPES.USER_ORGANIZATION ||
+          paramTypeInt === PARAMETER_TYPES.CONTRACT_ADDRESS ||
+          paramTypeInt === PARAMETER_TYPES.SIGNING_PARTY) {
           if (typeof element.value !== 'string' || !element.value.match(/^[0-9A-Fa-f]{40}$/)) {
             err.message = 'Accounts must be 40-digit hexadecimals';
             throw err;

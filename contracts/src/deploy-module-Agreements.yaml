@@ -206,17 +206,3 @@ jobs:
     key: $getArchetypeRegistryFromAgreementRegistry
     relation: eq
     val: $ArchetypeRegistry
-
-#####
-# ParameterTypesAccess
-#####
-- name: ParameterTypesAccess
-  deploy:
-    contract: ParameterTypesAccess.bin
-
-- name: DeployParameterTypesAccess
-  call:
-    destination: $DOUG
-    bin: DOUG
-    function: deployContract
-    data: [ParameterTypesAccess, $ParameterTypesAccess]
