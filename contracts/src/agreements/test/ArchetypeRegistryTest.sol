@@ -24,7 +24,7 @@ contract ArchetypeRegistryTest {
 	string name = "archetype name";
 	string description = "this string description is more than thirty-two characters";
 	string documentName = "documentName";
-	string hoardRef = "{json grant}";
+	string fileReference = "{json grant}";
 	bytes32 parameter = "parameter";
 	DataTypes.ParameterType parameterType = DataTypes.ParameterType.BOOLEAN;
 
@@ -101,16 +101,16 @@ contract ArchetypeRegistryTest {
 
 		// Document Attachments
 
-		error = registry.addDocument(falseAddress, documentName, hoardRef);
+		error = registry.addDocument(falseAddress, documentName, fileReference);
 		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Adding document to non-existent archetype should have failed with RESOURCE_NOT_FOUND";
-		error = registry.addDocument(archetype, documentName, hoardRef);
+		error = registry.addDocument(archetype, documentName, fileReference);
 		if (error != BaseErrors.NO_ERROR()) return "Adding document to archetype failed unexpectedly";
 		if (registry.getDocumentsByArchetypeSize(archetype) != 1) return "Documents on archetype exptected to be 1";
 		if (keccak256(abi.encodePacked(registry.getDocumentByArchetypeAtIndex(archetype, 0))) != keccak256(abi.encodePacked(documentName))) return "documentName at index 0 not returned correctly";
 
-		string memory retHoardRef;
-		retHoardRef = registry.getDocumentByArchetypeData(archetype, documentName);
-		if (keccak256(abi.encodePacked(retHoardRef)) != keccak256(abi.encodePacked(hoardRef))) return "document reference for documentName does not match";
+		string memory returnedFileRef;
+		returnedFileRef = registry.getDocumentByArchetypeData(archetype, documentName);
+		if (keccak256(abi.encodePacked(returnedFileRef)) != keccak256(abi.encodePacked(fileReference))) return "document reference for documentName does not match";
 
 		// Jurisdictions
 		bytes32 region = keccak256(abi.encodePacked("CA", "QC"));

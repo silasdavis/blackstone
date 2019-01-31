@@ -12,10 +12,10 @@ contract Archetype is Named {
 	/**
 	 * @dev Adds the document specified by the external reference to the archetype under the given name
 	 * @param _name name
-	 * @param _hoardRef the external reference to the document
+	 * @param _fileReference the external reference to the document
 	 * @return error code indicating success or failure
 	 */
-	function addDocument(string _name, string _hoardRef) external returns (uint error);
+	function addDocument(string _name, string _fileReference) external returns (uint error);
 
 	/**
 	 * @dev Adds a parameter to this Archetype
@@ -64,9 +64,9 @@ contract Archetype is Named {
 	 * @dev Gets document reference with given name
 	 * @param _name document name
 	 * @return error - an error code
-	 * @return hoardRef - the reference to the external document
+	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(string _name) external view returns (uint error, string hoardRef);
+	function getDocument(string _name) external view returns (uint error, string fileReference);
 
 	/**
 	 * @dev Gets number of parameters

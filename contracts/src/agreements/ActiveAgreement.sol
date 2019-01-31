@@ -70,14 +70,14 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	function getPrivateParametersReference() external view returns (string);
 
 	/**
-	 * @dev Updates the Hoard reference for the event log of this agreement
-	 * @param _hoardRefEventLog the reference to the event log in Hoard
+	 * @dev Updates the file reference for the event log of this agreement
+	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function setEventLogReference(string _hoardRefEventLog) external;
+	function setEventLogReference(string _eventLogFileReference) external;
 
 	/**
 	 * @dev Returns the reference for the event log of this ActiveAgreement
-	 * @return the Hoard reference for the event log of this agreement
+	 * @return the file reference for the event log of this agreement
 	 */
 	function getEventLogReference() external view returns (string);
 

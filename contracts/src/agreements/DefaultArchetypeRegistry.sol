@@ -334,22 +334,22 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
 	}
 
 	/**
-	 * @dev Adds Hoard document to the given Archetype
+	 * @dev Adds a file reference to the given Archetype
 	 * @param _archetype archetype
 	 * @param _name name
-	 * @param _hoardRef the external reference to the document
+	 * @param _fileReference the external reference to the document
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.RESOURCE_NOT_FOUND() _archetype does not exist, or see DefaultArchetype
 	 */
-	function addDocument(address _archetype, string _name, string _hoardRef) external returns (uint error) {
+	function addDocument(address _archetype, string _name, string _fileReference) external returns (uint error) {
 		if (!ArchetypeRegistryDb(database).archetypeExists(_archetype))
 			return BaseErrors.RESOURCE_NOT_FOUND();
-		error = Archetype(_archetype).addDocument(_name, _hoardRef);
+		error = Archetype(_archetype).addDocument(_name, _fileReference);
 		if (error == BaseErrors.NO_ERROR()) {
 			emit LogArchetypeDocumentUpdate(
 				EVENT_ID_ARCHETYPE_DOCUMENTS,
 				_archetype,
 				_name,
-				_hoardRef
+				_fileReference
 			);
 		}
 	}
@@ -516,11 +516,11 @@ contract DefaultArchetypeRegistry is Versioned(1,0,0), ArchetypeRegistry, Abstra
      * @dev Returns data about the document at the specified address
 	 * @param _archetype archetype
 	 * @param _name the document name
-	 * @return hoardRef - the document reference
+	 * @return fileReference - the document reference
 	 */
-	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string hoardRef) {
+	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string fileReference) {
 		uint error;
-		(error, hoardRef) = Archetype(_archetype).getDocument(_name);
+		(error, fileReference) = Archetype(_archetype).getDocument(_name);
 	}
 
     /**

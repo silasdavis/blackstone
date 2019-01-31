@@ -241,13 +241,13 @@ contract ArchetypeRegistry is Upgradeable {
 	);
 
 	/**
-	 * @dev Adds Hoard document to the given Archetype
+	 * @dev Adds a file reference to the given Archetype
 	 * @param _archetype archetype
 	 * @param _name name
-	 * @param _hoardRef the external reference to the document
+	 * @param _fileReference the external reference to the document
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.RESOURCE_NOT_FOUND() _archetype does not exist, or see DefaultArchetype
 	 */
-	function addDocument(address _archetype, string _name, string _hoardRef) external returns (uint error);
+	function addDocument(address _archetype, string _name, string _fileReference) external returns (uint error);
 
 	/**
 	 * @dev Sets price of given archetype
@@ -356,9 +356,9 @@ contract ArchetypeRegistry is Upgradeable {
 		* @dev Returns data about the document given the specified name
 		* @param _archetype archetype
 		* @param _name the document name
-		* @return hoardRef - the document reference
+		* @return fileReference - the document reference
 		*/
-	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string hoardRef);
+	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string fileReference);
 
 	/**
 		* @dev Gets parameters size for given Archetype

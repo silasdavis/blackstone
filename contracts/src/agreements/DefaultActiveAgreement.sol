@@ -24,8 +24,8 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	address archetype;
 	address creator;
 	string name;
-	string hoardRefPrivateParameters;
-	string hoardRefEventLog;
+	string privateParametersFileReference;
+	string eventLogFileReference;
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
 	address[] parties;
@@ -39,7 +39,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _archetype archetype address
 	 * @param _name name
 	 * @param _creator the account that created this agreement
-	 * @param _hoardRefPrivateParameters the reference to the private parameters in Hoard (optional)
+	 * @param _privateParametersFileReference the file reference to the private parameters (optional)
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
@@ -48,7 +48,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		address _archetype, 
 		string _name, 
 		address _creator, 
-		string _hoardRefPrivateParameters, 
+		string _privateParametersFileReference, 
 		bool _isPrivate, 
 		address[] _parties, 
 		address[] _governingAgreements) public 
@@ -56,7 +56,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		archetype = _archetype;
 		name = _name;
 		creator = _creator;
-		hoardRefPrivateParameters = _hoardRefPrivateParameters;
+		privateParametersFileReference = _privateParametersFileReference;
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
@@ -127,7 +127,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @return the reference to an external document containing private parameters
 	 */
 	function getPrivateParametersReference() external view returns (string){
-		return hoardRefPrivateParameters;
+		return privateParametersFileReference;
 	}
 
 	/**
@@ -138,11 +138,11 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	}
 
 	/**
-	 * @dev Updates the Hoard reference for the event log of this agreement
-	 * @param _hoardRefEventLog the reference to the event log in Hoard
+	 * @dev Updates the file reference for the event log of this agreement
+	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function setEventLogReference(string _hoardRefEventLog) external {
-		hoardRefEventLog = _hoardRefEventLog;
+	function setEventLogReference(string _eventLogFileReference) external {
+		eventLogFileReference = _eventLogFileReference;
 		emitEvent(EVENT_ID_EVENT_LOG_UPDATED, this);
 	}
 
@@ -151,7 +151,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @return the reference to an external document containing the event log
 	 */
 	function getEventLogReference() external view returns (string) {
-		return hoardRefEventLog;
+		return eventLogFileReference;
 	}
 
 	/**

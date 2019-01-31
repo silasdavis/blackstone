@@ -80,19 +80,19 @@ contract DefaultArchetype is Archetype {
 	 * REVERTS if:
 	 * - the name is empty
 	 * @param _name name
-	 * @param _hoardRef the external reference to the document
+	 * @param _fileReference the external reference to the document
 	 * @return error BaseErrors.NO_ERROR() if successful
 	 * @return BaseErrors.RESOURCE_ALREADY_EXISTS() if _name already exists in documentNames
 	 */
 	// TODO: determine access (presumably only author should be able to add documents)
-	function addDocument(string _name, string _hoardRef) external returns (uint error) {
+	function addDocument(string _name, string _fileReference) external returns (uint error) {
 		ErrorsLib.revertIf(bytes(_name).length == 0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.addDocument", "The name must not be empty");
 		if (documents[_name].exists)
 			return BaseErrors.RESOURCE_ALREADY_EXISTS();
 
 		documentNames.push(_name);
-		documents[_name].reference = _hoardRef;
+		documents[_name].reference = _fileReference;
 		documents[_name].exists = true;
 		error = BaseErrors.NO_ERROR();
 	}
@@ -218,14 +218,14 @@ contract DefaultArchetype is Archetype {
 	 * @dev Gets document reference with given name
 	 * @param _name document name
 	 * @return error BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_NOT_FOUND() if documentNames does not contain _name
-	 * @return hoardRef - the reference to the external document
+	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(string _name) external view returns (uint error, string hoardRef) {
+	function getDocument(string _name) external view returns (uint error, string fileReference) {
 		error = BaseErrors.NO_ERROR();
 		if (!documents[_name].exists)
 			error = BaseErrors.RESOURCE_NOT_FOUND();
 		else {
-			hoardRef = documents[_name].reference;
+			fileReference = documents[_name].reference;
 		}
 	}
 

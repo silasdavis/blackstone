@@ -22,7 +22,7 @@ contract DefaultProcessModel is ProcessModel {
 	BpmModel.ParticipantMap participants;
 	mapping(bytes32 => bool) processInterfaces;
 	bytes32[] processInterfaceKeys;
-	string hoardRefModelFile;
+	string modelFileReference;
 	address author;
 	bool privateFlag;
 
@@ -33,14 +33,14 @@ contract DefaultProcessModel is ProcessModel {
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if model is visible only to creator
-	 * @param _hoardRefModelFile the reference to the external model file from which this ProcessModel originated
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	constructor(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _hoardRefModelFile)
+	constructor(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference)
 		Versioned(_version[0], _version[1], _version[2])
 		AbstractNamedElement(_id, _name)
 		public
 	{
-		hoardRefModelFile = _hoardRefModelFile;
+		modelFileReference = _modelFileReference;
 		author = _author;
 		privateFlag = _isPrivate;
 	}
@@ -79,7 +79,7 @@ contract DefaultProcessModel is ProcessModel {
 	 * @return the external file reference
 	 */
 	function getModelFileReference() external view returns (string) {
-		return hoardRefModelFile;
+		return modelFileReference;
 	}
 
 	/**

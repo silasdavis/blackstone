@@ -33,10 +33,10 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), ProcessModelReposito
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if the model is private
-	 * @param _hoardRefModelFile the reference to the external model file from which this ProcessModel originated
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _hoardRefModelFile) external returns (uint error, address modelAddress) {
-		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _hoardRefModelFile);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress) {
+		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _modelFileReference);
 		error = addModel(pm);
 		if (error != BaseErrors.NO_ERROR()) //TODO this should revert the model creation if it could not be added
 			return (error, 0x0);

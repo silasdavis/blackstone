@@ -30,8 +30,8 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 		uint32 max_event_count,
 		address	formation_process_instance,
 		address	execution_process_instance,
-		string hoardRefPrivateParameters,
-		string hoardRefEventLog
+		string privateParametersFileReference,
+		string eventLogFileReference
 	);
 
 	event LogAgreementFormationProcessUpdate(
@@ -55,7 +55,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	event LogAgreementEventLogReference(
 		bytes32 indexed eventId,
 		address agreement_address, 
-		string hoardRefEventLog
+		string eventLogFileReference
 	);
 
 	event LogAgreementCollectionCreation(
@@ -109,7 +109,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @param _archetype archetype
 	 * @param _name name
 	 * @param _creator address
-	 * @param _hoardRefPrivateParameters reference of the private parametes of this agreement in Hoard
+	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
@@ -120,7 +120,7 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 		address _archetype,
 		string _name, 
 		address _creator, 
-		string _hoardRefPrivateParameters,
+		string _privateParametersFileReference,
 		bool _isPrivate,
 		address[] _parties, 
 		bytes32 _collectionId, 
@@ -204,15 +204,15 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return archetype - the agreement's archetype adress
 	 * @return name - the name of the agreement
 	 * @return creator - the creator of the agreement
-	 * @return hoardRefPrivateParameters - reference to the agreement parameters in Hoard (only used when agreement is private)
-	 * @return hoardRefEventLog - address of the agreement's event log in Hoard
+	 * @return privateParametersFileReference - the file reference to the private agreement parameters (only used when agreement is private)
+	 * @return eventLogFileReference - the file reference to the agreement's event log
 	 * @return maxNumberOfEvents - the maximum number of events allowed to be stored for this agreement
-	 * @return isPrivate - whether the agreement's parameters are private, i.e. stored off-chain in hoard
+	 * @return isPrivate - whether there are private agreement parameters, i.e. stored off-chain
 	 * @return legalState - the agreement's Agreement.LegalState as uint8
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, string hoardRefPrivateParameters, string hoardRefEventLog, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, string privateParametersFileReference, string eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -252,11 +252,11 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	function getPartyByActiveAgreementData(address _activeAgreement, address _party) external view returns (address signedBy, uint signatureTimestamp);
 
 	/**
-	 * @dev Updates the Hoard reference for the event log of the specified agreement
+	 * @dev Updates the file reference for the event log of the specified agreement
 	 * @param _activeAgreement the address of active agreement
-	 * @param _hoardRefEventLog a hoard reference of the event log of this agreement
+	 * @param _eventLogFileReference the file reference of the event log of this agreement
 	 */
-	 function setEventLogReference(address _activeAgreement, string _hoardRefEventLog) external;
+	 function setEventLogReference(address _activeAgreement, string _eventLogFileReference) external;
 
 	/**
 	 * @dev Creates a new agreement collection

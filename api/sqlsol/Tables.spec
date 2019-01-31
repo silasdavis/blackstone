@@ -40,12 +40,12 @@
         "name": "execution_process_instance",
         "type": "address"
       },
-      "hoardRefPrivateParameters": {
-        "name": "hoard_ref_private_parameters",
+      "privateParametersFileReference": {
+        "name": "private_parameters_file_reference",
         "type": "string"
       },
-      "hoardRefEventLog": {
-        "name": "hoard_ref_event_log",
+      "eventLogFileReference": {
+        "name": "event_log_file_reference",
         "type": "string"
       }
     }

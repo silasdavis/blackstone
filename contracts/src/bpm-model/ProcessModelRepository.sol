@@ -40,9 +40,9 @@ contract ProcessModelRepository is Upgradeable {
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if the model is private
-	 * @param _hoardRefModelFile the reference to the external model file from which this ProcessModel originated
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _hoardRefModelFile) external returns (uint error, address modelAddress);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress);
 
 	/**
 	 * @dev Adds the given ProcessModel to this repository.
