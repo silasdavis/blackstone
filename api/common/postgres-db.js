@@ -1,16 +1,20 @@
 const { Pool } = require('pg');
 
-(function startPostgresDb() {
-  // connection to the app db
-  const appPool = new Pool({
-    connectionString: global.__settings.monax.pg.app_db_url,
+(function connectToDb() {
+  const app_db_pool = new Pool({
+    connectionString: global.__settings.db.app_db_url,
   });
-  // connection to chain/vent db
-  const chainPool = new Pool({
-    connectionString: global.__settings.monax.pg.chain_db_url,
+  app_db_pool.on('connect', (client) => {
+    client.query(`SET SCHEMA '${global.__settings.db.app_db_schema}'`);
+  });
+  const chain_db_pool = new Pool({
+    connectionString: global.__settings.db.chain_db_url,
+  });
+  chain_db_pool.on('connect', (client) => {
+    client.query(`SET SCHEMA '${global.__settings.db.chain_db_schema}'`);
   });
   module.exports = {
-    appPool,
-    chainPool,
+    app_db_pool,
+    chain_db_pool,
   };
 }());

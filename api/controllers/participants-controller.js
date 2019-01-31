@@ -18,7 +18,7 @@ const {
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 
@@ -105,7 +105,7 @@ const createOrganization = asyncMiddleware(async (req, res) => {
   }
   try {
     const address = await contracts.createOrganization(org);
-    await appPool.query({
+    await app_db_pool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
@@ -232,7 +232,7 @@ const registerUser = async (userData) => {
   let userId;
   let existingEmail;
   let isExternalUser; // indicates user already exists as "external user"
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
@@ -396,7 +396,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
   });
   user.organizations = await getNamesOfOrganizations(Object.values(organizations));
   try {
-    const { rows } = await appPool.query({
+    const { rows } = await app_db_pool.query({
       text: 'SELECT username AS id, email, created_at, first_name, last_name, country, region, is_producer, onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
@@ -416,7 +416,7 @@ const editProfile = asyncMiddleware(async (req, res) => {
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
   let client;
   try {
-    client = await appPool.connect();
+    client = await app_db_pool.connect();
     await client.query('BEGIN');
     if (req.body.newPassword) {
       const { rows } = await client.query({

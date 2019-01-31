@@ -7,7 +7,7 @@ const {
 const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
 
 const runQuery = (pool, queryString, values = []) => pool
   .connect()
@@ -21,8 +21,8 @@ const runQuery = (pool, queryString, values = []) => pool
     throw boom.badImplementation(err);
   }));
 
-const runAppDbQuery = (queryString, values = []) => runQuery(appPool, queryString, values);
-const runChainDbQuery = (queryString, values = []) => runQuery(chainPool, queryString, values);
+const runAppDbQuery = (queryString, values = []) => runQuery(app_db_pool, queryString, values);
+const runChainDbQuery = (queryString, values = []) => runQuery(chain_db_pool, queryString, values);
 
 const getOrganizations = (queryParams) => {
   const queryString = 'SELECT o.organization_address AS address, encode(o.organization_id::bytea, \'hex\') as "organizationKey", oa.approver_address as approver ' +

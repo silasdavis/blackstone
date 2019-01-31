@@ -2,7 +2,7 @@ const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const passportJwt = require('passport-jwt');
 const bcrypt = require('bcryptjs');
-const { chainPool, appPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
@@ -73,7 +73,7 @@ module.exports = (passport) => {
   const authenticate = async (usernameOrEmail, idType, password, done) => {
     const text = `SELECT username, email, address, password_digest, created_at, activated FROM users WHERE LOWER(${idType}) = LOWER($1)`;
     try {
-      const { rows } = await appPool.query({
+      const { rows } = await app_db_pool.query({
         text,
         values: [usernameOrEmail],
       });
