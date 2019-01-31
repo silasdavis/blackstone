@@ -9,7 +9,12 @@
  
 ## <a name="v0.6.1">Release v0.6.1</a>
 
-Release 0.6.1 is a patch release on top of the 0.6.0 release to add an environment variable for the Postgres DB schema and fix a gap in the API that prevented support of the new parameter type `POSITIVE_NUMBER` that was added in release 0.6.0.
+Release 0.6.1 is a patch release on top of the 0.6.0 release to add address the following issues:
+
+- add an environment variable for the Postgres DB schema
+- fix a gap in the API that prevented support of the new parameter type `POSITIVE_NUMBER` that was added in release 0.6.0.
+- fixed the version of Node module "helmet" which had problems getting installed
+- locked all Node dependency versions in package.json
 
 
 ## <a name="v0.6.0">Release v0.6.0</a>
