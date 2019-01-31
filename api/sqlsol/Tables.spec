@@ -272,23 +272,19 @@
     "TableName": "ARCHETYPE_DOCUMENTS",
     "Filter": "Log1Text = 'AN://archetype/documents'",
     "Columns": {
-      "archetype_address": {
+      "archetypeAddress": {
         "name": "archetype_address",
         "type": "address",
         "primary": true
       },
-      "document_key": {
+      "documentKey": {
         "name": "document_key",
-        "type": "bytes32",
+        "type": "string",
         "primary": true
       },
-      "hoard_address": {
-        "name": "hoard_address",
-        "type": "bytes32"
-      },
-      "secret_key": {
-        "name": "secret_key",
-        "type": "bytes32"
+      "documentReference": {
+        "name": "document_reference",
+        "type": "string"
       }
     }
   },
