@@ -523,13 +523,9 @@
         "name": "active",
         "type": "bool"
       },
-      "diagram_address": {
-        "name": "diagram_address",
-        "type": "bytes32"
-      },
-      "diagram_secret": {
-        "name": "diagram_secret",
-        "type": "bytes32"
+      "modelFileReference": {
+        "name": "model_file_reference",
+        "type": "string"
       }
     }
   },
