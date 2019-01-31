@@ -633,15 +633,22 @@ const updateProcessDetailsCache = (modelId, processDefinitionId, processName) =>
 };
 
 const getUserByActivationCode = (activationCode) => {
+  log.info(`Getting user activation request for activation code hex: ${activationCode}`);
   const queryString = 'SELECT u.address, u.id as "userId" FROM user_activation_requests uar JOIN users u ON uar.user_id = u.id WHERE activation_code_digest = $1';
-  return runAppDbQuery(queryString, [activationCode]);
+  return runAppDbQuery(queryString, [activationCode])
+    .then((rows) => {
+      log.info(`Found ${rows.length} rows in user_activation_requests matching code ${activationCode}: ${JSON.stringify(rows)}`);
+      return rows;
+    });
 };
 
 const updateUserActivation = async (userAddress, userId, activated, activationCodeHex) => {
   // set user to activated
+  log.info(`Received request to activate user at ${userAddress} with activation code ${activationCodeHex}`);
   try {
     const updateUsersQuery = 'UPDATE users SET activated = $1 WHERE address = $2';
     await runAppDbQuery(updateUsersQuery, [activated, userAddress]);
+    log.info(`Activated user at ${userAddress}`);
   } catch (err) {
     throw boom.badImplementation(`Failed to set user to activated for user at ${userAddress}: ${err.stack}`);
   }
@@ -649,6 +656,7 @@ const updateUserActivation = async (userAddress, userId, activated, activationCo
   try {
     const deleteCodeQuery = 'DELETE FROM user_activation_requests WHERE user_id = $1 AND activation_code_digest = $2';
     await runAppDbQuery(deleteCodeQuery, [userId, activationCodeHex]);
+    log.info(`Deleted activation token ${activationCodeHex}`);
   } catch (err) {
     log.error(`Failed to delete row in user_activation_requests for user id ${userId} at ${userAddress}: ${err.stack}`);
   }
