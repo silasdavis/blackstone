@@ -22,13 +22,11 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	using MappingsLib for Mappings.Bytes32Bytes32Map;
 
 	address archetype;
-	string name;
 	address creator;
+	string name;
+	string hoardRefPrivateParameters;
+	string hoardRefEventLog;
 	bool privateFlag;
-	bytes32 hoardAddress;
-	bytes32 hoardSecret;
-	bytes32 eventLogHoardAddress;
-	bytes32 eventLogHoardSecret;
 	uint32 maxNumberOfEvents;
 	address[] parties;
 	Agreements.LegalState legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
@@ -41,8 +39,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _archetype archetype address
 	 * @param _name name
 	 * @param _creator the account that created this agreement
-	 * @param _hoardAddress the address of the prose document in Hoard
-	 * @param _hoardSecret the secret to accessing the prose document in Hoard
+	 * @param _hoardRefPrivateParameters the reference to the private parameters in Hoard (optional)
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
@@ -51,8 +48,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		address _archetype, 
 		string _name, 
 		address _creator, 
-		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret,
+		string _hoardRefPrivateParameters, 
 		bool _isPrivate, 
 		address[] _parties, 
 		address[] _governingAgreements) public 
@@ -60,8 +56,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		archetype = _archetype;
 		name = _name;
 		creator = _creator;
-		hoardAddress = _hoardAddress;
-		hoardSecret = _hoardSecret;
+		hoardRefPrivateParameters = _hoardRefPrivateParameters;
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
@@ -127,22 +122,12 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		return archetype;
 	}
 
-
 	/**
-	 * @dev Returns the Hoard Address
-	 * @return the Hoard Address	 
+	 * @dev Returns the reference to the private parameters of this ActiveAgreement
+	 * @return the reference to an external document containing private parameters
 	 */
-	function getHoardAddress() external view returns (bytes32){
-		return hoardAddress;
-	}
-
-
-	/**
-	 * @dev Returns the Hoard Secret
-	 * @return the Hoard Secret
-	 */
-	function getHoardSecret() external view returns (bytes32){
-		return hoardSecret;
+	function getPrivateParametersReference() external view returns (string){
+		return hoardRefPrivateParameters;
 	}
 
 	/**
@@ -153,21 +138,20 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	}
 
 	/**
-	 * @dev Sets the Hoard Address and Hoard Secret for the Event Log
+	 * @dev Updates the Hoard reference for the event log of this agreement
+	 * @param _hoardRefEventLog the reference to the event log in Hoard
 	 */
-	function setEventLogReference(bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external {
-		eventLogHoardAddress = _eventLogHoardAddress;
-		eventLogHoardSecret = _eventLogHoardSecret;
+	function setEventLogReference(string _hoardRefEventLog) external {
+		hoardRefEventLog = _hoardRefEventLog;
 		emitEvent(EVENT_ID_EVENT_LOG_UPDATED, this);
 	}
 
 	/**
-	 * @dev Returns the Hoard Address and Hoard Secret for the Event Log
-	 * @return the Hoard Address and Hoard Secret for the Event Log
+	 * @dev Returns the reference for the event log of this ActiveAgreement
+	 * @return the reference to an external document containing the event log
 	 */
-	function getEventLogReference() external view returns (bytes32 retEventLogHoardAddress, bytes32 retEventLogHoardSecret) {
-		retEventLogHoardAddress = eventLogHoardAddress;
-		retEventLogHoardSecret = eventLogHoardSecret;
+	function getEventLogReference() external view returns (string) {
+		return hoardRefEventLog;
 	}
 
 	/**

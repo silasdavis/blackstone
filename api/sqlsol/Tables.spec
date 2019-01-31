@@ -40,21 +40,13 @@
         "name": "execution_process_instance",
         "type": "address"
       },
-      "hoard_address": {
-        "name": "hoard_address",
-        "type": "bytes32"
+      "hoardRefPrivateParameters": {
+        "name": "hoard_ref_private_parameters",
+        "type": "string"
       },
-      "hoard_secret": {
-        "name": "hoard_secret",
-        "type": "bytes32"
-      },
-      "event_log_hoard_address": {
-        "name": "event_log_hoard_address",
-        "type": "bytes32"
-      },
-      "event_log_hoard_secret": {
-        "name": "event_log_hoard_secret",
-        "type": "bytes32"
+      "hoardRefEventLog": {
+        "name": "hoard_ref_event_log",
+        "type": "string"
       }
     }
   },
