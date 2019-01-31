@@ -314,6 +314,7 @@ const registerUser = async (userData) => {
       text: 'INSERT INTO user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);',
       values: [userId, hash.digest('hex')],
     });
+    log.info(`Saved activation code ${activationCode} for user at address ${address}`);
   } catch (err) {
     client.release();
     throw boom.badImplementation(`Failed to save user activation code: ${err.stack}`);
@@ -355,6 +356,7 @@ const registrationHandler = asyncMiddleware(async ({ body }, res) => {
 
 const activateUser = asyncMiddleware(async (req, res) => {
   const hash = crypto.createHash('sha256');
+  log.info(`Activation request received with code: ${req.params.activationCode}`);
   hash.update(req.params.activationCode);
   const codeHex = hash.digest('hex');
   const rows = await sqlCache.getUserByActivationCode(codeHex);
