@@ -1,4 +1,4 @@
-const { appPool, chainPool } = require(__common + '/postgres-db');
+const { app_db_pool } = require(__common + '/postgres-db');
 const contracts = require(__controllers + '/contracts-controller');
 const bcrypt = require('bcryptjs');
 const { getSHA256Hash } = require(__common + '/controller-dependencies');
@@ -59,7 +59,7 @@ module.exports = {
 
     const userPromises = users.map(async ({ email, password, organization }) => {
       const address = await contracts.createUser({ id: getSHA256Hash(email) });
-      const client = await appPool.connect();
+      const client = await app_db_pool.connect();
       await client.query({
         text: 'DELETE FROM users WHERE email = $1',
         values: [email],

@@ -4,11 +4,11 @@ const fs = require('fs');
 const _ = require('lodash');
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests.api.helper');
-const { appPool, chainPool } = require(`${__common}/postgres-db`);
+const { app_db_pool } = require(`${__common}/postgres-db`);
 
 module.exports = (server) => {
   return {
-    activateUser: user => appPool.connect()
+    activateUser: user => app_db_pool.connect()
       .then(async (client) => await client.query('UPDATE users SET activated = true WHERE username = $1', [user.username]))
       .catch((err) => {
         throw err;

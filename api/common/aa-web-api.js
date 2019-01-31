@@ -14,7 +14,6 @@ const Hoard = require('../hoard/index.js');
 const hoard = new Hoard.Client(global.__settings.monax.hoard);
 
 const seeds = require(`${global.__data}/seeds`);
-const { chainPool } = require(`${global.__common}/postgres-db`);
 
 let app;
 
@@ -98,14 +97,6 @@ let app;
        * BPM Routes
        */
       require(`${global.__routes}/bpm-api`)(app, customMiddleware);
-
-      // // PG-SQL TEST ROUTE
-      // app.post('/pg-query', (req, res, next) => {
-      //   log.info(req.body);
-      //   chainPool.query(req.body, [])
-      //     .then(response => res.status(200).json(response.rows))
-      //     .catch(err => next(err));
-      // });
 
       // DEMO SEED ROUTES
       app.post('/seeds/users', (req, res, next) => {

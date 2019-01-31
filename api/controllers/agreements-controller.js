@@ -16,7 +16,7 @@ const {
   getBooleanFromString,
   getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
 const archetypeSchema = require(`${global.__schemas}/archetype`);
@@ -312,7 +312,7 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
       newParams.notAccountOrEmail.push({ ...param });
     }
   });
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   try {
     if (newParams.withEmail.length) {
       const { rows } = await client.query({

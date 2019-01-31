@@ -33,6 +33,6 @@ name = "access_token"
 maxAge = 3600000 # milliseconds
 httpOnly = true
 
-[monax.pg]
-app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
-chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+# [monax.pg]
+# app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+# chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"

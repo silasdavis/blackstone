@@ -50,7 +50,7 @@ global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_B
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
 const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
-const { chainPool } = require(`${global.__common}/postgres-db`);
+const { chain_db_pool } = require(`${global.__common}/postgres-db`);
 
 before(function (done) {
   this.timeout(99999999)
@@ -332,7 +332,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    chainPool.query('select * from process_models;', [], (err, { rows }) => {
+    chain_db_pool.query('select * from process_models;', [], (err, { rows }) => {
       expect(rows.length).to.be.greaterThan(0)
       let model = rows.filter(item => {
         return item.model_address === pmAddress

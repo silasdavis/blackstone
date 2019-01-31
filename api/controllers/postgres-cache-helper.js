@@ -4,7 +4,6 @@ const { splitMeta } = require(`${global.__common}/controller-dependencies`);
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const { getModelFromHoard } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
 
