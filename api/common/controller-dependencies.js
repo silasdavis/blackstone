@@ -4,7 +4,7 @@ const boom = require('boom');
 
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
@@ -286,7 +286,7 @@ const dependencies = {
     WHERE address = ANY ($1)
     ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
     try {
-      appPool.query({
+      app_db_pool.query({
         text,
         values: [users.map(user => user.address)],
       }, (err, res) => {
@@ -312,7 +312,7 @@ const dependencies = {
 
   getNamesOfOrganizations: async (organizations) => {
     try {
-      const { rows } = await appPool.query({
+      const { rows } = await app_db_pool.query({
         text: 'SELECT DISTINCT address, name FROM organizations WHERE address = ANY ($1)',
         values: [organizations.map(({ address }) => address)],
       });

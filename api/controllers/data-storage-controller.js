@@ -2,7 +2,7 @@ const logger = require(`${global.__common}/monax-logger`);
 const contracts = require('../controllers/contracts-controller');
 const CONTRACT_ACTIVE_AGREEMENT = global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT;
 const { PARAMETER_TYPES: PARAM_TYPE, DATA_TYPES } = global.__monax_constants;
-const { chainPool } = require(`${global.__common}/postgres-db`);
+const { chain_db_pool } = require(`${global.__common}/postgres-db`);
 const log = logger.getLogger('agreements.data-storage');
 
 /* **********************************************************
@@ -320,7 +320,7 @@ const getAgreementValidParameters = agreementAddr => new Promise((resolve, rejec
   from AGREEMENTS ag
   join ARCHETYPE_PARAMETERS ap on ag.archetype_address = ap.archetype_address
   where ag.agreement_address = $1;`;
-  chainPool.query(queryStr, [agreementAddr], (err, data) => {
+  chain_db_pool.query(queryStr, [agreementAddr], (err, data) => {
     if (err) return reject(err);
     return resolve(data.rows.map(_field => Object.assign(_field, { name: _field.parameter_key })));
   });
@@ -330,7 +330,7 @@ const getArchetypeValidParameters = archetypeAddr => new Promise((resolve, rejec
   const queryStr = `select ap.parameter_name AS parameter_key, ap.parameter_type AS "parameterType"
   from ARCHETYPE_PARAMETERS ap
   where ap.archetype_address = $1;`;
-  chainPool.query(queryStr, [archetypeAddr], (err, data) => {
+  chain_db_pool.query(queryStr, [archetypeAddr], (err, data) => {
     if (err) return reject(err);
     return resolve(data.rows.map(_field => Object.assign(_field, { name: _field.parameter_key })));
   });

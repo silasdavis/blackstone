@@ -12,7 +12,6 @@ const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests');
-const { appPool, chainPool } = require(__common + '/postgres-db');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);

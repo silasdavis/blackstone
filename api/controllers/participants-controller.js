@@ -18,7 +18,7 @@ const {
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 
@@ -105,7 +105,7 @@ const createOrganization = asyncMiddleware(async (req, res) => {
   }
   try {
     const address = await contracts.createOrganization(org);
-    await appPool.query({
+    await app_db_pool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
@@ -232,7 +232,7 @@ const registerUser = async (userData) => {
   let userId;
   let existingEmail;
   let isExternalUser; // indicates user already exists as "external user"
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
@@ -314,6 +314,7 @@ const registerUser = async (userData) => {
       text: 'INSERT INTO user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);',
       values: [userId, hash.digest('hex')],
     });
+    log.info(`Saved activation code ${activationCode} for user at address ${address}`);
   } catch (err) {
     client.release();
     throw boom.badImplementation(`Failed to save user activation code: ${err.stack}`);
@@ -355,18 +356,24 @@ const registrationHandler = asyncMiddleware(async ({ body }, res) => {
 
 const activateUser = asyncMiddleware(async (req, res) => {
   const hash = crypto.createHash('sha256');
+  log.info(`Activation request received with code: ${req.params.activationCode}`);
   hash.update(req.params.activationCode);
   const codeHex = hash.digest('hex');
   const rows = await sqlCache.getUserByActivationCode(codeHex);
   if (!rows.length) {
     throw boom.badRequest('Activation code does not match any user account');
   }
+  let redirectHost = process.env.WEBAPP_URL;
+  if (!String(redirectHost).startsWith('http')) {
+    redirectHost = process.env.MONAX_ENV === 'local' ? `http://${redirectHost}` : `https://${redirectHost}`;
+  }
   try {
     await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
-    res.redirect(`${process.env.WEBAPP_URL}/?activated=true`);
+    log.info(`Successfully activated user at ${rows[0].address}`);
+    res.redirect(`${redirectHost}/?activated=true`);
   } catch (err) {
     log.error(`Failed to activate user account at ${rows[0].address}: ${err}`);
-    res.redirect(`${process.env.WEBAPP_URL}/help`);
+    res.redirect(`${redirectHost}/help`);
   }
 });
 
@@ -396,7 +403,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
   });
   user.organizations = await getNamesOfOrganizations(Object.values(organizations));
   try {
-    const { rows } = await appPool.query({
+    const { rows } = await app_db_pool.query({
       text: 'SELECT username AS id, email, created_at, first_name, last_name, country, region, is_producer, onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
@@ -416,7 +423,7 @@ const editProfile = asyncMiddleware(async (req, res) => {
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
   let client;
   try {
-    client = await appPool.connect();
+    client = await app_db_pool.connect();
     await client.query('BEGIN');
     if (req.body.newPassword) {
       const { rows } = await client.query({

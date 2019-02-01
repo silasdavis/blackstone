@@ -7,7 +7,7 @@ const boom = require('boom');
 const { asyncMiddleware } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.auth');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 
 const login = (req, res, next) => {
   if ((!req.body.username && !req.body.email) || !req.body.password) {
@@ -50,7 +50,7 @@ const logout = (req, res) => {
 };
 
 const createRecoveryCode = asyncMiddleware(async (req, res) => {
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query({
@@ -106,7 +106,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
 const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
-  const { rows } = await appPool.query({
+  const { rows } = await app_db_pool.query({
     text:
       "SELECT * FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
     values: [hash.digest('hex')],
@@ -119,7 +119,7 @@ const validateRecoveryCode = asyncMiddleware(async (req, res) => {
 });
 
 const resetPassword = (req, res, next) => (async () => {
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
     codeHash.update(req.params.recoveryCode);

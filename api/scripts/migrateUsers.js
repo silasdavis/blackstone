@@ -27,22 +27,18 @@ global.__monax_constants = require(path.join(__common, 'monax-constants'));
     if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
     if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
     if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
-    if (process.env.NODE_ENV === 'production') {
-      _.set(
-        settings,
-        'monax.pg.database_url',
-        'postgres://' +
-                    process.env.POSTGRES_DB_USER +
-                    ':' +
-                    process.env.POSTGRES_DB_PASSWORD +
-                    '@' +
-                    process.env.POSTGRES_DB_HOST +
-                    ':' +
-                    process.env.POSTGRES_DB_PORT +
-                    '/' +
-                    process.env.POSTGRES_DB_DATABASE
-      )
-    }
+    _.set(
+      settings,
+      'db.app_db_url',
+      `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`,
+    );
+    _.set(settings, 'db.app_db_schema', process.env.POSTGRES_DB_SCHEMA);
+    _.set(
+      settings,
+      'db.chain_db_url',
+      `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`,
+    );
+    _.set(settings, 'db.chain_db_schema', process.env.POSTGRES_DB_SCHEMA_VENT);
     return settings
   })()
 
@@ -51,14 +47,14 @@ global.__monax_constants = require(path.join(__common, 'monax-constants'));
   const logger = require(__common + '/monax-logger')
   const log = logger.getLogger('monax')
 
-  const { appPool, chainPool } = require(__common + '/postgres-db');
+  const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');
   log.info('Postgres DB pools created.')
 
   const contracts = require(__controllers + '/contracts-controller')
   let client
 
   try {
-    client = await appPool.connect()
+    client = await app_db_pool.connect()
     await client.query('BEGIN')
 
     // Check if 'users' table exists; exit if it doesn't
