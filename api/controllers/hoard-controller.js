@@ -15,7 +15,7 @@ const createHoard = (req, res, next) => {
 
   const plaintextIn = {
     data: addMeta(meta, req.files[0].buffer),
-    salt: req.query.salt ? Buffer.from(req.query.salt) : Buffer.from(process.env.HOARD_SALT),
+    salt: req.body.salt ? Buffer.from(req.body.salt) : Buffer.from(process.env.HOARD_SALT),
   };
 
   hoard

@@ -419,7 +419,6 @@ const createAgreement = asyncMiddleware(async (req, res) => {
 
   const agreementAddress = await contracts.createAgreement(agreement);
   await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
-  await contracts.updateAgreementEventLog(agreementAddress, JSON.stringify(''));
   await setAgreementParameters(agreementAddress, req.body.archetype, parameters);
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters
