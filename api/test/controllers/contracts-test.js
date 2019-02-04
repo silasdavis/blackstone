@@ -50,7 +50,7 @@ global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_B
 global.__monax_constants = require(path.join(__common, 'monax-constants'));
 const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
-const { chainPool } = require(`${global.__common}/postgres-db`);
+const { chain_db_pool } = require(`${global.__common}/postgres-db`);
 
 before(function (done) {
   this.timeout(99999999)
@@ -143,13 +143,10 @@ describe('CONTRACTS', () => {
     active: true,
     governingArchetypes: []
   }
-
   const agreement = {
     name: 'Agreement 1',
     isPrivate: false,
     values: [],
-    hoardAddress: 'hoardAddress',
-    hoardSecret: 'hoardSecret',
     governingAgreements: []
   }
 
@@ -164,7 +161,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should create a process model', async () => {
-    let res = await contracts.createProcessModel(model.id, model.name, model.version, arch.author, false, 'hoardAddress', 'hoardSecret')
+    let res = await contracts.createProcessModel(model.id, model.name, model.version, arch.author, false, JSON.stringify({ address: '', secretKey: '' }));
     res.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     pmAddress = res
   }).timeout(10000)
@@ -332,7 +329,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    chainPool.query('select * from process_models;', [], (err, { rows }) => {
+    chain_db_pool.query('select * from process_models;', [], (err, { rows }) => {
       expect(rows.length).to.be.greaterThan(0)
       let model = rows.filter(item => {
         return item.model_address === pmAddress
