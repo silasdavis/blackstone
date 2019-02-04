@@ -599,7 +599,7 @@ describe(':: External Users ::', () => {
     ],
     documents: [{
       name: 'doc1.md',
-      hoardAddress: '0x0',
+      address: '0x0',
       secretKey: '0x0',
     }],
     jurisdictions: [],
@@ -662,7 +662,7 @@ describe(':: External Users ::', () => {
     // CREATE ARCHETYPE
     setTimeout(async () => {
       try {
-        archetype.documents[0].hoardAddress = hoardRef.address;
+        archetype.documents[0].address = hoardRef.address;
         archetype.documents[0].secretKey = hoardRef.secretKey;
         Object.assign(archetype, await api.createArchetype(archetype, registeredUser.token));
         expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
