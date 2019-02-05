@@ -192,8 +192,8 @@ const load = () => new Promise((resolve, reject) => {
 }).then(() => new Promise(async (resolve, reject) => {
   // Lastly, ensure Ecosystem setup
   // Resolve the Ecosystem address for this ContractsManager
-  if (global.__settings.monax.ecosystem) {
-    const ecosystemName = global.__settings.monax.ecosystem;
+  if (global.__settings.identity_provider) {
+    const ecosystemName = global.__settings.identity_provider;
     log.info(`Validating if Ecosystem ${ecosystemName} is in NameReg`);
     try {
       appManager.ecosystemAddress = await getFromNameRegistry(ecosystemName);
