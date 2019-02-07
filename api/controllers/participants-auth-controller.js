@@ -17,7 +17,8 @@ const login = (req, res, next) => {
   return passport.authenticate(strategy, { session: false }, (err, user, info) => {
     if (err) return next(boom.badImplementation(`Failed to login user ${req.body.username || req.body.email}: ${err}`));
     if (!user || !user.address) {
-      return next(boom.unauthorized(info.message));
+      log.error(info ? info.message || '' : '');
+      return next(boom.unauthorized('Failed to login - invalid credentials'));
     }
     const userData = {
       address: user.address,

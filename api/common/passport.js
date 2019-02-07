@@ -78,7 +78,7 @@ module.exports = (passport) => {
         values: [usernameOrEmail],
       });
       if (!rows[0]) {
-        return done(null, false, { message: 'Invalid login credentials' });
+        return done(null, false, { message: `Invalid login credentials - no user found in customers.users with id [ ${usernameOrEmail} ]` });
       }
       if (!rows[0].activated) {
         return done(null, false, { message: 'User account not yet activated' });
@@ -95,7 +95,7 @@ module.exports = (passport) => {
       const hashedId = getSHA256Hash(username);
       const { address: addressFromChain } = await contracts.getUserById(hashedId);
       const data = (await sqlCache.getUsers({ user_account_address: addressFromChain }))[0];
-      if (!data) return done(null, false, { message: 'Invalid login credentials' });
+      if (!data) return done(null, false, { message: `Invalid login credentials - no user found in data.user_accounts with address ${addressFromChain}` });
       const isPassword = await bcrypt.compare(password, pwDigest);
       if (isPassword) {
         if (addressFromChain === addressFromPg && data.address === addressFromChain) {
@@ -117,10 +117,10 @@ module.exports = (passport) => {
         }
         return done(null, false, { message: 'Failed to login - User account address mismatch' });
       }
-      return done(null, false, { message: 'Invalid login credentials' });
+      return done(null, false, { message: `Invalid login credentials - password mismatch for user with id ${usernameOrEmail} and address ${addressFromChain}` });
     } catch (err) {
       if (err.output && (err.output.statusCode === 401 || err.output.statusCode === 404)) {
-        return done(null, false, { message: 'Invalid login credentials' });
+        return done(null, false, { message: `Invalid login credentials - Error ${JSON.stringify(err)}` });
       }
       return done(boom.badImplementation(err));
     }
