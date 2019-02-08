@@ -119,7 +119,7 @@ const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   throw boom.badRequest('Valid recovery code not found.');
 });
 
-const resetPassword = (req, res, next) => (async () => {
+const resetPassword = asyncMiddleware(async (req, res) => {
   const client = await app_db_pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
@@ -130,26 +130,28 @@ const resetPassword = (req, res, next) => (async () => {
       values: [codeHash.digest('hex')],
     });
     if (rows[0]) {
+      log.info(`Receiving password reset request from user id ${rows[0].user_id}`);
       const salt = await bcrypt.genSalt(10);
       const passwordDigest = await bcrypt.hash(req.body.password, salt);
-      await client.query({
-        text: 'DELETE FROM password_change_requests WHERE id = $1',
-        values: [rows[0].user_id],
-      });
       await client.query({
         text: 'UPDATE users SET password_digest = $1 WHERE id = $2',
         values: [passwordDigest, rows[0].user_id],
       });
-      log.debug('Password reset successful');
-      await client.query('COMMIT');
+      await client.query({
+        text: 'DELETE FROM password_change_requests WHERE user_id = $1',
+        values: [rows[0].user_id],
+      });
+      client.release();
+      log.info(`Password successfully updated for user id ${rows[0].user_id} and recovery code deleted`);
       return res.status(200).send();
     }
     throw boom.badRequest('Valid recovery code not found.');
   } catch (err) {
-    if (err.isBoom) return next(boom);
-    return next(boom.badImplementation(err));
+    client.release();
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to fulfill password reset request: ${JSON.stringify(err)}`);
   }
-})().catch(e => next(boom.badImplementation(e)));
+});
 
 module.exports = {
   login,
