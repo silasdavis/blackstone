@@ -1,6 +1,7 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-management/Upgradeable.sol";
+import "commons-management/ObjectFactory.sol";
 
 import "bpm-model/ProcessModel.sol";
 import "bpm-model/BpmModel.sol";
@@ -9,29 +10,16 @@ import "bpm-model/BpmModel.sol";
  * @title ProcessModelRepository Interface
  * @dev Manages registered ProcessModel instances with their past and active versions.
  */
-contract ProcessModelRepository is Upgradeable {
+contract ProcessModelRepository is ObjectFactory, Upgradeable {
 	
-	event LogProcessModelCreation(
-		bytes32 indexed eventId,
-		address model_address,
-		bytes32 id,
-		string name,
-		uint version_major,
-		uint version_minor,
-		uint version_patch,
-		address author,
-		bool is_private,
-		bool active,
-		string modelFileReference
-	);
-
 	event LogProcessModelActivation(
 		bytes32 indexed eventId,
-		address model_address,
+		address modelAddress,
 		bool active
 	);
 
-	bytes32 public constant EVENT_ID_PROCESS_MODELS = "AN://process-models";
+    string public constant OBJECT_CLASS_PROCESS_MODEL = "bpm.model.ProcessModel";
+    string public constant OBJECT_CLASS_PROCESS_DEFINITION = "bpm.model.ProcessDefinition";
 
 	/**
 	 * @dev Factory function to instantiate a ProcessModel. The model is automatically added to this repository.
@@ -45,12 +33,13 @@ contract ProcessModelRepository is Upgradeable {
 	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress);
 
 	/**
-	 * @dev Adds the given ProcessModel to this repository.
-	 * @param _model the ProcessModel to add
-	 * @return an error indicating success or failure
+	 * @dev Creates a new process definition with the given parameters in the provided ProcessModel.
+	 * @param _processModelAddress the ProcessModel in which to create the ProcessDefinition
+	 * @param _processDefinitionId the process definition ID
+	 * @return newAddress - the address of the new ProcessDefinition when successful
 	 */
-	function addModel(ProcessModel _model) public returns (uint error);
-	
+	function createProcessDefinition(address _processModelAddress, bytes32 _processDefinitionId) external returns (address newAddress);
+
 	/**
 	 * @dev Activates the given ProcessModel and deactivates any previously activated model version of the same ID
 	 * @param _model the ProcessModel to activate

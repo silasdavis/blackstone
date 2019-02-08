@@ -1,22 +1,32 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-auth/Ecosystem.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
+import "commons-management/AbstractVersionedArtifact.sol";
+import "commons-management/AbstractDelegateTarget.sol";
 
 /**
  * @title DefaultEcosystem
  * @dev The default Ecosystem implementation
  */
-contract DefaultEcosystem is Ecosystem {
+contract DefaultEcosystem is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Ecosystem {
 
     using MappingsLib for Mappings.Bytes32AddressMap;
     
     mapping (address => bool) publicKeys;
     Mappings.Bytes32AddressMap userAccounts;
 
-    constructor() public {
+	/**
+	 * @dev Initializes this DefaultOrganization with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+     * Sets the msg.sender as the owner of the Ecosystem
+     */
+    function initialize()
+        external
+        pre_post_initialize
+    {
         owner = msg.sender;
     }
 
@@ -40,6 +50,8 @@ contract DefaultEcosystem is Ecosystem {
     {
         return publicKeys[_address];
     }
+
+    // TODO protect function with modifier for owner or public key only
 
     function addUserAccount(bytes32 _id, address _userAccount) 
         external

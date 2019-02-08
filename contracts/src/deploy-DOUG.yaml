@@ -55,41 +55,33 @@ jobs:
 #####
 # Main Contract (DOUG) + DougProxy
 #####
-- name: ContractManagerDb
+
+# Implementation
+- name: DefaultArtifactsRegistry
   deploy:
-    contract: ContractManagerDb.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib
+    contract: DefaultArtifactsRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib
 
-- name: ContractManager
+# Proxy contract
+- name: ArtifactsRegistry
   deploy:
-    contract: DefaultContractManager.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    contract: OwnedDelegateUnstructuredProxy.bin
+    libraries: ErrorsLib:$ErrorsLib
+    data: [$DefaultArtifactsRegistry]
 
-- name: ChangeContractManagerDbOwnership
+- name: InitializeArtifactsRegistryThroughProxy
   call:
-    destination: $ContractManagerDb
-    bin: ContractManagerDb
-    function: transferSystemOwnership
-    data: [$ContractManager]
+    destination: $ArtifactsRegistry
+    bin: DefaultArtifactsRegistry
+    function: initialize
 
-- name: SetContractManagerDb
-  call:
-    destination: $ContractManager
-    bin: DefaultContractManager
-    function: acceptDatabase
-    data: [$ContractManagerDb]
-
-- name: AssertContractManagerDb
-  assert:
-    key: $SetContractManagerDb
-    relation: eq
-    val: "true"
-
+# Implementation
 - name: DefaultDoug
   deploy:
     contract: DefaultDoug.bin
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
+# Proxy contract
 - name: DOUG
   deploy:
     contract: DougProxy.bin
@@ -102,38 +94,31 @@ jobs:
     function: setProxiedDoug
     data: [$DefaultDoug]
 
-- name: ChangeContractManagerSystemOwnership
+- name: ChangeArtifactsRegistrySystemOwnerShip
   call:
-    destination: $ContractManager
-    bin: SystemOwned
+    destination: $ArtifactsRegistry
+    bin: DefaultArtifactsRegistry
     function: transferSystemOwnership
     data: [$DOUG]
 
-- name: ChangeContractManagerUpgradeOwnership
-  call:
-    destination: $ContractManager
-    bin: DefaultContractManager
-    function: transferUpgradeOwnership
-    data: [$DOUG]
-
-- name: SetContractManagerInProxy
+- name: SetArtifactsRegistryInDoug
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: setContractManager
-    data: [$ContractManager]
+    function: setArtifactsRegistry
+    data: [$ArtifactsRegistry]
 
-- name: GetContractManagerFromProxy
+- name: GetArtifactsRegistryFromProxy
   query-contract:
     destination: $DOUG
     bin: DefaultDoug
-    function: getContractManager
+    function: getArtifactsRegistry
 
-- name: AssertContractManagerInProxy
+- name: AssertArtifactsRegistryInProxy
   assert:
-    key: $GetContractManagerFromProxy
+    key: $GetArtifactsRegistryFromProxy
     relation: eq
-    val: $ContractManager
+    val: $ArtifactsRegistry
 
 # Here we add the proxy contract to the name registry
 - name: addDougToNameRegistry
@@ -147,61 +132,61 @@ jobs:
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [ErrorsLib, $ErrorsLib]
 
 - name: registerTypeUtilsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [TypeUtils, $TypeUtilsImpl]
 
 - name: registerArrayUtilsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [ArrayUtils, $ArrayUtilsImpl]
 
 - name: registerMappingsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [MappingsLib, $MappingsLib]
 
 - name: registerDataStorageUtilsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [DataStorageUtils, $DataStorageUtils]
 
 - name: registerERC165UtilsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [ERC165Utils, $ERC165Utils]
 
 - name: registerBpmModelLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [BpmModelLib, $BpmModelLib]
 
 - name: registerBpmRuntimeLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [BpmRuntimeLib, $BpmRuntimeLib]
 
 - name: registerAgreementsApiLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
-    function: deployContract
+    function: register
     data: [AgreementsAPI, $AgreementsAPI]

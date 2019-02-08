@@ -1,29 +1,40 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-utils/DataTypes.sol";
 import "commons-utils/TypeUtilsAPI.sol";
-import "commons-auth/ParticipantsManager.sol";
 import "commons-auth/Organization.sol";
 import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
 import "commons-auth/DefaultOrganization.sol";
-import "commons-management/DOUG.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
+import "commons-management/ArtifactsFinderEnabled.sol";
+import "commons-management/ArtifactsRegistry.sol";
+import "commons-management/DefaultArtifactsRegistry.sol";
 import "bpm-model/BpmModel.sol";
 import "bpm-model/ProcessModelRepository.sol";
+import "bpm-model/ProcessModelRepositoryDb.sol";
+import "bpm-model/DefaultProcessModelRepository.sol";
 import "bpm-model/ProcessModel.sol";
 import "bpm-model/ProcessDefinition.sol";
+import "bpm-model/ProcessDefinition.sol";
+import "bpm-model/DefaultProcessDefinition.sol";
 import "bpm-runtime/BpmRuntime.sol";
 import "bpm-runtime/BpmService.sol";
+import "bpm-runtime/BpmServiceDb.sol";
+import "bpm-runtime/DefaultBpmService.sol";
 import "bpm-runtime/ProcessInstance.sol"; 
 import "bpm-runtime/DefaultProcessInstance.sol"; 
 import "bpm-runtime/ApplicationRegistry.sol";
+import "bpm-runtime/ApplicationRegistryDb.sol";
+import "bpm-runtime/DefaultApplicationRegistry.sol";
 
 import "agreements/ActiveAgreementRegistry.sol";
 import "agreements/DefaultActiveAgreementRegistry.sol";
 import "agreements/ArchetypeRegistry.sol";
+import "agreements/ArchetypeRegistryDb.sol";
+import "agreements/DefaultArchetypeRegistry.sol";
 import "agreements/AgreementSignatureCheck.sol";
 
 contract ActiveAgreementWorkflowTest {
@@ -68,25 +79,81 @@ contract ActiveAgreementWorkflowTest {
 	address[] governingArchetypes;
 	address[] governingAgreements;
 
-	// DOUG instance and dependencies retrieved from DOUG
-	DOUG doug;
 	BpmService bpmService;
 	ArchetypeRegistry archetypeRegistry;
-	ParticipantsManager participantsManager;
 	ProcessModelRepository processModelRepository;
 	ApplicationRegistry applicationRegistry;
 
-	// re-usable entities as storage variables to avoid "stack too deep" problems in tests
-	TestRegistry agreementRegistry = new TestRegistry();
-	ActiveAgreementRegistryDb registryDb = new ActiveAgreementRegistryDb();
+	DefaultActiveAgreement defaultAgreementImpl = new DefaultActiveAgreement();
+	DefaultArchetype defaultArchetypeImpl = new DefaultArchetype();
+	ProcessModel defaultProcessModelImpl = new DefaultProcessModel();
+	ProcessDefinition defaultProcessDefinitionImpl = new DefaultProcessDefinition();
+	ProcessInstance defaultProcessInstanceImpl = new DefaultProcessInstance();
+	ArtifactsRegistry artifactsRegistry;
+	string constant serviceIdBpmService = "agreements-network/services/BpmService";
+	string constant serviceIdArchetypeRegistry = "agreements-network/services/ArchetypeRegistry";
+	string constant serviceIdModelRepository = "agreements-network/services/ProcessModelRepository";
+	string constant serviceIdApplicationRegistry = "agreements-network/services/ApplicationRegistry";
 
-	function setDoug(DOUG _doug) external {
-		doug = _doug;
-		bpmService = BpmService(doug.lookupContract("BpmService"));
-		archetypeRegistry = ArchetypeRegistry(doug.lookupContract("ArchetypeRegistry"));
-		participantsManager = ParticipantsManager(doug.lookupContract("ParticipantsManager"));
-		processModelRepository = ProcessModelRepository(doug.lookupContract("ProcessModelRepository"));
-		applicationRegistry = ApplicationRegistry(doug.lookupContract("ApplicationRegistry"));
+	// re-usable entities as storage variables to avoid "stack too deep" problems in tests
+	TestRegistry agreementRegistry;
+
+	/**
+	 * @dev Constructor for the test creates the dependencies that the ActiveAgreementRegistry needs
+	 */
+	constructor () public {
+		// BpmService
+		BpmServiceDb bpmServiceDb = new BpmServiceDb();
+		bpmService = new DefaultBpmService(serviceIdModelRepository, serviceIdApplicationRegistry);
+		bpmServiceDb.transferSystemOwnership(bpmService);
+		require(AbstractDbUpgradeable(bpmService).acceptDatabase(bpmServiceDb), "BpmServiceDb not set");
+		// ArchetypeRegistry
+		ArchetypeRegistryDb archRegistryDb = new ArchetypeRegistryDb();
+		archetypeRegistry = new DefaultArchetypeRegistry();
+		archRegistryDb.transferSystemOwnership(archetypeRegistry);
+		require(AbstractDbUpgradeable(archetypeRegistry).acceptDatabase(archRegistryDb), "ArchetypeRegistryDb not set");
+		// ProcessModelRegistry
+		ProcessModelRepositoryDb modelDb = new ProcessModelRepositoryDb();
+		processModelRepository = new DefaultProcessModelRepository();
+		modelDb.transferSystemOwnership(processModelRepository);
+		require(AbstractDbUpgradeable(processModelRepository).acceptDatabase(modelDb), "ProcessModelRepositoryDb not set");
+		// ApplicatonRegistry
+		ApplicationRegistryDb appDb = new ApplicationRegistryDb();
+		applicationRegistry = new DefaultApplicationRegistry();
+		appDb.transferSystemOwnership(applicationRegistry);
+		require(AbstractDbUpgradeable(applicationRegistry).acceptDatabase(appDb), "ApplicationRegistryDb not set");
+		// ArtifactsRegistry
+		artifactsRegistry = new DefaultArtifactsRegistry();
+		artifactsRegistry.registerArtifact(serviceIdBpmService, address(bpmService), bpmService.getArtifactVersion(), true);
+		artifactsRegistry.registerArtifact(serviceIdArchetypeRegistry, address(archetypeRegistry), archetypeRegistry.getArtifactVersion(), true);
+		artifactsRegistry.registerArtifact(serviceIdModelRepository, address(processModelRepository), processModelRepository.getArtifactVersion(), true);
+		artifactsRegistry.registerArtifact(serviceIdApplicationRegistry, address(applicationRegistry), applicationRegistry.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(archetypeRegistry.OBJECT_CLASS_ARCHETYPE(), address(defaultArchetypeImpl), defaultArchetypeImpl.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_MODEL(), address(defaultProcessModelImpl), defaultProcessModelImpl.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(bpmService.OBJECT_CLASS_PROCESS_INSTANCE(), address(defaultProcessInstanceImpl), defaultProcessInstanceImpl.getArtifactVersion(), true);
+		ArtifactsFinderEnabled(processModelRepository).setArtifactsFinder(artifactsRegistry);
+		ArtifactsFinderEnabled(archetypeRegistry).setArtifactsFinder(artifactsRegistry);
+		ArtifactsFinderEnabled(bpmService).setArtifactsFinder(artifactsRegistry);
+	}
+
+	/**
+	 * @dev Creates and returns a new ActiveAgreementRegistry using an existing ArchetypeRegistry and BpmService.
+	 * This function can be used in the beginning of a test to have a fresh BpmService instance.
+	 */
+	function createNewAgreementRegistry() internal returns (TestRegistry) {
+		TestRegistry newRegistry = new TestRegistry(serviceIdArchetypeRegistry, serviceIdBpmService);
+		ActiveAgreementRegistryDb agreementRegistryDb = new ActiveAgreementRegistryDb();
+		SystemOwned(agreementRegistryDb).transferSystemOwnership(newRegistry);
+		AbstractDbUpgradeable(newRegistry).acceptDatabase(agreementRegistryDb);
+		ArtifactsFinderEnabled(newRegistry).setArtifactsFinder(artifactsRegistry);
+        artifactsRegistry.registerArtifact(newRegistry.OBJECT_CLASS_AGREEMENT(), address(defaultAgreementImpl), defaultAgreementImpl.getArtifactVersion(), true);
+		// check that dependencies are wired correctly
+		require (address(newRegistry.getArchetypeRegistry()) != address(0), "ArchetypeRegistry in new ActiveAgreementRegistry not found");
+		require (address(newRegistry.getArchetypeRegistry()) == address(archetypeRegistry), "ArchetypeRegistry in ActiveAgreementRegistry address mismatch");
+		require (address(newRegistry.getBpmService()) != address(0), "ProcessModelRepository in new BpmService not found");
+		require (address(newRegistry.getBpmService()) == address(bpmService), "ProcessModelRepository in BpmService address mismatch");
+		return newRegistry;
 	}
 
 	/**
@@ -98,8 +165,11 @@ contract ActiveAgreementWorkflowTest {
 		uint error;
 		address addr;
 
+		agreementRegistry = createNewAgreementRegistry();
+
 		// make an agreement with fields of type address and add role qualifiers. Note: archetype is not used, so setting address to 'this'
-		ActiveAgreement agreement = new DefaultActiveAgreement(this, "RoleQualifierAgreement", this, "", false, parties, governingAgreements);
+		ActiveAgreement agreement = new DefaultActiveAgreement();
+		agreement.initialize(this, "RoleQualifierAgreement", this, "", false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender
@@ -115,8 +185,7 @@ contract ActiveAgreementWorkflowTest {
 		pm.addParticipant(participantId1, 0x0, "Buyer", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
 		pm.addParticipant(participantId2, 0x0, "Seller", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
 		// make a ProcessDefinition with activities that use the participants
-		(error, addr) = pm.createProcessDefinition("RoleQualifierProcess");
-		if (addr == 0x0) return "Unable to create process definition";
+		addr = pm.createProcessDefinition("RoleQualifierProcess", artifactsRegistry);
 		ProcessDefinition pd = ProcessDefinition(addr);
 		error = pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, false, EMPTY, EMPTY, EMPTY);
 		error = pd.createActivityDefinition(activityId2, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -127,7 +196,8 @@ contract ActiveAgreementWorkflowTest {
 		if (!valid) return errorMsg.toString();
 
 		// create a PI with agreement
-		ProcessInstance pi = new DefaultProcessInstance(pd, this, EMPTY);
+		ProcessInstance pi = new DefaultProcessInstance();
+		pi.initialize(pd, this, EMPTY);
 		pi.setDataValueAsAddress(agreementRegistry.DATA_ID_AGREEMENT(), address(agreement));
 
 		// function under test
@@ -154,12 +224,7 @@ contract ActiveAgreementWorkflowTest {
 		bool success;
 		bytes32 errorMsg;
 
-		// service / test setup
-		agreementRegistry = new TestRegistry();
-		registryDb = new ActiveAgreementRegistryDb();
-		SystemOwned(registryDb).transferSystemOwnership(agreementRegistry);
-		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
-		agreementRegistry.setBpmService(bpmService);
+		agreementRegistry = createNewAgreementRegistry();
 
 		ProcessModel pm;
 		ProcessDefinition formationPD;
@@ -172,16 +237,14 @@ contract ActiveAgreementWorkflowTest {
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
-		(error, addr) = pm.createProcessDefinition("FormationProcess");
-		if (addr == 0x0) return "Unable to create FormationProcess definition";
+		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for formation process definition";
 		(success, errorMsg) = formationPD.validate();
 		if (!success) return errorMsg.toString();
 		// Execution Process
-		(error, addr) = pm.createProcessDefinition("ExecutionProcess");
-		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
+		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
@@ -245,12 +308,7 @@ contract ActiveAgreementWorkflowTest {
 		ProcessDefinition formationPD;
 		ProcessDefinition executionPD;
 	
-		// service / test setup
-		agreementRegistry = new TestRegistry();
-		registryDb = new ActiveAgreementRegistryDb();
-		SystemOwned(registryDb).transferSystemOwnership(agreementRegistry);
-		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
-		agreementRegistry.setBpmService(bpmService);
+		agreementRegistry = createNewAgreementRegistry();
 
 		TestSignatureCheck signatureCheckApp = new TestSignatureCheck();
 		applicationRegistry.addApplication("AgreementSignatureCheck", BpmModel.ApplicationType.WEB, signatureCheckApp, bytes4(EMPTY), EMPTY);
@@ -259,13 +317,19 @@ contract ActiveAgreementWorkflowTest {
 		// ORGS/USERS
 		//
 		// create additional users via constructor
-		userAccount1 = new DefaultUserAccount(this, address(0));
-		userAccount2 = new DefaultUserAccount(this, address(0));
-		userAccount3 = new DefaultUserAccount(this, address(0));
-		nonPartyAccount = new DefaultUserAccount(this, address(0));
+		userAccount1 = new DefaultUserAccount();
+		userAccount1.initialize(this, address(0));
+		userAccount2 = new DefaultUserAccount();
+		userAccount2.initialize(this, address(0));
+		userAccount3 = new DefaultUserAccount();
+		userAccount3.initialize(this, address(0));
+		nonPartyAccount = new DefaultUserAccount();
+		nonPartyAccount.initialize(this, address(0));
 
-		org1 = new DefaultOrganization(approvers, EMPTY_STRING);
-		org2 = new DefaultOrganization(approvers, EMPTY_STRING);
+		org1 = new DefaultOrganization();
+		org1.initialize(approvers, EMPTY_STRING);
+		org2 = new DefaultOrganization();
+		org2.initialize(approvers, EMPTY_STRING);
 		org1.addUserToDepartment(userAccount2, EMPTY);
 		org2.addDepartment(departmentId1, "Department 1");
 		if (!org2.addUserToDepartment(userAccount3, departmentId1)) return "Failed to add user3 to department1";
@@ -285,8 +349,7 @@ contract ActiveAgreementWorkflowTest {
 		pm = ProcessModel(addr);
 		pm.addParticipant(participantId1, 0x0, DATA_FIELD_AGREEMENT_PARTIES, agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
 		// Formation Process
-		(error, addr) = pm.createProcessDefinition("FormationProcess");
-		if (addr == 0x0) return "Unable to create FormationProcess definition";
+		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, appIdSignatureCheck, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating USER task for formation process definition";
@@ -294,8 +357,7 @@ contract ActiveAgreementWorkflowTest {
 		(success, errorMsg) = formationPD.validate();
 		if (!success) return errorMsg.toString();
 		// Execution Process
-		(error, addr) = pm.createProcessDefinition("ExecutionProcess");
-		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
+		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
@@ -404,15 +466,12 @@ contract ActiveAgreementWorkflowTest {
 		ProcessDefinition executionPD;
 		uint numberOfPIs;
 	
-		// service / test setup
-		agreementRegistry = new TestRegistry();
-		registryDb = new ActiveAgreementRegistryDb();
-		SystemOwned(registryDb).transferSystemOwnership(agreementRegistry);
-		AbstractDbUpgradeable(agreementRegistry).acceptDatabase(registryDb);
-		agreementRegistry.setBpmService(bpmService);
+		agreementRegistry = createNewAgreementRegistry();
 
-		userAccount1 = new DefaultUserAccount(this, address(0));
-		userAccount2 = new DefaultUserAccount(this, address(0));
+		userAccount1 = new DefaultUserAccount();
+		userAccount1.initialize(this, address(0));
+		userAccount2 = new DefaultUserAccount();
+		userAccount2.initialize(this, address(0));
 		delete parties;
 		parties.push(userAccount1);
 		parties.push(userAccount2);
@@ -425,16 +484,14 @@ contract ActiveAgreementWorkflowTest {
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
-		(error, addr) = pm.createProcessDefinition("FormationProcess");
-		if (addr == 0x0) return "Unable to create FormationProcess definition";
+		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for formation process definition";
 		(valid, errorMsg) = formationPD.validate();
 		if (!valid) return errorMsg.toString();
 		// Execution Process
-		(error, addr) = pm.createProcessDefinition("ExecutionProcess");
-		if (addr == 0x0) return "Unable to create ExecutionProcess definition";
+		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating SERVICE task for execution process definition";
@@ -515,6 +572,10 @@ contract ActiveAgreementWorkflowTest {
  */
 contract TestRegistry is DefaultActiveAgreementRegistry {
 
+	constructor (string _serviceIdArchetypeRegistry, string _serviceIdBpmService) public
+		DefaultActiveAgreementRegistry(_serviceIdArchetypeRegistry, _serviceIdBpmService) {
+	}
+
 	function getTrackedFormationProcess(address _agreement) public view returns (address) {
 		return ActiveAgreementRegistryDb(database).getAgreementFormationProcess(_agreement);
 	}
@@ -523,9 +584,6 @@ contract TestRegistry is DefaultActiveAgreementRegistry {
 		return ActiveAgreementRegistryDb(database).getAgreementExecutionProcess(_agreement);
 	}
 
-	function setBpmService(BpmService _bpmService) external {
-		bpmService = _bpmService;
-	}
 }
 
 contract TestSignatureCheck is AgreementSignatureCheck {

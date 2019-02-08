@@ -1,7 +1,7 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
-import "bpm-model/ProcessModelRepository.sol";
 import "commons-management/Upgradeable.sol";
+import "bpm-model/ProcessModelRepository.sol";
 
 import "bpm-runtime/ApplicationRegistry.sol";
 import "bpm-runtime/ProcessInstance.sol";
@@ -11,56 +11,14 @@ import "bpm-runtime/BpmServiceDb.sol";
  * @title BpmService Interface
  * @dev Manages manual tasks, processes, and their data.
  */
-contract BpmService is Upgradeable {
+contract BpmService is ObjectFactory, Upgradeable {
 
-	// Events
-	event UpdateActivities(string name, address key1, bytes32 key2);
-	event UpdateProcesses(string name, address key1);
-	event UpdateProcessData(string name, address key1, bytes32 key2);
-	event UpdateProcessInstanceAddressScopes(string name, address key1, bytes32 key2);
+    string public constant OBJECT_CLASS_PROCESS_INSTANCE = "bpm.runtime.ProcessInstance";
 
-	event LogProcessInstanceCreation(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		address process_definition_address,
-		uint8 state,
-		address started_by
-	);
-
-	event LogProcessInstanceStateUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		uint8 state
-	);
-
-	event LogProcessDataCreation(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		bool bool_value,
-		uint uint_value,
-		int int_value,
-		bytes32 bytes32_value,
-		address address_value,
-		string string_value
-	);
-
-	event LogProcessInstanceAddressScopesUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 addres_scope_key,
-		address key_address,
-		bytes32 key_context,
-		bytes32 fixed_scope,
-		bytes32 data_path,
-		bytes32 data_storage_id,
-		address data_storage
-	);
-	
 	/**
-		* @dev Gets the ProcessModelRepository address for this BpmService
-		* @return the address of the repository
-		*/
+	 * @dev Gets the ProcessModelRepository address for this BpmService
+	 * @return the address of the repository
+	 */
 	function getProcessModelRepository() external view returns (ProcessModelRepository);
 
 	/**
@@ -233,25 +191,5 @@ contract BpmService is Upgradeable {
 	 * @return the BpmServiceDb
 	 */
 	function getBpmServiceDb() external view returns (BpmServiceDb);
-
-	/**
-	 * @dev Fires the UpdateActivities event to update sqlsol with given activity
-	 * @param _piAddress - the address of the process instance to which the activity belongs
-	 * @param _activityId - the bytes32 Id of the activity
-	 */
-	function fireActivityUpdateEvent(address _piAddress, bytes32 _activityId) external;
-
-	/**
-	 * @dev Fires the UpdateProcessData event to update sqlsol with given information
-	 * @param _piAddress - the address of the process instance to which the activity belongs
-	 * @param _dataId - the ID of the data entry
-	 */
-	function fireProcessDataUpdateEvent(address _piAddress, bytes32 _dataId) external;
-
-	/**
-	 * @dev Emits a state change event for the process instance
-	 * @param _processInstance address of process intance
-	 */
-	function emitProcessStateChangeEvent(address _processInstance) external;
 
 }

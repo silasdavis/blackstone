@@ -1,6 +1,7 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-management/AbstractUpgradeable.sol";
+import "commons-management/AbstractVersionedArtifact.sol";
 
 contract UpgradeableTest {
 
@@ -9,7 +10,7 @@ contract UpgradeableTest {
         UpgradeDummy v110 = new UpgradeDummy("b", 12, 1, 1, 0);
         UpgradeDummy v227 = new UpgradeDummy("c", 13, 2, 2, 7);
 
-        if (v110.call(abi.encodeWithSignature("upgrade(address)", address(v100)))) return "Upgrading to a lower version should revert";
+        if (address(v110).call(abi.encodeWithSignature("upgrade(address)", address(v100)))) return "Upgrading to a lower version should revert";
         if (v110.state() != "b" || v110.num() != 12 || v100.state() != "a" || v100.num() != 11) { return "v1.1.0 to v1.0.0 upgrade should not be successful!"; }
         v110.upgrade(v227);
         if (v110.state() != "b" || v110.num() != 12 || v227.state() != "b" || v227.num() != 12) { return "v1.1.0 to v2.2.7 upgrade failed!"; }
@@ -24,7 +25,7 @@ contract UpgradeDummy is AbstractUpgradeable {
     bytes32 public state;
     uint public num;
 
-    constructor(bytes32 _state, uint _num, uint8 maj, uint8 min, uint8 p) Versioned(maj, min, p) public {
+    constructor(bytes32 _state, uint _num, uint8 maj, uint8 min, uint8 p) AbstractVersionedArtifact(maj, min, p) public {
         state = _state;
         num = _num;
     }

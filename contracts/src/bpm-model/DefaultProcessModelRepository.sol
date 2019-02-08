@@ -1,10 +1,13 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/ArrayUtilsAPI.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
+import "commons-management/AbstractObjectFactory.sol";
+import "commons-management/ArtifactsFinderEnabled.sol";
+import "commons-management/ObjectProxy.sol";
 
 import "bpm-model/ProcessModel.sol";
 import "bpm-model/BpmModel.sol";
@@ -16,7 +19,7 @@ import "bpm-model/ProcessModelRepositoryDb.sol";
  * @title DefaultProcessModelRepository
  * @dev Default implementation of the ProcessModelRepository interface
  */
-contract DefaultProcessModelRepository is Versioned(1,1,0), ProcessModelRepository, AbstractDbUpgradeable {
+contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ProcessModelRepository {
 	
 	/**
 	 * @dev Modifier to only allow calls to this ProcessModelRepository from a registered ProcessModel
@@ -36,39 +39,29 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), ProcessModelReposito
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
 	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress) {
-		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _modelFileReference);
-		error = addModel(pm);
-		if (error != BaseErrors.NO_ERROR()) //TODO this should revert the model creation if it could not be added
-			return (error, 0x0);
-		modelAddress = address(pm);
+		modelAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_PROCESS_MODEL);
+		ProcessModel(modelAddress).initialize(_id, _name, _version, _author, _isPrivate, _modelFileReference);
+		error = ProcessModelRepositoryDb(database).addModel(_id, _version, modelAddress);
+		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
+			ErrorsLib.INVALID_STATE(), "DefaultProcessModelRepository.createProcessModel", "Unable to add the new ProcessModel to the DB contract");
+		// if there is no active model for this ID namespace, yet, then this one becomes the active one by default
+		if (!ProcessModelRepositoryDb(database).modelIsActive(_id)) {
+			ProcessModelRepositoryDb(database).registerActiveModel(_id, modelAddress);
+		}
 	}
 
 	/**
-	 * @dev Adds the given ProcessModel to this repository.
-	 * @param _model the ProcessModel to add
-	 * @return BaseErrors.RESOURCE_ALREADY_EXISTS() if a model with the same ID and version already exists
-	 * @return BaseErrors.NO_ERROR() when added successfully
+	 * @dev Creates a new process definition with the given parameters in the provided ProcessModel.
+	 * @param _processModelAddress the ProcessModel in which to create the ProcessDefinition
+	 * @param _processDefinitionId the process definition ID
+	 * @return newAddress - the address of the new ProcessDefinition when successful
 	 */
-	function addModel(ProcessModel _model) public returns (uint error) {
-		error = ProcessModelRepositoryDb(database).addModel(_model.getId(), _model.getVersion(), _model);
-		if ( error != BaseErrors.NO_ERROR()) return;
-		emit LogProcessModelCreation(
-			EVENT_ID_PROCESS_MODELS,
-			address(_model),
-			_model.getId(),
-			_model.getName(),
-			_model.major(),
-			_model.minor(),
-			_model.patch(),
-			_model.getAuthor(),
-			_model.isPrivate(),
-			ProcessModelRepositoryDb(database).getActiveModel(_model.getId()) == address(_model),
-			_model.getModelFileReference()
-		);
-		// if there is no active model for this ID namespace, yet, then this one becomes the active one by default
-		if (!ProcessModelRepositoryDb(database).modelIsActive(_model.getId())) {
-			ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), _model);
-		}
+	function createProcessDefinition(address _processModelAddress, bytes32 _processDefinitionId) external returns (address newAddress) {
+		ErrorsLib.revertIf(_processModelAddress == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The ProcessModel address must not be empty");
+		ErrorsLib.revertIf(_processDefinitionId == "",
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The process definition ID address must not be empty");
+		newAddress = ProcessModel(_processModelAddress).createProcessDefinition(_processDefinitionId, artifactsFinder);
 	}
 
 	/**
@@ -89,10 +82,10 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), ProcessModelReposito
 		// re-use the addr field to lookup a previously activated model with the same ID
 		addr = ProcessModelRepositoryDb(database).getActiveModel(_model.getId());
 		ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), _model);
-		emit LogProcessModelActivation(EVENT_ID_PROCESS_MODELS, address(_model), true);
+		emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(_model), true);
 		if (addr != 0x0 && addr != address(_model)) {
 			// previously activated model detected that should be updated
-			emit LogProcessModelActivation(EVENT_ID_PROCESS_MODELS, address(addr), false);
+			emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(addr), false);
 		}
 		return BaseErrors.NO_ERROR();
 	}
@@ -151,9 +144,9 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), ProcessModelReposito
 		ProcessModel m = DefaultProcessModel(_model);
 		id = m.getId();
 		name = m.getName();
-		versionMajor = m.major();
-		versionMinor = m.minor();
-		versionPatch = m.patch();
+		versionMajor = m.getVersionMajor();
+		versionMinor = m.getVersionMinor();
+		versionPatch = m.getVersionPatch();
 		author = m.getAuthor();
 		isPrivate = m.isPrivate();
 		active = ProcessModelRepositoryDb(database).getActiveModel(m.getId()) == _model;

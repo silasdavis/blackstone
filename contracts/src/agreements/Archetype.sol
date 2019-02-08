@@ -1,13 +1,106 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/Named.sol";
 import "commons-utils/DataTypes.sol";
+import "commons-management/VersionedArtifact.sol";
+
 
 /**
  * @title Archetype Interface
  * @dev API for interaction with an agreement archetype
  */
-contract Archetype is Named {
+contract Archetype is VersionedArtifact, Named {
+
+	event LogArchetypeCreation(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		string name,
+		string description,
+		uint32 price,
+		address author,
+		bool active,
+		bool isPrivate,
+		address successor,
+		address formationProcessDefinition,
+		address executionProcessDefinition
+	);
+
+	event LogGoverningArchetypeUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		address governingArchetypeAddress,
+		string governingArchetypeName
+	);
+
+	event LogArchetypeSuccessorUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		address successor
+	);
+
+	event LogArchetypePriceUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		uint32 price
+	);
+
+	event LogArchetypeActivation(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bool active
+	);
+
+	event LogArchetypeParameterUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bytes32 parameterName,
+		uint8 parameterType,
+		uint position
+	);
+
+	event LogArchetypeDocumentUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		string documentKey,
+		string documentReference
+	);
+
+	event LogArchetypeJurisdictionUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bytes2 country,
+		bytes32 region
+	);
+
+	bytes32 public constant EVENT_ID_ARCHETYPES = "AN://archetypes";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETERS = "AN://archetypes/parameters";
+	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENTS = "AN://archetypes/documents";
+	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetypes/jurisdictions";
+	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
+
+	/**
+	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+	 * @param _name name
+	 * @param _author author
+	 * @param _description description
+	 * @param _isPrivate determines if this archetype's documents are encrypted
+	 * @param _active determines if this archetype is active
+	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
+	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
+	 * @param _governingArchetypes array of governing archetype addresses
+	 */
+	function initialize(
+		uint32 _price,
+		bool _isPrivate,
+		bool _active,
+		string _name,
+		address _author,
+		string _description,
+		address _formationProcess,
+		address _executionProcess,
+		address[] _governingArchetypes)
+		external;
 
 	/**
 	 * @dev Adds the document specified by the external reference to the archetype under the given name
@@ -77,10 +170,9 @@ contract Archetype is Named {
 	/**
 	 * @dev Gets parameter at index
 	 * @param _index index
-	 * @return error error TBD
 	 * @return customField parameter
 	 */
-	function getParameterAtIndex(uint _index) external view returns (uint error, bytes32 parameter);
+	function getParameterAtIndex(uint _index) external view returns (bytes32 parameter);
 
 	/**
 	 * @dev Gets parameter data type

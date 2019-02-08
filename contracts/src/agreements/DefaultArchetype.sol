@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
@@ -8,6 +8,8 @@ import "commons-utils/DataTypes.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "documents-commons/Documents.sol";
+import "commons-management/AbstractDelegateTarget.sol";
+import "commons-management/AbstractVersionedArtifact.sol";
 
 import "agreements/Archetype.sol";
 
@@ -15,7 +17,7 @@ import "agreements/Archetype.sol";
  * @title DefaultArchetype
  * @dev Default agreements network archetype
  */
-contract DefaultArchetype is Archetype {
+contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Archetype {
 
 	using ArrayUtilsAPI for bytes32[];
 	using TypeUtilsAPI for string;
@@ -36,24 +38,23 @@ contract DefaultArchetype is Archetype {
 	bool active;
 	bool privateFlag;
 	address successor;
-
 	address formationProcessDefinition;
 	address executionProcessDefinition;
 
 	Mappings.Bytes32UintMap parameterTypes;
-	bytes32[] parameters;
 
 	mapping(string => Documents.DocumentReference) documents;
 	string[] documentNames;
 
 	mapping(bytes32 => Jurisdiction) jurisdictions;
 	bytes32[] jurisdictionKeys;
-	mapping(bytes2 => bytes32[]) jurisdictionHierarchy; // TODO this could be replaced with Mappings.Bytes2Bytes32Array later
+	mapping(bytes2 => bytes32[]) jurisdictionHierarchy; // TODO this could be replaced with Mappings.Bytes2Bytes32Array
 
 	address[] governingArchetypes;
 
 	/**
-	 * @dev Constructor
+	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _name name
 	 * @param _author author
 	 * @param _description description
@@ -63,7 +64,19 @@ contract DefaultArchetype is Archetype {
 	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
 	 * @param _governingArchetypes array of governing archetype addresses (optional)
 	 */
-	constructor(uint32 _price, bool _isPrivate, bool _active, string _name, address _author, string _description, address _formationProcess, address _executionProcess, address[] _governingArchetypes) public {
+	function initialize(
+		uint32 _price,
+		bool _isPrivate,
+		bool _active,
+		string _name,
+		address _author,
+		string _description,
+		address _formationProcess,
+		address _executionProcess,
+		address[] _governingArchetypes)
+		external
+		pre_post_initialize
+	{
 		name = _name;
 		author = _author;
 		description = _description;
@@ -73,6 +86,28 @@ contract DefaultArchetype is Archetype {
 		formationProcessDefinition = _formationProcess;
 		executionProcessDefinition = _executionProcess;
 		governingArchetypes = _governingArchetypes;
+		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
+		emit LogArchetypeCreation(
+			EVENT_ID_ARCHETYPES,
+			address(this),
+			_name,
+			_description,
+			price,
+			author,
+			active,
+			privateFlag,
+			successor,
+			formationProcessDefinition,
+			executionProcessDefinition
+		);
+		for (uint i = 0; i < _governingArchetypes.length; i++) {
+			emit LogGoverningArchetypeUpdate(
+				EVENT_ID_GOVERNING_ARCHETYPES, 
+				address(this), 
+				_governingArchetypes[i],
+				Archetype(_governingArchetypes[i]).getName()
+			);
+		}
 	}
 
 	/**
@@ -94,6 +129,12 @@ contract DefaultArchetype is Archetype {
 		documentNames.push(_name);
 		documents[_name].reference = _fileReference;
 		documents[_name].exists = true;
+		emit LogArchetypeDocumentUpdate(
+			EVENT_ID_ARCHETYPE_DOCUMENTS,
+			address(this),
+			_name,
+			_fileReference
+		);
 		error = BaseErrors.NO_ERROR();
 	}
 
@@ -108,26 +149,34 @@ contract DefaultArchetype is Archetype {
 	function addParameter(DataTypes.ParameterType _parameterType, bytes32 _parameterName) external returns (uint error, uint position) {
 		if (_parameterName == "")
 			return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), 0);
-		if (parameters.contains(_parameterName))
+		if (parameterTypes.exists(_parameterName))
 			return (BaseErrors.RESOURCE_ALREADY_EXISTS(), 0);
 
-		parameters.push(_parameterName);
 		parameterTypes.insert(_parameterName, uint8(_parameterType));
-		return (BaseErrors.NO_ERROR(), parameterTypes.rows[_parameterName].keyIdx);
+		position = parameterTypes.rows[_parameterName].keyIdx;
+		emit LogArchetypeParameterUpdate(
+			EVENT_ID_ARCHETYPE_PARAMETERS,
+			address(this),
+			_parameterName,
+			uint8(_parameterType),
+			position
+		);
+		return (BaseErrors.NO_ERROR(), position);
 	}
 
 	/**
 	 * @dev Adds the given jurisdiction in the form of a country code and region identifier to this archetype.
 	 * References codes defined via IsoCountries interface implementations.
 	 * If the region is empty, the jurisdiction will only reference the country and the regions will be emptied, i.e. any prior regions for that country will be removed.
-	 * @param _country a ISO- code, e.g. 'US'
+	 * REVERTS if:
+	 * - the provided country is empty
+	 * @param _country a ISO-code, e.g. 'US'
 	 * @param _region a region identifier from a IsoCountries contract
-	 * @return BaseErrors.NO_ERROR() if successful, and key of jurisdiction just added
-	 * 	       BaseErrors.INVALID_PARAM_VALUE() if _country is not in the DataTypes enum,
+	 * @return BaseErrors.NO_ERROR() if successful, and key of jurisdiction was added
 	 */
 	function addJurisdiction(bytes2 _country, bytes32 _region) external returns (uint error, bytes32 key) {
-		if (_country == "")
-			return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
+		ErrorsLib.revertIf(_country == "",
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.addJurisdiction", "Country must not be empty");
 
 		if (_region == "") {
 			// for a jurisdiction represented by a country ONLY, we need to use an artificial bytes32 key
@@ -148,6 +197,13 @@ contract DefaultArchetype is Archetype {
 		}
 		jurisdictions[key].country = _country;
 		jurisdictions[key].region = _region;
+
+		emit LogArchetypeJurisdictionUpdate(
+			EVENT_ID_ARCHETYPE_JURISDICTIONS,
+			address(this),
+			_country,
+			_region
+		);
 
 		return (BaseErrors.NO_ERROR(), key);
 	}
@@ -204,6 +260,7 @@ contract DefaultArchetype is Archetype {
 	 */
 	function setPrice(uint32 _price) external {
 		price = _price;
+		emit LogArchetypePriceUpdate(EVENT_ID_ARCHETYPES, address(this), _price);
 	}
 
 	/**
@@ -234,21 +291,18 @@ contract DefaultArchetype is Archetype {
 	 * @return size number of parameters
 	 */
 	function getNumberOfParameters() external view returns (uint size) {
-		return parameters.length;
+		return parameterTypes.keys.length;
 	}
 
 	/**
 	 * @dev Gets parameter at index
 	 * @param _index index
-	 * @return error error TBD
 	 * @return parameter parameter
 	 */
-	function getParameterAtIndex(uint _index) external view returns (uint error, bytes32 parameter) {
-		error = BaseErrors.NO_ERROR();
-		if (_index >= parameters.length)
-			error = BaseErrors.INDEX_OUT_OF_BOUNDS();
-		else
-			parameter = parameters[_index];
+	function getParameterAtIndex(uint _index) external view returns (bytes32 parameter) {
+		ErrorsLib.revertIf(parameterTypes.keys.length < _index,
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.getParameterAtIndex", "The specified index is out of bounds");
+		parameter = parameterTypes.keys[_index];
 	}
 
 	/**
@@ -395,6 +449,7 @@ contract DefaultArchetype is Archetype {
 		ErrorsLib.revertIf(Archetype(_successor).getSuccessor() == address(this), ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
 		active = false;
 		successor = _successor;
+		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, address(this), _successor);
 	}
 
 	/**
@@ -411,6 +466,7 @@ contract DefaultArchetype is Archetype {
 	function activate() external {
 		ErrorsLib.revertIf(successor != 0x0, ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
 		active = true;
+		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), true);
 	}
 
 	/**
@@ -418,5 +474,6 @@ contract DefaultArchetype is Archetype {
 	 */
 	function deactivate() external {
 		active = false;
+		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
 	}
 }

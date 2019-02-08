@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-utils/ArrayUtilsAPI.sol";
@@ -8,13 +8,15 @@ import "commons-collections/MappingsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
 import "commons-collections/AbstractAddressScopes.sol";
 import "commons-events/DefaultEventEmitter.sol";
+import "commons-management/AbstractDelegateTarget.sol";
+import "commons-management/AbstractVersionedArtifact.sol";
 
 import "agreements/Agreements.sol";
 import "agreements/AgreementsAPI.sol";
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement.sol";
 
-contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
 	using ArrayUtilsAPI for address[];
 	using TypeUtilsAPI for bytes32;
@@ -29,13 +31,14 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
 	address[] parties;
-	Agreements.LegalState legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
+	Agreements.LegalState legalState;
 	mapping(address => Agreements.Signature) signatures;
 	mapping(address => Agreements.Signature) cancellations;
 	address[] governingAgreements;
 
 	/**
-	 * @dev Constructor
+	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
 	 * @param _name name
 	 * @param _creator the account that created this agreement
@@ -44,14 +47,16 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 * @param _parties the signing parties to the agreement
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 */
-	constructor(
+	function initialize(
 		address _archetype, 
 		string _name, 
 		address _creator, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
 		address[] _parties, 
-		address[] _governingAgreements) public 
+		address[] _governingAgreements)
+		external
+		pre_post_initialize
 	{
 		archetype = _archetype;
 		name = _name;
@@ -60,6 +65,26 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
+		legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
+		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
+		emit LogAgreementCreation(
+			EVENT_ID_AGREEMENTS,
+			address(this),
+			_archetype,
+			_name,
+			_creator,
+			_isPrivate,
+			uint8(legalState),
+			maxNumberOfEvents,
+			privateParametersFileReference,
+			eventLogFileReference
+		);
+		for (uint i = 0; i < _parties.length; i++) {
+			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
+		}
+		for (i = 0; i < _governingAgreements.length; i++) {
+			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i], _name);
+		}
 	}
 
 	/**
@@ -135,6 +160,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 */
 	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external {
 		maxNumberOfEvents = _maxNumberOfEvents;
+		emit LogAgreementMaxEventCountUpdate(EVENT_ID_AGREEMENTS, address(this), _maxNumberOfEvents);
 	}
 
 	/**
@@ -143,7 +169,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	 */
 	function setEventLogReference(string _eventLogFileReference) external {
 		eventLogFileReference = _eventLogFileReference;
-		emitEvent(EVENT_ID_EVENT_LOG_UPDATED, this);
+		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, address(this), _eventLogFileReference);
 	}
 
 	/**
@@ -198,10 +224,10 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		if (signatures[party].timestamp == 0) {
 			signatures[party].signee = signee;
 			signatures[party].timestamp = block.timestamp;
-			emitEvent(EVENT_ID_SIGNATURE_ADDED, this, party);
+			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
 			if (ActiveAgreement(this).isFullyExecuted()) {
 				legalState = Agreements.LegalState.EXECUTED;
-				emitEvent(EVENT_ID_STATE_CHANGED, this);
+				emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
 			}
 		}
 	}
@@ -291,7 +317,7 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 	function setFulfilled() external {
 		// TODO this must only be allowed by an authorized account, e.g. SystemOwner which could be the registry
 		legalState = Agreements.LegalState.FULFILLED;
-		emitEvent(EVENT_ID_STATE_CHANGED, this);
+		emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
 	}
 
 	/**
@@ -309,13 +335,15 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 		(actor, party) = ActiveAgreement(this).authorizePartyActor();
 
 		// if the actor is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(actor == 0x0, ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to cancel");
+		ErrorsLib.revertIf(actor == 0x0,
+			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to cancel");
 
 		if (legalState == Agreements.LegalState.DRAFT ||
 			legalState == Agreements.LegalState.FORMULATED) {
 			// unilateral cancellation is allowed before execution phase
 			legalState = Agreements.LegalState.CANCELED;
-			emitEvent(EVENT_ID_STATE_CHANGED, this);
+			emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
+			emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
 		}
 		else if (legalState == Agreements.LegalState.EXECUTED) {
 			// multilateral cancellation
@@ -328,11 +356,31 @@ contract DefaultActiveAgreement is ActiveAgreement, AbstractDataStorage, Abstrac
 					}
 					if (i == parties.length-1) {
 						legalState = Agreements.LegalState.CANCELED;
-						emitEvent(EVENT_ID_STATE_CHANGED, this);
+						emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
+						emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
 					}
 				}
 			}
 		}
 	}
+
+    /**
+     * @dev Overwrites AbstractAddressScopes.setAddressScope() in order to emit an event in the context of this ActiveAgreement
+     */
+	function setAddressScope(address _address, bytes32 _context, bytes32 _fixedScope, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage)
+		public
+	{
+        super.setAddressScope(_address, _context, _fixedScope, _dataPath, _dataStorageId, _dataStorage);
+        emit LogAgreementAddressScopesUpdate(
+            EVENT_ID_AGREEMENT_ADDRESS_SCOPES,
+            address(this),
+            _address,
+            _context,
+            _fixedScope,
+            _dataPath,
+            _dataStorageId,
+            _dataStorage
+        );        
+    }
 
 }

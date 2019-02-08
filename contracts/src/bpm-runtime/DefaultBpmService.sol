@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-auth/ParticipantsManager.sol";
@@ -6,8 +6,10 @@ import "commons-auth/Ecosystem.sol";
 import "commons-base/BaseErrors.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
+import "commons-management/AbstractObjectFactory.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
-import "commons-management/ContractLocatorEnabled.sol";
+import "commons-management/ArtifactsFinderEnabled.sol";
+import "commons-management/ObjectProxy.sol";
 import "bpm-model/ProcessModelRepository.sol";
 import "bpm-model/ProcessDefinition.sol";
 import "bpm-model/ProcessModel.sol";
@@ -23,24 +25,28 @@ import "bpm-runtime/DefaultProcessInstance.sol";
  * @title DefaultBpmService
  * @dev Default implementation of the BpmService interface.
  */
-contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractLocatorEnabled, BpmService {
+contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, BpmService {
 
     using BpmRuntimeLib for ProcessInstance;
 
-    string constant TABLE_PROCESS_INSTANCES = "PROCESS_INSTANCES";
-    string constant TABLE_ACTIVITY_INSTANCES = "ACTIVITY_INSTANCES";
-    string constant TABLE_PROCESS_DATA = "PROCESS_DATA";
-    string constant TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES = "PROCESS_INSTANCE_ADDRESS_SCOPES";
-	bytes32 constant EVENT_ID_PROCESS_INSTANCES = "AN://process-instances";
-	bytes32 constant EVENT_ID_PROCESS_DATA = "AN://process-instance/data";
-	bytes32 constant EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES = "AN://process-instance/scopes";
+    string serviceIdProcessModelRepository;
+    string serviceIdApplicationRegistry;
 
-    //TODO these string should not be hardcoded. Inject via constructor after AN-307 fixed
-    string constant serviceIdProcessModelRepository = "ProcessModelRepository";
-    string constant serviceIdApplicationRegistry = "ApplicationRegistry";
-
-    ProcessModelRepository modelRepository;
-    ApplicationRegistry applicationRegistry;
+	/**
+	 * @dev Creates a new DefaultActiveAgreementsRegistry that uses the specified service IDs to resolve dependencies at runtime.
+	 * REVERTS if:
+	 * - any of the service ID dependencies are empty
+	 * @param _serviceIdProcessModelRepository the ID with which to resolve the ArchetypeRegistry dependency
+	 * @param _serviceIdApplicationRegistry the ID with which to resolve the BpmService dependency
+	 */
+	constructor (string _serviceIdProcessModelRepository, string _serviceIdApplicationRegistry) public {
+		ErrorsLib.revertIf(bytes(_serviceIdProcessModelRepository).length == 0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.constructor", "_serviceIdProcessModelRepository parameter must not be empty");
+		ErrorsLib.revertIf(bytes(_serviceIdApplicationRegistry).length == 0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.constructor", "_serviceIdApplicationRegistry parameter must not be empty");
+		serviceIdProcessModelRepository = _serviceIdProcessModelRepository;
+		serviceIdApplicationRegistry = _serviceIdApplicationRegistry;
+	}
 
 	/**
 	 * @dev Creates a new ProcessInstance based on the specified ProcessDefinition and starts its execution
@@ -73,7 +79,10 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
         public
         returns (uint error, address)
     {
-        address pd = modelRepository.getProcessDefinition(_modelId, _processDefinitionId);
+   		(address repoAddress, ) = artifactsFinder.getArtifact(serviceIdProcessModelRepository);
+		ErrorsLib.revertIf(repoAddress == address(0),
+			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultBpmService.startProcessFromRepository", "ProcessModelRepository dependency not found in ArtifactsFinder");
+        address pd = ProcessModelRepository(repoAddress).getProcessDefinition(_modelId, _processDefinitionId);
         ErrorsLib.revertIf(pd == 0x0,
             ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultBpmService.startProcessFromRepository", "Unable to find a ProcessDefinition for the given ID");
         return startProcess(pd, _activityInstanceId);
@@ -90,62 +99,7 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
     {
         _pi.initRuntime();
         BpmServiceDb(database).addProcessInstance(_pi);
-        bytes32 dataId;
-        for (uint i=0; i<_pi.getSize(); i++) {
-            ( ,dataId) = _pi.getDataIdAtIndex(i);
-            emit UpdateProcessData(TABLE_PROCESS_DATA, _pi, dataId);
-            emit LogProcessDataCreation(
-                EVENT_ID_PROCESS_DATA,
-                address(_pi),
-                dataId,
-                _pi.getDataValueAsBool(dataId),
-                _pi.getDataValueAsUint(dataId),
-                _pi.getDataValueAsInt(dataId),
-                _pi.getDataValueAsBytes32(dataId),
-                _pi.getDataValueAsAddress(dataId),
-                _pi.getDataValueAsString(dataId)
-            );
-        }
-        emitProcessInstanceAddressScopeEvents(_pi);
         error = _pi.execute(this);
-        emit UpdateProcesses(TABLE_PROCESS_INSTANCES, _pi);
-        emit LogProcessInstanceStateUpdate(
-            EVENT_ID_PROCESS_INSTANCES,
-            address(_pi),
-            _pi.getState()
-        );
-    }
-
-    function emitProcessInstanceAddressScopeEvents(ProcessInstance _pi) internal {
-        bytes32[] memory keys = _pi.getAddressScopeKeys();
-        address keyAddress;
-        bytes32 keyContext;
-        bytes32 fixedScope;
-        bytes32 dataPath;
-        bytes32 dataStorageId;
-        address dataStorage;
-        for (uint i = 0; i<keys.length; i++) {
-            emit UpdateProcessInstanceAddressScopes(TABLE_PROCESS_INSTANCE_ADDRESS_SCOPES, _pi, keys[i]);
-            (
-                keyAddress,
-                keyContext,
-                fixedScope,
-                dataPath,
-                dataStorageId,
-                dataStorage
-            ) = _pi.getAddressScopeDetailsForKey(keys[i]);
-            emit LogProcessInstanceAddressScopesUpdate(
-                EVENT_ID_PROCESS_INSTANCE_ADDRESS_SCOPES,
-                address(_pi),
-                keys[i],
-                keyAddress,
-                keyContext,
-                fixedScope,
-                dataPath,
-                dataStorageId,
-                dataStorage
-            );
-        }
     }
 
 	/**
@@ -164,53 +118,12 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
     {
         ErrorsLib.revertIf(_processDefinition == 0x0,
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultBpmService.createDefaultProcessInstance", "ProcessDefinition is NULL");
-        processInstance = new DefaultProcessInstance(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
+        address piAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_PROCESS_INSTANCE);
+        processInstance = ProcessInstance(piAddress);
+        processInstance.initialize(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
         processInstance.transferOwnership(msg.sender);
         ErrorsLib.revertIf(address(processInstance) == 0x0,
                 ErrorsLib.INVALID_STATE(), "DefaultBpmService.createDefaultProcessInstance", "Process Instance address empty");
-        emit LogProcessInstanceCreation(
-			EVENT_ID_PROCESS_INSTANCES,
-			address(processInstance),
-			processInstance.getProcessDefinition(),
-			processInstance.getState(),
-			processInstance.getStartedBy()
-		);
-    }
-
-    /**
-     * @dev Overrides ContractLocatorEnabled.setContractLocator(address).
-     * Performs a lookup of dependencies for a ProcessModelRepository and an ApplicationRegistry.
-     * REVERTS if:
-     * - if any of the dependencies cannot be satisfied.
-     * @param _locator the ContractLocator to use
-     */
-    function setContractLocator(address _locator)
-        public
-    {
-        super.setContractLocator(_locator);
-        modelRepository = ProcessModelRepository(ContractLocator(_locator).getContract(serviceIdProcessModelRepository));
-        applicationRegistry = ApplicationRegistry(ContractLocator(_locator).getContract(serviceIdApplicationRegistry));
-        ErrorsLib.revertIf(address(modelRepository) == 0x0,
-			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultBpmService.setContractLocator", "ModelRepository not found");
-        ErrorsLib.revertIf(address(applicationRegistry) == 0x0,
-			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultBpmService.setContractLocator", "ApplicationRegistry not found");
-        ContractLocator(_locator).addContractChangeListener(serviceIdProcessModelRepository);
-        ContractLocator(_locator).addContractChangeListener(serviceIdApplicationRegistry);
-    }
-
-    /**
-     * @dev Implements ContractChangeListener.contractChanged(string,address) to update this contract's dependencies.
-     */
-    function contractChanged(string _name, address, address _newAddress)
-        external
-        pre_onlyByLocator
-    {
-        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked(serviceIdProcessModelRepository))){
-            modelRepository = ProcessModelRepository(_newAddress);
-        }
-        else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked(serviceIdApplicationRegistry))){
-            applicationRegistry = ApplicationRegistry(_newAddress);
-        }
     }
 
 	/**
@@ -291,7 +204,7 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
 	 * @return the process data size
 	 */
     function getNumberOfProcessData(address _address) external view returns (uint size) {
-        size = ProcessInstance(_address).getSize();
+        size = ProcessInstance(_address).getNumberOfData();
     }
 
     /**
@@ -390,7 +303,8 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
      * @return the ProcessModelRepository
      */
     function getProcessModelRepository() external view returns (ProcessModelRepository) {
-        return modelRepository;
+        (address location, ) = artifactsFinder.getArtifact(serviceIdProcessModelRepository);
+        return ProcessModelRepository(location);
     }
 
 	/**
@@ -398,48 +312,8 @@ contract DefaultBpmService is Versioned(1,0,0), AbstractDbUpgradeable, ContractL
 	 * @return the ApplicationRegistry
 	 */
     function getApplicationRegistry() external view returns (ApplicationRegistry) {
-        return applicationRegistry;
-    }
-
-    /**
-     * @dev Fires the UpdateActivities event to update sqlsol with given activity
-     * @param _piAddress - the address of the process instance to which the activity belongs
-     * @param _activityId - the bytes32 Id of the activity
-     */
-    function fireActivityUpdateEvent (address _piAddress, bytes32 _activityId) external {
-        emit UpdateActivities(TABLE_ACTIVITY_INSTANCES, _piAddress, _activityId);
-    }
-
-	/**
-     * @dev Fires the UpdateProcessData event to update sqlsol with given information
-     * @param _piAddress - the address of the process instance to which the activity belongs
-     * @param _dataId - the ID of the data entry
-     */
-    function fireProcessDataUpdateEvent(address _piAddress, bytes32 _dataId) external {
-        emit UpdateProcessData(TABLE_PROCESS_DATA, _piAddress, _dataId);
-    }
-
-    /**
-     * @dev Emits a state change event for the process instance
-     * @param _processInstance address of process intance
-     */
-    function emitProcessStateChangeEvent(address _processInstance) external {
-        emit LogProcessInstanceStateUpdate(
-            EVENT_ID_PROCESS_INSTANCES,
-            _processInstance,
-            ProcessInstance(_processInstance).getState()
-        );
-    }
-
-	/**
-	 * @dev Overwrites the Upgradeable.upgrade(address) function to remove this contract as a contract change listener.
-	 */
-    function upgrade(address _successor) public returns (bool success) {
-        success = super.upgrade(_successor);
-        if (success && address(locator) != address(0)) {
-            locator.removeContractChangeListener(serviceIdApplicationRegistry);
-            locator.removeContractChangeListener(serviceIdProcessModelRepository);
-        }
+        (address location, ) = artifactsFinder.getArtifact(serviceIdApplicationRegistry);
+        return ApplicationRegistry(location);
     }
 
 }

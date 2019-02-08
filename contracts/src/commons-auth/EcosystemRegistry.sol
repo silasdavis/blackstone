@@ -1,19 +1,15 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-management/Upgradeable.sol";
+import "commons-management/ObjectFactory.sol";
 
 /**
  * @title EcosystemRegistry Interface
  * @dev The interface describing interaction with an Ecosystem
  */
-contract EcosystemRegistry is Upgradeable {
+contract EcosystemRegistry is ObjectFactory, Upgradeable {
 
-    /**
-     * @dev Registers the given Ecosystem in this registry.
-     * @param _name the name under which to register the Ecosystem
-     * @param _ecosystem the address of an Ecosystem
-     */
-    function registerEcosystem(string _name, address _ecosystem) external;
+    string public constant OBJECT_CLASS_ECOSYSTEM = "commons.auth.Ecosystem";
 
     /**
      * @dev Creates a new Ecosystem with the given name.

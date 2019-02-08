@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/StorageDefSystemOwner.sol";
@@ -28,11 +28,15 @@ contract SystemOwned is StorageDefSystemOwner, SystemOwnerTransferable {
         ErrorsLib.revertIf(_newOwner == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "SystemOwned.transferSystemOwnership", "The new system owner must not be NULL");
         if (systemOwner != _newOwner) {
-            systemOwner = _newOwner;
             emit LogSystemOwnerChanged(systemOwner, _newOwner);
+            systemOwner = _newOwner;
         }
     }
 
+    /**
+     * @dev Returns the system owner
+     * @return the address of the system owner
+     */
     function getSystemOwner() public view returns (address) {
         return systemOwner;
     }
