@@ -4,6 +4,7 @@
   "description": "REST API for the Agreements Network",
   "main": "app.js",
   "scripts": {
+    "init-db": "node ./initdb.js",
     "start": "node -e 'require(\"./app.js\")()'",
     "start:dev": "npm run-script db:migrate:up && node -e 'require(\"./app.js\")()'",
     "start:debug": "npm run-script db:migrate:up && node --inspect=0.0.0.0:9222 -e 'require(\"./app.js\")()'",
@@ -21,7 +22,7 @@
     "test:contracts:fe:debug": "mocha --exit test/controllers/form-exec-usertask-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
     "test:parser": "mocha --exit test/parser/parser-test.js --timeout 99999999",
     "test:parser:debug": "mocha --exit test/parser/parser-test.js --inspect=0.0.0.0:9222 --timeout 99999999",
-    "db:migrate:up": "POSTGRES_DB_SCHEMA=${POSTGRES_DB_SCHEMA} node node_modules/db-migrate/bin/db-migrate up",
+    "db:migrate:up": "npm run-script init-db && POSTGRES_DB_SCHEMA=${POSTGRES_DB_SCHEMA} node node_modules/db-migrate/bin/db-migrate up",
     "db:migrate:create": "POSTGRES_DB_SCHEMA=${POSTGRES_DB_SCHEMA} node node_modules/db-migrate/bin/db-migrate create",
     "migrate-users": "node scripts/migrateUsers.js"
   },
@@ -49,7 +50,7 @@
     "iteray": "~0.5.1",
     "joi": "~13.7.0",
     "jsonwebtoken": "~8.2.1",
-    "lodash": "~4.17.10",
+    "lodash": "~4.17.11",
     "log4js": "~3.0.5",
     "multer": "~1.3.0",
     "node-file-hash": "~1.0.1",
