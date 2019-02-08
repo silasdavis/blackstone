@@ -5,6 +5,7 @@ var type;
 var seed;
 
 const fs = require('fs');
+const path = require('path');
 
 /**
   * We receive the dbmigrate dependency from dbmigrate initially.
@@ -17,7 +18,7 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = async function(db) {
-  const tablesSql = fs.readFileSync('migrations/scripts/create-customers-tables.sql', 'utf8');
+  const tablesSql = fs.readFileSync(path.resolve(__dirname, 'scripts/create-customers-tables.sql'), 'utf8');
   await db.runSql(tablesSql);
 };
 
