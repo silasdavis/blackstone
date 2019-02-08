@@ -8,6 +8,7 @@ import "commons-collections/DataStorageUtils.sol";
 /**
  * @title AbstractDataStorage
  * @dev DataStorage contract covering the main 6 primitive types and their arrays: address, bytes32, string, bool, uint, int
+ * NOTE: This implementation currently does not emit any events for array-based values!
  */
 contract AbstractDataStorage is DataStorage {
 
@@ -16,7 +17,9 @@ contract AbstractDataStorage is DataStorage {
 
   DataStorageUtils.DataMap dataStorageMap;
 
-  // abstract constructor
+  /**
+   * @dev abstract constructor
+   */
   constructor() internal {
 
   }
@@ -76,7 +79,7 @@ contract AbstractDataStorage is DataStorage {
     data.dataType = DataTypes.BOOLARRAY();
     data.boolArrayValue = _value;
     dataStorageMap.insertOrUpdate(data);
-    emit LogDataStorageUpdateBoolArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+    // emit LogDataStorageUpdateBoolArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
   /**
@@ -103,7 +106,7 @@ contract AbstractDataStorage is DataStorage {
   //   data.stringArrayValue = _value;
   //   data.dataType = DataTypes.STRINGARRAY();
   //   dataStorageMap.insertOrUpdate(data);
-  //   emit LogDataStorageUpdateStringArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+  //   // emit LogDataStorageUpdateStringArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   // }
 
   /**
@@ -128,7 +131,7 @@ contract AbstractDataStorage is DataStorage {
     data.uint256ArrayValue = _value;
     data.dataType = DataTypes.UINT256ARRAY();
     dataStorageMap.insertOrUpdate(data);
-    emit LogDataStorageUpdateUintArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+    // emit LogDataStorageUpdateUintArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
   /**
@@ -153,7 +156,7 @@ contract AbstractDataStorage is DataStorage {
     data.int256ArrayValue = _value;
     data.dataType = DataTypes.INT256ARRAY();
     dataStorageMap.insertOrUpdate(data);
-    emit LogDataStorageUpdateIntArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+    // emit LogDataStorageUpdateIntArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
   /**
@@ -178,7 +181,7 @@ contract AbstractDataStorage is DataStorage {
     data.addressArrayValue = _value;
     data.dataType = DataTypes.ADDRESSARRAY();
     dataStorageMap.insertOrUpdate(data);
-    emit LogDataStorageUpdateAddressArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+    // emit LogDataStorageUpdateAddressArray(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
   /**
@@ -203,7 +206,7 @@ contract AbstractDataStorage is DataStorage {
     data.bytes32ArrayValue = _value;
     data.dataType = DataTypes.BYTES32ARRAY();
     dataStorageMap.insertOrUpdate(data);
-    emit LogDataStorageUpdateBytes32Array(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
+    // emit LogDataStorageUpdateBytes32Array(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
 }
