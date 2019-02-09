@@ -46,6 +46,8 @@ services:
     - /app/api/sqlsol/Tables.spec
     - --abi-dir
     - /app/contracts/src/bin
+    - --db-block
+    - "false"
     volumes:
     - .:/app
     depends_on:
