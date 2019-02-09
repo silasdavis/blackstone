@@ -6,9 +6,17 @@ const client = new Client({
   password: process.env.POSTGRES_DB_PASSWORD,
   port: process.env.POSTGRES_DB_PORT,
 });
-client.connect();
-client.query(`CREATE SCHEMA IF NOT EXISTS ${process.env.POSTGRES_DB_SCHEMA}`, (err, res) => {
-  if (err) console.error(`Failed to create schema [ ${process.env.POSTGRES_DB_SCHEMA} ] in db: ${err.stack}`);
-  else console.log(`Created schema [ ${process.env.POSTGRES_DB_SCHEMA} ] if not found`);
-  client.end();
-});
+
+const createCustomersSchema = async () => {
+  try {
+    await client.connect();
+    console.log(`Connected to Db, attempting to create schema [ ${process.env.POSTGRES_DB_SCHEMA} ] if not found`);
+    await client.query(`CREATE SCHEMA IF NOT EXISTS ${process.env.POSTGRES_DB_SCHEMA}`, []);
+    await client.end();
+    console.log(`Created schema [ ${process.env.POSTGRES_DB_SCHEMA} ] if not found`);
+  } catch (err) {
+    console.error(`Failed to connect to Db and/or create schema ${process.end.POSTGRES_DB_SCHEMA}: ${err.stack}`);
+  }
+};
+
+createCustomersSchema();
