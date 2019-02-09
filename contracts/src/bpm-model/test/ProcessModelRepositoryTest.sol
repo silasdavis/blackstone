@@ -16,16 +16,21 @@ contract ProcessModelRepositoryTest {
 	uint error;
 	string dummyModelFileReference = "{json grant}";
 
-    ArtifactsRegistry artifacts = new DefaultArtifactsRegistry();
+    ArtifactsRegistry artifactsRegistry;
     DefaultProcessModel defaultProcessModelImpl = new DefaultProcessModel();
+
+	constructor() public {
+		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
+	}
 
     /**
      * @dev Internal helper function to initiate a new ParticipantsManager with an empty database.
      */
     function createNewProcessModelRepository() internal returns (ProcessModelRepository repository) {
 		repository =  new DefaultProcessModelRepository();
-        ArtifactsFinderEnabled(repository).setArtifactsFinder(artifacts);
-        artifacts.registerArtifact(repository.OBJECT_CLASS_PROCESS_MODEL(), defaultProcessModelImpl, defaultProcessModelImpl.getArtifactVersion(), true);
+        ArtifactsFinderEnabled(repository).setArtifactsFinder(artifactsRegistry);
+        artifactsRegistry.registerArtifact(repository.OBJECT_CLASS_PROCESS_MODEL(), defaultProcessModelImpl, defaultProcessModelImpl.getArtifactVersion(), true);
 		ProcessModelRepositoryDb database = new ProcessModelRepositoryDb();
 		SystemOwned(database).transferSystemOwnership(repository);
 		AbstractDbUpgradeable(repository).acceptDatabase(database);

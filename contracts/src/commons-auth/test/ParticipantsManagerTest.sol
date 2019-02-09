@@ -23,7 +23,7 @@ contract ParticipantsManagerTest {
     address addr;
     bytes32 id;
     
-    ArtifactsRegistry artifacts = new DefaultArtifactsRegistry();
+    ArtifactsRegistry artifactsRegistry;
     DefaultOrganization defaultOrganizationImpl = new DefaultOrganization();
     DefaultUserAccount defaultUserAccountImpl = new DefaultUserAccount();
     ParticipantsManager participantsManager;
@@ -36,14 +36,19 @@ contract ParticipantsManagerTest {
     bytes32 acc2Id;
     bytes32 acc3Id;
 
+	constructor() public {
+		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
+	}
+
     /**
      * @dev Internal helper function to initiate a new ParticipantsManager with an empty database.
      */
     function createNewParticipantsManager() internal returns (ParticipantsManager manager) {
 		manager =  new DefaultParticipantsManager();
-        ArtifactsFinderEnabled(manager).setArtifactsFinder(artifacts);
-        artifacts.registerArtifact(manager.OBJECT_CLASS_ORGANIZATION(), defaultOrganizationImpl, defaultOrganizationImpl.getArtifactVersion(), true);
-        artifacts.registerArtifact(manager.OBJECT_CLASS_USER_ACCOUNT(), defaultUserAccountImpl, defaultUserAccountImpl.getArtifactVersion(), true);
+        ArtifactsFinderEnabled(manager).setArtifactsFinder(artifactsRegistry);
+        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_ORGANIZATION(), defaultOrganizationImpl, defaultOrganizationImpl.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_USER_ACCOUNT(), defaultUserAccountImpl, defaultUserAccountImpl.getArtifactVersion(), true);
 		ParticipantsManagerDb database = new ParticipantsManagerDb();
 		SystemOwned(database).transferSystemOwnership(manager);
 		AbstractDbUpgradeable(manager).acceptDatabase(database);

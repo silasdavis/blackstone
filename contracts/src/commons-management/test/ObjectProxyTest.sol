@@ -16,6 +16,7 @@ contract ObjectProxyTest {
     function testProxyHandling() external returns (string) {
 
         ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(artifactsRegistry).initialize(); // this sets the system owner
 
         ObjectInterface impl1 = new ObjectImplV1();
         ObjectInterface impl2 = new ObjectImplV2();

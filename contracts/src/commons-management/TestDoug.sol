@@ -11,7 +11,12 @@ import "commons-management/Upgradeable.sol";
  */
 contract TestDoug is DOUG {
 
-	ArtifactsRegistry registry = new DefaultArtifactsRegistry();
+	ArtifactsRegistry artifactsRegistry;
+
+	constructor() public {
+		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
+	}
 
 	/**
 	 * @dev Deploys the given contract by adding it without performing any checks or upgrades from previous versions.
@@ -20,12 +25,12 @@ contract TestDoug is DOUG {
 	 * @return always true
 	 */
     function deploy(string _id, address _address) external returns (bool success) {
-		registry.registerArtifact(_id, _address, [0,0,0], true);
+		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 		success = true;
 	}
 
     function register(string _id, address _address) external returns (uint8[3]) {
-		registry.registerArtifact(_id, _address, [0,0,0], true);
+		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 	}
 
 	/**
@@ -34,7 +39,7 @@ contract TestDoug is DOUG {
 	 * @return the contract address or 0x0
 	 */
     function lookup(string _id) external view returns (address contractAddress) {
-		(contractAddress, ) = registry.getArtifact(_id);
+		(contractAddress, ) = artifactsRegistry.getArtifact(_id);
 	}
 
 }

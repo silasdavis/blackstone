@@ -30,6 +30,7 @@ contract ProcessModelTest {
 
 		ProcessModel pm = new DefaultProcessModel();
 		ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 		artifactsRegistry.registerArtifact(pm.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
 
 		pm.initialize("testModel", "Test Model", [1,2,3], author, false, dummyModelFileReference);

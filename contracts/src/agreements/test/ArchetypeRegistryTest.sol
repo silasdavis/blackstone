@@ -55,6 +55,7 @@ contract ArchetypeRegistryTest {
 		isoCountries = IsoCountries100(_isoCountries);
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 	}
 
 	/**
