@@ -197,11 +197,75 @@ jobs:
 #####
 # ActiveAgreementWorkflowTest
 ########################################################################
+
+# START temporary external setup of services needed for the ActiveAgreementWorkflowTest to avoid the binary footprint of the test contract to get too large
+- name: ArchetypeRegistry
+  deploy:
+    contract: DefaultArchetypeRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ArchetypeRegistryDb
+  deploy:
+    contract: ArchetypeRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+
+- name: ChangeArchetypeRegistryDbOwnership
+  call:
+    destination: $ArchetypeRegistryDb
+    bin: ArchetypeRegistryDb
+    function: transferSystemOwnership
+    data: [$ArchetypeRegistry]
+
+- name: SetArchetypeRegistryDb
+  call:
+    destination: $ArchetypeRegistry
+    bin: DefaultArchetypeRegistry
+    function: acceptDatabase
+    data: [$ArchetypeRegistryDb]
+
+- name: AssertArchetypeRegistryDb
+  assert:
+    key: $SetArchetypeRegistryDb
+    relation: eq
+    val: "true"
+
+- name: ApplicationRegistry
+  deploy:
+    contract: DefaultApplicationRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ApplicationRegistryDb
+  deploy:
+    contract: ApplicationRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ChangeAppRegistryDbOwnership
+  call:
+    destination: $ApplicationRegistryDb
+    bin: ApplicationRegistryDb
+    function: transferSystemOwnership
+    data: [$ApplicationRegistry]
+
+- name: SetApplicationRegistryDb
+  call:
+    destination: $ApplicationRegistry
+    bin: DefaultApplicationRegistry
+    function: acceptDatabase
+    data: [$ApplicationRegistryDb]
+
+- name: AssertApplicationRegistryDb
+  assert:
+    key: $SetApplicationRegistryDb
+    relation: eq
+    val: "true"
+# STOP temporary external set of services
+
 - name: ActiveAgreementWorkflowTest
   deploy:
     contract: ActiveAgreementWorkflowTest.bin
     instance: ActiveAgreementWorkflowTest
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    data: [$ArchetypeRegistry, $ApplicationRegistry]
 
 - name: testAddressScopeTransfer
   call:
