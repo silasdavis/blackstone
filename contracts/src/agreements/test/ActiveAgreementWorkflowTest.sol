@@ -27,14 +27,15 @@ import "bpm-runtime/DefaultBpmService.sol";
 import "bpm-runtime/ProcessInstance.sol"; 
 import "bpm-runtime/DefaultProcessInstance.sol"; 
 import "bpm-runtime/ApplicationRegistry.sol";
-import "bpm-runtime/ApplicationRegistryDb.sol";
-import "bpm-runtime/DefaultApplicationRegistry.sol";
+// import "bpm-runtime/ApplicationRegistryDb.sol";
+// import "bpm-runtime/DefaultApplicationRegistry.sol";
 
 import "agreements/ActiveAgreementRegistry.sol";
 import "agreements/DefaultActiveAgreementRegistry.sol";
 import "agreements/ArchetypeRegistry.sol";
-import "agreements/ArchetypeRegistryDb.sol";
-import "agreements/DefaultArchetypeRegistry.sol";
+// import "agreements/ArchetypeRegistryDb.sol";
+// import "agreements/DefaultArchetypeRegistry.sol";
+import "agreements/DefaultArchetype.sol";
 import "agreements/AgreementSignatureCheck.sol";
 
 contract ActiveAgreementWorkflowTest {
@@ -101,27 +102,33 @@ contract ActiveAgreementWorkflowTest {
 	/**
 	 * @dev Constructor for the test creates the dependencies that the ActiveAgreementRegistry needs
 	 */
-	constructor () public {
+	constructor (ArchetypeRegistry _archetypeRegistry, ApplicationRegistry _applicationRegistry) public {
 		// BpmService
 		BpmServiceDb bpmServiceDb = new BpmServiceDb();
 		bpmService = new DefaultBpmService(serviceIdModelRepository, serviceIdApplicationRegistry);
 		bpmServiceDb.transferSystemOwnership(bpmService);
 		require(AbstractDbUpgradeable(bpmService).acceptDatabase(bpmServiceDb), "BpmServiceDb not set");
+
 		// ArchetypeRegistry
-		ArchetypeRegistryDb archRegistryDb = new ArchetypeRegistryDb();
-		archetypeRegistry = new DefaultArchetypeRegistry();
-		archRegistryDb.transferSystemOwnership(archetypeRegistry);
-		require(AbstractDbUpgradeable(archetypeRegistry).acceptDatabase(archRegistryDb), "ArchetypeRegistryDb not set");
+		// ArchetypeRegistryDb archRegistryDb = new ArchetypeRegistryDb();
+		// archetypeRegistry = new DefaultArchetypeRegistry();
+		// archRegistryDb.transferSystemOwnership(archetypeRegistry);
+		// require(AbstractDbUpgradeable(archetypeRegistry).acceptDatabase(archRegistryDb), "ArchetypeRegistryDb not set");
+		archetypeRegistry = _archetypeRegistry;
+
 		// ProcessModelRegistry
 		ProcessModelRepositoryDb modelDb = new ProcessModelRepositoryDb();
 		processModelRepository = new DefaultProcessModelRepository();
 		modelDb.transferSystemOwnership(processModelRepository);
 		require(AbstractDbUpgradeable(processModelRepository).acceptDatabase(modelDb), "ProcessModelRepositoryDb not set");
+
 		// ApplicatonRegistry
-		ApplicationRegistryDb appDb = new ApplicationRegistryDb();
-		applicationRegistry = new DefaultApplicationRegistry();
-		appDb.transferSystemOwnership(applicationRegistry);
-		require(AbstractDbUpgradeable(applicationRegistry).acceptDatabase(appDb), "ApplicationRegistryDb not set");
+		// ApplicationRegistryDb appDb = new ApplicationRegistryDb();
+		// applicationRegistry = new DefaultApplicationRegistry();
+		// appDb.transferSystemOwnership(applicationRegistry);
+		// require(AbstractDbUpgradeable(applicationRegistry).acceptDatabase(appDb), "ApplicationRegistryDb not set");
+		applicationRegistry = _applicationRegistry;
+
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
 		artifactsRegistry.registerArtifact(serviceIdBpmService, address(bpmService), bpmService.getArtifactVersion(), true);
