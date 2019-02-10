@@ -27,43 +27,43 @@ jobs:
 ##########
 # Upgradeable Test
 ############################################################################################
-# - name: UpgradeableTest
-#   deploy:
-#     contract: UpgradeableTest.bin
-#     libraries: ErrorsLib:$ErrorsLib
+- name: UpgradeableTest
+  deploy:
+    contract: UpgradeableTest.bin
+    libraries: ErrorsLib:$ErrorsLib
 
-# - name: runUpgradeTest
-#   call:
-#     destination: $UpgradeableTest
-#     bin: UpgradeableTest
-#     function: testUpgrade
+- name: runUpgradeTest
+  call:
+    destination: $UpgradeableTest
+    bin: UpgradeableTest
+    function: testUpgrade
 
-# - name: assertUpgradeTest
-#   assert:
-#     key: $runUpgradeTest
-#     relation: eq
-#     val: success
+- name: assertUpgradeTest
+  assert:
+    key: $runUpgradeTest
+    relation: eq
+    val: success
 
 ##########
 # ArtifactsRegistry Test
 ############################################################################################
-# - name: ArtifactsRegistryTest
-#   deploy:
-#     contract: ArtifactsRegistryTest.bin
-#     instance: ArtifactsRegistryTest
-#     libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+- name: ArtifactsRegistryTest
+  deploy:
+    contract: ArtifactsRegistryTest.bin
+    instance: ArtifactsRegistryTest
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
-# - name: testArtifactsRegistry
-#   call:
-#     destination: $ArtifactsRegistryTest
-#     bin: ArtifactsRegistryTest
-#     function: testArtifactsRegistry
+- name: testArtifactsRegistry
+  call:
+    destination: $ArtifactsRegistryTest
+    bin: ArtifactsRegistryTest
+    function: testArtifactsRegistry
 
-# - name: assertArtifactsRegistry
-#   assert:
-#     key: $testArtifactsRegistry
-#     relation: eq
-#     val: success
+- name: assertArtifactsRegistry
+  assert:
+    key: $testArtifactsRegistry
+    relation: eq
+    val: success
 
 #####
 # DOUG Test
