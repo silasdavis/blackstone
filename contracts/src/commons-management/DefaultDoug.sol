@@ -65,6 +65,9 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @return true if successful, false otherwise
 	 */
     function deployVersion(string _id, address _address, uint8[3] _version) public pre_onlyByOwner returns (bool success) {
+        ErrorsLib.revertIf(bytes(_id).length == 0 || _address == address(0),
+            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultDoug.deployVersion", "_id and _address must not be empty");
+
 		// For VersionedArtifact contracts we enforce using that version over the provided one
 		uint8[3] memory version = ERC165Utils.implementsInterface(_address, getERC165IdVersionedArtifact()) ?
 			VersionedArtifact(_address).getArtifactVersion() : _version;
@@ -80,19 +83,20 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
             ArtifactsFinderEnabled(_address).setArtifactsFinder(registry);
         }
 
-		(address existingArtifact, ) = ArtifactsRegistry(registry).getArtifact(_id);
-		bool activateArtifact = true;
-		if (existingArtifact != 0x0) {
-			// for an existing artifact to be automatically upgraded, both contracts must be Upgradeable, VersionedArtifact contracts
-			// and the version being deployed must be higher.
-			activateArtifact = isHigherArtifactVersion(existingArtifact, _address);
-			if (activateArtifact &&
-				ERC165Utils.implementsInterface(existingArtifact, getERC165IdUpgradeable()) &&
-				ERC165Utils.implementsInterface(_address, getERC165IdUpgradeable()))
-			{
-				ErrorsLib.revertIf(!Upgradeable(existingArtifact).upgrade(_address),
-					ErrorsLib.INVALID_STATE(), "DefaultDoug.deploy", "Automatic upgrade from an existing contract with the same ID and lower version failed.");
-			}
+		(address existingActiveLocation, uint8[3] memory existingActiveVersion) = ArtifactsRegistry(registry).getArtifact(_id);
+		// artifacts are automatically activated, if they're a new deployment or higher than an existing version
+		bool activateArtifact = existingActiveLocation == address(0) ||
+								(existingActiveLocation != _address && compareVersions(existingActiveVersion, version) > 0);
+
+		// to trigger an automatic upgrade procedure, both contracts must be Upgradeable, VersionedArtifact contracts
+		// and the version being deployed must be higher.
+		if (existingActiveLocation != 0x0 &&
+			isHigherArtifactVersion(existingActiveLocation, _address) &&
+			ERC165Utils.implementsInterface(existingActiveLocation, getERC165IdUpgradeable()) &&
+			ERC165Utils.implementsInterface(_address, getERC165IdUpgradeable()))
+		{
+			ErrorsLib.revertIf(!Upgradeable(existingActiveLocation).upgrade(_address),
+				ErrorsLib.INVALID_STATE(), "DefaultDoug.deploy", "Automatic upgrade from an existing contract with the same ID and lower version failed.");
 		}
 
 		ArtifactsRegistry(registry).registerArtifact(_id, _address, version, activateArtifact);
@@ -124,36 +128,19 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
 	 * @return version - the version under which the contract was registered.
      */
     function registerVersion(string _id, address _address, uint8[3] _version) public pre_onlyByOwner returns (uint8[3] version) {
+        ErrorsLib.revertIf(bytes(_id).length == 0 || _address == address(0),
+            ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultDoug.registerVersion", "_id and _address must not be empty");
+
 		// For VersionedArtifact contracts we enforce using that version over the provided one
 		version = ERC165Utils.implementsInterface(_address, getERC165IdVersionedArtifact()) ?
 			VersionedArtifact(_address).getArtifactVersion() : _version;
 
-		(address existingActiveVersion, ) = ArtifactsRegistry(registry).getArtifact(_id);
-
-		ArtifactsRegistry(registry).registerArtifact(_id, _address, version, isHigherArtifactVersion(existingActiveVersion, _address));
-	}
-
-	/**
-	 * @dev Sets the given version of the artifact registered under the specified ID as active version in the ArtifactsRegistry.
-	 * This function wraps the ArtifactsRegistry.setActiveVersion(string,uint8[3]) function and enforces a no-downgrade policy by
-	 * making sure that no prior active version with a higher version number
-	 * REVERTS if:
-	 * - the specified ID and version combination does not exist
-	 * @param _id the ID of a registered artifact
-	 * @param _version the version of the artifact which should be the active one
-	 */
-	function setActiveVersion(string _id, uint8[3] _version) external {
-		address newActiveLocation = ArtifactsRegistry(registry).getArtifactByVersion(_id, _version);
-        ErrorsLib.revertIf(newActiveLocation == address(0),
-            ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultDoug.setActiveVersion", "The specified ID and version is not registered");
 		(address existingActiveLocation, uint8[3] memory existingActiveVersion) = ArtifactsRegistry(registry).getArtifact(_id);
-		// Rejecting the operation here means there is an existing artifact with a higher version already registered under the same ID
-		ErrorsLib.revertIf(existingActiveLocation != address(0) &&
-						   existingActiveLocation != newActiveLocation &&
-						   compareVersions(_version, existingActiveVersion) > 0,
-			ErrorsLib.INVALID_INPUT(), "DefaultDoug.setActiveVersion", "An artifact with the same ID but higher or equal version is already registered as active");
+		// artifacts are automatically activated, if they're a new deployment or higher than an existing version
+		bool activateArtifact = existingActiveLocation == address(0) ||
+								(existingActiveLocation != _address && compareVersions(existingActiveVersion, version) > 0);
 
-		ArtifactsRegistry(registry).setActiveVersion(_id, _version);
+		ArtifactsRegistry(registry).registerArtifact(_id, _address, version, activateArtifact);
 	}
 
     /**
