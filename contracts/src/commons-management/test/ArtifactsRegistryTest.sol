@@ -24,38 +24,39 @@ contract ArtifactsRegistryTest {
         address location;
         uint8[3] memory version;
 
-        ArtifactsRegistry registry = new DefaultArtifactsRegistry();
+        ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(artifactsRegistry).initialize(); // sets the system owner
 
         TestServiceWithDependency s1 = new TestServiceWithDependency([1,0,0]);
-        s1.setArtifactsFinder(registry);
+        s1.setArtifactsFinder(artifactsRegistry);
         DefaultTestService s2 = new DefaultTestService([1,2,0]);
         ServiceDb service1Db = new ServiceDb(s1);
         ServiceDb service2Db = new ServiceDb(s2);
         s1.acceptDatabase(service1Db);
         s2.acceptDatabase(service2Db);
 
-        if (registry.getNumberOfArtifacts() > 0) return "There should be no artifacts";
+        if (artifactsRegistry.getNumberOfArtifacts() > 0) return "There should be no artifacts";
 
         // test failure scenarios
         version = [1,0,0];
-        if (address(registry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", EMPTY_STRING, address(s1), version, false)))
+        if (address(artifactsRegistry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", EMPTY_STRING, address(s1), version, false)))
             return "Registering an artifact with an empty ID should fail";
-        if (address(registry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(0), version, false)))
+        if (address(artifactsRegistry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(0), version, false)))
             return "Registering an artifact with an empty address should fail";
 
-        if (!address(registry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(s1), version, true)))
+        if (!address(artifactsRegistry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(s1), version, true)))
             return "Registering an artifact service1 correctly should succeed.";
-        if (registry.getNumberOfArtifacts() != 1) return "There should be 1 artifact after service1 registration";
+        if (artifactsRegistry.getNumberOfArtifacts() != 1) return "There should be 1 artifact after service1 registration";
 
-        if (address(registry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(this), version, true)))
+        if (address(artifactsRegistry).call(abi.encodeWithSignature("registerArtifact(string,address,uint8[3],bool)", keyService1, address(this), version, true)))
             return "Registering an service1 with same ID and version, but different address should fail";
 
         // performing without the dependency should fail
         if (address(s1).call(abi.encodeWithSignature("performWithDependency()"))) return "Calling service1 without the dependency registered should fail";
         if (s1.getDependency1() != address(0)) return "The dependency1 address on service1 should not be filled after the revert";
 
-        registry.registerArtifact(keyService2, s2, [1,2,0], true);
-        if (registry.getNumberOfArtifacts() != 2) return "There should be 2 artifacts after service2 registration";
+        artifactsRegistry.registerArtifact(keyService2, s2, [1,2,0], true);
+        if (artifactsRegistry.getNumberOfArtifacts() != 2) return "There should be 2 artifacts after service2 registration";
 
         // now re-attempt to perform service1
         if (!address(s1).call(abi.encodeWithSignature("performWithDependency()"))) return "Calling service1 with the dependency registered should succeed";
@@ -63,22 +64,22 @@ contract ArtifactsRegistryTest {
 
         // perform an update to service 2 and check if dependencies were updated
         DefaultTestService s2_1 = new DefaultTestService([2,4,0]);
-        registry.registerArtifact(keyService2, s2_1, [2,4,0], true);
-        if (registry.getNumberOfArtifacts() != 2) return "There should still be 2 artifacts after service2 upgrade with new version";
-        (location, version) = registry.getArtifact(keyService2);
+        artifactsRegistry.registerArtifact(keyService2, s2_1, [2,4,0], true);
+        if (artifactsRegistry.getNumberOfArtifacts() != 2) return "There should still be 2 artifacts after service2 upgrade with new version";
+        (location, version) = artifactsRegistry.getArtifact(keyService2);
         if (location != address(s2_1)) return "The active location for service2 should have been changed after the upgrade.";
         if (!address(s1).call(abi.encodeWithSignature("performWithDependency()"))) return "Calling service1 with an updated dependency registered should succeed";
         if (s1.getDependency1() != address(s2_1)) return "The dependency1 address on service1 should now point to service2_1";
 
         // test activation scenarios
-        ( , version) = registry.getArtifact(keyService2);
+        ( , version) = artifactsRegistry.getArtifact(keyService2);
         if (version[0] != 2 || version[1] != 4 || version[2] != 0) return "The currently active version for service2 should 2.4.0";
-        registry.registerArtifact(keyService2, address(this), [3,0,1], true);
-        ( , version) = registry.getArtifact(keyService2);
+        artifactsRegistry.registerArtifact(keyService2, address(this), [3,0,1], true);
+        ( , version) = artifactsRegistry.getArtifact(keyService2);
         if (version[0] != 3 || version[1] != 0 || version[2] != 1) return "The currently active version for service2 should new be 3.0.1";
         // switch back to the old version
-        registry.setActiveVersion(keyService2, [2,4,0]);
-        ( , version) = registry.getArtifact(keyService2);
+        artifactsRegistry.setActiveVersion(keyService2, [2,4,0]);
+        ( , version) = artifactsRegistry.getArtifact(keyService2);
         if (version[0] != 2 || version[1] != 4 || version[2] != 0) return "The currently active version for service2 should've been switched back to 2.4.0";
 
         return "success";

@@ -6,7 +6,7 @@ pragma solidity ^0.4.25;
  * It serves as the single point of entry to all administrative functions.
  * Doug is a marmot that lives in Connecticut. We have named our smart contract kernel after this marmot.
  */
-interface DOUG {
+contract DOUG {
     
     /**
      * @dev Registers the contract with the given address under the specified ID and performs a deployment
@@ -18,6 +18,16 @@ interface DOUG {
      */
     function deploy(string _id, address _address) external returns (bool success);
 
+	/**
+     * @dev Attempts to register the contract with the given address under the specified ID and version
+     * and performs a deployment procedure which involves dependency injection and upgrades from previously
+     * deployed contracts with the same ID.
+     * @param _id the ID under which to register the contract
+     * @param _address the address of the contract
+     * @return true if successful, false otherwise
+	 */
+    function deployVersion(string _id, address _address, uint8[3] _version) public returns (bool success);
+
     /**
      * @dev Registers the contract with the given address under the specified ID.
      * @param _id the ID under which to register the contract
@@ -27,10 +37,25 @@ interface DOUG {
     function register(string _id, address _address) external returns (uint8[3] version);
 
     /**
+     * @dev Registers the contract with the given address under the specified ID and version.
+     * @param _id the ID under which to register the contract
+     * @param _address the address of the contract
+	 * @return version - the version under which the contract was registered.
+     */
+    function registerVersion(string _id, address _address, uint8[3] _version) public returns (uint8[3] version);
+
+    /**
      * @dev Returns the address of a contract registered under the given ID.
      * @param _id the ID under which the contract is registered
      * @return the contract's address
      */
     function lookup(string _id) external view returns (address contractAddress);
+
+    /**
+     * @dev Returns the address of the specified version of a contract registered under the given ID.
+     * @param _id the ID under which the contract is registered
+     * @return the contract's address of 0x0 if the given ID and version cannot be found.
+     */
+    function lookupVersion(string _id, uint8[3] _version) external view returns (address contractAddress);
 
 }

@@ -74,15 +74,27 @@ jobs:
     instance: DougTest
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
-- name: testServiceDeployment
+- name: testRegistration
   call:
     destination: $DougTest
     bin: DougTest
-    function: testServiceDeployment
+    function: testRegistration
 
-- name: assertServiceDeployment
+- name: assertRegistration
   assert:
-    key: $testServiceDeployment
+    key: $testRegistration
+    relation: eq
+    val: success
+
+- name: testDeployment
+  call:
+    destination: $DougTest
+    bin: DougTest
+    function: testDeployment
+
+- name: assertDeployment
+  assert:
+    key: $testDeployment
     relation: eq
     val: success
 

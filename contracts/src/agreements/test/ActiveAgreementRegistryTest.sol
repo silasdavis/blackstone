@@ -71,6 +71,7 @@ contract ActiveAgreementRegistryTest {
 		require(AbstractDbUpgradeable(archetypeRegistry).acceptDatabase(archRegistryDb), "ArchetypeRegistryDb not set");
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 		artifactsRegistry.registerArtifact(serviceIdArchetypeRegistry, archetypeRegistry, archetypeRegistry.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(archetypeRegistry.OBJECT_CLASS_ARCHETYPE(), address(defaultArchetypeImpl), defaultArchetypeImpl.getArtifactVersion(), true);
 		ArtifactsFinderEnabled(archetypeRegistry).setArtifactsFinder(artifactsRegistry);

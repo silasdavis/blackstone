@@ -131,6 +131,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 		artifactsRegistry.registerArtifact(serviceIdBpmService, address(bpmService), bpmService.getArtifactVersion(), true);
 		artifactsRegistry.registerArtifact(serviceIdArchetypeRegistry, address(archetypeRegistry), archetypeRegistry.getArtifactVersion(), true);
 		artifactsRegistry.registerArtifact(serviceIdModelRepository, address(processModelRepository), processModelRepository.getArtifactVersion(), true);

@@ -41,7 +41,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
      */
     function registerArtifact(string _artifactId, address _artifactAddress, uint8[3] _version, bool _activeVersion)
         external
-        // pre_onlyBySystemOwner
+        pre_onlyBySystemOwner
     {
         ErrorsLib.revertIf(bytes(_artifactId).length == 0 || _artifactAddress == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArtifactsRegistry.registerArtifact", "_artifactId and _artifactAddress must not be empty");
@@ -53,7 +53,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
             artifactIds.push(_artifactId);
             artifacts[_artifactId].exists = true;
         }
-        // if this version has not be registered before, register it. (if existingLocationForVersion is not 0x0, that means this exact same ID/location/version combination is already registered and we don't need to do anything)
+        // if existingLocationForVersion is not empty, that means this exact same ID/location/version combination is already registered and we don't need to do anything
         if (existingLocationForVersion == address(0)) {
             artifacts[_artifactId].locations[keccak256(abi.encodePacked(_version))] = _artifactAddress;
             artifacts[_artifactId].versions[_artifactAddress] = _version;
@@ -72,13 +72,13 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     /**
      * @dev Sets the specified artifact and version to be tracked as the active version.
      * REVERTS if:
-     * - the specified artifact ID and version don't exist in this ArtificactsRegistry
+     * - the specified artifact ID and version don't exist in this ArtifactsRegistry
      * @param _artifactId the ID of the artifact
      * @param _version the semantic version of the artifact
      */
     function setActiveVersion(string _artifactId, uint8[3] _version)
         external
-        // pre_onlyBySystemOwner
+        pre_onlyBySystemOwner
     {
         address current = artifacts[_artifactId].locations[keccak256(abi.encodePacked(_version))];
         ErrorsLib.revertIf(current == address(0),
@@ -100,7 +100,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     }
 
     /**
-     * @dev See ArtifactsFinder.getArtifact(string)
+     * @dev Implements ArtifactsFinder.getArtifact(string)
      */
     function getArtifact(string _artifactId) external view returns (address location, uint8[3] version) {
         location = artifacts[_artifactId].activeVersion;
@@ -108,7 +108,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     }
 
     /**
-     * @dev See ArtifactsFinder.getArtifactByVersion(string,uint8[3])
+     * @dev Implements ArtifactsFinder.getArtifactByVersion(string,uint8[3])
      */
     function getArtifactByVersion(string _artifactId, uint8[3] _version) external view returns (address location) {
         location = artifacts[_artifactId].locations[keccak256(abi.encodePacked(_version))];

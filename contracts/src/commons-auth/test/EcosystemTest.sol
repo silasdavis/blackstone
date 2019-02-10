@@ -21,6 +21,7 @@ contract EcosystemTest {
 	constructor () public {
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 	}
 
 	/**

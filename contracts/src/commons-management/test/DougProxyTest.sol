@@ -40,6 +40,8 @@ contract DougProxyTest {
         if (artifactsRegistry.getNumberOfArtifacts() != currentSize+2) return "ArtifactsRegistry size should be +2 after adding service via DOUG proxy";
         if (DOUG(proxy).lookup("agreements-network/services/ProxyDelegateTest1") != address(s1)) return "service should be retrievable via the DOUG proxy";
 
+        // TODO test upgrades of Doug and ArtifactsRegistry itself
+        
         return SUCCESS;
     }
 

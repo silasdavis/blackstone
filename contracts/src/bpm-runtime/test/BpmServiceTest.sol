@@ -6,29 +6,23 @@ import "commons-utils/ArrayUtilsAPI.sol";
 import "commons-utils/TypeUtilsAPI.sol";
 import "commons-collections/AbstractDataStorage.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
-import "commons-management/ArtifactsRegistry.sol";
 import "commons-management/DefaultArtifactsRegistry.sol";
-import "commons-auth/ParticipantsManager.sol";
-import "commons-auth/DefaultParticipantsManager.sol";
 import "commons-auth/DefaultOrganization.sol";
-import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
 import "bpm-model/ProcessModelRepository.sol";
-import "bpm-model/ProcessModelRepositoryDb.sol";
-import "bpm-model/DefaultProcessModelRepository.sol";
-import "bpm-model/ProcessModel.sol";
-import "bpm-model/ProcessDefinition.sol";
+// import "bpm-model/ProcessModelRepositoryDb.sol";
+// import "bpm-model/DefaultProcessModelRepository.sol";
+import "bpm-model/DefaultProcessModel.sol";
 import "bpm-model/DefaultProcessDefinition.sol";
 
 import "bpm-runtime/BpmRuntime.sol";
 import "bpm-runtime/BpmRuntimeLib.sol";
 import "bpm-runtime/BpmServiceDb.sol";
 import "bpm-runtime/DefaultBpmService.sol";
-import "bpm-runtime/ProcessInstance.sol";
 import "bpm-runtime/DefaultProcessInstance.sol";
 import "bpm-runtime/ApplicationRegistry.sol";
-import "bpm-runtime/ApplicationRegistryDb.sol";
-import "bpm-runtime/DefaultApplicationRegistry.sol"; 
+// import "bpm-runtime/ApplicationRegistryDb.sol";
+// import "bpm-runtime/DefaultApplicationRegistry.sol"; 
 import "bpm-runtime/Application.sol";
 import "bpm-runtime/TransitionConditionResolver.sol";
 
@@ -99,19 +93,24 @@ contract BpmServiceTest {
 	/**
 	 * @dev Constructor for the test creates the dependencies that the BpmService needs
 	 */
-	constructor () public {
-		// ProcessModelRegistry
-		ProcessModelRepositoryDb modelDb = new ProcessModelRepositoryDb();
-		processModelRepository = new DefaultProcessModelRepository();
-		modelDb.transferSystemOwnership(processModelRepository);
-		require(AbstractDbUpgradeable(processModelRepository).acceptDatabase(modelDb), "ProcessModelRepositoryDb not set");
-		// ApplicatonRegistry
-		ApplicationRegistryDb appDb = new ApplicationRegistryDb();
-		applicationRegistry = new DefaultApplicationRegistry();
-		appDb.transferSystemOwnership(applicationRegistry);
-		require(AbstractDbUpgradeable(applicationRegistry).acceptDatabase(appDb), "ApplicationRegistryDb not set");
+	constructor (ProcessModelRepository _processModelRepository, ApplicationRegistry _applicationRegistry) public {
+		// // ProcessModelRegistry
+		// ProcessModelRepositoryDb modelDb = new ProcessModelRepositoryDb();
+		// processModelRepository = new DefaultProcessModelRepository();
+		// modelDb.transferSystemOwnership(processModelRepository);
+		// require(AbstractDbUpgradeable(processModelRepository).acceptDatabase(modelDb), "ProcessModelRepositoryDb not set");
+		processModelRepository = _processModelRepository;
+
+		// // ApplicatonRegistry
+		// ApplicationRegistryDb appDb = new ApplicationRegistryDb();
+		// applicationRegistry = new DefaultApplicationRegistry();
+		// appDb.transferSystemOwnership(applicationRegistry);
+		// require(AbstractDbUpgradeable(applicationRegistry).acceptDatabase(appDb), "ApplicationRegistryDb not set");
+		applicationRegistry = _applicationRegistry;
+
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 		artifactsRegistry.registerArtifact(serviceIdModelRepository, processModelRepository, processModelRepository.getArtifactVersion(), true);
 		artifactsRegistry.registerArtifact(serviceIdApplicationRegistry, applicationRegistry, applicationRegistry.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_MODEL(), address(defaultProcessModelImpl), defaultProcessModelImpl.getArtifactVersion(), true);
