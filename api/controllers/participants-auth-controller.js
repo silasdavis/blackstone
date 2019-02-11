@@ -4,7 +4,7 @@ const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const boom = require('boom');
 
-const { asyncMiddleware } = require(`${global.__common}/controller-dependencies`);
+const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.auth');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
@@ -60,7 +60,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
     });
     let msg;
     const webAppName = process.env.WEBAPP_NAME;
-    const webAppURL = process.env.WEBAPP_URL;
+    const webAppURL = prependHttps(process.env.WEBAPP_URL);
     const webAppEmail = process.env.WEBAPP_EMAIL;
     sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
     if (rows[0]) {

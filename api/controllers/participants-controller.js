@@ -14,6 +14,7 @@ const {
   getNamesOfOrganizations,
   asyncMiddleware,
   getSHA256Hash,
+  prependHttps,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
@@ -344,7 +345,7 @@ const registrationHandler = asyncMiddleware(async ({ body }, res) => {
       result.email,
       process.env.WEBAPP_EMAIL,
       process.env.WEBAPP_NAME,
-      process.env.API_URL,
+      prependHttps(process.env.API_URL),
       result.activationCode,
     );
   }
