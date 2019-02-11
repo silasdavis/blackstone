@@ -356,6 +356,15 @@ const dependencies = {
 
   getSHA256Hash: data => crypto.createHash('sha256').update(data).digest('hex'),
 
+  prependHttps: (host) => {
+    if (!String(host).startsWith('http')) {
+      // eslint-disable-next-line no-param-reassign
+      host = process.env.MONAX_ENV === 'local' ? `http://${host}` : `https://${host}`;
+      return host;
+    }
+    return host;
+  },
+
 };
 
 module.exports = dependencies;
