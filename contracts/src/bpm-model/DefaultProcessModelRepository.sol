@@ -43,7 +43,7 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 		ProcessModel(modelAddress).initialize(_id, _name, _version, _author, _isPrivate, _modelFileReference);
 		error = ProcessModelRepositoryDb(database).addModel(_id, _version, modelAddress);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
-			ErrorsLib.INVALID_STATE(), "DefaultProcessModelRepository.createProcessModel", "Unable to add the new ProcessModel to the DB contract");
+			ErrorsLib.INVALID_INPUT(), "DefaultProcessModelRepository.createProcessModel", "Unable to add the new ProcessModel to the DB contract due to invalid input");
 		// if there is no active model for this ID namespace, yet, then this one becomes the active one by default
 		if (!ProcessModelRepositoryDb(database).modelIsActive(_id)) {
 			ProcessModelRepositoryDb(database).registerActiveModel(_id, modelAddress);
