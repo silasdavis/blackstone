@@ -737,6 +737,7 @@ const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUse
     })
     .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
+
 const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate, modelFileReference) => new Promise((resolve, reject) => {
   log.trace(`Creating process model with following data: ${JSON.stringify({
     modelId, modelName, modelVersion, author, isPrivate, modelFileReference,
@@ -745,22 +746,14 @@ const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate,
   const modelNameHex = global.stringToHex(modelName);
   appManager
     .contracts['ProcessModelRepository']
-    .factory.createProcessModel(modelIdHex, modelNameHex, modelVersion, author,
-      isPrivate, modelFileReference, (error, data) => {
-        if (error || !data.raw) {
-          return reject(boom
-            .badImplementation(`Failed to create process model ${modelName} with id ${modelId}: ${error}`));
-        }
-        if (parseInt(data.raw[0], 10) === 1002) {
-          return reject(boom.badRequest(`Model with id ${modelId} already exists`));
-        }
-        if (parseInt(data.raw[0], 10) !== 1) {
-          return reject(boom
-            .badImplementation(`Error code creating model ${modelName} with id ${modelId}: ${data.raw[0]}`));
-        }
-        log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
-        return resolve(data.raw[1]);
-      });
+    .factory.createProcessModel(modelIdHex, modelNameHex, modelVersion, author, isPrivate, modelFileReference)
+    .then((data) => {
+      log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
+      return resolve(data.raw[1]);
+    })
+    .catch((err) => {
+      reject(boomify(err, `Failed to create process model ${modelName} with id ${modelId}`));
+    });
 });
 
 const addDataDefinitionToModel = (pmAddress, dataStoreField) => new Promise((resolve, reject) => {
