@@ -677,7 +677,7 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
 const createDepartment = (organizationAddress, { id, name }, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Creating department ID %s with name %s in organization %s', id, name, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addDepartment.encode(id, name);
+  const payload = organization.addDepartment.encode(global.stringToHex(id), name);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addDepartment.decode(returnData);
@@ -693,7 +693,7 @@ const createDepartment = (organizationAddress, { id, name }, actingUserAddress) 
 const removeDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing department %s from organization %s', id, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeDepartment.encode(id);
+  const payload = organization.removeDepartment.encode(global.stringToHex(id));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeDepartment.decode(returnData);
@@ -709,7 +709,7 @@ const removeDepartment = (organizationAddress, id, actingUserAddress) => new Pro
 const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to department ID in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addUserToDepartment.encode(userAddress, depId);
+  const payload = organization.addUserToDepartment.encode(userAddress, global.stringToHex(depId));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addUserToDepartment.decode(returnData);
@@ -725,7 +725,7 @@ const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAd
 const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing user %s from department ID %s in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeUserFromDepartment.encode(userAddress, depId);
+  const payload = organization.removeUserFromDepartment.encode(userAddress, global.stringToHex(depId));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeUserFromDepartment.decode(returnData);
@@ -927,6 +927,7 @@ const createTransition = (processAddress, sourceGraphElement, targetGraphElement
 const setDefaultTransition = (processAddress, gatewayId, activityId) => new Promise((resolve, reject) => {
   log.trace(`Setting default transition with data: ${JSON.stringify({ processAddress, gatewayId, activityId })}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  // TODO gatewayId and activityId is not being hexed here
   processDefinition.setDefaultTransition(gatewayId, activityId, (error) => {
     if (error) {
       return reject(boom
@@ -967,6 +968,7 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
   } else {
     formattedValue = value;
   }
+  // TODO gatewayId and activityId are not hexed here
   createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, formattedValue, (error) => {
     if (error) {
       return reject(boom.badImplementation('Failed to add transition condition for gateway id ' +
@@ -1013,6 +1015,7 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     let payload;
     if (dataMappingId) {
       log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
+      // TODO dataMappingId not hexed here
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
           payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
@@ -1148,6 +1151,7 @@ const getProcessInstanceForActivity = activityInstanceId => new Promise((resolve
 });
 
 const getDataMappingKeys = (processDefinition, activityId, direction) => new Promise((resolve, reject) => {
+  // TODO activityId needs to be hexed
   const countPromise = direction === global.__monax_constants.DIRECTION.IN ?
     processDefinition.getInDataMappingKeys : processDefinition.getOutDataMappingKeys;
   countPromise(activityId, (err, data) => {
@@ -1167,6 +1171,7 @@ const getDataMappingDetails = (processDefinition, activityId, dataMappingIds, di
   dataMappingIds.forEach((id) => {
     const getter = direction === global.__monax_constants.DIRECTION.IN ?
       processDefinition.getInDataMappingDetails : processDefinition.getOutDataMappingDetails;
+    // TODO dataMappingId and activityId not hexed here
     dataPromises.push(getter(activityId, id));
   });
   Promise.all(dataPromises)
@@ -1179,6 +1184,7 @@ const getDataMappingDetailsForActivity = async (pdAddress, activityId, dataMappi
   log.trace(`Fetching ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
   try {
+    // TODO passed dataMappingIds[] and activityId need to be hexed ?
     const keys = dataMappingIds || (await getDataMappingKeys(processDefinition, activityId, direction));
     const details = await getDataMappingDetails(processDefinition, activityId, keys, direction);
     log.info(`Retrieved ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
