@@ -1,7 +1,9 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/DataTypes.sol";
+import "commons-management/ArtifactsRegistry.sol";
+import "commons-management/DefaultArtifactsRegistry.sol";
 
 import "bpm-model/DefaultProcessModel.sol";
 import "bpm-model/DefaultProcessDefinition.sol";
@@ -15,25 +17,30 @@ contract ProcessModelTest {
 	address participant1Address = 0x776FDe59876aAB7D654D656e654Ed9876574c54c;
 	address author = 0x9d7fDE63776AaB9E234d656E654ED9876574C54C;
 	string modelName = "Test Model";
+	string dummyModelFileReference = "{json grant string}";
 
 	bytes32 EMPTY = "";
+
+	ProcessDefinition defaultProcessDefinitionImpl = new DefaultProcessDefinition();
 
 	function testProcessModel() external returns (string) {
 		
 		uint error;
 		address newAddress;
 
-		ProcessModel pm = new DefaultProcessModel("testModel", "Test Model", [1,2,3], author, false, "hoardAddress", "hoardSecret");
+		ProcessModel pm = new DefaultProcessModel();
+		ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
+		artifactsRegistry.registerArtifact(pm.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
+
+		pm.initialize("testModel", "Test Model", [1,2,3], author, false, dummyModelFileReference);
 		if (pm.getId() != "testModel") return "ProcessModel ID not set correctly";
 		if (bytes(pm.getName()).length != bytes(modelName).length) return "ProcessModel Name not set correctly";
 		if (pm.getAuthor() != author) return "ProcessModel Author not set correctly";
 		if (pm.isPrivate() != false) return "ProcessModel expected to be public";
-		if (pm.major() != 1 || pm.minor() != 2 || pm.patch() != 3) return "ProcessModel Version not set correctly";
-		bytes32 location;
-		bytes32 secret;
-		(location, secret) = pm.getDiagram();
-		if (location != "hoardAddress") return "wrong hoard location retrieved";
-		if (secret != "hoardSecret") return "wrong hoard secret retrieved";
+		if (pm.getVersionMajor() != 1 || pm.getVersionMinor() != 2 || pm.getVersionPatch() != 3) return "ProcessModel Version not set correctly";
+		string memory modelFileRef = pm.getModelFileReference();
+		if (keccak256(abi.encodePacked(modelFileRef)) != keccak256(abi.encodePacked(dummyModelFileReference))) return "model file reference should match";
 
 		// data definitions
 		if (pm.getNumberOfDataDefinitions() != 0) return "There should not be any data definitions in the model after creation";
@@ -49,8 +56,7 @@ contract ProcessModelTest {
 		if (key != keccak256(abi.encodePacked(bytes32("agreement"),bytes32("Hash")))) return "Hashed key for Hash data definition should match";
 		if (paramType != uint(DataTypes.ParameterType.BYTES32)) return "Parameter type for Hash data definition should be Bytes32";
 
-		(error, newAddress) = pm.createProcessDefinition("p1");
-		if (error != BaseErrors.NO_ERROR()) return "Unexpected error creating ProcessDefinition p1";
+		newAddress = pm.createProcessDefinition("p1", artifactsRegistry);
 		ProcessDefinition pd = ProcessDefinition(newAddress);
 		
 		if (pm.getProcessDefinition("p1") != address(pd)) return "Returned ProcessDefinition address does not match.";

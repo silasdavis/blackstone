@@ -15,49 +15,49 @@ jobs:
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [ErrorsLib]
 
 - name: TypeUtils
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [TypeUtils]
 
 - name: ArrayUtils
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [ArrayUtils]
 
 - name: MappingsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [MappingsLib]
 
 - name: BpmModelLib
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [BpmModelLib]
 
 - name: BpmRuntimeLib
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [BpmRuntimeLib]
 
 - name: DataStorageUtils
   query-contract:
     destination: $DOUG
     bin: DOUG
-    function: lookupContract
+    function: lookup
     data: [DataStorageUtils]
 
 #####
@@ -104,8 +104,8 @@ jobs:
   call:
     destination: $DOUG
     bin: DOUG
-    function: deployContract
-    data: [ProcessModelRepository, $ProcessModelRepository]
+    function: deploy
+    data: ["ProcessModelRepository", $ProcessModelRepository]
 
 - name: AssertProcessModelRepository
   assert:
@@ -157,8 +157,8 @@ jobs:
   call:
     destination: $DOUG
     bin: DOUG
-    function: deployContract
-    data: [ApplicationRegistry, $ApplicationRegistry]
+    function: deploy
+    data: ["ApplicationRegistry", $ApplicationRegistry]
 
 - name: AssertApplicationRegistry
   assert:
@@ -173,6 +173,7 @@ jobs:
   deploy:
     contract: bpm-runtime/DefaultBpmService.sol
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+    data: ["ProcessModelRepository", "ApplicationRegistry"]
 
 - name: BpmServiceDb
   deploy:
@@ -210,8 +211,8 @@ jobs:
   call:
     destination: $DOUG
     bin: DOUG
-    function: deployContract
-    data: [BpmService, $BpmService]
+    function: deploy
+    data: ["BpmService", $BpmService]
 
 - name: AssertBpmService
   assert:
@@ -242,3 +243,61 @@ jobs:
     key: $GetApplicationRegistryFromBpmService
     relation: eq
     val: $ApplicationRegistry
+
+#####
+# Register object classes
+#####
+
+- name: DefaultProcessModelImplementation
+  deploy:
+    contract: DefaultProcessModel.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+
+- name: ObjectClassProcessModel
+  query-contract:
+    destination: $ProcessModelRepository
+    bin: ProcessModelRepository
+    function: OBJECT_CLASS_PROCESS_MODEL
+
+- name: RegisterProcessModelObjectClass
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: register
+    data: [$ObjectClassProcessModel, $DefaultProcessModelImplementation]
+
+- name: DefaultProcessDefinitionImplementation
+  deploy:
+    contract: DefaultProcessDefinition.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: ObjectClassProcessDefinition
+  query-contract:
+    destination: $ProcessModelRepository
+    bin: ProcessModelRepository
+    function: OBJECT_CLASS_PROCESS_DEFINITION
+
+- name: RegisterProcessDefinitionObjectClass
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: register
+    data: [$ObjectClassProcessDefinition, $DefaultProcessDefinitionImplementation]
+
+- name: DefaultProcessInstanceImplementation
+  deploy:
+    contract: DefaultProcessInstance.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+
+- name: ObjectClassProcessInstance
+  query-contract:
+    destination: $BpmService
+    bin: BpmService
+    function: OBJECT_CLASS_PROCESS_INSTANCE
+
+- name: RegisterProcessInstanceObjectClass
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: register
+    data: [$ObjectClassProcessInstance, $DefaultProcessInstanceImplementation]

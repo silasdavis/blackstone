@@ -4,6 +4,9 @@ var dbm;
 var type;
 var seed;
 
+const fs = require('fs');
+const path = require('path');
+
 /**
   * We receive the dbmigrate dependency from dbmigrate initially.
   * This enables us to not have to rely on NODE_PATH.
@@ -15,15 +18,12 @@ exports.setup = function(options, seedLink) {
 };
 
 exports.up = async function(db) {
-  await db.addColumn('users', 'external_user', {
-    type: 'boolean',
-    notNull: true,
-    defaultValue: false,
-  });
+  const tablesSql = fs.readFileSync(path.resolve(__dirname, 'scripts/create-customers-tables.sql'), 'utf8');
+  await db.runSql(tablesSql);
 };
 
-exports.down = async function(db) {
-  return db.removeColumn('users', 'external_user');
+exports.down = function (db) {
+  return null;
 };
 
 exports._meta = {

@@ -7,23 +7,23 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsImpl
+- name: TypeUtilsAPI
   deploy:
     contract: TypeUtilsImpl.bin
 
-- name: ArrayUtilsImpl
+- name: ArrayUtilsAPI
   deploy:
     contract: ArrayUtilsImpl.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl
+    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
 
 - name: DataStorageUtils
   deploy:
     contract: DataStorageUtils.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsImpl
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsAPI
 
 - name: BpmModelLib
   deploy:
@@ -38,7 +38,7 @@ jobs:
   deploy:
     contract: bpm-runtime/BpmRuntimeLib.sol
     instance: BpmRuntimeLib
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 ##########
 # Service Upgradeability Tests
@@ -85,16 +85,16 @@ jobs:
 ##########
 # BPM Tests
 
-# SETUP
-- name: ProcessModelRepositoryDb
-  deploy:
-    contract: ProcessModelRepositoryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib
-
+# START temporary external setup of services needed for the BpmServiceTest to avoid the binary footprint of the test contract to get too large
 - name: ProcessModelRepository
   deploy:
     contract: DefaultProcessModelRepository.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+
+- name: ProcessModelRepositoryDb
+  deploy:
+    contract: ProcessModelRepositoryDb.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
 
 - name: ChangeRepositoryDbOwnership
   call:
@@ -116,16 +116,14 @@ jobs:
     relation: eq
     val: "true"
 
-- name: ApplicationRegistryDb
-  deploy:
-    contract: ApplicationRegistryDb.bin
-    instance: ApplicationRegistryDb
-    libraries: ErrorsLib:$ErrorsLib
-
 - name: ApplicationRegistry
   deploy:
     contract: DefaultApplicationRegistry.bin
-    instance: DefaultApplicationRegistry
+    libraries: ErrorsLib:$ErrorsLib
+
+- name: ApplicationRegistryDb
+  deploy:
+    contract: ApplicationRegistryDb.bin
     libraries: ErrorsLib:$ErrorsLib
 
 - name: ChangeAppRegistryDbOwnership
@@ -135,39 +133,26 @@ jobs:
     function: transferSystemOwnership
     data: [$ApplicationRegistry]
 
-- name: SetAppRegistryDb
+- name: SetApplicationRegistryDb
   call:
     destination: $ApplicationRegistry
     bin: DefaultApplicationRegistry
     function: acceptDatabase
     data: [$ApplicationRegistryDb]
 
-- name: AssertAppRegistryDb
+- name: AssertApplicationRegistryDb
   assert:
-    key: $SetAppRegistryDb
+    key: $SetApplicationRegistryDb
     relation: eq
     val: "true"
+# STOP temporary external set of services
 
-# TESTS
 - name: BpmServiceTest
   deploy:
     contract: BpmServiceTest.bin
     instance: BpmServiceTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
-
-- name: setAppRegistry
-  call:
-    destination: $BpmServiceTest
-    bin: BpmServiceTest
-    function: setApplicationRegistry
-    data: [$ApplicationRegistry]
-
-- name: setProcessModelRepository
-  call:
-    destination: $BpmServiceTest
-    bin: BpmServiceTest
-    function: setProcessModelRepository
-    data: [$ProcessModelRepository]
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+    data: [$ProcessModelRepository, $ApplicationRegistry]
 
 - name: testProcessGraphSequential
   call:

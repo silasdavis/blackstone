@@ -192,8 +192,8 @@ const load = () => new Promise((resolve, reject) => {
 }).then(() => new Promise(async (resolve, reject) => {
   // Lastly, ensure Ecosystem setup
   // Resolve the Ecosystem address for this ContractsManager
-  if (global.__settings.monax.ecosystem) {
-    const ecosystemName = global.__settings.monax.ecosystem;
+  if (global.__settings.identity_provider) {
+    const ecosystemName = global.__settings.identity_provider;
     log.info(`Validating if Ecosystem ${ecosystemName} is in NameReg`);
     try {
       appManager.ecosystemAddress = await getFromNameRegistry(ecosystemName);
@@ -381,10 +381,10 @@ const addArchetypeParameters = (address, parameters) => new Promise((resolve, re
     });
 });
 
-const addArchetypeDocument = (address, name, hoardAddress, secretKey) => new Promise((resolve, reject) => {
+const addArchetypeDocument = (address, name, fileReference) => new Promise((resolve, reject) => {
   appManager
     .contracts['ArchetypeRegistry']
-    .factory.addDocument(address, name, hoardAddress, secretKey, (error, data) => {
+    .factory.addDocument(address, name, fileReference, (error, data) => {
       if (error || !data.raw) {
         return reject(boom.badImplementation(`Failed to add document to archetype at ${address}: ${error}`));
       }
@@ -396,10 +396,10 @@ const addArchetypeDocument = (address, name, hoardAddress, secretKey) => new Pro
     });
 });
 
-const addArchetypeDocuments = async (address, documents) => {
-  log.trace(`Adding archetype documents to archetype at ${address}: ${JSON.stringify(documents)}`);
-  const resolvedDocs = await Promise.all(documents.map(async (doc) => {
-    const result = await addArchetypeDocument(address, doc.name, doc.hoardAddress, doc.secretKey);
+const addArchetypeDocuments = async (archetypeAddress, documents) => {
+  log.trace(`Adding archetype documents to archetype at ${archetypeAddress}: ${JSON.stringify(documents)}`);
+  const resolvedDocs = await Promise.all(documents.map(async ({ name, address, secretKey }) => {
+    const result = await addArchetypeDocument(archetypeAddress, name, JSON.stringify({ address, secretKey }));
     return result;
   }));
   return resolvedDocs;
@@ -506,8 +506,7 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
     archetype,
     name,
     creator,
-    hoardAddress,
-    hoardSecret,
+    privateParametersFileReference,
     parties,
     collectionId,
     governingAgreements,
@@ -516,7 +515,7 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreement(archetype, name, creator, hoardAddress, hoardSecret, isPrivate,
+    .factory.createAgreement(archetype, name, creator, privateParametersFileReference, isPrivate,
       parties, collectionId, governingAgreements, (error, data) => {
         if (error || !data.raw) {
           return reject(boomify(error, `Failed to create agreement ${agreement.name} from archetype at ${agreement.archetype}`));
@@ -562,7 +561,7 @@ const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((res
   log.trace(`Updating event log hoard reference for agreement at ${agreementAddress} with new hoard reference ${JSON.stringify(hoardRef)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.setEventLogReference(agreementAddress, hoardRef.address, hoardRef.secretKey, (error) => {
+    .factory.setEventLogReference(agreementAddress, hoardRef, (error) => {
       if (error) {
         return reject(boom.badImplementation(`Failed to update event log for agreement at ${agreementAddress}: ${error}`));
       }
@@ -678,7 +677,7 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
 const createDepartment = (organizationAddress, { id, name }, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Creating department ID %s with name %s in organization %s', id, name, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addDepartment.encode(id, name);
+  const payload = organization.addDepartment.encode(global.stringToHex(id), name);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addDepartment.decode(returnData);
@@ -694,7 +693,7 @@ const createDepartment = (organizationAddress, { id, name }, actingUserAddress) 
 const removeDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing department %s from organization %s', id, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeDepartment.encode(id);
+  const payload = organization.removeDepartment.encode(global.stringToHex(id));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeDepartment.decode(returnData);
@@ -710,7 +709,7 @@ const removeDepartment = (organizationAddress, id, actingUserAddress) => new Pro
 const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to department ID in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addUserToDepartment.encode(userAddress, depId);
+  const payload = organization.addUserToDepartment.encode(userAddress, global.stringToHex(depId));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addUserToDepartment.decode(returnData);
@@ -726,7 +725,7 @@ const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAd
 const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing user %s from department ID %s in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeUserFromDepartment.encode(userAddress, depId);
+  const payload = organization.removeUserFromDepartment.encode(userAddress, global.stringToHex(depId));
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeUserFromDepartment.decode(returnData);
@@ -739,30 +738,22 @@ const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUse
     .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate, hoardAddress, hoardSecret) => new Promise((resolve, reject) => {
+const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate, modelFileReference) => new Promise((resolve, reject) => {
   log.trace(`Creating process model with following data: ${JSON.stringify({
-    modelId, modelName, modelVersion, author, isPrivate, hoardAddress, hoardSecret,
+    modelId, modelName, modelVersion, author, isPrivate, modelFileReference,
   })}`);
   const modelIdHex = global.stringToHex(modelId);
   const modelNameHex = global.stringToHex(modelName);
   appManager
     .contracts['ProcessModelRepository']
-    .factory.createProcessModel(modelIdHex, modelNameHex, modelVersion, author,
-      isPrivate, hoardAddress, hoardSecret, (error, data) => {
-        if (error || !data.raw) {
-          return reject(boom
-            .badImplementation(`Failed to create process model ${modelName} with id ${modelId}: ${error}`));
-        }
-        if (parseInt(data.raw[0], 10) === 1002) {
-          return reject(boom.badRequest(`Model with id ${modelId} already exists`));
-        }
-        if (parseInt(data.raw[0], 10) !== 1) {
-          return reject(boom
-            .badImplementation(`Error code creating model ${modelName} with id ${modelId}: ${data.raw[0]}`));
-        }
-        log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
-        return resolve(data.raw[1]);
-      });
+    .factory.createProcessModel(modelIdHex, modelNameHex, modelVersion, author, isPrivate, modelFileReference)
+    .then((data) => {
+      log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
+      return resolve(data.raw[1]);
+    })
+    .catch((err) => {
+      reject(boomify(err, `Failed to create process model ${modelName} with id ${modelId}`));
+    });
 });
 
 const addDataDefinitionToModel = (pmAddress, dataStoreField) => new Promise((resolve, reject) => {
@@ -827,21 +818,18 @@ const addParticipant = (pmAddress, participantId, accountAddress, dataPath, data
 });
 
 const createProcessDefinition = (modelAddress, processDefnId) => new Promise((resolve, reject) => {
-  const processModel = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_MODEL, modelAddress);
   log.trace(`Creating process definition with Id ${processDefnId} for process model ${modelAddress}`);
   const processDefnIdHex = global.stringToHex(processDefnId);
-  processModel.createProcessDefinition(processDefnIdHex, (error, data) => {
-    if (error || !data.raw) {
-      return reject(boom
-        .badImplementation(`Failed to create process definition ${processDefnId} in model at ${modelAddress}: ${error}`));
-    }
-    if (parseInt(data.raw[0], 10) !== 1) {
-      return reject(boom
-        .badImplementation(`Error code creating process definition ${processDefnId} in model at ${modelAddress}: ${data.raw[0]}`));
-    }
-    log.info(`Process definition ${processDefnId} in model at ${modelAddress} created at ${data.raw[1]}`);
-    return resolve(data.raw[1]);
-  });
+  appManager
+    .contracts['ProcessModelRepository']
+    .factory.createProcessDefinition(modelAddress, processDefnIdHex, (error, data) => {
+      if (error || !data.raw) {
+        return reject(boom
+          .badImplementation(`Failed to create process definition ${processDefnId} in model at ${modelAddress}: ${error}`));
+      }
+      log.info(`Process definition ${processDefnId} in model at ${modelAddress} created at ${data.raw[0]}`);
+      return resolve(data.raw[0]);
+    });
 });
 
 const addProcessInterfaceImplementation = (pmAddress, pdAddress, interfaceId) => new Promise((resolve, reject) => {
@@ -939,6 +927,7 @@ const createTransition = (processAddress, sourceGraphElement, targetGraphElement
 const setDefaultTransition = (processAddress, gatewayId, activityId) => new Promise((resolve, reject) => {
   log.trace(`Setting default transition with data: ${JSON.stringify({ processAddress, gatewayId, activityId })}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  // TODO gatewayId and activityId is not being hexed here
   processDefinition.setDefaultTransition(gatewayId, activityId, (error) => {
     if (error) {
       return reject(boom
@@ -979,6 +968,7 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
   } else {
     formattedValue = value;
   }
+  // TODO gatewayId and activityId are not hexed here
   createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, formattedValue, (error) => {
     if (error) {
       return reject(boom.badImplementation('Failed to add transition condition for gateway id ' +
@@ -1025,6 +1015,7 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     let payload;
     if (dataMappingId) {
       log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
+      // TODO dataMappingId not hexed here
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
           payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
@@ -1160,6 +1151,7 @@ const getProcessInstanceForActivity = activityInstanceId => new Promise((resolve
 });
 
 const getDataMappingKeys = (processDefinition, activityId, direction) => new Promise((resolve, reject) => {
+  // TODO activityId needs to be hexed
   const countPromise = direction === global.__monax_constants.DIRECTION.IN ?
     processDefinition.getInDataMappingKeys : processDefinition.getOutDataMappingKeys;
   countPromise(activityId, (err, data) => {
@@ -1179,6 +1171,7 @@ const getDataMappingDetails = (processDefinition, activityId, dataMappingIds, di
   dataMappingIds.forEach((id) => {
     const getter = direction === global.__monax_constants.DIRECTION.IN ?
       processDefinition.getInDataMappingDetails : processDefinition.getOutDataMappingDetails;
+    // TODO dataMappingId and activityId not hexed here
     dataPromises.push(getter(activityId, id));
   });
   Promise.all(dataPromises)
@@ -1191,6 +1184,7 @@ const getDataMappingDetailsForActivity = async (pdAddress, activityId, dataMappi
   log.trace(`Fetching ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
   try {
+    // TODO passed dataMappingIds[] and activityId need to be hexed ?
     const keys = dataMappingIds || (await getDataMappingKeys(processDefinition, activityId, direction));
     const details = await getDataMappingDetails(processDefinition, activityId, keys, direction);
     log.info(`Retrieved ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);

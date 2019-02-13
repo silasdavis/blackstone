@@ -197,49 +197,8 @@ jobs:
 #####
 # ActiveAgreementWorkflowTest
 ########################################################################
-- name: DOUG
-  deploy:
-    contract: TestDoug.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
-# Create all dependent services for this test and register in DOUG
-- name: ApplicationRegistry
-  deploy:
-    contract: DefaultApplicationRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib
-
-- name: ApplicationRegistryDb
-  deploy:
-    contract: ApplicationRegistryDb.bin
-    libraries: ErrorsLib:$ErrorsLib
-
-- name: ChangeAppRegistryDbOwnership
-  call:
-    destination: $ApplicationRegistryDb
-    bin: ApplicationRegistryDb
-    function: transferSystemOwnership
-    data: [$ApplicationRegistry]
-
-- name: SetAppRegistryDb
-  call:
-    destination: $ApplicationRegistry
-    bin: DefaultApplicationRegistry
-    function: acceptDatabase
-    data: [$ApplicationRegistryDb]
-
-- name: AssertAppRegistryDb
-  assert:
-    key: $SetAppRegistryDb
-    relation: eq
-    val: "true"
-
-- name: DeployApplicationRegistry
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: deployContract
-    data: [ApplicationRegistry, $ApplicationRegistry]
-
+# START temporary external setup of services needed for the ActiveAgreementWorkflowTest to avoid the binary footprint of the test contract to get too large
 - name: ArchetypeRegistry
   deploy:
     contract: DefaultArchetypeRegistry.bin
@@ -270,145 +229,43 @@ jobs:
     relation: eq
     val: "true"
 
-- name: DeployArchetypeRegistry
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: deployContract
-    data: [ArchetypeRegistry, $ArchetypeRegistry]
-
-- name: ParticipantsManager
+- name: ApplicationRegistry
   deploy:
-    contract: DefaultParticipantsManager.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib
+    contract: DefaultApplicationRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib
 
-- name: ParticipantsManagerDb
+- name: ApplicationRegistryDb
   deploy:
-    contract: ParticipantsManagerDb.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    contract: ApplicationRegistryDb.bin
+    libraries: ErrorsLib:$ErrorsLib
 
-- name: ChangeParticipantsManagerDbOwnership
+- name: ChangeAppRegistryDbOwnership
   call:
-    destination: $ParticipantsManagerDb
-    bin: ParticipantsManagerDb
+    destination: $ApplicationRegistryDb
+    bin: ApplicationRegistryDb
     function: transferSystemOwnership
-    data: [$ParticipantsManager]
+    data: [$ApplicationRegistry]
 
-- name: SetParticipantsManagerDb
+- name: SetApplicationRegistryDb
   call:
-    destination: $ParticipantsManager
-    bin: DefaultParticipantsManager
+    destination: $ApplicationRegistry
+    bin: DefaultApplicationRegistry
     function: acceptDatabase
-    data: [$ParticipantsManagerDb]
+    data: [$ApplicationRegistryDb]
 
-- name: AssertParticipantsManagerDb
+- name: AssertApplicationRegistryDb
   assert:
-    key: $SetParticipantsManagerDb
+    key: $SetApplicationRegistryDb
     relation: eq
     val: "true"
+# STOP temporary external set of services
 
-- name: DeployParticipantsManager
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: deployContract
-    data: [ParticipantsManager, $ParticipantsManager]
-
-- name: ProcessModelRepositoryDb
-  deploy:
-    contract: ProcessModelRepositoryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
-
-- name: ProcessModelRepository
-  deploy: 
-    contract: DefaultProcessModelRepository.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
-
-- name: ChangeRepositoryDbOwnership
-  call:
-    destination: $ProcessModelRepositoryDb
-    bin: ProcessModelRepositoryDb
-    function: transferSystemOwnership
-    data: [$ProcessModelRepository]
-
-- name: SetRepositoryDb
-  call:
-    destination: $ProcessModelRepository
-    bin: DefaultProcessModelRepository
-    function: acceptDatabase
-    data: [$ProcessModelRepositoryDb]
-
-- name: AssertRepositoryDb
-  assert:
-    key: $SetRepositoryDb
-    relation: eq
-    val: "true"
-
-- name: DeployProcessModelRepository
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: deployContract
-    data: [ProcessModelRepository, $ProcessModelRepository]
-
-- name: BpmService
-  deploy:
-    contract: bpm-runtime/DefaultBpmService.sol
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
-
-- name: BpmServiceDb
-  deploy:
-    contract: bpm-runtime/BpmServiceDb.sol
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
-
-- name: ChangeBpmServiceDbOwnership
-  call:
-    destination: $BpmServiceDb
-    bin: BpmServiceDb
-    function: transferSystemOwnership
-    data: [$BpmService]
-
-- name: SetBpmServiceDb
-  call:
-    destination: $BpmService
-    bin: DefaultBpmService
-    function: acceptDatabase
-    data: [$BpmServiceDb]
-
-- name: AssertBpmServiceDb
-  assert:
-    key: $SetBpmServiceDb
-    relation: eq
-    val: "true"
-
-- name: DeployBpmService
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: deployContract
-    data: [BpmService, $BpmService]
-
-# TESTS
 - name: ActiveAgreementWorkflowTest
   deploy:
     contract: ActiveAgreementWorkflowTest.bin
     instance: ActiveAgreementWorkflowTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, , BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
-
-# IMPORTANT: Surrender TestDoug's system ownership to the test contract in order to deploy application contracts from within the test
-- name: ChangeTestDougSystemOwnership
-  call:
-    destination: $DOUG
-    bin: TestDoug
-    function: transferSystemOwnership
-    data: [$ActiveAgreementWorkflowTest]
-
-- name: setDougInTest
-  call:
-    destination: $ActiveAgreementWorkflowTest
-    bin: ActiveAgreementWorkflowTest
-    function: setDoug
-    data: [$DOUG]
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    data: [$ArchetypeRegistry, $ApplicationRegistry]
 
 - name: testAddressScopeTransfer
   call:

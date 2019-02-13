@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
@@ -55,10 +55,6 @@ contract ParticipantsManagerDb is SystemOwned {
 
   function getNumberOfOrganizations() external view returns (uint) {
     return organizations.keys.length;
-  }
-
-  function getOrganization(address _address) external view returns (bool) {
-    return organizations.get(_address);
   }
 
   function getOrganizationAtIndex(uint _index) external view returns (address) {

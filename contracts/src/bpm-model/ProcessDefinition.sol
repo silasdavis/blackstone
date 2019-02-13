@@ -1,6 +1,7 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/Bytes32Identifiable.sol";
+import "commons-management/VersionedArtifact.sol";
 
 import "bpm-model/BpmModel.sol";
 import "bpm-model/ProcessModel.sol";
@@ -10,7 +11,16 @@ import "bpm-model/ProcessModel.sol";
  * @dev A ProcessDefinition provides the canvas to define activities and the sequence and logic of processing them in order.
  * A ProcessDefinition can also declare to implement a number of ProcessInterfaces.
  */
-contract ProcessDefinition is Bytes32Identifiable {
+contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
+
+	event LogProcessDefinitionCreation(
+		bytes32 indexed eventId,
+		address processDefinitionAddress,
+		bytes32 id,
+		bytes32 interfaceId,
+		bytes32 modelId,
+		address modelAddress
+	);
 
 	event LogProcessDefinitionInterfaceIdUpdate(
 		bytes32 indexed eventId,
@@ -20,24 +30,24 @@ contract ProcessDefinition is Bytes32Identifiable {
 
 	event LogActivityDefinitionCreation(
 		bytes32 indexed eventId,
-		address model_address,
-		address process_definition_address,
-		bytes32 activity_id,
-		uint8 activity_type,
-		uint8 task_type,
-		uint8 task_behavior,
-		bytes32 participant_id,
-		bool multi_instance,
+		address modelAddress,
+		address processDefinitionAddress,
+		bytes32 activityId,
+		uint8 activityType,
+		uint8 taskType,
+		uint8 taskBehavior,
+		bytes32 participantId,
+		bool multiInstance,
 		bytes32 application,
-		bytes32 sub_process_model_id,
-		bytes32 sub_process_definition_id
+		bytes32 subProcessModelId,
+		bytes32 subProcessDefinitionId
 	);
 
 	event LogDataMappingCreation(
 		bytes32 indexed eventId,
 		address processDefinitionAddress,
 		bytes32 activityId,
-    bytes32 dataMappingId,
+    	bytes32 dataMappingId,
 		bytes32 dataPath,
 		bytes32 dataStorageId,
 		address dataStorage,
@@ -47,6 +57,16 @@ contract ProcessDefinition is Bytes32Identifiable {
 	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
 	bytes32 public constant EVENT_ID_ACTIVITY_DEFINITIONS = "AN://activity-definitions";
 	bytes32 public constant EVENT_ID_DATA_MAPPINGS = "AN://data-mappings";
+
+	/**
+	 * @dev Initializes this DefaultOrganization with the specified ID and belonging to the given model. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+	 * REVERTS if
+	 * - the _model is an empty address or if the ID is empty
+	 * @param _id the ProcessDefinition ID
+	 * @param _model the address of a ProcessModel in which this ProcessDefinition is created
+	 */
+	function initialize(bytes32 _id, address _model) external;
 
 	/**
 	 * @dev Creates a new activity definition with the specified parameters.

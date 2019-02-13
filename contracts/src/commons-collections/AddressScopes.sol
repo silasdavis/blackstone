@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-collections/DataStorage.sol";
 
@@ -8,6 +8,19 @@ import "commons-collections/DataStorage.sol";
  * is meant to be used in conjunction with DataStorage contracts since conditional scopes can be resolved at runtime with the help of a DataStorage.
  */
 contract AddressScopes {
+
+	event LogEntityAddressScopeUpdate(
+		bytes32 indexed eventId,
+		address entityAddress,
+		address scopeAddress,
+		bytes32 scopeContext,
+		bytes32 fixedScope,
+		bytes32 dataPath,
+		bytes32 dataStorageId,
+		address dataStorage
+	);
+
+	bytes32 public constant EVENT_ID_ENTITIES_ADDRESS_SCOPES = "AN://entities/address-scopes";
 
 	/**
 	 * @dev Associates the given address with a scope qualifier for a given context.
@@ -20,7 +33,7 @@ contract AddressScopes {
 	 * @param _dataStorageId the dataStorageId of a ConditionalData defining the scope
 	 * @param _dataStorage the dataStorgage address of a ConditionalData defining the scope
 	 */
-	function setAddressScope(address _address, bytes32 _context, bytes32 _fixedScope, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage) external;
+	function setAddressScope(address _address, bytes32 _context, bytes32 _fixedScope, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage) public;
 
 	/**
 	 * @dev Returns the scope for the given address and context. If the scope depends on a ConditionalData, the function should attempt

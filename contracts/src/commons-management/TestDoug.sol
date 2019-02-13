@@ -1,18 +1,21 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-management/DOUG.sol";
-import "commons-management/DefaultContractManager.sol";
-import "commons-management/ContractManagerDb.sol";
+import "commons-management/ArtifactsRegistry.sol";
+import "commons-management/DefaultArtifactsRegistry.sol";
 import "commons-management/Upgradeable.sol";
 
 /**
  * @title TestDoug
  * @dev DOUG implementation to be used in testing scenarios.
  */
-contract TestDoug is DOUG, DefaultContractManager {
+contract TestDoug is DOUG {
+
+	ArtifactsRegistry artifactsRegistry;
 
 	constructor() public {
-		database = new ContractManagerDb();
+		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 	}
 
 	/**
@@ -21,9 +24,13 @@ contract TestDoug is DOUG, DefaultContractManager {
 	 * @param _address the contract address
 	 * @return always true
 	 */
-    function deployContract(string _id, address _address) external returns (bool success) {
-		addContract(_id, _address);
+    function deploy(string _id, address _address) external returns (bool success) {
+		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 		success = true;
+	}
+
+    function register(string _id, address _address) external returns (uint8[3]) {
+		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 	}
 
 	/**
@@ -31,8 +38,8 @@ contract TestDoug is DOUG, DefaultContractManager {
 	 * @param _id the key to use for lookup
 	 * @return the contract address or 0x0
 	 */
-    function lookupContract(string _id) external view returns (address contractAddress) {
-		contractAddress = ContractManagerDb(database).getContract(_id);
+    function lookup(string _id) external view returns (address contractAddress) {
+		(contractAddress, ) = artifactsRegistry.getArtifact(_id);
 	}
 
 }

@@ -7,7 +7,7 @@ const {
 const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
 
 const runQuery = (pool, queryString, values = []) => pool
   .connect()
@@ -21,8 +21,8 @@ const runQuery = (pool, queryString, values = []) => pool
     throw boom.badImplementation(err);
   }));
 
-const runAppDbQuery = (queryString, values = []) => runQuery(appPool, queryString, values);
-const runChainDbQuery = (queryString, values = []) => runQuery(chainPool, queryString, values);
+const runAppDbQuery = (queryString, values = []) => runQuery(app_db_pool, queryString, values);
+const runChainDbQuery = (queryString, values = []) => runQuery(chain_db_pool, queryString, values);
 
 const getOrganizations = (queryParams) => {
   const queryString = 'SELECT o.organization_address AS address, encode(o.organization_id::bytea, \'hex\') as "organizationKey", oa.approver_address as approver ' +
@@ -211,8 +211,8 @@ const getArchetypeJurisdictions = (archetypeAddress) => {
 };
 
 const getArchetypeDocuments = (archetypeAddress) => {
-  const queryString = 'SELECT document_key AS name, encode(hoard_address::bytea, \'hex\') as "hoardAddress", ' +
-    'encode(secret_key:: bytea, \'hex\') as "secretKey" FROM archetype_documents WHERE archetype_address = $1';
+  const queryString = `SELECT document_key AS name, document_reference AS "fileReference"
+    FROM archetype_documents WHERE archetype_address = $1;`;
   return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get documents for archetype: ${err}`); });
 };
@@ -282,11 +282,9 @@ const currentUserAgreements = userAccount => `(
       ap.party IN (SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}')
     )
   ) `;
-
 const getAgreements = (queryParams, forCurrentUser, userAccount) => {
   const queryString = 'SELECT DISTINCT(a.agreement_address) as address, a.archetype_address as archetype, a.name, a.creator, ' +
-    'encode(a.hoard_address::bytea, \'hex\') as "hoardAddress", encode(a.hoard_secret::bytea, \'hex\') as "hoardSecret", ' +
-    'encode(a.event_log_hoard_address::bytea, \'hex\') as "eventLogHoardAddress", encode(a.event_log_hoard_secret::bytea, \'hex\') as "eventLogHoardSecret", ' +
+    'a.event_log_file_reference AS "eventLogFileReference", ' +
     'a.max_event_count::integer as "maxNumberOfEvents", a.is_private as "isPrivate", a.legal_state as "legalState", ' +
     'a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance", ' +
     '(SELECT count(ap.agreement_address) FROM agreement_to_party ap WHERE a.agreement_address = ap.agreement_address)::integer AS "numberOfParties" ' +
@@ -301,8 +299,7 @@ const getAgreements = (queryParams, forCurrentUser, userAccount) => {
 
 const getAgreementData = (agreementAddress, userAccount) => {
   const queryString = 'SELECT a.agreement_address as address, a.archetype_address as archetype, a.name, a.creator, ' +
-    'encode(a.hoard_address::bytea, \'hex\') as "hoardAddress", encode(a.hoard_secret::bytea, \'hex\') as "hoardSecret", ' +
-    'encode(a.event_log_hoard_address::bytea, \'hex\') as "eventLogHoardAddress", encode(a.event_log_hoard_secret::bytea, \'hex\') as "eventLogHoardSecret", ' +
+    'a.event_log_file_reference as "eventLogFileReference", ' +
     'a.max_event_count::integer as "maxNumberOfEvents", a.is_private as "isPrivate", a.legal_state as "legalState", ' +
     'a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance", ' +
     'UPPER(encode(ac.collection_id::bytea, \'hex\')) as "collectionId", arch.formation_process_definition as "formationProcessDefinition", arch.execution_process_definition as "executionProcessDefinition" ' +
@@ -316,7 +313,7 @@ const getAgreementData = (agreementAddress, userAccount) => {
 };
 
 const getAgreementParties = (agreementAddress) => {
-  const queryString = 'SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp", parties.signed_by as "signedBy", encode(user_accounts.id::bytea, \'hex\') as id ' +
+  const queryString = 'SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp", parties.signed_by as "signedBy", user_accounts.user_account_address ' +
     'FROM agreement_to_party parties ' +
     'LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address WHERE parties.agreement_address = $1;';
   return runChainDbQuery(queryString, [agreementAddress])
@@ -325,7 +322,7 @@ const getAgreementParties = (agreementAddress) => {
         let users = [];
         let organizations = [];
         data.forEach((_party) => {
-          if (_party.id) users.push(_party);
+          if (_party.user_account_address) users.push(_party);
           else organizations.push(_party);
         });
         users = await setUserIds(users);
@@ -348,7 +345,7 @@ const getGoverningAgreements = (agreementAddress) => {
 
 const getAgreementEventLogDetails = (agreementAddress) => {
   const queryString = 'SELECT ' +
-    'encode(a.event_log_hoard_address:: bytea, \'hex\') as "eventLogHoardAddress", encode(a.event_log_hoard_secret::bytea, \'hex\') as "eventLogHoardSecret", ' +
+    'a.event_log_file_reference as "eventLogFileReference", ' +
     'a.max_event_count::integer as "maxNumberOfEvents" FROM agreements a WHERE agreement_address = $1;';
   return runChainDbQuery(queryString, [agreementAddress])
     .then((data) => {
@@ -404,7 +401,7 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     'pm.id as "modelId",  ' +
     'pd.id as "processDefinitionId",  ' +
     'pd.process_definition_address as "processDefinitionAddress",  ' +
-    'pdat.address_value as "agreementAddress",  ' +
+    'ds.address_value as "agreementAddress",  ' +
     'agr.name as "agreementName",  ' +
     'ad.task_type as "taskType"  ' +
     'FROM activity_instances ai  ' +
@@ -412,11 +409,11 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     'JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address ' +
     'JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address ' +
     'JOIN process_models pm ON pm.model_address = pd.model_address ' +
-    'LEFT JOIN process_data pdat ON ai.process_instance_address = pdat.process_instance_address ' +
-    'LEFT JOIN agreements agr ON agr.agreement_address = pdat.address_value ' +
-    'WHERE pdat.data_id = \'agreement\'' + // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
+    'LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address ' +
+    'LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value ' +
+    'WHERE ds.data_id = \'agreement\'' + // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
     `${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}` +
-    `${(agreementAddress ? ` AND pdat.address_value = '${agreementAddress}';` : ';')}`;
+    `${(agreementAddress ? ` AND ds.address_value = '${agreementAddress}';` : ';')}`;
   return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
@@ -424,20 +421,20 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
 const getActivityInstanceData = (id, userAddress) => {
   const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress", UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId", ai.created, ai.performer, ai.completed, ad.task_type as "taskType", ad.application as application,
       pd.model_address as "modelAddress", pm.id as "modelId", pd.id as "processDefinitionId", pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
-      pdat.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName", encode(scopes.fixed_scope, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey" 
+      ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName", encode(scopes.fixed_scope, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey" 
     FROM activity_instances ai
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address
     JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address
     JOIN process_models pm ON pm.model_address = pd.model_address
-    LEFT JOIN process_data pdat ON ai.process_instance_address = pdat.process_instance_address
-    LEFT JOIN agreements agr ON agr.agreement_address = pdat.address_value
+    LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address
+    LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value
     LEFT JOIN applications app ON app.application_id = ad.application
     LEFT JOIN organization_accounts o ON o.organization_address = ai.performer 
-    LEFT JOIN process_instance_address_scopes scopes ON (
-      scopes.process_instance_address = pdat.process_instance_address 
-      AND scopes.key_address = ai.performer 
-      AND scopes.key_context = ai.activity_id
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = ds.storage_address 
+      AND scopes.scope_address = ai.performer 
+      AND scopes.scope_context = ai.activity_id
     )
     WHERE ai.activity_instance_id = $1
     AND (
@@ -463,7 +460,7 @@ const getActivityInstanceData = (id, userAddress) => {
         )
       )
     )
-    AND pdat.data_id = 'agreement'`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
+    AND ds.data_id = 'agreement'`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
   return runChainDbQuery(queryString, [`\\x${id}`, userAddress])
     .then((data) => {
       if (!data) throw boom.notFound(`Activity ${id} not found`);
@@ -490,19 +487,19 @@ const getTasksByUserAddress = (userAddress) => {
   // If we ever want to retrieve more process data (from other data objects in the process or flexibly retrieve data based on a future process configuration aka 'descriptors'), multiple queries will have to be used
   const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress", UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId", ai.created, ai.performer, 
     pd.model_address as "modelAddress", pd.process_definition_address as "processDefinitionAddress", pd.id as "processDefinitionId", 
-    agr.name as "agreementName", pm.id as "modelId", pdat.address_value as "agreementAddress", encode(scopes.fixed_scope::bytea, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey"
+    agr.name as "agreementName", pm.id as "modelId", ds.address_value as "agreementAddress", encode(scopes.fixed_scope::bytea, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey"
     FROM activity_instances ai
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address
     JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address
     JOIN process_models pm ON pm.model_address = pd.model_address
-    LEFT JOIN process_data pdat ON ai.process_instance_address = pdat.process_instance_address
-    LEFT JOIN agreements agr ON agr.agreement_address = pdat.address_value
+    LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address
+    LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value
     LEFT JOIN organization_accounts o ON o.organization_address = ai.performer
-    LEFT JOIN process_instance_address_scopes scopes ON (
-      scopes.process_instance_address = pdat.process_instance_address
-      AND scopes.key_address = ai.performer 
-      AND scopes.key_context = ai.activity_id
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = ds.storage_address
+      AND scopes.scope_address = ai.performer 
+      AND scopes.scope_context = ai.activity_id
     )
     WHERE ad.task_type = 1
     AND ai.state = 4
@@ -529,7 +526,7 @@ const getTasksByUserAddress = (userAddress) => {
         )
       )
     )
-    AND pdat.data_id = 'agreement';`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
+    AND ds.data_id = 'agreement';`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
   return runChainDbQuery(queryString, [userAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get tasks assigned to user: ${err}`); });
 };
@@ -537,8 +534,7 @@ const getTasksByUserAddress = (userAddress) => {
 const getModels = (author) => {
   const queryString = 'SELECT model_address as "modelAddress", ' +
     'id, name, author, is_private as "isPrivate", active, ' +
-    'encode(diagram_address:: bytea, \'hex\') as "diagramAddress", ' +
-    'encode(diagram_secret::bytea, \'hex\') as "diagramSecret", ' +
+    'model_file_reference as "modelFileReference",' +
     'CAST(version_major AS INTEGER) AS "versionMajor", ' +
     'CAST(version_minor AS INTEGER) AS "versionMinor", ' +
     'CAST(version_patch AS INTEGER) AS "versionPatch" ' +
@@ -568,9 +564,9 @@ const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
     pmd.data_id = COALESCE(NULLIF(dm.data_storage_id, ''), 'PROCESS_INSTANCE') AND
     pmd.data_path = dm.data_path
   )
-  LEFT JOIN process_instance_address_scopes scopes ON (
-    ai.process_instance_address = scopes.process_instance_address AND 
-    ai.activity_id = scopes.key_context AND
+  LEFT JOIN entities_address_scopes scopes ON (
+    ai.process_instance_address = scopes.entity_address AND 
+    ai.activity_id = scopes.scope_context AND
     pmd.data_id = COALESCE(NULLIF(scopes.data_storage_id, ''), 'PROCESS_INSTANCE') AND
     pmd.data_path = scopes.data_path
   )
@@ -581,7 +577,7 @@ const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
 };
 
 const getProcessDefinitions = (author, { interfaceId, processDefinitionId, modelId }) => {
-  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId", encode(pm.diagram_address::bytea, \'hex\') as "diagramAddress", encode(pm.diagram_secret::bytea, \'hex\') as "diagramSecret", pm.is_private as "isPrivate", pm.author ' +
+  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId", pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author ' +
     'FROM process_definitions pd JOIN process_models pm ' +
     'ON pd.model_address = pm.model_address ' +
     'WHERE (pm.is_private = $1 OR pm.author = $2) ' +
@@ -594,7 +590,7 @@ const getProcessDefinitions = (author, { interfaceId, processDefinitionId, model
 };
 
 const getProcessDefinitionData = (address) => {
-  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", encode(pm.diagram_address::bytea, \'hex\') as "diagramAddress", encode(pm.diagram_secret::bytea, \'hex\') as "diagramSecret", pm.is_private as "isPrivate", pm.author, pm.id as "modelId" ' +
+  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author, pm.id as "modelId" ' +
     'FROM process_definitions pd JOIN process_models pm ' +
     'ON pd.model_address = pm.model_address WHERE pd.process_definition_address = $1;';
   return runChainDbQuery(queryString, [address])
@@ -602,7 +598,7 @@ const getProcessDefinitionData = (address) => {
 };
 
 const getProcessModelData = (address) => {
-  const queryString = 'SELECT model_address as "modelAddress", id, name, author, is_private as "isPrivate", active, encode(diagram_address::bytea, \'hex\') as "diagramAddress", encode(diagram_secret::bytea, \'hex\') as "diagramSecret", version_major as "versionMajor", version_minor as "versionMinor", version_patch as "versionPatch" FROM process_models pm ' +
+  const queryString = 'SELECT model_address as "modelAddress", id, name, author, is_private as "isPrivate", active, model_file_reference as "modelFileReference", version_major as "versionMajor", version_minor as "versionMinor", version_patch as "versionPatch" FROM process_models pm ' +
     'WHERE pm.model_address = $1;';
   return runChainDbQuery(queryString, [address])
     .catch((err) => { throw boom.badImplementation(`Failed to get process model: ${err}`); });

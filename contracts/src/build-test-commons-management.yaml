@@ -17,23 +17,24 @@ jobs:
   - name: UpgradeableTest
     build:
       contract: commons-management/test/UpgradeableTest.sol
-      instance: all
-  - name: ContractManagerTest
+  - name: ArtifactsRegistryTest
     build:
-      contract: commons-management/test/ContractManagerTest.sol
-      instance: all
+      contract: commons-management/test/ArtifactsRegistryTest.sol
   - name: DougTest
     build:
       contract: commons-management/test/DougTest.sol
   - name: DougProxyTest
     build:
       contract: commons-management/test/DougProxyTest.sol
-  - name: ContractManagerDb
+  - name: ObjectProxyTest
     build:
-      contract: commons-management/ContractManagerDb.sol
-  - name: ContractManager
+      contract: commons-management/test/ObjectProxyTest.sol
+  - name: DefaultArtifactsRegistry
     build:
-      contract: commons-management/DefaultContractManager.sol
+      contract: commons-management/DefaultArtifactsRegistry.sol
+  - name: OwnedDelegateUnstructuredProxy
+    build:
+      contract: commons-management/OwnedDelegateUnstructuredProxy.sol
   - name: DOUG
     build:
       contract: commons-management/DefaultDoug.sol

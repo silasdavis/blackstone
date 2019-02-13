@@ -1,6 +1,7 @@
+identity_provider = "TEST_ECOSYSTEM" # for testing/demo only. This should be overwritten using the ENV var IDENTITY_PROVIDER
+
 [monax]
 DOUG = ""
-ecosystem = "TEST_ECOSYSTEM" # for testing/demo only. This should be overwritten using the ENV var MONAX_ECOSYSTEM
 hoard = "hoard:53431"
 analyticsID = "TEST"
 
@@ -33,6 +34,6 @@ name = "access_token"
 maxAge = 3600000 # milliseconds
 httpOnly = true
 
-[monax.pg]
-app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
-chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+# [monax.pg]
+# app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
+# chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"

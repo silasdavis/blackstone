@@ -1,8 +1,9 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/OwnerTransferable.sol";
 import "commons-collections/DataStorage.sol";
 import "commons-collections/AddressScopes.sol";
+import "commons-management/VersionedArtifact.sol";
 
 import "bpm-runtime/BpmService.sol";
 import "bpm-runtime/ProcessStateChangeEmitter.sol";
@@ -12,49 +13,32 @@ import "bpm-runtime/TransitionConditionResolver.sol";
  * @title ProcessInstance Interface
  * @dev Interface for a BPM container that represents a process instance providing a data context for activities and code participating in the process.
  */
-contract ProcessInstance is DataStorage, AddressScopes, OwnerTransferable, ProcessStateChangeEmitter, TransitionConditionResolver {
+contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, OwnerTransferable, ProcessStateChangeEmitter, TransitionConditionResolver {
 
-	event LogProcessDataBoolUpdate(
+	event LogProcessInstanceCreation(
 		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		bool bool_value
+		address processInstanceAddress,
+		address processDefinitionAddress,
+		uint8 state,
+		address startedBy
 	);
 
-	event LogProcessDataUintUpdate(
+	event LogProcessInstanceStateUpdate(
 		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		uint uint_value
+		address processInstanceAddress,
+		uint8 state
 	);
 
-	event LogProcessDataIntUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		int int_value
-	);
+	bytes32 public constant EVENT_ID_PROCESS_INSTANCES = "AN://process-instances";
 
-	event LogProcessDataBytes32Update(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		bytes32 bytes32_value
-	);
-
-	event LogProcessDataAddressUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		address address_value
-	);
-
-	event LogProcessDataStringUpdate(
-		bytes32 indexed eventId,
-		address process_instance_address,
-		bytes32 data_id,
-		string string_value
-	);
+    /**
+	 * @dev Initializes this ProcessInstance with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+     * @param _processDefinition the ProcessDefinition which this ProcessInstance should follow
+     * @param _startedBy (optional) account which initiated the transaction that started the process. If empty, the msg.sender is registered as having started the process
+     * @param _activityInstanceId the ID of a subprocess activity instance that initiated this ProcessInstance (optional)
+     */
+    function initialize(address _processDefinition, address _startedBy, bytes32 _activityInstanceId) external;
 
 	/**
 	 * @dev Initiates and populates the runtime graph that will handle the state of this ProcessInstance.
@@ -71,9 +55,8 @@ contract ProcessInstance is DataStorage, AddressScopes, OwnerTransferable, Proce
 
 	/**
 	 * @dev Aborts this ProcessInstance and halts any ongoing activities. After the abort the ProcessInstance cannot be resurrected.
-     * @param _service the BpmService to emit update events for ActivityInstances
 	 */
-	function abort(BpmService _service) external;
+	function abort() external;
 
 	/**
 	 * @dev Completes the specified activity

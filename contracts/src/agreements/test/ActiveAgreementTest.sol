@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-auth/DefaultOrganization.sol";
@@ -16,12 +16,8 @@ contract ActiveAgreementTest {
 	string constant EMPTY_STRING = "";
 	bytes32 constant EMPTY = "";
 
-	DefaultArchetype archetype;
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
-	bytes32 dummyHoardAddress = "hoardAddress";
-	bytes32 dummyHoardSecret = "hoardSecret";
-	bytes32 dummyEventLogHoardAddress = "eventLogHoardAddress";
-	bytes32 dummyEventLogHoardSecret = "eventLogHoardSecret";
+	string dummyPrivateParametersFileRef = "{json grant}";
 	uint maxNumberOfEvents = 5;
 	bytes32 DATA_FIELD_AGREEMENT_PARTIES = "AGREEMENT_PARTIES";
 
@@ -41,16 +37,21 @@ contract ActiveAgreementTest {
 
 		address result;
 		ActiveAgreement agreement;
-		signer1 = new DefaultUserAccount(this, address(0));
-		signer2 = new DefaultUserAccount(this, address(0));
+		Archetype archetype;
+		signer1 = new DefaultUserAccount();
+		signer1.initialize(this, address(0));
+		signer2 = new DefaultUserAccount();
+		signer2.initialize(this, address(0));
 
 		// set up the parties.
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(signer2));
 
-		archetype = new DefaultArchetype(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
-		agreement = new DefaultActiveAgreement(archetype, agreementName, this, dummyHoardAddress, dummyHoardSecret, false, parties, emptyArray);
+		archetype = new DefaultArchetype();
+		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		agreement = new DefaultActiveAgreement();
+		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setDataValueAsAddressArray(bogusId, bogusArray);
 
 		if (bytes(agreement.getName()).length != bytes(agreementName).length) return "Name not set correctly";
@@ -77,22 +78,28 @@ contract ActiveAgreementTest {
 	function testActiveAgreementSigning() external returns (string) {
 
 		bool success;
-	  ActiveAgreement agreement;
-		signer1 = new DefaultUserAccount(this, address(0));
-		signer2 = new DefaultUserAccount(this, address(0));
+	  	ActiveAgreement agreement;
+		Archetype archetype;
+		signer1 = new DefaultUserAccount();
+		signer1.initialize(this, address(0));
+		signer2 = new DefaultUserAccount();
+		signer2.initialize(this, address(0));
 
 		// set up the parties.
 		// Signer1 is a direct signer
 		// Signer 2 is signing on behalf of an organization (default department)
 		address[] memory emptyAddressArray;
-		DefaultOrganization org1 = new DefaultOrganization(emptyAddressArray, EMPTY_STRING);
+		Organization org1 = new DefaultOrganization();
+		org1.initialize(emptyAddressArray, EMPTY_STRING);
 		if (!org1.addUserToDepartment(signer2, EMPTY)) return "Unable to add user account to organization";
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(org1));
 
-		archetype = new DefaultArchetype(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
-		agreement = new DefaultActiveAgreement(archetype, agreementName, this, dummyHoardAddress, dummyHoardSecret, false, parties, emptyArray);
+		archetype = new DefaultArchetype();
+		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		agreement = new DefaultActiveAgreement();
+		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test signing
 		address signee;
@@ -136,17 +143,23 @@ contract ActiveAgreementTest {
 		bool success;
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
-		signer1 = new DefaultUserAccount(this, address(0));
-		signer2 = new DefaultUserAccount(this, address(0));
+		Archetype archetype;
+		signer1 = new DefaultUserAccount();
+		signer1.initialize(this, address(0));
+		signer2 = new DefaultUserAccount();
+		signer2.initialize(this, address(0));
 
 		// set up the parties.
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(signer2));
 
-		archetype = new DefaultArchetype(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
-		agreement1 = new DefaultActiveAgreement(archetype, "Agreement1", this, dummyHoardAddress, dummyHoardSecret, false, parties, emptyArray);
-		agreement2 = new DefaultActiveAgreement(archetype, "Agreement2", this, dummyHoardAddress, dummyHoardSecret, false, parties, emptyArray);
+		archetype = new DefaultArchetype();
+		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		agreement1 = new DefaultActiveAgreement();
+		agreement1.initialize(archetype, "Agreement1", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement2 = new DefaultActiveAgreement();
+		agreement2.initialize(archetype, "Agreement2", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
 		if (address(agreement1).call(bytes4(keccak256(abi.encodePacked("cancel()")))))

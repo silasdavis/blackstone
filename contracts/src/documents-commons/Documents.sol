@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 /**
  * @title Documents Library
@@ -8,9 +8,9 @@ library Documents {
 
 	// enum State {DRAFT, FINAL, EFFECTIVE, CANCELED}
 
-	struct HoardGrant {
-		bytes32 hoardAddress;
-		bytes32 secretKey;
+	struct DocumentReference {
+		string reference;
+		bool exists;
 	}
 
 	struct DocumentVersion {

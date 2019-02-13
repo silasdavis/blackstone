@@ -1,11 +1,13 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-events/AbstractEventListener.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
+import "commons-management/AbstractObjectFactory.sol";
+import "commons-management/ArtifactsFinderEnabled.sol";
+import "commons-management/ObjectProxy.sol";
 
 import "bpm-model/ProcessModel.sol";
 import "bpm-model/BpmModel.sol";
@@ -17,12 +19,11 @@ import "bpm-model/ProcessModelRepositoryDb.sol";
  * @title DefaultProcessModelRepository
  * @dev Default implementation of the ProcessModelRepository interface
  */
-contract DefaultProcessModelRepository is Versioned(1,1,0), AbstractEventListener, ProcessModelRepository, AbstractDbUpgradeable {
+contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ProcessModelRepository {
 	
-	string constant TABLE_PROCESS_MODELS = "PROCESS_MODELS";
-	string constant TABLE_PROCESS_DEFINITIONS = "PROCESS_DEFINITIONS";
-	string constant TABLE_ACTIVITY_DEFINITIONS = "ACTIVITY_DEFINITIONS";
-
+	/**
+	 * @dev Modifier to only allow calls to this ProcessModelRepository from a registered ProcessModel
+	 */
 	modifier onlyRegisteredModels() {
 		if (!ProcessModelRepositoryDb(database).modelIsRegistered(msg.sender)) return;
 		_;
@@ -35,78 +36,56 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), AbstractEventListene
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if the model is private
-	 * @param _hoardAddress the HOARD address of the model file
-	 * @param _hoardSecret the HOARD secret of the model file
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress) {
-		ProcessModel pm = new DefaultProcessModel(_id, _name, _version, _author, _isPrivate, _hoardAddress, _hoardSecret);
-		error = addModel(pm);
-		if (error != BaseErrors.NO_ERROR())
-			return (error, 0x0);
-		modelAddress = address(pm);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress) {
+		modelAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_PROCESS_MODEL);
+		ProcessModel(modelAddress).initialize(_id, _name, _version, _author, _isPrivate, _modelFileReference);
+		error = ProcessModelRepositoryDb(database).addModel(_id, _version, modelAddress);
+		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
+			ErrorsLib.INVALID_INPUT(), "DefaultProcessModelRepository.createProcessModel", "Unable to add the new ProcessModel to the DB contract due to invalid input");
+		// if there is no active model for this ID namespace, yet, then this one becomes the active one by default
+		if (!ProcessModelRepositoryDb(database).modelIsActive(_id)) {
+			ProcessModelRepositoryDb(database).registerActiveModel(_id, modelAddress);
+		}
 	}
 
 	/**
-	 * @dev Adds the given ProcessModel to this repository.
-	 * @param _model the ProcessModel to add
-	 * @return BaseErrors.RESOURCE_ALREADY_EXISTS() if a model with the same ID and version already exists
-	 * @return BaseErrors.NO_ERROR() when added successfully
+	 * @dev Creates a new process definition with the given parameters in the provided ProcessModel.
+	 * @param _processModelAddress the ProcessModel in which to create the ProcessDefinition
+	 * @param _processDefinitionId the process definition ID
+	 * @return newAddress - the address of the new ProcessDefinition when successful
 	 */
-	function addModel(ProcessModel _model) public returns (uint error) {
-		error = ProcessModelRepositoryDb(database).addModel(_model.getId(), _model.getVersion(), _model);
-		if ( error != BaseErrors.NO_ERROR()) return;
-		// if there is no active model for this ID namespace, yet, then this one becomes the active one by default
-		if (!ProcessModelRepositoryDb(database).modelIsActive(_model.getId())) {
-			ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), _model);
-		}
-		// TODO - Investigate why the emitEvent from DefaultProcessModel swallows the transmission 
-		// of new Process Model address. Bug: https://plan.monax.io/issue/AN-299
-		// Until it's sorted out we shall not use emitEvent as a way to trigger the ProcessModelRepo to push a sqlsol update.
-		// Instead the ProcessModelRepo will directly issue the push after a new model is created
-		_model.addEventListener("UPDATE_PROCESS_MODELS", this);
-		_model.addEventListener("UPDATE_PROCESS_DEFINITION", this);
-		_model.addEventListener("UPDATE_ACTIVITY_DEFINITION", this);
-		emit UpdateProcessModel(TABLE_PROCESS_MODELS, _model);
-		emitModelCreationEvent(_model);
+	function createProcessDefinition(address _processModelAddress, bytes32 _processDefinitionId) external returns (address newAddress) {
+		ErrorsLib.revertIf(_processModelAddress == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The ProcessModel address must not be empty");
+		ErrorsLib.revertIf(_processDefinitionId == "",
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The process definition ID address must not be empty");
+		newAddress = ProcessModel(_processModelAddress).createProcessDefinition(_processDefinitionId, artifactsFinder);
 	}
 
-	function emitModelCreationEvent(ProcessModel _model) internal {
-		bytes32 hoardAddress;
-		bytes32 hoardSecret;
-		(hoardAddress, hoardSecret) = _model.getDiagram();
-		emit LogProcessModelCreation(
-			EVENT_ID_PROCESS_MODELS,
-			address(_model),
-			_model.getId(),
-			_model.getName(),
-			_model.major(),
-			_model.minor(),
-			_model.patch(),
-			_model.getAuthor(),
-			_model.isPrivate(),
-			ProcessModelRepositoryDb(database).getActiveModel(_model.getId()) == address(_model),
-			hoardAddress,
-			hoardSecret
-		);
-	}
-	
 	/**
 	 * @dev Activates the given ProcessModel and deactivates any previously activated model version of the same ID
-	 * @param _model the ProcessModel to activate
-	 * @return BaseErrors.RESOURCE_NOT_FOUND() if the model ID and version is not registered in the repository
-	 * @return BaseErrors.INVALID_STATE() if the model lookup produces an empty address
-	 * @return BaseErrors.INVALID_STATE_CHANGE() if the model registered model with the same ID and version has a different address than the specified one
+	 * @param _model the ProcessModel to activate.
+	 * REVERTS if:
+	 * - the given ProcessModel ID and version are not registered in this ProcessModelRepository
+	 * - there is a registered model with the same ID and version, but the address differs from the given ProcessModel
+	 * - 
 	 */
 	function activateModel(ProcessModel _model) external returns (uint error) {
+		// check if there is an address registered for the model ID and version
 		address addr = ProcessModelRepositoryDb(database).getModel(_model.getId(), _model.getVersion());
-		if (addr == 0x0) return BaseErrors.INVALID_STATE();
-		if (addr != address(_model)) return BaseErrors.INVALID_STATE_CHANGE();
-		addr = ProcessModelRepositoryDb(database).getActiveModel(_model.getId()); // store previously activated model, if any
+		ErrorsLib.revertIf(addr == 0x0,
+			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultProcessModelRepository.activateModel", "No registered model found that matches the model ID and version");
+		ErrorsLib.revertIf(addr != address(_model),
+			ErrorsLib.INVALID_INPUT(), "DefaultProcessModelRepository.activateModel", "Another ProcessModel address is already registered with the same model ID and version");
+		// re-use the addr field to lookup a previously activated model with the same ID
+		addr = ProcessModelRepositoryDb(database).getActiveModel(_model.getId());
 		ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), _model);
-		emit UpdateProcessModel(TABLE_PROCESS_MODELS, _model);
+		emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(_model), true);
 		if (addr != 0x0 && addr != address(_model)) {
 			// previously activated model detected that should be updated
-			emit UpdateProcessModel(TABLE_PROCESS_MODELS, addr);
+			emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(addr), false);
 		}
 		return BaseErrors.NO_ERROR();
 	}
@@ -159,20 +138,19 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), AbstractEventListene
 	 * @return author - the model's author
 	 * @return isPrivate - indicates if model is private
 	 * @return active - whether the model is active
-	 * @return diagramAddress - the HOARD address of the model diagram file
-	 * @return diagramSecret - the HOARD secret of the model diagram file
+	 * @return modelFileReference - the external reference of the model file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret) {
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, string modelFileReference) {
 		ProcessModel m = DefaultProcessModel(_model);
 		id = m.getId();
 		name = m.getName();
-		versionMajor = m.major();
-		versionMinor = m.minor();
-		versionPatch = m.patch();
+		versionMajor = m.getVersionMajor();
+		versionMinor = m.getVersionMinor();
+		versionPatch = m.getVersionPatch();
 		author = m.getAuthor();
 		isPrivate = m.isPrivate();
 		active = ProcessModelRepositoryDb(database).getActiveModel(m.getId()) == _model;
-		(diagramAddress, diagramSecret) = m.getDiagram();
+		modelFileReference = m.getModelFileReference();
 	}
 
 	/**
@@ -258,34 +236,6 @@ contract DefaultProcessModelRepository is Versioned(1,1,0), AbstractEventListene
 	 */
 	function getActivityData(address, address _processDefinition, bytes32 _id) external view returns (uint8 activityType, uint8 taskType, uint8 taskBehavior, bytes32 assignee, bool multiInstance, bytes32 application, bytes32 subProcessModelId, bytes32 subProcessDefinitionId) {
 		return ProcessDefinition(_processDefinition).getActivityData(_id);
-	}
-
-	/**
-	 * @dev Overwrites AbstractEventListener.eventFired to receive UPDATE_PROCESS_MODEL 
-	 * and UPDATE_PROCESS_DEFINITION events from registered models.
-	 * @param _event the event name
-	 * @param _source the event source (process model)
-	 */
-	function eventFired(bytes32 _event, address _source) onlyRegisteredModels external {
-		if (_event == "UPDATE_PROCESS_MODEL") {
-			emit UpdateProcessModel(TABLE_PROCESS_MODELS, msg.sender);
-		}
-		else if (_event == "UPDATE_PROCESS_DEFINITION") {
-			emit UpdateProcessDefinition(TABLE_PROCESS_DEFINITIONS, msg.sender, _source);
-		}
-	}
-
-	/**
-	 * @dev Overwrites AbstractEventListener.eventFired to receive UPDATE_ACTIVITY_DEFINITION 
-	 * events from registered models.
-	 * @param _event the event name
-	 * @param _source the event source (process model)
-	 * @param _activityId the activityId
-	 */
-	function eventFired(bytes32 _event, address _source, bytes32 _activityId) onlyRegisteredModels external {
-		if (_event == "UPDATE_ACTIVITY_DEFINITION") {
-			emit UpdateActivityDefinition(TABLE_ACTIVITY_DEFINITIONS, msg.sender, _source, _activityId);
-		}
 	}
 
 }

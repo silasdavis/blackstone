@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/StorageDefOwner.sol";
@@ -37,6 +37,10 @@ contract Owned is StorageDefOwner, OwnerTransferable {
         }
     }
 
+    /**
+     * @dev Returns the owner of this contract
+     * @return the owner's address
+     */
     function getOwner() public view returns (address) {
         return owner;
     }

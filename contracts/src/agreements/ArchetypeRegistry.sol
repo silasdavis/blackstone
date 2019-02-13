@@ -1,5 +1,6 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
+import "commons-management/ObjectFactory.sol";
 import "commons-management/Upgradeable.sol";
 
 import "agreements/Archetype.sol";
@@ -9,108 +10,36 @@ import "agreements/Agreements.sol";
  * @title ArchetypeRegistry Interface
  * @dev A contract interface to create and manage Archetype objects.
  */
-contract ArchetypeRegistry is Upgradeable {
-
-  event UpdateArchetypes(string name, address key);
-  event UpdateArchetypeDocuments(string name, address key, bytes32 key2);
-  event UpdateArchetypeParameters(string name, address key1, bytes32 key2);
-	event UpdateArchetypeJurisdictions(string name, address key1, bytes32 key2);
-	event UpdateArchetypePackages(string name, bytes32 key1);
-	event UpdateArchetypePackageMap(string name, bytes32 key1, address key2);
-	event UpdateGoverningArchetypes(string name, address key1, address key2);
-
-	event LogArchetypeCreation(
-		bytes32 indexed eventId,
-		address archetype_address,
-		string name,
-		string description,
-		uint32 price,
-		address author,
-		bool active,
-		bool is_private,
-		address successor,
-		address formation_process_Definition,
-		address execution_process_Definition
-	);
-
-	event LogArchetypeSuccessorUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		address successor
-	);
-
-	event LogArchetypePriceUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		uint32 price
-	);
-
-	event LogArchetypeActive(
-		bytes32 indexed eventId,
-		address archetype_address,
-		bool active
-	);
+contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 
 	event LogArchetypePackageCreation(
 		bytes32 indexed eventId,
-		bytes32 package_id,
+		bytes32 packageId,
 		string name,
 		string description,
 		address author,
-		bool is_private,
+		bool isPrivate,
 		bool active
 	);
 
-	event LogArchetypePackageActive(
+	event LogArchetypePackageActivation(
 		bytes32 indexed eventId,
-		bytes32 package_id,
+		bytes32 packageId,
 		bool active
 	);
 
 	event LogArchetypeToPackageUpdate(
 		bytes32 indexed eventId,
-		bytes32 package_id,
-		address archetype_address,
-		string archetype_name
+		bytes32 packageId,
+		address archetypeAddress,
+		string archetypeName
 	);
 
-	event LogArchetypeParameterUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		bytes32 parameter_name,
-		uint8 parameter_type,
-		uint position		
-	);
-
-	event LogArchetypeDocumentUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		bytes32 document_key,
-		bytes32 hoard_address,
-		bytes32 secret_key
-	);
-
-	event LogArchetypeJurisdictionUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		bytes2 country,
-		bytes32 region
-	);
-
-	event LogGoverningArchetypeUpdate(
-		bytes32 indexed eventId,
-		address archetype_address,
-		address governing_archetype_address,
-		string governing_archetype_name
-	);
+    string public constant OBJECT_CLASS_ARCHETYPE = "agreements.Archetype";
 
 	bytes32 public constant EVENT_ID_ARCHETYPES = "AN://archetypes";
 	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGES = "AN://archetype-packages";
 	bytes32 public constant EVENT_ID_ARCHETYPE_PACKAGE_MAP = "AN://archetype-to-package";
-	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETERS = "AN://archetype/parameters";
-	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENTS = "AN://archetype/documents";
-	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetype/jurisdictions";
-	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
 
 	/**
 	 * @dev Creates a new archetype
@@ -250,16 +179,13 @@ contract ArchetypeRegistry is Upgradeable {
 	);
 
 	/**
-	 * @dev Adds Hoard document to the given Archetype
+	 * @dev Adds a file reference to the given Archetype
 	 * @param _archetype archetype
 	 * @param _name name
-	 * @param _hoardAddress hoard address
-	 * @param _secretKey secret key
+	 * @param _fileReference the external reference to the document
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.RESOURCE_NOT_FOUND() _archetype does not exist, or see DefaultArchetype
 	 */
-	// TODO: validate for empty params once Solidity is updated
-	// TODO: determine access (presumably only author should be able to call)
-	function addDocument(address _archetype, bytes32 _name, bytes32 _hoardAddress, bytes32 _secretKey) external returns (uint error);
+	function addDocument(address _archetype, string _name, string _fileReference) external returns (uint error);
 
 	/**
 	 * @dev Sets price of given archetype
@@ -362,16 +288,15 @@ contract ArchetypeRegistry is Upgradeable {
 		* @param _index index
 		* @return name name
 		*/
-	function getDocumentByArchetypeAtIndex(address _archetype, uint _index) external view returns (bytes32 name);
+	function getDocumentByArchetypeAtIndex(address _archetype, uint _index) external view returns (string name);
 
 	/**
 		* @dev Returns data about the document given the specified name
 		* @param _archetype archetype
-		* @param _name name
-		* @return hoardAddress hoard address
-		* @return secretKey secret key
+		* @param _name the document name
+		* @return fileReference - the document reference
 		*/
-	function getDocumentByArchetypeData(address _archetype, bytes32 _name) external view returns (bytes32 hoardAddress, bytes32 secretKey);
+	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string fileReference);
 
 	/**
 		* @dev Gets parameters size for given Archetype

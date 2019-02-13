@@ -1,7 +1,7 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
-import "commons-events/EventListener.sol";
 import "commons-management/Upgradeable.sol";
+import "commons-management/ObjectFactory.sol";
 
 import "bpm-model/ProcessModel.sol";
 import "bpm-model/BpmModel.sol";
@@ -10,28 +10,16 @@ import "bpm-model/BpmModel.sol";
  * @title ProcessModelRepository Interface
  * @dev Manages registered ProcessModel instances with their past and active versions.
  */
-contract ProcessModelRepository is EventListener, Upgradeable {
+contract ProcessModelRepository is ObjectFactory, Upgradeable {
 	
-	event UpdateProcessModel(string table, address model);
-	event UpdateProcessDefinition(string table, address model, address processDefinition);
-	event UpdateActivityDefinition(string table, address model, address processDefinition, bytes32 activityId);
-
-	event LogProcessModelCreation(
+	event LogProcessModelActivation(
 		bytes32 indexed eventId,
-		address model_address,
-		bytes32 id,
-		string name,
-		uint version_major,
-		uint version_minor,
-		uint version_patch,
-		address author,
-		bool is_private,
-		bool active,
-		bytes32 diagram_address,
-		bytes32 diagram_secret
+		address modelAddress,
+		bool active
 	);
 
-	bytes32 public constant EVENT_ID_PROCESS_MODELS = "AN://process-models";
+    string public constant OBJECT_CLASS_PROCESS_MODEL = "bpm.model.ProcessModel";
+    string public constant OBJECT_CLASS_PROCESS_DEFINITION = "bpm.model.ProcessDefinition";
 
 	/**
 	 * @dev Factory function to instantiate a ProcessModel. The model is automatically added to this repository.
@@ -40,18 +28,18 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if the model is private
-	 * @param _hoardAddress the HOARD address of the model file
-	 * @param _hoardSecret the HOARD secret of the model file
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret) external returns (uint error, address modelAddress);
+	function createProcessModel(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress);
 
 	/**
-	 * @dev Adds the given ProcessModel to this repository.
-	 * @param _model the ProcessModel to add
-	 * @return an error indicating success or failure
+	 * @dev Creates a new process definition with the given parameters in the provided ProcessModel.
+	 * @param _processModelAddress the ProcessModel in which to create the ProcessDefinition
+	 * @param _processDefinitionId the process definition ID
+	 * @return newAddress - the address of the new ProcessDefinition when successful
 	 */
-	function addModel(ProcessModel _model) public returns (uint error);
-	
+	function createProcessDefinition(address _processModelAddress, bytes32 _processDefinitionId) external returns (address newAddress);
+
 	/**
 	 * @dev Activates the given ProcessModel and deactivates any previously activated model version of the same ID
 	 * @param _model the ProcessModel to activate
@@ -98,10 +86,9 @@ contract ProcessModelRepository is EventListener, Upgradeable {
 	 * @return author - the model's author
 	 * @return isPrivate - indicates if model is private
 	 * @return active - whether the model is active
-	 * @return diagramAddress - the HOARD address of the model diagram file
-	 * @return diagramSecret - the HOARD secret of the model diagram file
+	 * @return modelFileReference - the external reference of the model file
 	 */
-	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, bytes32 diagramAddress, bytes32 diagramSecret);
+	function getModelData(address _model) external view returns (bytes32 id, string name, uint versionMajor, uint versionMinor, uint versionPatch, address author, bool isPrivate, bool active, string modelFileReference);
 
 	/**
 	 * @dev Returns the process definition address when the model ID and process definition ID are provided

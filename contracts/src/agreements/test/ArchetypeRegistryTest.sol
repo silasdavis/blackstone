@@ -1,9 +1,11 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/SystemOwned.sol";
 import "commons-utils/TypeUtilsAPI.sol";
 import "commons-standards/IsoCountries100.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
+import "commons-management/ArtifactsRegistry.sol";
+import "commons-management/DefaultArtifactsRegistry.sol";
 
 import "agreements/Agreements.sol";
 import "agreements/DefaultArchetype.sol";
@@ -17,15 +19,12 @@ contract ArchetypeRegistryTest {
 	bytes32 EMPTY = "";
 	IsoCountries100 isoCountries;
 
-	ArchetypeRegistry public registry = new DefaultArchetypeRegistry(); // public for testing getArchetypeData 
-	ArchetypeRegistryDb registryDb = new ArchetypeRegistryDb();
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
 
 	string name = "archetype name";
 	string description = "this string description is more than thirty-two characters";
-	bytes32 documentName = "documentName";
-	bytes32 hoardAddress = "hoardAddress";
-	bytes32 secretKey = "secretKey";
+	string documentName = "documentName";
+	string fileReference = "{json grant}";
 	bytes32 parameter = "parameter";
 	DataTypes.ParameterType parameterType = DataTypes.ParameterType.BOOLEAN;
 
@@ -48,9 +47,29 @@ contract ArchetypeRegistryTest {
 	address[] ndaGovArchetypes;
 	address[] emptyArray;
 
+	DefaultArchetype defaultArchetypeImpl = new DefaultArchetype();
+	ArtifactsRegistry artifactsRegistry;
+	
 	constructor (address _isoCountries) public {
 		require(_isoCountries != address(0), "The test contract requires an instance of IsoCountries");
 		isoCountries = IsoCountries100(_isoCountries);
+		// ArtifactsRegistry
+		artifactsRegistry = new DefaultArtifactsRegistry();
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
+	}
+
+	/**
+	 * @dev Creates and returns a new ArchetypeRegistry using an existing ArchetypeRegistry and BpmService.
+	 * This function can be used in the beginning of a test to have a fresh BpmService instance.
+	 */
+	function createNewArchetypeRegistry() internal returns (ArchetypeRegistry) {
+		DefaultArchetypeRegistry newRegistry = new DefaultArchetypeRegistry();
+		ArchetypeRegistryDb registryDb = new ArchetypeRegistryDb();
+		SystemOwned(registryDb).transferSystemOwnership(newRegistry);
+		AbstractDbUpgradeable(newRegistry).acceptDatabase(registryDb);
+		newRegistry.setArtifactsFinder(artifactsRegistry);
+        artifactsRegistry.registerArtifact(newRegistry.OBJECT_CLASS_ARCHETYPE(), defaultArchetypeImpl, defaultArchetypeImpl.getArtifactVersion(), true);
+		return newRegistry;
 	}
 
 	/**
@@ -58,8 +77,7 @@ contract ArchetypeRegistryTest {
 	 */
 	function testArchetypeCreation() external returns (string) {
 
-		SystemOwned(registryDb).transferSystemOwnership(registry);
-		AbstractDbUpgradeable(registry).acceptDatabase(registryDb);
+		ArchetypeRegistry registry = createNewArchetypeRegistry();
 
 		uint error;
 		address archetype;
@@ -102,18 +120,16 @@ contract ArchetypeRegistryTest {
 
 		// Document Attachments
 
-		error = registry.addDocument(falseAddress, documentName, hoardAddress, secretKey);
+		error = registry.addDocument(falseAddress, documentName, fileReference);
 		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Adding document to non-existent archetype should have failed with RESOURCE_NOT_FOUND";
-		error = registry.addDocument(archetype, documentName, hoardAddress, secretKey);
+		error = registry.addDocument(archetype, documentName, fileReference);
 		if (error != BaseErrors.NO_ERROR()) return "Adding document to archetype failed unexpectedly";
 		if (registry.getDocumentsByArchetypeSize(archetype) != 1) return "Documents on archetype exptected to be 1";
-		if (registry.getDocumentByArchetypeAtIndex(archetype, 0) != documentName) return "documentName at index 0 not returned correctly";
+		if (keccak256(abi.encodePacked(registry.getDocumentByArchetypeAtIndex(archetype, 0))) != keccak256(abi.encodePacked(documentName))) return "documentName at index 0 not returned correctly";
 
-		bytes32 retHoardAddress;
-		bytes32 retSecretKey;
-		(retHoardAddress, retSecretKey) = registry.getDocumentByArchetypeData(archetype, documentName);
-		if (retHoardAddress != hoardAddress) return "hoardAddress does not match";
-		if (retSecretKey != secretKey) return "secretKey does not match";
+		string memory returnedFileRef;
+		returnedFileRef = registry.getDocumentByArchetypeData(archetype, documentName);
+		if (keccak256(abi.encodePacked(returnedFileRef)) != keccak256(abi.encodePacked(fileReference))) return "document reference for documentName does not match";
 
 		// Jurisdictions
 		bytes32 region = keccak256(abi.encodePacked("CA", "QC"));
@@ -156,6 +172,8 @@ contract ArchetypeRegistryTest {
 
 	function testArchetypeSuccessor() external returns (string) {
 
+		ArchetypeRegistry registry = createNewArchetypeRegistry();
+
 		address successor;
 
 		droneArchetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
@@ -174,13 +192,16 @@ contract ArchetypeRegistryTest {
 	}
 
 	function testArchetypePackages() external returns (string) {
+
+		ArchetypeRegistry registry = createNewArchetypeRegistry();
+
 		uint error;
 		bool active;
 	
 		droneArchetype = registry.createArchetype(10, false, true, name, falseAddress, description, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == 0x0) return "droneArchetype address empty after creation";
 
-		if (address(registry).call(bytes4(keccak256(abi.encodePacked("addArchetypeToPackage(bytes32,address)"))), fakePackageId, droneArchetype)) {
+		if (address(registry).call(abi.encodeWithSignature("addArchetypeToPackage(bytes32,address)"), fakePackageId, droneArchetype)) {
 			return "Expected RESOURCE_NOT_FOUND for non-existent package id";
 		}
 
@@ -199,8 +220,9 @@ contract ArchetypeRegistryTest {
 		( , , , , active) = registry.getArchetypePackageData(dronePackageId);
 		if (!active) return "dronePackage should be active";
 
-		(error, dronePackageId) = registry.createArchetypePackage(dronePackageName, dronePackageDesc, packageAuthor, true, true);
-		if (error != BaseErrors.RESOURCE_ALREADY_EXISTS()) return "Expected failure when creating package with duplicate name/author";
+		if (address(registry).call(abi.encodeWithSignature("createArchetypePackage(string,string,address,bool,bool)"), dronePackageName, dronePackageDesc, packageAuthor, true, true)) {
+			return "Creating a package with duplicate name/author should revert";
+		}
 		
 		(error, buildingPackageId) = registry.createArchetypePackage(buildingPackageName, buildingPackageDesc, packageAuthor, false, true);
 		if (error != BaseErrors.NO_ERROR()) return "It should create a new package";
@@ -222,6 +244,9 @@ contract ArchetypeRegistryTest {
 	}
 
 	function testGoverningArchetypes() external returns (string) {
+
+		ArchetypeRegistry registry = createNewArchetypeRegistry();
+
 		address archetype;
 		string memory employmentArchName = "Employment Archetype";
 

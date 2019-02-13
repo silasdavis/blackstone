@@ -1,10 +1,14 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
+import "commons-base/AbstractVersioned.sol";
+import "commons-base/AbstractNamedElement.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
-import "commons-events/DefaultEventEmitter.sol";
+import "commons-management/ObjectProxy.sol";
+import "commons-management/AbstractVersionedArtifact.sol";
+import "commons-management/AbstractDelegateTarget.sol";
 
 import "bpm-model/BpmModel.sol";
 import "bpm-model/DefaultProcessDefinition.sol";
@@ -13,7 +17,7 @@ import "bpm-model/DefaultProcessDefinition.sol";
  * @title DefaultProcessModel
  * @dev Default implementation of the ProcessModel interface 
  */
-contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
+contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractVersioned, AbstractNamedElement, ProcessModel {
 
 	using MappingsLib for Mappings.Bytes32AddressMap;
 	using MappingsLib for Mappings.Bytes32UintMap;
@@ -23,51 +27,61 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 	BpmModel.ParticipantMap participants;
 	mapping(bytes32 => bool) processInterfaces;
 	bytes32[] processInterfaceKeys;
-	bytes32 hoardAddress;
-	bytes32 hoardSecret;
+	string modelFileReference;
 	address author;
 	bool privateFlag;
 
 	/**
-	 * @dev Creates a new DefaultProcessModel with the given parameters
+	 * @dev Initializes this DefaultProcessModel with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _id the model ID
 	 * @param _name the model name
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if model is visible only to creator
-	 * @param _hoardAddress the HOARD address of the model file
-	 * @param _hoardSecret the HOARD secret of the model file
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	constructor(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, bytes32 _hoardAddress, bytes32 _hoardSecret)
-		Versioned(_version[0], _version[1], _version[2])
-		AbstractNamedElement(_id, _name)
-		public
+	function initialize(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference)
+		external
+		pre_post_initialize
 	{
-		hoardAddress = _hoardAddress;
-		hoardSecret = _hoardSecret;
+		id = _id;
+		name = _name;
+		semanticVersion = _version;
+		modelFileReference = _modelFileReference;
 		author = _author;
-		privateFlag = _isPrivate;
+		modelFileReference = _modelFileReference;
+		emit LogProcessModelCreation(
+			EVENT_ID_PROCESS_MODELS,
+			address(this),
+			_id,
+			_name,
+			_version[0],
+			_version[1],
+			_version[2],
+			_author,
+			_isPrivate,
+			false,
+			_modelFileReference
+		);
 	}
 	
 	/**
-	 * @dev Creates a new process definition with the given parameters in this ProcessModel
-	 * @param _id the process ID
-	 * @return error - BaseErrors.RESOURCE_ALREADY_EXISTS(), if a process definition with the same ID already exists, BaseErrors.NO_ERROR() otherwise
-	 * @return newAddress - the address of the new ProcessDefinition when successful
+	 * @dev Creates a new process definition with the given parameters in this ProcessModel.
+	 * REVERTS if:
+	 * - a ProcessDefinition with the same ID already exists in the ProcessModel
+	 * - the new ProcessDefinition cannot be added to the #definitions mapping
+	 * @param _processDefinitionId the process definition ID
+	 * @param _artifactsFinder an ArtifactFinder instance to create the ObjectProxy
+	 * @return newAddress - the address of the new ObjectProxy for the ProcessDefinition when successful
 	 */
-	function createProcessDefinition(bytes32 _id) external returns (uint error, address newAddress) {
-		if (processDefinitions.exists(_id)) return (BaseErrors.RESOURCE_ALREADY_EXISTS(), 0x0);
-		newAddress = new DefaultProcessDefinition(_id, this);
-		error = processDefinitions.insert(_id, newAddress);
-		emitEvent("UPDATE_PROCESS_DEFINITION", newAddress);
-		emit LogProcessDefinitionCreation(
-			EVENT_ID_PROCESS_DEFINITIONS,
-			newAddress,
-			_id,
-			bytes32(""),
-			ProcessModel(this).getId(),
-			address(this)
-		);
+	function createProcessDefinition(bytes32 _processDefinitionId, address _artifactsFinder) external returns (address newAddress) {
+		ErrorsLib.revertIf(processDefinitions.exists(_processDefinitionId),
+			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultProcessModel.createProcessDefinition", "A ProcessDefinition with the same ID already exists in this ProcessModel");
+		newAddress = new ObjectProxy(_artifactsFinder, OBJECT_CLASS_PROCESS_DEFINITION);
+		ProcessDefinition(newAddress).initialize(_processDefinitionId, address(this));
+		ErrorsLib.revertIf(processDefinitions.insert(_processDefinitionId, newAddress) != BaseErrors.NO_ERROR(),
+			ErrorsLib.INVALID_STATE(), "DefaultProcessModel.createProcessDefinition", "Unable to add the new ProcessDefinition to the collection");
 	}
 	
 	/**
@@ -80,18 +94,16 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 	}
 
 	/**
-	 * @dev Returns the HOARD file information of the model's diagram
-	 * @return location - the HOARD address
-	 * @return secret - the HOARD secret
+	 * @dev Returns the file reference for the model file
+	 * @return the external file reference
 	 */
-	function getDiagram() external view returns (bytes32 location,  bytes32 secret) {
-		location = hoardAddress;
-		secret = hoardSecret;
+	function getModelFileReference() external view returns (string) {
+		return modelFileReference;
 	}
 
 	/**
 	 * @dev Returns model author address
-	 * @return address - model author
+	 * @return the model author
 	 */
 	function getAuthor() external view returns (address) {
 		return author;
@@ -99,7 +111,7 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 
 	/**
 	 * @dev Returns whether the model is private
-	 * @return bool - if model is private
+	 * @return true if the model is private, false otherwise
 	 */
 	function isPrivate() external view returns (bool) {
 		return privateFlag;
@@ -147,7 +159,6 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		}
 		participants.rows[_id].exists = true;
 
-		emitEvent("UPDATE_PROCESS_MODEL", this);
 		return BaseErrors.NO_ERROR();
 	}
 
@@ -298,27 +309,4 @@ contract DefaultProcessModel is ProcessModel, DefaultEventEmitter {
 		parameterType = dataDefinitions.get(key);
 	}
 
-	/**
-	 * @dev To be called by a registered process definition to signal an update.
-	 * Causes the ProcessModel to emit an update event on behalf of the msg.sender
-	 */
-	function fireProcessDefinitionUpdateEvent() external {
-		ProcessDefinition pd = ProcessDefinition(msg.sender);
-		// check if the sender is a registered process definition
-		if (processDefinitions.get(pd.getId()) == msg.sender) {
-			emitEvent("UPDATE_PROCESS_DEFINITION", pd);
-		}
-	}
-
-	/**
-	 * @dev To be called by a registered process definition to signal an update.
-	 * Causes the ProcessModel to emit an update event on behalf of the msg.sender
-	 */
-	function fireActivityDefinitionUpdateEvent(bytes32 _activityId) external {
-		ProcessDefinition pd = ProcessDefinition(msg.sender);
-		// check if the sender is a registered process definition
-		if (processDefinitions.get(pd.getId()) == msg.sender) {
-			emitEvent("UPDATE_ACTIVITY_DEFINITION", pd, _activityId);
-		}
-	}
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
@@ -50,7 +50,7 @@ contract AbstractAddressScopes is AddressScopes {
 	 * @param _dataStorage the dataStorgage address of a ConditionalData defining the scope
 	 */
 	function setAddressScope(address _address, bytes32 _context, bytes32 _fixedScope, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage)
-		external
+		public
 	{
 		ErrorsLib.revertIf(_address == address(0),
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "AbstractAddressScopes.setScope", "The address to which to add a scope must not be empty");
@@ -69,6 +69,17 @@ contract AbstractAddressScopes is AddressScopes {
             addressScopes[key].scope.conditionalScope = DataStorageUtils.ConditionalData({dataPath: _dataPath, dataStorageId: _dataStorageId, dataStorage: _dataStorage, exists: true});
         }
 		addressScopes[key].exists = true;
+        emit LogEntityAddressScopeUpdate(
+            EVENT_ID_ENTITIES_ADDRESS_SCOPES,
+            address(this),
+            _address,
+            _context,
+            _fixedScope,
+            _dataPath,
+            _dataStorageId,
+            _dataStorage
+        );        
+
 	}
 
 	/**

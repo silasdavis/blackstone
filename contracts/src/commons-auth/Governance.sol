@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
@@ -9,7 +9,6 @@ import "commons-collections/MappingsLib.sol";
  */
 
 library Governance {
-
 
     struct Organization {
         bytes20 lei;

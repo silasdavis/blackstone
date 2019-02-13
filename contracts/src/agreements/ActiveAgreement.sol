@@ -1,10 +1,11 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/Named.sol";
 import "commons-collections/DataStorage.sol";
 import "commons-collections/AddressScopes.sol";
 import "commons-events/EventEmitter.sol";
 import "documents-commons/Signable.sol";
+import "commons-management/VersionedArtifact.sol";
 
 import "agreements/Agreements.sol";
 
@@ -12,13 +13,84 @@ import "agreements/Agreements.sol";
  * @title ActiveAgreement Interface
  * @dev API for interaction with an Active Agreement
  */
-contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEmitter {
+contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes, Signable, EventEmitter {
+
+	event LogAgreementCreation(
+		bytes32 indexed eventId,
+		address	agreementAddress,
+		address	archetypeAddress,
+		string name,
+		address	creator,
+		bool isPrivate,
+		uint8 legalState,
+		uint32 maxEventCount,
+		string privateParametersFileReference,
+		string eventLogFileReference
+	);
+
+	event LogAgreementLegalStateUpdate(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		uint8 legalState
+	);
+
+	event LogAgreementMaxEventCountUpdate(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		uint32 maxEventCount
+	);
+
+	event LogAgreementEventLogReference(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		string eventLogFileReference
+	);
+
+	event LogActiveAgreementToPartyUpdate(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		address party,
+		address signedBy,
+		uint signatureTimestamp
+	);
+
+	event LogGoverningAgreementUpdate(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		address governingAgreementAddress,
+		string governingAgreementName
+	);
+
+	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
+	bytes32 public constant EVENT_ID_AGREEMENT_PARTY_MAP = "AN://agreement-to-party";
+	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreements";
 
 	bytes32 public constant DATA_FIELD_AGREEMENT_PARTIES = "AGREEMENT_PARTIES";
-	bytes32 public constant EVENT_ID_SIGNATURE_ADDED = "AGREEMENT_SIGNATURE_ADDED";
-	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
-	bytes32 public constant EVENT_ID_EVENT_LOG_UPDATED = "AGREEMENT_EVENT_LOG_UPDATED";
 
+	// Internal EventListener event
+	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
+
+	/**
+	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+	 * @param _archetype archetype address
+	 * @param _name name
+	 * @param _creator the account that created this agreement
+	 * @param _privateParametersFileReference the file reference to the private parameters
+	 * @param _isPrivate if agreement is private
+	 * @param _parties the signing parties to the agreement
+	 * @param _governingAgreements array of agreement addresses which govern this agreement
+	 */
+	function initialize(
+		address _archetype, 
+		string _name, 
+		address _creator, 
+		string _privateParametersFileReference, 
+		bool _isPrivate, 
+		address[] _parties, 
+		address[] _governingAgreements)
+		external;
+		
 	/**
 	 * @dev Returns the number governing agreements for this agreement
 	 * @return the number of governing agreements
@@ -64,29 +136,22 @@ contract ActiveAgreement is Named, DataStorage, AddressScopes, Signable, EventEm
 	function setMaxNumberOfEvents(uint32 _maxNumberOfEvents) external;
 
 	/**
-	 * @dev Returns the Hoard Address
-	 * @return the Hoard Address
+	 * @dev Returns the reference to the private parameters of this ActiveAgreement
+	 * @return the reference to an external document containing private parameters
 	 */
-	function getHoardAddress() external view returns (bytes32);
-
+	function getPrivateParametersReference() external view returns (string);
 
 	/**
-	 * @dev Returns the Hoard Secret
-	 * @return the Hoard Secret
+	 * @dev Updates the file reference for the event log of this agreement
+	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function getHoardSecret() external view returns (bytes32);
-
-
-	/**
-	 * @dev Sets the Hoard Address and Hoard Secret for the Event Log
-	 */
-	function setEventLogReference(bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external;
+	function setEventLogReference(string _eventLogFileReference) external;
 
 	/**
-	 * @dev Returns the Hoard Address and Hoard Secret for the Event Log
-	 * @return the Hoard Address and Hoard Secret for the Event Log
+	 * @dev Returns the reference for the event log of this ActiveAgreement
+	 * @return the file reference for the event log of this agreement
 	 */
-	function getEventLogReference() external view returns (bytes32 hoardAddress, bytes32 hoardSecret);
+	function getEventLogReference() external view returns (string);
 
 	/**
 	 * @dev Returns the max number of events for the event log

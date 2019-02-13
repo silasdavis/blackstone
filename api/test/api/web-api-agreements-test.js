@@ -12,7 +12,6 @@ const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/monax-logger');
 const log = logger.getLogger('agreements.tests');
-const { appPool, chainPool } = require(__common + '/postgres-db');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);
@@ -197,7 +196,7 @@ describe('Archetypes', () => {
   it('POST a new complex archetype', (done) => {
     testArchetype.documents = [{
       name: 'doc1.pdf',
-      hoardAddress: hoardRef.address,
+      address: hoardRef.address,
       secretKey: hoardRef.secretKey
     }]
     chai
@@ -283,7 +282,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     jurisdictions: [],
     documents: [{
       name: 'doc1.md',
-      hoardAddress: '0x0',
+      address: '0x0',
       secretKey: '0x0',
     }],
     governingArchetypes: []
@@ -300,7 +299,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     jurisdictions: [],
     documents: [{
       name: 'doc1.md',
-      hoardAddress: '0x0',
+      address: '0x0',
       secretKey: '0x0',
     }],
     governingArchetypes: []
@@ -466,7 +465,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
   it('Should fail to create publicArchetype1 by user1 in publicPackage2 created by user2', async () => {
     // CREATE ARCHETYPE
-    publicArchetype1.documents[0].hoardAddress = hoardRef.address;
+    publicArchetype1.documents[0].address = hoardRef.address;
     publicArchetype1.documents[0].secretKey = hoardRef.secretKey;
     publicArchetype1.packageId = publicPackage2.id;
     await assert.isRejected(api.createArchetype(publicArchetype1, user1.token));
@@ -553,7 +552,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
   it('Should create privateArchetype1 by user2 with no package id', async () => {
     // CREATE ARCHETYPE
-    privateArchetype1.documents[0].hoardAddress = hoardRef.address;
+    privateArchetype1.documents[0].address = hoardRef.address;
     privateArchetype1.documents[0].secretKey = hoardRef.secretKey;
     Object.assign(privateArchetype1, await api.createArchetype(privateArchetype1, user2.token));
     expect(String(privateArchetype1.address).match(/[0-9A-Fa-f]{40}/)).to.exist;
@@ -790,7 +789,7 @@ describe(':: External Users ::', () => {
     ],
     documents: [{
       name: 'doc1.md',
-      hoardAddress: '0x0',
+      address: '0x0',
       secretKey: '0x0',
     }],
     jurisdictions: [],
@@ -798,16 +797,11 @@ describe(':: External Users ::', () => {
     formationProcessDefinition: '',
     governingArchetypes: []
   }
-
   let agreement = {
     name: 'external users agreement',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    hoardAddress: '',
-    hoardSecret: '',
-    eventLogHoardAddress: '',
-    eventLogHoardSecret: '',
     maxNumberOfEvents: 0,
     governingAgreements: []
   }
@@ -858,7 +852,7 @@ describe(':: External Users ::', () => {
     // CREATE ARCHETYPE
     setTimeout(async () => {
       try {
-        archetype.documents[0].hoardAddress = hoardRef.address;
+        archetype.documents[0].address = hoardRef.address;
         archetype.documents[0].secretKey = hoardRef.secretKey;
         Object.assign(archetype, await api.createArchetype(archetype, registeredUser.token));
         expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
@@ -886,7 +880,7 @@ describe(':: External Users ::', () => {
         agreement.parameters.push({ name: 'External1Lowercase', type: 6, value: externalUser1.email.toLowerCase() });
         agreement.parameters.push({ name: 'RegisteredNormal', type: 6, value: registeredUser.address });
         agreement.parameters.push({ name: 'RegisteredByEmail', type: 6, value: registeredUser.email.toLowerCase() });
-        agreement.hoardAddress = hoardRef.address;
+        agreement.address = hoardRef.address;
         agreement.hoardSecret = hoardRef.secretKey;
         Object.assign(agreement, await api.createAgreement(agreement, registeredUser.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
@@ -960,7 +954,7 @@ describe(':: External Users ::', () => {
 
   it('Should allow external user to register', async () => {
     // REGISTER USER
-    externalUser1.username = 'new_username';
+    externalUser1.username = `new_username_${rid(5, 'aA0')}`;
     externalUser1.password = 'externaluser';
     const registerResult = await api.registerUser({
       email: externalUser1.email,

@@ -1,8 +1,8 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
-import "commons-base/AbstractNamedElement.sol";
-import "commons-events/EventEmitter.sol";
 import "commons-base/Versioned.sol";
+import "commons-base/NamedElement.sol";
+import "commons-management/VersionedArtifact.sol";
 
 import "bpm-model/BpmModel.sol";
 
@@ -10,15 +10,20 @@ import "bpm-model/BpmModel.sol";
  * @title ProcessModel Interface
  * @dev Versionized container providing a namespace for a set of business process definitions and their artifacts. 
  */
-contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
+contract ProcessModel is VersionedArtifact, Versioned, NamedElement {
 
-	event LogProcessDefinitionCreation(
+	event LogProcessModelCreation(
 		bytes32 indexed eventId,
-		address processDefinitionAddress,
+		address modelAddress,
 		bytes32 id,
-		bytes32 interfaceId,
-		bytes32 modelId,
-		address modelAddress
+		string name,
+		uint versionMajor,
+		uint versionMinor,
+		uint versionPatch,
+		address author,
+		bool isPrivate,
+		bool active,
+		string modelFileReference
 	);
 
 	event LogProcessModelDataCreation(
@@ -29,16 +34,31 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 		uint parameterType
 	);
 
+	bytes32 public constant EVENT_ID_PROCESS_MODELS = "AN://process-models";
 	bytes32 public constant EVENT_ID_PROCESS_DEFINITIONS = "AN://process-definitions";
 	bytes32 public constant EVENT_ID_PROCESS_MODEL_DATA = "AN://process-model-data";
+
+    string public constant OBJECT_CLASS_PROCESS_DEFINITION = "bpm.model.ProcessDefinition";
+
+	/**
+	 * @dev Initializes this DefaultOrganization with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
+	 * @param _id the model ID
+	 * @param _name the model name
+	 * @param _version the model version
+	 * @param _author the model author
+	 * @param _isPrivate indicates if model is visible only to creator
+	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
+	 */
+	function initialize(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external;
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel
 	 * @param _id the process ID
-	 * @return an error code indicating success or failure
+	 * @param _artifactsFinder the address of an ArtifactsFinder
 	 * @return the address of the new ProcessDefinition when successful
 	 */
-	function createProcessDefinition(bytes32 _id) external returns (uint error, address newAddress);
+	function createProcessDefinition(bytes32 _id, address _artifactsFinder) external returns (address newAddress);
 	
 	/**
 	 * @dev Returns the address of the ProcessDefinition with the specified ID
@@ -48,21 +68,20 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 	function getProcessDefinition(bytes32 _id) external view returns (address);
 
 	/**
-	 * @dev Returns the HOARD file information of the model's diagram
-	 * @return location - the HOARD address
-	 * @return secret - the HOARD secret
+	 * @dev Returns the file reference for the model file
+	 * @return the external file reference
 	 */
-	function getDiagram() external view returns (bytes32 location,  bytes32 secret);
+	function getModelFileReference() external view returns (string);
 
 	/**
 	 * @dev Returns model author address
-	 * @return address - model author
+	 * @return the model author
 	 */
 	function getAuthor() external view returns (address);
 
 	/**
 	 * @dev Returns whether the model is private
-	 * @return bool - if model is private
+	 * @return true if the model is private, false otherwise
 	 */
 	function isPrivate() external view returns (bool);
 
@@ -179,13 +198,4 @@ contract ProcessModel is EventEmitter, Versioned, AbstractNamedElement {
 	 */
 	function getDataDefinitionDetailsAtIndex(uint _index) external view returns (bytes32 key, uint parameterType);
 
-	/**
-	 * @dev To be called by a registered process definition to signal an update.
-	 */
-	function fireProcessDefinitionUpdateEvent() external;
-
-	/**
-	 * @dev To be called by a registered process definition to signal an update.
-	 */
-	function fireActivityDefinitionUpdateEvent(bytes32 _activityId) external;
 }

@@ -4,10 +4,10 @@ const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const boom = require('boom');
 
-const { asyncMiddleware } = require(`${global.__common}/controller-dependencies`);
+const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.auth');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 
 const login = (req, res, next) => {
   if ((!req.body.username && !req.body.email) || !req.body.password) {
@@ -17,7 +17,8 @@ const login = (req, res, next) => {
   return passport.authenticate(strategy, { session: false }, (err, user, info) => {
     if (err) return next(boom.badImplementation(`Failed to login user ${req.body.username || req.body.email}: ${err}`));
     if (!user || !user.address) {
-      return next(boom.unauthorized(info.message));
+      log.error(info ? info.message || '' : '');
+      return next(boom.unauthorized('Failed to login - invalid credentials'));
     }
     const userData = {
       address: user.address,
@@ -50,7 +51,7 @@ const logout = (req, res) => {
 };
 
 const createRecoveryCode = asyncMiddleware(async (req, res) => {
-  const client = await appPool.connect();
+  const client = await app_db_pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query({
@@ -59,7 +60,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
     });
     let msg;
     const webAppName = process.env.WEBAPP_NAME;
-    const webAppURL = process.env.WEBAPP_URL;
+    const webAppURL = prependHttps(process.env.WEBAPP_URL);
     const webAppEmail = process.env.WEBAPP_EMAIL;
     sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
     if (rows[0]) {
@@ -106,7 +107,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
 const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
-  const { rows } = await appPool.query({
+  const { rows } = await app_db_pool.query({
     text:
       "SELECT * FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
     values: [hash.digest('hex')],
@@ -118,8 +119,8 @@ const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   throw boom.badRequest('Valid recovery code not found.');
 });
 
-const resetPassword = (req, res, next) => (async () => {
-  const client = await appPool.connect();
+const resetPassword = asyncMiddleware(async (req, res) => {
+  const client = await app_db_pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
     codeHash.update(req.params.recoveryCode);
@@ -129,26 +130,28 @@ const resetPassword = (req, res, next) => (async () => {
       values: [codeHash.digest('hex')],
     });
     if (rows[0]) {
+      log.info(`Receiving password reset request from user id ${rows[0].user_id}`);
       const salt = await bcrypt.genSalt(10);
       const passwordDigest = await bcrypt.hash(req.body.password, salt);
-      await client.query({
-        text: 'DELETE FROM password_change_requests WHERE id = $1',
-        values: [rows[0].user_id],
-      });
       await client.query({
         text: 'UPDATE users SET password_digest = $1 WHERE id = $2',
         values: [passwordDigest, rows[0].user_id],
       });
-      log.debug('Password reset successful');
-      await client.query('COMMIT');
+      await client.query({
+        text: 'DELETE FROM password_change_requests WHERE user_id = $1',
+        values: [rows[0].user_id],
+      });
+      client.release();
+      log.info(`Password successfully updated for user id ${rows[0].user_id} and recovery code deleted`);
       return res.status(200).send();
     }
     throw boom.badRequest('Valid recovery code not found.');
   } catch (err) {
-    if (err.isBoom) return next(boom);
-    return next(boom.badImplementation(err));
+    client.release();
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to fulfill password reset request: ${JSON.stringify(err)}`);
   }
-})().catch(e => next(boom.badImplementation(e)));
+});
 
 module.exports = {
   login,

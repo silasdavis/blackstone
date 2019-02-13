@@ -1,6 +1,5 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
-import "commons-events/EventListener.sol";
 import "commons-management/Upgradeable.sol";
 import "bpm-runtime/ProcessStateChangeListener.sol";
 
@@ -10,127 +9,61 @@ import "agreements/ActiveAgreement.sol";
  * @title ActiveAgreementRegistry Interface
  * @dev A contract interface to create and manage Active Agreements.
  */
-contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, Upgradeable {
-
-	event UpdateActiveAgreements(string name, address key);
-	event UpdateActiveAgreementToParty(string name, address key1, address key2);
-	event UpdateActiveAgreementCollections(string name, bytes32 key1);
-	event UpdateActiveAgreementCollectionMap(string name, bytes32 key1, address key2);
-	event UpdateGoverningAgreements(string name, address key1, address key2);
-
-	// Vent specific events
-	event LogAgreementCreation(
-		bytes32 indexed eventId, 
-		address	agreement_address,
-		address	archetype_address,
-		string name,
-		address	creator,
-		bool is_private,
-		uint8	legal_state,
-		uint32 max_event_count,
-		address	formation_process_instance,
-		address	execution_process_instance,
-		bytes32 hoard_address,
-		bytes32 hoard_secret,
-		bytes32 event_log_hoard_address,
-		bytes32 event_log_hoard_secret
-	);
+contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChangeListener {
 
 	event LogAgreementFormationProcessUpdate(
 		bytes32 indexed eventId, 
-		address agreement_address,
-		address formation_process_instance
+		address agreementAddress,
+		address formationProcessInstance
 	);
 
 	event LogAgreementExecutionProcessUpdate(
 		bytes32 indexed eventId, 
-		address agreement_address,
-		address execution_process_instance
-	);
-
-	event LogAgreementMaxEventCountUpdate(
-		bytes32 indexed eventId,
-		address agreement_address,
-		uint32 max_event_count
-	);
-
-	event LogAgreementEventLogReference(
-		bytes32 indexed eventId,
-		address agreement_address, 
-		bytes32 event_log_hoard_address,
-		bytes32 event_log_hoard_secret
+		address agreementAddress,
+		address executionProcessInstance
 	);
 
 	event LogAgreementCollectionCreation(
 		bytes32 indexed eventId,
-		bytes32 collection_id,
+		bytes32 collectionId,
 		string name,
 		address author,
-		uint8 collection_type,
-		bytes32 package_id
+		uint8 collectionType,
+		bytes32 packageId
 	);
 
 	event LogAgreementToCollectionUpdate(
 		bytes32 indexed eventId,
-		bytes32 collection_id,
-		address agreement_address,
-		string agreement_name,
-		address archetype_address
+		bytes32 collectionId,
+		address agreementAddress,
+		string agreementName,
+		address archetypeAddress
 	);
 
-	event LogActiveAgreementToPartyUpdate(
-		bytes32 indexed eventId,
-		address agreement_address,
-		address party,
-		address signed_by,
-		uint signature_timestamp
-	);
-
-	event LogGoverningAgreementUpdate(
-		bytes32 indexed eventId,
-		address agreement_address,
-		address governing_agreement_address,
-		string governing_agreement_name
-	);
-
-	event LogAgreementLegalStateUpdate(
-		bytes32 indexed eventId,
-		address agreement_address,
-		uint8 legal_state
-	);
+    string public constant OBJECT_CLASS_AGREEMENT = "agreements.ActiveAgreement";
 
 	bytes32 public constant DATA_ID_AGREEMENT = "agreement";
 
-	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
 	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTIONS = "AN://agreement-collections";
 	bytes32 public constant EVENT_ID_AGREEMENT_COLLECTION_MAP = "AN://agreement-to-collection";
-	bytes32 public constant EVENT_ID_AGREEMENT_PARTY_MAP = "AN://agreement-to-party";
-	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreements";
 
 	/**
 	 * @dev Creates an Active Agreement with the given parameters
 	 * @param _archetype archetype
 	 * @param _name name
 	 * @param _creator address
-	 * @param _hoardAddress Address of agreement params in hoard
-	 * @param _hoardSecret Secret for hoard retrieval
+	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
 	 * @param _collectionId id of agreement collection (optional)
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 * @return activeAgreement - the new ActiveAgreement's address, if successfully created, 0x0 otherwise
-	 * Reverts if:
-	 * 	Agreement name or archetype address is empty
-	 * 	Duplicate governing agreements are passed
-	 * 	Agreement address is already registered
-	 * 	Given collectionId does not exist
 	 */
 	function createAgreement(
 		address _archetype,
 		string _name, 
 		address _creator, 
-		bytes32 _hoardAddress, 
-		bytes32 _hoardSecret,
+		string _privateParametersFileReference,
 		bool _isPrivate,
 		address[] _parties, 
 		bytes32 _collectionId, 
@@ -214,17 +147,15 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	 * @return archetype - the agreement's archetype adress
 	 * @return name - the name of the agreement
 	 * @return creator - the creator of the agreement
-	 * @return hoardAddress - address of the agreement parameters in hoard (only used when agreement is private)
-	 * @return hoardSecret - secret for retrieval of hoard parameters
-	 * @return eventLogHoardAddress - address of the agreement's event log in hoard
-	 * @return eventLogHoardSecret - secret for retrieval of the hoard event log file
+	 * @return privateParametersFileReference - the file reference to the private agreement parameters (only used when agreement is private)
+	 * @return eventLogFileReference - the file reference to the agreement's event log
 	 * @return maxNumberOfEvents - the maximum number of events allowed to be stored for this agreement
-	 * @return isPrivate - whether the agreement's parameters are private, i.e. stored off-chain in hoard
+	 * @return isPrivate - whether there are private agreement parameters, i.e. stored off-chain
 	 * @return legalState - the agreement's Agreement.LegalState as uint8
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, bytes32 hoardAddress, bytes32 hoardSecret, bytes32 eventLogHoardAddress, bytes32 eventLogHoardSecret, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, string privateParametersFileReference, string eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -264,12 +195,11 @@ contract ActiveAgreementRegistry is EventListener, ProcessStateChangeListener, U
 	function getPartyByActiveAgreementData(address _activeAgreement, address _party) external view returns (address signedBy, uint signatureTimestamp);
 
 	/**
-	 * @dev Updates the hoard address and secret for the event log of the specified agreement
-	 * @param _activeAgreement Address of active agreement
-	 * @param _eventLogHoardAddress New hoard address of event log for agreement
-	 * @param _eventLogHoardSecret New hoard secret key of event log for agreement
+	 * @dev Updates the file reference for the event log of the specified agreement
+	 * @param _activeAgreement the address of active agreement
+	 * @param _eventLogFileReference the file reference of the event log of this agreement
 	 */
-	 function setEventLogReference(address _activeAgreement, bytes32 _eventLogHoardAddress, bytes32 _eventLogHoardSecret) external;
+	 function setEventLogReference(address _activeAgreement, string _eventLogFileReference) external;
 
 	/**
 	 * @dev Creates a new agreement collection

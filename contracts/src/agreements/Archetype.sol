@@ -1,31 +1,121 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.25;
 
 import "commons-base/Named.sol";
 import "commons-utils/DataTypes.sol";
+import "commons-management/VersionedArtifact.sol";
+
 
 /**
  * @title Archetype Interface
  * @dev API for interaction with an agreement archetype
  */
-contract Archetype is Named {
+contract Archetype is VersionedArtifact, Named {
+
+	event LogArchetypeCreation(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		string name,
+		string description,
+		uint32 price,
+		address author,
+		bool active,
+		bool isPrivate,
+		address successor,
+		address formationProcessDefinition,
+		address executionProcessDefinition
+	);
+
+	event LogGoverningArchetypeUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		address governingArchetypeAddress,
+		string governingArchetypeName
+	);
+
+	event LogArchetypeSuccessorUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		address successor
+	);
+
+	event LogArchetypePriceUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		uint32 price
+	);
+
+	event LogArchetypeActivation(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bool active
+	);
+
+	event LogArchetypeParameterUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bytes32 parameterName,
+		uint8 parameterType,
+		uint position
+	);
+
+	event LogArchetypeDocumentUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		string documentKey,
+		string documentReference
+	);
+
+	event LogArchetypeJurisdictionUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		bytes2 country,
+		bytes32 region
+	);
+
+	bytes32 public constant EVENT_ID_ARCHETYPES = "AN://archetypes";
+	bytes32 public constant EVENT_ID_ARCHETYPE_PARAMETERS = "AN://archetypes/parameters";
+	bytes32 public constant EVENT_ID_ARCHETYPE_DOCUMENTS = "AN://archetypes/documents";
+	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetypes/jurisdictions";
+	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
 
 	/**
-	 * @dev Adds the document specified by the given parameters to the archetype
+	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _name name
-	 * @param _hoardAddress hoard address
-	 * @param _secretKey secret key
+	 * @param _author author
+	 * @param _description description
+	 * @param _isPrivate determines if this archetype's documents are encrypted
+	 * @param _active determines if this archetype is active
+	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
+	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
+	 * @param _governingArchetypes array of governing archetype addresses
+	 */
+	function initialize(
+		uint32 _price,
+		bool _isPrivate,
+		bool _active,
+		string _name,
+		address _author,
+		string _description,
+		address _formationProcess,
+		address _executionProcess,
+		address[] _governingArchetypes)
+		external;
+
+	/**
+	 * @dev Adds the document specified by the external reference to the archetype under the given name
+	 * @param _name name
+	 * @param _fileReference the external reference to the document
 	 * @return error code indicating success or failure
 	 */
-	function addDocument(bytes32 _name, bytes32 _hoardAddress, bytes32 _secretKey) external returns (uint error);
+	function addDocument(string _name, string _fileReference) external returns (uint error);
 
 	/**
-	 * @dev Adds parameter
+	 * @dev Adds a parameter to this Archetype
 	 * @param _parameterType parameter type (enum)
 	 * @param _parameterName parameter name
-	 * @return 
-	 *	 		 BaseErrors.NO_ERROR() and position of parameter, if successful,
-	 *		   BaseErrors.NULL_PARAM_NOT_ALLOWED() if _parameter is empty,
-	 *		   BaseErrors.RESOURCE_ALREADY_EXISTS() if _parameter already exists
+	 * @return error - code indicating success or failure
+	 * @return position - the position at which the parameter was added, if successful
 	 */
 	function addParameter(DataTypes.ParameterType _parameterType, bytes32 _parameterName) external returns (uint error, uint position);
 
@@ -64,11 +154,12 @@ contract Archetype is Named {
 	function getAuthor() external view returns (address author);
 
 	/**
-	 * @dev Gets document with given name
+	 * @dev Gets document reference with given name
 	 * @param _name document name
-	 * @return externalContent external content
+	 * @return error - an error code
+	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(bytes32 _name) external view returns (uint error, bytes32 hoardAddress, bytes32 secretKey);
+	function getDocument(string _name) external view returns (uint error, string fileReference);
 
 	/**
 	 * @dev Gets number of parameters
@@ -79,10 +170,9 @@ contract Archetype is Named {
 	/**
 	 * @dev Gets parameter at index
 	 * @param _index index
-	 * @return error error TBD
 	 * @return customField parameter
 	 */
-	function getParameterAtIndex(uint _index) external view returns (uint error, bytes32 parameter);
+	function getParameterAtIndex(uint _index) external view returns (bytes32 parameter);
 
 	/**
 	 * @dev Gets parameter data type
@@ -105,7 +195,7 @@ contract Archetype is Named {
 	 * @return error BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS() if index is out of bounds
 	 * @return name
 	 */
-	function getDocumentAtIndex(uint _index) external view returns (uint error, bytes32 name);
+	function getDocumentAtIndex(uint _index) external view returns (uint error, string name);
 
 	/**
 	 * @dev Returns the number jurisdictions for this archetype

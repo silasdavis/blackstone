@@ -4,7 +4,7 @@ const boom = require('boom');
 
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const { appPool, chainPool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
@@ -80,6 +80,7 @@ const dependencies = {
         break;
       case 'Agreement':
         element.isPrivate = Boolean(element.isPrivate);
+        element.eventLogFileReference = element.eventLogFileReference ? JSON.parse(element.eventLogFileReference) : null;
         break;
       case 'Application':
         element.id = hexToString(element.id);
@@ -105,9 +106,6 @@ const dependencies = {
       case 'Department':
         element.id = hexToString(element.id);
         break;
-      case 'Document':
-        // obj.name = hexToString(obj.name);
-        break;
       case 'Parameter':
         element.name = hexToString(element.name);
         element.label = hexToString(element.label);
@@ -119,6 +117,7 @@ const dependencies = {
       case 'Model':
         if ('active' in element) element.active = element.active === 1;
         element.isPrivate = Boolean(element.isPrivate);
+        element.modelFileReference = JSON.parse(element.modelFileReference);
         break;
       case 'Region':
         element.country = hexToString(element.country);
@@ -181,6 +180,12 @@ const dependencies = {
           paramTypeInt === PARAMETER_TYPES.SIGNING_PARTY) {
           if (typeof element.value !== 'string' || !element.value.match(/^[0-9A-Fa-f]{40}$/)) {
             err.message = 'Accounts must be 40-digit hexadecimals';
+            throw err;
+          }
+        } else if (paramTypeInt === PARAMETER_TYPES.POSITIVE_NUMBER) {
+          if (typeof element.value === 'string') element.value = Number(element.value);
+          if (element.value < 0) {
+            err.message = 'Value must be positive';
             throw err;
           }
         }
@@ -293,7 +298,7 @@ const dependencies = {
     WHERE address = ANY ($1)
     ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
     try {
-      appPool.query({
+      app_db_pool.query({
         text,
         values: [users.map(user => user.address)],
       }, (err, res) => {
@@ -319,7 +324,7 @@ const dependencies = {
 
   getNamesOfOrganizations: async (organizations) => {
     try {
-      const { rows } = await appPool.query({
+      const { rows } = await app_db_pool.query({
         text: 'SELECT DISTINCT address, name FROM organizations WHERE address = ANY ($1)',
         values: [organizations.map(({ address }) => address)],
       });
@@ -363,6 +368,15 @@ const dependencies = {
   },
 
   getSHA256Hash: data => crypto.createHash('sha256').update(data).digest('hex'),
+
+  prependHttps: (host) => {
+    if (!String(host).startsWith('http')) {
+      // eslint-disable-next-line no-param-reassign
+      host = process.env.MONAX_ENV === 'local' ? `http://${host}` : `https://${host}`;
+      return host;
+    }
+    return host;
+  },
 
   trimBufferPadding,
   hexToString,
