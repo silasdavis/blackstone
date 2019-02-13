@@ -59,13 +59,59 @@ var userData
 
 describe('hex to string conversions', () => {
   it('Should convert hex to string', (done) => {
-    let text1 = 'Test0 Contracts'
+    const text1 = 'Test0 Contracts00!;'
+    const emptyString = '';
+    const spaces = '   ';
+    const in_noPaddedHex = '41737369676e6565';
+    const in_evenLeftPaddedHex = '00000041737369676e6565';
+    const in_evenRightPaddedHex = '41737369676e6565000000';
+    const in_oddLeftPaddedHex = '00041737369676e6565';
+    const in_oddRightPaddedHex = '41737369676e6565000';
+    const in_nullHex = '000000000000';
+    const in_noPadMultiByteHex = '6964656e7469666963616369f36e';
+    const in_paddedMultiByteHex = '62e47200000000';
+    const out_str_assignee = 'Assignee';
+    const out_str_identification = 'identificación';
+    const out_str_bear = 'bär';
+    
+    // plain old string to hex
     let hex_text1 = global.stringToHex(text1)
     hex_text1 = rightPad(hex_text1, 32)
-    let conv_text1 = global.hexToString(hex_text1)
+    const conv_text1 = global.hexToString(hex_text1)
     expect(conv_text1).to.equal(text1)
-    done()
-  })
+
+    // expect null hex to match empty string
+    expect(hexToString(in_nullHex)).to.equal(emptyString);
+    
+    // expect empty string to match empty hex 
+    expect(stringToHex(emptyString)).to.equal('');
+    
+    // expect spaces roundtrip to spaces to pass
+    expect(hexToString(stringToHex(spaces))).to.equal(spaces);
+
+    // expect no padded hex to match no padded string
+    expect(hexToString(in_noPaddedHex)).to.equal(out_str_assignee);
+
+    // expect even left padded hex to match string
+    expect(hexToString(in_evenLeftPaddedHex)).to.equal(out_str_assignee);
+
+    // expect even right padded hex to match string
+    expect(hexToString(in_evenRightPaddedHex)).to.equal(out_str_assignee);
+
+    // expect odd left padded hex to NOT match string
+    expect(hexToString(in_oddLeftPaddedHex)).to.not.equal(out_str_assignee);
+
+    // expect odd right padded hex to match string
+    expect(hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
+
+    // expect multibyte hex to match string 
+    expect(hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
+
+    // expect padded multibyte hex to match string
+    expect(hexToString(in_paddedMultiByteHex)).to.equal(out_str_bear);
+
+    done();
+  });
 });
 
 /**
