@@ -10,8 +10,7 @@ const sqlCache = require('./postgres-query-helper');
 const {
   format,
   pgUpdate,
-  setUserIds,
-  getNamesOfOrganizations,
+  getParticipantNames,
   asyncMiddleware,
   getSHA256Hash,
   prependHttps,
@@ -39,7 +38,7 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
       }
       aggregated[address].approvers.push(approver);
     });
-    const organizations = await getNamesOfOrganizations(Object.values(aggregated));
+    const organizations = await getParticipantNames(Object.values(aggregated));
     return res.json(organizations);
   } catch (err) {
     if (boom.isBoom(err)) throw err;
@@ -83,12 +82,12 @@ const getOrganization = asyncMiddleware(async (req, res) => {
       throw boom.forbidden('User is not an approver or member of this organization and not allowed access');
     }
     const { address, organizationKey } = data[0];
-    const { 0: { name } } = await getNamesOfOrganizations([{ address }]);
+    const { 0: { name } } = await getParticipantNames([{ address }]);
     const org = {
       address, organizationKey, name, approvers, users, departments,
     };
-    org.approvers = await setUserIds(org.approvers);
-    org.users = await setUserIds(org.users);
+    org.approvers = await getParticipantNames(org.approvers);
+    org.users = await getParticipantNames(org.users);
     return res.status(200).send(org);
   } catch (err) {
     if (boom.isBoom(err)) throw err;
@@ -402,15 +401,16 @@ const getProfile = asyncMiddleware(async (req, res) => {
       organizations[organization].departments.push({ id, name: departmentName });
     }
   });
-  user.organizations = await getNamesOfOrganizations(Object.values(organizations));
+  user.organizations = await getParticipantNames(Object.values(organizations));
+  delete user.organization;
   try {
     const { rows } = await app_db_pool.query({
-      text: 'SELECT username AS id, email, created_at, first_name, last_name, country, region, is_producer, onboarding ' +
+      text: 'SELECT username AS id, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
     });
     _.merge(user, rows[0]);
-    return res.status(200).json(format('User', user));
+    return res.status(200).json(user);
   } catch (err) {
     throw boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err}`);
   }

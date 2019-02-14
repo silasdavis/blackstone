@@ -1,8 +1,6 @@
 const boom = require('boom');
 const {
   where,
-  setUserIds,
-  getNamesOfOrganizations,
 } = require(`${global.__common}/controller-dependencies`);
 const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
 const logger = require(`${global.__common}/monax-logger`);
@@ -46,15 +44,13 @@ const getOrganization = (orgAddress) => {
 const getUsers = (queryParams) => {
   const _queryParams = Object.assign({}, queryParams);
   if (_queryParams.id) _queryParams.id = `\\x${queryParams.id}`;
-  const queryString = `SELECT user_account_address AS address FROM user_accounts ${(queryParams ? `${where(_queryParams, false)}` : '')}`;
+  const queryString = `SELECT user_account_address AS address, users.username AS id
+  FROM user_accounts
+  JOIN customers.users users ON users.address = user_accounts.user_account_address
+  WHERE external_user = FALSE
+  ${queryParams ? where(_queryParams, true) : ''};`;
   return runChainDbQuery(queryString)
-    .then((data) => {
-      try {
-        return setUserIds(data, true, 'User');
-      } catch (userIdErr) {
-        throw boom.badImplementation(`Failed to get User Ids: ${userIdErr.stack}`);
-      }
-    })
+    .then(data => data)
     .catch((err) => { throw boom.badImplementation(`Failed to get users: ${err.stack}`); });
 };
 
@@ -313,25 +309,16 @@ const getAgreementData = (agreementAddress, userAccount) => {
 };
 
 const getAgreementParties = (agreementAddress) => {
-  const queryString = 'SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp", parties.signed_by as "signedBy", user_accounts.user_account_address ' +
-    'FROM agreement_to_party parties ' +
-    'LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address WHERE parties.agreement_address = $1;';
+  const queryString = `SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp",
+    parties.signed_by as "signedBy", user_accounts.user_account_address, accounts.id, accounts.name
+    FROM agreement_to_party parties
+    LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address
+    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM customers.users
+      UNION
+      SELECT NULL AS id, name, address, FALSE AS external_user FROM customers.organizations
+    ) accounts ON parties.party = accounts.address
+    WHERE parties.agreement_address = $1;`;
   return runChainDbQuery(queryString, [agreementAddress])
-    .then(async (data) => {
-      try {
-        let users = [];
-        let organizations = [];
-        data.forEach((_party) => {
-          if (_party.user_account_address) users.push(_party);
-          else organizations.push(_party);
-        });
-        users = await setUserIds(users);
-        organizations = await getNamesOfOrganizations(organizations);
-        return users.concat(organizations);
-      } catch (err) {
-        throw boom.badImplementation(`Failed to get user/organization details for parties: ${err}`);
-      }
-    })
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement parties: ${err}`); });
 };
 
@@ -386,42 +373,52 @@ const getAgreementsInCollection = (collectionId) => {
 };
 
 const getActivityInstances = ({ processAddress, agreementAddress }) => {
-  const queryString = 'SELECT ' +
-    'DISTINCT(UPPER(encode(ai.activity_instance_id::bytea, \'hex\'))) as "activityInstanceId", ' +
-    'ai.process_instance_address AS "processAddress",  ' +
-    'ai.activity_id as "activityId",  ' +
-    'ai.created::integer,  ' +
-    'ai.completed::integer,  ' +
-    'ai.performer,  ' +
-    'ai.completed_by as "completedBy",  ' +
-    'ai.state::integer, ' +
-    'ai._height AS "blockNumber", ' +
-    'ai._txhash AS "transactionHash", ' +
-    'pd.model_address as "modelAddress",  ' +
-    'pm.id as "modelId",  ' +
-    'pd.id as "processDefinitionId",  ' +
-    'pd.process_definition_address as "processDefinitionAddress",  ' +
-    'ds.address_value as "agreementAddress",  ' +
-    'agr.name as "agreementName",  ' +
-    'ad.task_type as "taskType"  ' +
-    'FROM activity_instances ai  ' +
-    'JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address ' +
-    'JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address ' +
-    'JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address ' +
-    'JOIN process_models pm ON pm.model_address = pd.model_address ' +
-    'LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address ' +
-    'LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value ' +
-    'WHERE ds.data_id = \'agreement\'' + // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
-    `${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}` +
-    `${(agreementAddress ? ` AND ds.address_value = '${agreementAddress}';` : ';')}`;
+  const queryString = `SELECT 
+    DISTINCT(UPPER(encode(ai.activity_instance_id::bytea, 'hex'))) as "activityInstanceId",
+    ai.process_instance_address AS "processAddress",
+    ai.activity_id as "activityId",
+    ai.created::integer,
+    ai.completed::integer,
+    ai.performer,
+    ai.completed_by as "completedBy",
+    ai.state::integer,
+    ai._height AS "blockNumber",
+    ai._txhash AS "transactionHash",
+    pd.model_address as "modelAddress",
+    pm.id as "modelId",
+    pd.id as "processDefinitionId",
+    pd.process_definition_address as "processDefinitionAddress",
+    ds.address_value as "agreementAddress",
+    agr.name as "agreementName",
+    ad.task_type as "taskType",
+    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName"
+    FROM activity_instances ai  
+    JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address 
+    JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address 
+    JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address 
+    JOIN process_models pm ON pm.model_address = pd.model_address 
+    LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address 
+    LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value 
+    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM customers.users
+      UNION
+      SELECT NULL AS id, name, address, FALSE AS external_user FROM customers.organizations
+    ) accounts ON ai.completed_by = accounts.address
+    WHERE ds.data_id = 'agreement'
+    ${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}
+    ${(agreementAddress ? ` AND ds.address_value = '${agreementAddress}';` : ';')}`;
   return runChainDbQuery(queryString)
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
 
 const getActivityInstanceData = (id, userAddress) => {
-  const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress", UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId", ai.created, ai.performer, ai.completed, ad.task_type as "taskType", ad.application as application,
-      pd.model_address as "modelAddress", pm.id as "modelId", pd.id as "processDefinitionId", pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
-      ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName", encode(scopes.fixed_scope, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey" 
+  const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress",
+    UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId",
+    ai.created, ai.performer, ai.completed, ad.task_type as "taskType", ad.application as application,
+    pd.model_address as "modelAddress", pm.id as "modelId", pd.id as "processDefinitionId",
+    pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
+    ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName",
+    encode(scopes.fixed_scope, 'hex') AS scope, encode(o.organization_id::bytea, 'hex') as "organizationKey",
+    COALESCE(accounts.id, accounts.name) AS "performerDisplayName"
     FROM activity_instances ai
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address
@@ -436,6 +433,10 @@ const getActivityInstanceData = (id, userAddress) => {
       AND scopes.scope_address = ai.performer 
       AND scopes.scope_context = ai.activity_id
     )
+    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM customers.users
+      UNION
+      SELECT NULL AS id, name, address, FALSE AS external_user FROM customers.organizations
+    ) accounts ON ai.performer = accounts.address
     WHERE ai.activity_instance_id = $1
     AND (
       ai.performer = $2 OR (
