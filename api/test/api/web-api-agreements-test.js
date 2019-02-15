@@ -125,12 +125,6 @@ describe('Archetypes', () => {
     const loginResult = await api.loginUser(archUser);
     expect(loginResult.token).to.exist;
     token = loginResult.token;
-    // setTimeout(async () => {
-    //   await api.activateUser(archUser);
-    //   const loginResult = await api.loginUser(archUser);
-    //   expect(loginResult.token).to.exist;
-    //   token = loginResult.token;
-    // }, 2000);
   }).timeout(10000);
 
   it('Should create a model and process definitions', async () => {
@@ -149,7 +143,6 @@ describe('Archetypes', () => {
     Object.assign(execution, executionDeploy.model);
     Object.assign(execution.process, executionDeploy.processes[0]);
     testArchetype.executionProcessDefinition = execution.process.address;
-    expect(String(testArchetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(testArchetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
   }).timeout(30000);
 
@@ -918,7 +911,7 @@ describe(':: External Users ::', () => {
     // CHECK AGREEMENT PARAMETERS
     setTimeout(async () => {
       try {
-       ( { parameters } = await api.getAgreement(agreement.address, registeredUser.token));
+        ({ parameters } = await api.getAgreement(agreement.address, registeredUser.token));
         expect(parameters.find(({ name }) => name === 'RegisteredByEmail').value).to.equal(registeredUser.address);
         done();
       } catch (err) {
@@ -954,4 +947,146 @@ describe(':: External Users ::', () => {
     expect(registerResult.address).to.equal(externalUser1.address);
   }).timeout(5000);
 
+});
+
+describe(':: Public/Private Agreement Parameters ::', () => {
+  let user = {
+    username: `user${rid(5, 'aA0')}`,
+    password: 'password',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+
+  let formation = {
+    filePath: 'test/data/inc-formation.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Formation'
+  }
+  let execution = {
+    filePath: 'test/data/inc-execution.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Execution'
+  }
+
+  let archetype = {
+    name: 'Incorporation Archetype',
+    description: 'Incorporation Archetype',
+    price: 10,
+    isPrivate: 1,
+    active: 1,
+    parameters: [
+      { type: 0, name: 'Signed' },
+      { type: 8, name: 'Receiver' },
+      { type: 8, name: 'Confirmer' },
+      { type: 1, name: 'Unused String in Model' },
+      { type: 2, name: 'Extra Number Parameter' },
+    ],
+    documents: [{
+      name: 'doc1.md',
+      address: '0x0',
+      secretKey: '0x0',
+    }],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  }
+  let agreement = {
+    name: 'Pub/Priv Parameters',
+    archetype: '',
+    isPrivate: false,
+    parameters: [
+      { type: 0, name: 'Signed', value: false },
+      { type: 8, name: 'Receiver', value: '4D546B1481B5DC02BCB4EB8237234872DF9FF4C0' },
+      { type: 8, name: 'Confirmer', value: '4D546B1481B5DC02BCB4EB8237234872DF9FF4C0' },
+      { type: 1, name: 'Unused String in Model', value: 'Should be private' },
+      { type: 2, name: 'Extra Number Parameter', value: 9 }, // should also be private
+    ],
+    maxNumberOfEvents: 0,
+    governingAgreements: []
+  }
+
+  it('Should register user', async () => {
+    // REGISTER USER
+    const registerResult = await api.registerUser(user);
+    user.address = registerResult.address;
+    expect(user.address).to.exist
+  }).timeout(5000);
+
+  it('Should login user', (done) => {
+    // LOGIN USER
+    setTimeout(async () => {
+      try {
+        await api.activateUser(user);
+        const loginResult = await api.loginUser(user);
+        expect(loginResult.token).to.exist;
+        user.token = loginResult.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let xml = api.generateModelXml(formation.id, formation.filePath);
+    let deployed = await api.createAndDeployModel(xml, user.token);
+    expect(deployed).to.exist;
+    archetype.formationProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    xml = api.generateModelXml(execution.id, execution.filePath);
+    deployed = await api.createAndDeployModel(xml, user.token);
+    expect(deployed).to.exist;
+    archetype.executionProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(30000);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        archetype.documents[0].address = hoardRef.address;
+        archetype.documents[0].secretKey = hoardRef.secretKey;
+        Object.assign(archetype, await api.createArchetype(archetype, user.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should create an agreement', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        Object.assign(agreement, await api.createAgreement(agreement, user.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should have stored any parameters not used in the process models in hoard', done => {
+    // CHECK AGREEMENT PARAMETERS
+    setTimeout(async () => {
+      try {
+        const { privateParametersFileReference } = await api.getAgreement(agreement.address, user.token);
+        let privateParameters = await api.getFromHoard(privateParametersFileReference);
+        privateParameters = JSON.parse(privateParameters);
+        expect(privateParameters.length).to.equal(2);
+        expect(privateParameters).to.deep.include(agreement.parameters[3]);
+        expect(privateParameters).to.deep.include(agreement.parameters[4]);
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
 });

@@ -318,6 +318,7 @@ const getAgreementData = (agreementAddress, userAccount) => {
     'a.event_log_file_reference as "eventLogFileReference", ' +
     'a.max_event_count::integer as "maxNumberOfEvents", a.is_private as "isPrivate", a.legal_state as "legalState", ' +
     'a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance", ' +
+    'a.private_parameters_file_reference AS "privateParametersFileReference", ' +
     'UPPER(encode(ac.collection_id::bytea, \'hex\')) as "collectionId", arch.formation_process_definition as "formationProcessDefinition", arch.execution_process_definition as "executionProcessDefinition" ' +
     'FROM agreements a ' +
     'LEFT JOIN agreement_to_collection ac ON a.agreement_address = ac.agreement_address ' +
@@ -631,6 +632,19 @@ const getProcessModelData = (address) => {
     .catch((err) => { throw boom.badImplementation(`Failed to get process model: ${err}`); });
 };
 
+const getArchetypeModelFileReferences = (archetypeAddress) => {
+  const queryString = `SELECT fpd.id AS "formationProcessId", epd.id AS "executionProcessId",
+  fpm.model_file_reference AS "formationModelFileReference", epm.model_file_reference AS "executionModelFileReference"
+  FROM archetypes a
+  LEFT JOIN process_definitions fpd on fpd.process_definition_address = a.formation_process_definition
+  LEFT JOIN process_definitions epd on epd.process_definition_address = a.execution_process_definition
+  LEFT JOIN process_models fpm ON fpm.model_address = fpd.model_address
+  LEFT JOIN process_models epm ON epm.model_address = epd.model_address
+  WHERE a.archetype_address = $1;`;
+  return runChainDbQuery(queryString, [archetypeAddress])
+    .catch((err) => { throw boom.badImplementation(`Failed to get process model file refs for archetype ${archetypeAddress}: ${err}`); });
+};
+
 const getActivityDetailsFromCache = (activityId, modelId, processId) => {
   const queryString = 'SELECT activity_name as "activityName", process_name as "processName" FROM activity_details WHERE activity_id = $1 AND process_id = $2 AND model_id = $3';
   return runAppDbQuery(queryString, [activityId, processId, modelId])
@@ -757,6 +771,7 @@ module.exports = {
   getProcessDefinitions,
   getProcessDefinitionData,
   getProcessModelData,
+  getArchetypeModelFileReferences,
   getActivityDetailsFromCache,
   updateActivityDetailsCache,
   getProcessDetailsFromCache,

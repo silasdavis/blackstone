@@ -13,6 +13,7 @@
       <camunda:properties>
       <camunda:property name="Signed" value="0" />
       <camunda:property name="Receiver" value="8" />
+      <camunda:property name="Unused String in Model" value="1" />
       </camunda:properties>
     </bpmn:extensionElements>
   </bpmn:dataStore>
