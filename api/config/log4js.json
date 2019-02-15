@@ -23,10 +23,6 @@
       "appenders": ["out"],
       "level": "INFO"
     },
-    "monax.sqlsol": {
-      "appenders": ["out"],
-      "level": "INFO"
-    },
     "agreements": {
       "appenders": ["out"],
       "level": "INFO"
