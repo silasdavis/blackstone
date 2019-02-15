@@ -360,20 +360,21 @@ const activateUser = asyncMiddleware(async (req, res) => {
   hash.update(req.params.activationCode);
   const codeHex = hash.digest('hex');
   const rows = await sqlCache.getUserByActivationCode(codeHex);
-  if (!rows.length) {
-    throw boom.badRequest('Activation code does not match any user account');
-  }
   let redirectHost = process.env.WEBAPP_URL;
   if (!String(redirectHost).startsWith('http')) {
     redirectHost = process.env.MONAX_ENV === 'local' ? `http://${redirectHost}` : `https://${redirectHost}`;
   }
+  if (!rows.length) {
+    log.error(`Activation code ${req.params.activationCode} does not match any user account`);
+    return res.redirect(`${redirectHost}/?tokenExpired=true`);
+  }
   try {
     await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
     log.info(`Successfully activated user at ${rows[0].address}`);
-    res.redirect(`${redirectHost}/?activated=true`);
+    return res.redirect(`${redirectHost}/?activated=true`);
   } catch (err) {
     log.error(`Failed to activate user account at ${rows[0].address}: ${err}`);
-    res.redirect(`${redirectHost}/help`);
+    return res.redirect(`${redirectHost}/help`);
   }
 });
 
