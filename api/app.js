@@ -24,7 +24,6 @@ const monax = require('@monax/burrow');
     const configFilePath = process.env.MONAX_CONFIG || `${global.__config}/settings.toml`;
     global.__settings = (() => {
       const settings = toml.parse(fs.readFileSync(configFilePath));
-      if (process.env.MONAX_DOUG) _.set(settings, 'monax.DOUG', process.env.MONAX_DOUG); // TODO I don't think this option of setting DOUG is ever used. DOUG is read from NameReg
       if (process.env.MONAX_HOARD) _.set(settings, 'monax.hoard', process.env.MONAX_HOARD);
       if (process.env.MONAX_ANALYTICS_ID) _.set(settings, 'monax.analyticsID', process.env.MONAX_ANALYTICS_ID);
       if (process.env.MONAX_CHAIN_HOST) _.set(settings, 'monax.chain.host', process.env.MONAX_CHAIN_HOST);

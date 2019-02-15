@@ -446,7 +446,7 @@ const _generateParamGetterPromises = (agreementAddr, agreementParams, reqParams)
       const getterFunction = dataStorage.agreementDataGetters[`${matchingParam.parameterType}`];
       if (getterFunction) {
         log.debug(`Getting value of parameter: ${matchingParam.name} in agremeement at address ${agreementAddr}`);
-        promises.push(getterFunction(agreementAddr, matchingParam.parameter_key));
+        promises.push(getterFunction(agreementAddr, matchingParam.name));
       } else {
         log.error(`No getter function found for parameter name ${matchingParam.name} with parameter type ${matchingParam.parameterType}`);
       }

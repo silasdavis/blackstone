@@ -22,55 +22,55 @@ const activityInDataGetters = {};
 
 const setDataValueAsBool = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsBool(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsBool(global.stringToHex(fieldName), fieldValue, (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
 const setDataValueAsString = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsString(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsString(global.stringToHex(fieldName), fieldValue, (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
 const setDataValueAsUint = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsUint(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %d', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsUint(global.stringToHex(fieldName), fieldValue, (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
 const setDataValueAsInt = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsInt(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %d', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsInt(global.stringToHex(fieldName), fieldValue, (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
 const setDataValueAsAddress = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsAddress(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsAddress(global.stringToHex(fieldName), fieldValue, (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
 const setDataValueAsBytes32 = (agreementAddr, fieldName, fieldValue) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.setDataValueAsBytes32(fieldName, fieldValue, (err) => {
-    if (err) reject(err);
-    else resolve();
+  log.trace('Setting data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, fieldValue);
+  agreement.setDataValueAsBytes32(global.stringToHex(fieldName), global.stringToHex(fieldValue), (err) => {
+    if (err) return reject(err);
+    return resolve();
   });
 });
 
@@ -80,73 +80,61 @@ const setDataValueAsBytes32 = (agreementAddr, fieldName, fieldValue) => new Prom
 
 const getDataValueAsBool = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsBool(fieldName, (err, data) => {
+  agreement.getDataValueAsBool(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: data.raw[0].valueOf(),
-    });
+    const result = { name: fieldName, value: data.raw[0].valueOf() };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
 const getDataValueAsString = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsString(fieldName, (err, data) => {
+  agreement.getDataValueAsString(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: data.raw[0].valueOf(),
-    });
+    const result = { name: fieldName, value: data.raw[0].valueOf() };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
 const getDataValueAsUint = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsUint(fieldName, (err, data) => {
+  agreement.getDataValueAsUint(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: parseInt(data.raw[0].valueOf(), 10),
-    });
+    const result = { name: fieldName, value: parseInt(data.raw[0].valueOf(), 10) };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %d', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
 const getDataValueAsInt = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsInt(fieldName, (err, data) => {
+  agreement.getDataValueAsInt(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: parseInt(data.raw[0].valueOf(), 10),
-    });
+    const result = { name: fieldName, value: parseInt(data.raw[0].valueOf(), 10) };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %d', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
 const getDataValueAsAddress = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsAddress(fieldName, (err, data) => {
+  agreement.getDataValueAsAddress(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: data.raw[0].valueOf(),
-    });
+    const result = { name: fieldName, value: data.raw[0].valueOf() };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
 const getDataValueAsBytes32 = (agreementAddr, fieldName) => new Promise((resolve, reject) => {
   const agreement = contracts.getContract(global.__abi, CONTRACT_ACTIVE_AGREEMENT, agreementAddr);
-  // TODO fieldName is bytes32 and needs hexToString
-  agreement.getDataValueAsBytes32(fieldName, (err, data) => {
+  agreement.getDataValueAsBytes32(global.stringToHex(fieldName), (err, data) => {
     if (err) return reject(err);
-    return resolve({
-      name: global.hexToString(fieldName),
-      value: global.hexToString(data.raw[0].valueOf()),
-    });
+    const result = { name: fieldName, value: global.hexToString(data.raw[0].valueOf()) };
+    log.trace('Resolved data ID %s in DataStorage %s to value: %s', fieldName, agreementAddr, result.value);
+    return resolve(result);
   });
 });
 
@@ -159,8 +147,7 @@ const getActivityInDataAsBool = (userAddr, activityInstanceId, dataMappingId) =>
     log.trace('User %s reading IN data %s as bool value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsBool.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsBool.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data bool return: %s', JSON.stringify(processInstance.getActivityInDataAsBool.decode(returnData)));
     return resolve(processInstance.getActivityInDataAsBool.decode(returnData).raw[0]);
@@ -174,8 +161,7 @@ const getActivityInDataAsString = (userAddr, activityInstanceId, dataMappingId) 
     log.trace('User %s reading IN data %s as string value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsString.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsString.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data string return: %s', JSON.stringify(processInstance.getActivityInDataAsString.decode(returnData)));
     return resolve(processInstance.getActivityInDataAsString.decode(returnData).raw[0].valueOf());
@@ -189,11 +175,10 @@ const getActivityInDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId)
     log.trace('User %s reading IN data %s as bytes32 value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsBytes32.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsBytes32.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data bytes32 return: %s', JSON.stringify(processInstance.getActivityInDataAsBytes32.decode(returnData)));
-    return resolve(processInstance.getActivityInDataAsBytes32.decode(returnData).raw[0].valueOf());
+    return resolve(global.hexToString(processInstance.getActivityInDataAsBytes32.decode(returnData).raw[0].valueOf()));
   } catch (error) {
     return reject(error);
   }
@@ -204,8 +189,7 @@ const getActivityInDataAsUint = (userAddr, activityInstanceId, dataMappingId) =>
     log.trace('User %s reading IN data %s as uint value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsUint.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsUint.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data uint return: %s', JSON.stringify(processInstance.getActivityInDataAsUint.decode(returnData)));
     return resolve(processInstance.getActivityInDataAsUint.decode(returnData).raw[0].valueOf());
@@ -219,8 +203,7 @@ const getActivityInDataAsInt = (userAddr, activityInstanceId, dataMappingId) => 
     log.trace('User %s reading IN data %s as int value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsInt.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsInt.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data int return: %s', JSON.stringify(processInstance.getActivityInDataAsInt.decode(returnData)));
     return resolve(processInstance.getActivityInDataAsInt.decode(returnData).raw[0].valueOf());
@@ -234,8 +217,7 @@ const getActivityInDataAsAddress = (userAddr, activityInstanceId, dataMappingId)
     log.trace('User %s reading IN data %s as string value on activity instance ID %s', userAddr, dataMappingId, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.getActivityInDataAsAddress.encode(activityInstanceId, dataMappingId);
+    const payload = processInstance.getActivityInDataAsAddress.encode(activityInstanceId, global.stringToHex(dataMappingId));
     const returnData = await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     log.trace('Activity data address return: %s', JSON.stringify(processInstance.getActivityInDataAsAddress.decode(returnData)));
     return resolve(processInstance.getActivityInDataAsAddress.decode(returnData).raw[0].valueOf());
@@ -253,8 +235,7 @@ const setActivityOutDataAsBool = (userAddr, activityInstanceId, dataMappingId, v
     log.trace('User %s setting OUT data %s as bool value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsBool.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsBool.encode(activityInstanceId, global.stringToHex(dataMappingId), value);
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -266,10 +247,8 @@ const setActivityOutDataAsString = (userAddr, activityInstanceId, dataMappingId,
   try {
     log.trace('User %s setting OUT data %s as string value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
-    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsString.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsString.encode(activityInstanceId, global.stringToHex(dataMappingId), value);
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -281,10 +260,8 @@ const setActivityOutDataAsBytes32 = (userAddr, activityInstanceId, dataMappingId
   try {
     log.trace('User %s setting OUT data %s as bytes32 value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
-    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsBytes32.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsBytes32.encode(activityInstanceId, global.stringToHex(dataMappingId), global.stringToHex(value));
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -296,10 +273,8 @@ const setActivityOutDataAsUint = (userAddr, activityInstanceId, dataMappingId, v
   try {
     log.trace('User %s setting OUT data %s as uint value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
-    log.info('PI Address: %s, type: %s', piAddress, typeof piAddress);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsUint.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsUint.encode(activityInstanceId, global.stringToHex(dataMappingId), value);
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -312,8 +287,7 @@ const setActivityOutDataAsInt = (userAddr, activityInstanceId, dataMappingId, va
     log.trace('User %s setting OUT data %s as int value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsInt.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsInt.encode(activityInstanceId, global.stringToHex(dataMappingId), value);
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -326,8 +300,7 @@ const setActivityOutDataAsAddress = (userAddr, activityInstanceId, dataMappingId
     log.trace('User %s setting OUT data %s as address value %s on activity instance ID %s', userAddr, dataMappingId, value, activityInstanceId);
     const piAddress = await contracts.getBpmService().factory.getProcessInstanceForActivity(activityInstanceId).then(result => result.raw[0]);
     const processInstance = contracts.getProcessInstance(piAddress);
-    // TODO dataMappingId is bytes32 and needs hexToString
-    const payload = processInstance.setActivityOutDataAsAddress.encode(activityInstanceId, dataMappingId, value);
+    const payload = processInstance.setActivityOutDataAsAddress.encode(activityInstanceId, global.stringToHex(dataMappingId), value);
     await contracts.callOnBehalfOf(userAddr, piAddress, payload);
     return resolve();
   } catch (error) {
@@ -340,23 +313,23 @@ const setActivityOutDataAsAddress = (userAddr, activityInstanceId, dataMappingId
  ********************************** */
 
 const getAgreementValidParameters = agreementAddr => new Promise((resolve, reject) => {
-  const queryStr = `select encode(ap.parameter_name::bytea, 'hex') AS parameter_key, ap.parameter_type AS "parameterType"
+  const queryStr = `select ap.parameter_name AS name, ap.parameter_type AS "parameterType"
   from AGREEMENTS ag
   join ARCHETYPE_PARAMETERS ap on ag.archetype_address = ap.archetype_address
   where ag.agreement_address = $1;`;
   chain_db_pool.query(queryStr, [agreementAddr], (err, data) => {
     if (err) return reject(err);
-    return resolve(data.rows.map(_field => Object.assign(_field, { name: _field.parameter_key })));
+    return resolve(data.rows);
   });
 });
 
 const getArchetypeValidParameters = archetypeAddr => new Promise((resolve, reject) => {
-  const queryStr = `select ap.parameter_name AS parameter_key, ap.parameter_type AS "parameterType"
+  const queryStr = `select ap.parameter_name AS name, ap.parameter_type AS "parameterType"
   from ARCHETYPE_PARAMETERS ap
   where ap.archetype_address = $1;`;
   chain_db_pool.query(queryStr, [archetypeAddr], (err, data) => {
     if (err) return reject(err);
-    return resolve(data.rows.map(_field => Object.assign(_field, { name: _field.parameter_key })));
+    return resolve(data.rows);
   });
 });
 

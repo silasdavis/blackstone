@@ -77,7 +77,7 @@ jobs:
 
 - name: AssertRepositoryDbOwner
   assert:
-    key: $GetRepositoryDbOwner.0
+    key: $GetRepositoryDbOwner
     relation: eq
     val: $DefaultProcessModelRepository
 
