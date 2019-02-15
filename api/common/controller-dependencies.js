@@ -298,7 +298,7 @@ const dependencies = {
         if (id) names[address].id = id;
         if (name) names[address].name = name;
       });
-      const returnData = participants.map(account => Object.assign(account, names[account[addressKey]]));
+      const returnData = participants.map(account => Object.assign({}, account, names[account[addressKey]]));
       if (registeredUsersOnly) return returnData.filter(({ id, name }) => id || name);
       return returnData;
     } catch (err) {
