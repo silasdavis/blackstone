@@ -22,7 +22,6 @@ global.stringToHex = stringToHex;
   const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
   global.__settings = (() => {
     let settings = toml.parse(fs.readFileSync(configFilePath))
-    if (process.env.MONAX_DOUG) _.set(settings, 'monax.DOUG', process.env.MONAX_DOUG)
     if (process.env.MONAX_CHAIN_HOST) _.set(settings, 'monax.chain.host', process.env.MONAX_CHAIN_HOST)
     if (process.env.MONAX_CHAIN_PORT) _.set(settings, 'monax.chain.port', process.env.MONAX_CHAIN_PORT)
     if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
