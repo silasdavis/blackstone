@@ -122,6 +122,14 @@
       "signatureTimestamp": {
         "name": "signature_timestamp",
         "type": "uint"
+      },
+      "canceledBy": {
+        "name": "canceled_by",
+        "type": "address"
+      },
+      "cancelationTimestamp": {
+        "name": "cancelation_timestamp",
+        "type": "uint"
       }
     }
   },
