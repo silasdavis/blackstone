@@ -115,9 +115,9 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			}
 			delete self.departments[_depId];
             emit LogOrganizationDepartmentRemoval(
-                EVENT_ID_ORGANIZATION_DEPARTMENTS, 
-                bytes32("delete"), 
-                address(this), 
+                EVENT_ID_ORGANIZATION_DEPARTMENTS,
+                NOTHING,
+                address(this),
                 _depId
             );
 			return true;
@@ -235,7 +235,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			users.remove(_userAccount);
             emit LogOrganizationUserRemoval(
                 EVENT_ID_ORGANIZATION_USERS,
-                bytes32("delete"),
+                NOTHING,
                 address(this),
 				_userAccount
             );
@@ -281,7 +281,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			self.departments[_depId].users.remove(_userAccount);
             emit LogDepartmentUserRemoval(
 				EVENT_ID_DEPARTMENT_USERS,
-				bytes32("delete"),
+				NOTHING,
 				address(this),
 				_depId,
 				_userAccount);

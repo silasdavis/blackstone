@@ -5,7 +5,8 @@ ARG BURROW_VERSION=0.23.3
 # For solc binary
 FROM ethereum/solc:$SOLC_VERSION as solc-builder
 # Burrow version on which Blackstone is tested
-FROM hyperledger/burrow:$BURROW_VERSION as burrow-builder
+#FROM hyperledger/burrow:$BURROW_VERSION as burrow-builder
+FROM quay.io/monax/burrow:0.24.0-dev-2019-02-26-8b59aade as burrow-builder
 # Testing image
 FROM alpine:3.8
 
