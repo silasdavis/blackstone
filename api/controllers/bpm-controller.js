@@ -7,8 +7,6 @@ const {
   splitMeta,
   asyncMiddleware,
   byteLength,
-  setUserIds,
-  getNamesOfOrganizations,
 } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.bpm');
@@ -100,11 +98,6 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
   let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
   if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found or user not authorized`);
   activityInstanceResult = (await pgCache.populateTaskNames([activityInstanceResult]))[0];
-  activityInstanceResult.performerName = (await setUserIds([{ address: activityInstanceResult.performer }]))[0];
-  if (!activityInstanceResult.performerName) {
-    activityInstanceResult.performerName = (await getNamesOfOrganizations([{ address: activityInstanceResult.performer }]))[0];
-  }
-  activityInstanceResult.performerName = activityInstanceResult.performerName.id || activityInstanceResult.performerName.name;
   activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
   activityInstanceResult.data = addDataTypes(activityInstanceResult.data);
   try {

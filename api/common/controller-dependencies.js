@@ -52,18 +52,6 @@ const dependencies = {
     const element = Object.assign({}, obj);
     const err = new Error();
     switch (type) {
-      case 'Organization':
-        break;
-      case 'User':
-        delete element.organization;
-        Object.keys(element).forEach((key) => {
-          const camelKey = _.camelCase(key);
-          if (key !== camelKey) {
-            element[camelKey] = element[key];
-            delete element[key];
-          }
-        });
-        break;
       case 'Access Point':
         element.accessPointId = hexToString(element.accessPointId);
         break;
@@ -293,49 +281,26 @@ const dependencies = {
     };
   },
 
-  setUserIds: (users, registeredUsersOnly, ...formats) => new Promise((resolve, reject) => {
-    const text = `SELECT username AS id, address FROM users 
-    WHERE address = ANY ($1)
+  getParticipantNames: async (participants, registeredUsersOnly, addressKey = 'address') => {
+    const text = `SELECT username AS id, NULL AS name, address, external_user FROM users
+    UNION
+    SELECT NULL AS id, name, address, FALSE AS external_user FROM organizations
+    WHERE address = ANY($1)
     ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
     try {
-      app_db_pool.query({
+      const { rows: withNames } = await app_db_pool.query({
         text,
-        values: [users.map(user => user.address)],
-      }, (err, res) => {
-        if (err) reject(boom.badImplementation(err));
-        const userIds = {};
-        res.rows.forEach((user) => {
-          userIds[user.address] = user.id;
-        });
-        const _users = users.map((_user) => {
-          let user = Object.assign({}, _user);
-          user.id = userIds[user.address];
-          formats.forEach((format) => {
-            user = dependencies.format(format, user);
-          });
-          return user;
-        }).filter(({ id }) => id);
-        resolve(_users);
+        values: [participants.map(({ [addressKey]: address }) => address)],
       });
-    } catch (err) {
-      reject(err);
-    }
-  }),
-
-  getNamesOfOrganizations: async (organizations) => {
-    try {
-      const { rows } = await app_db_pool.query({
-        text: 'SELECT DISTINCT address, name FROM organizations WHERE address = ANY ($1)',
-        values: [organizations.map(({ address }) => address)],
+      const names = {};
+      withNames.forEach(({ address, id, name }) => {
+        names[address] = {};
+        if (id) names[address].id = id;
+        if (name) names[address].name = name;
       });
-      const completeOrgs = {};
-      organizations.forEach((org) => {
-        completeOrgs[org.address] = { ...org, name: '' };
-      });
-      rows.forEach(({ address, name }) => {
-        completeOrgs[address].name = name;
-      });
-      return Object.values(completeOrgs);
+      const returnData = participants.map(account => Object.assign({}, account, names[account[addressKey]]));
+      if (registeredUsersOnly) return returnData.filter(({ id, name }) => id || name);
+      return returnData;
     } catch (err) {
       throw boom.badImplementation(err);
     }

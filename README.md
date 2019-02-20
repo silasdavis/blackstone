@@ -358,47 +358,44 @@ To clean the **entire** system (including node_modules and bundle_cache) run the
 make clean_all
 ```
 
-### Work Manually
+### Work Inside the Containers
 
-Finally, if you'd like to run the commands one by one to debug, you can go into the bash of the docker container with the following command and then run the commands individually as if you were in the linux local console.
+Finally, if you'd like to run commands inside the containers, e.g. to execute additional .yaml scripts manually, you can go into the bash of the docker container with the following commands:
 
-Create a new docker container and open bash
-
-```bash
-make run
-docker-compose exec chain bash
-```
-
-Prerequisites, if running for the first time:
+Start up the docker containers and the system:
 
 ```bash
-cd api
-npm install
+make run_all
+docker ps
 ```
+
+From the docker output find out the container ID for the `blackstone_api` container
+
+```bash
+docker exec -it <blackstone-api-container-ID> bash
+```
+
+#### Examples of commands that can be run inside the container
 
 Run pending migrations
 
 ```bash
+cd api
 npm run db:migrate:up
-```
-
-The node application is now ready to run
-
-```bash
-npm run start
-```
-
-When you're finished working, then run the clean functions (note, this should be done rarely when in active development):
-
-```bash
-docker-compose rm --force --stop
 ```
 
 You can also run the tests, e.g.
 
-```
+```bash
 cd api
 ps -ef | grep node
 kill -9 <pid>
 npm run test
+```
+
+Run a yaml script, e.g. a manual upgrade.
+
+```bash
+cd contracts/src
+burrow deploy --chain-url=chain:10997 --mempool-signing --address <deployment-address> --file ../upgrades/NewServiceUpgrade-1.2.7.yaml
 ```

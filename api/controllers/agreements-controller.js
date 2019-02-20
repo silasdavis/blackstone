@@ -15,6 +15,7 @@ const {
   asyncMiddleware,
   getBooleanFromString,
   getSHA256Hash,
+  getParticipantNames,
 } = require(`${global.__common}/controller-dependencies`);
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const contracts = require('./contracts-controller');
@@ -445,7 +446,7 @@ const _generateParamGetterPromises = (agreementAddr, agreementParams, reqParams)
       const getterFunction = dataStorage.agreementDataGetters[`${matchingParam.parameterType}`];
       if (getterFunction) {
         log.debug(`Getting value of parameter: ${matchingParam.name} in agremeement at address ${agreementAddr}`);
-        promises.push(getterFunction(agreementAddr, matchingParam.parameter_key));
+        promises.push(getterFunction(agreementAddr, matchingParam.name));
       } else {
         log.error(`No getter function found for parameter name ${matchingParam.name} with parameter type ${matchingParam.parameterType}`);
       }
@@ -495,7 +496,12 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   data = format('Agreement', data);
   const documentMetadata = await sqlCache.getArchetypeDocuments(data.archetype);
   data.documents = documentMetadata.map(({ name, fileReference }) => ({ name, ...JSON.parse(fileReference) }));
-  data.parameters = parameters.map(param => format('Parameter Value', param));
+  const withNames = await getParticipantNames(parameters, false, 'value');
+  const withNamesObj = {};
+  withNames.forEach(({ value, id, name }) => {
+    if (id || name) withNamesObj[value] = { value, displayValue: id || name };
+  });
+  data.parameters = parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
   data.parties = parties.map(party => format('Parameter Value', party));
   data.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
   return res.status(200).json(data);

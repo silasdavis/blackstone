@@ -234,13 +234,6 @@ const createOrganization = org => new Promise((resolve, reject) => {
 const createArchetype = (type) => {
   const archetype = type;
   archetype.isPrivate = archetype.isPrivate || false;
-
-  // TODO remove once the UI updates
-  archetype.formationProcessDefinition = archetype.formationProcessDefinition ||
-    'A043C06EB2FB91F4811F51F6500744906FD0903E';
-  archetype.executionProcessDefinition = archetype.executionProcessDefinition ||
-    '81A817870C6C6A209150FA26BC52D835CA6E17D2';
-
   archetype.price = Math.floor(archetype.price * 100); // monetary unit conversion to cents which is the recorded unit on chain
 
   return new Promise((resolve, reject) => {
@@ -927,8 +920,7 @@ const createTransition = (processAddress, sourceGraphElement, targetGraphElement
 const setDefaultTransition = (processAddress, gatewayId, activityId) => new Promise((resolve, reject) => {
   log.trace(`Setting default transition with data: ${JSON.stringify({ processAddress, gatewayId, activityId })}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
-  // TODO gatewayId and activityId is not being hexed here
-  processDefinition.setDefaultTransition(gatewayId, activityId, (error) => {
+  processDefinition.setDefaultTransition(global.stringToHex(gatewayId), global.stringToHex(activityId), (error) => {
     if (error) {
       return reject(boom
         .badImplementation(`Failed to set default transition between gateway ${gatewayId} and activity ${activityId} in process at ${processAddress}: ${error}`));
@@ -968,8 +960,7 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
   } else {
     formattedValue = value;
   }
-  // TODO gatewayId and activityId are not hexed here
-  createFunction(gatewayId, activityId, dataPath, dataStorageId, dataStorage, operator, formattedValue, (error) => {
+  createFunction(global.stringToHex(gatewayId), global.stringToHex(activityId), global.stringToHex(dataPath), global.stringToHex(dataStorageId), dataStorage, operator, formattedValue, (error) => {
     if (error) {
       return reject(boom.badImplementation('Failed to add transition condition for gateway id ' +
         `${gatewayId} and activity id ${activityId} in process at address ${processAddress}: ${error}`));
@@ -1015,25 +1006,25 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     let payload;
     if (dataMappingId) {
       log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
-      // TODO dataMappingId not hexed here
+      const hexDataMappingId = global.stringToHex(dataMappingId);
       switch (dataType) {
         case DATA_TYPES.BOOLEAN:
-          payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithBoolData.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         case DATA_TYPES.STRING:
-          payload = processInstance.completeActivityWithStringData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithStringData.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         case DATA_TYPES.BYTES32:
-          payload = processInstance.completeActivityWithBytes32Data.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithBytes32Data.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         case DATA_TYPES.UINT:
-          payload = processInstance.completeActivityWithUintData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithUintData.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         case DATA_TYPES.INT:
-          payload = processInstance.completeActivityWithIntData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithIntData.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         case DATA_TYPES.ADDRESS:
-          payload = processInstance.completeActivityWithAddressData.encode(activityInstanceId, bpmService.address, dataMappingId, value);
+          payload = processInstance.completeActivityWithAddressData.encode(activityInstanceId, bpmService.address, hexDataMappingId, value);
           break;
         default:
           return reject(boom.badImplementation(`Unsupported dataType parameter ${dataType}`));
@@ -1151,10 +1142,9 @@ const getProcessInstanceForActivity = activityInstanceId => new Promise((resolve
 });
 
 const getDataMappingKeys = (processDefinition, activityId, direction) => new Promise((resolve, reject) => {
-  // TODO activityId needs to be hexed
   const countPromise = direction === global.__monax_constants.DIRECTION.IN ?
     processDefinition.getInDataMappingKeys : processDefinition.getOutDataMappingKeys;
-  countPromise(activityId, (err, data) => {
+  countPromise(global.stringToHex(activityId), (err, data) => {
     if (err || !data.raw) {
       return reject(boom
         .badImplementation(`Failed to get ${direction ? 'out-' : 'in-'}data mapping ids for activity ${activityId}: ${err}`));
@@ -1168,11 +1158,10 @@ const getDataMappingKeys = (processDefinition, activityId, direction) => new Pro
 
 const getDataMappingDetails = (processDefinition, activityId, dataMappingIds, direction) => new Promise((resolve, reject) => {
   const dataPromises = [];
-  dataMappingIds.forEach((id) => {
+  dataMappingIds.forEach((dataMappingId) => {
     const getter = direction === global.__monax_constants.DIRECTION.IN ?
       processDefinition.getInDataMappingDetails : processDefinition.getOutDataMappingDetails;
-    // TODO dataMappingId and activityId not hexed here
-    dataPromises.push(getter(activityId, id));
+    dataPromises.push(getter(global.stringToHex(activityId), global.stringToHex(dataMappingId)));
   });
   Promise.all(dataPromises)
     .then(data => resolve(data.map(d => d.values)))
@@ -1184,9 +1173,8 @@ const getDataMappingDetailsForActivity = async (pdAddress, activityId, dataMappi
   log.trace(`Fetching ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
   const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
   try {
-    // TODO passed dataMappingIds[] and activityId need to be hexed ?
-    const keys = dataMappingIds || (await getDataMappingKeys(processDefinition, activityId, direction));
-    const details = await getDataMappingDetails(processDefinition, activityId, keys, direction);
+    const keys = dataMappingIds || (await getDataMappingKeys(processDefinition, activityId, direction)); // NOTE: activityId are hex converted inside getDataMappingKeys and not here
+    const details = await getDataMappingDetails(processDefinition, activityId, keys, direction); // NOTE: activityId and dataMappingIds are hex converted inside getDataMappingDetails and not here
     log.info(`Retrieved ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
     return details;
   } catch (err) {
