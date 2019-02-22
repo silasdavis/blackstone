@@ -17,8 +17,6 @@ library Agreements {
 
   struct ArchetypePackage {
     bytes32 id;
-    string name; // MP-711
-    string description;
     address author;
     bool isPrivate;
     bool active;

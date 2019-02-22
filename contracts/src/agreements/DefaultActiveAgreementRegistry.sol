@@ -520,7 +520,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	 */
 	function createAgreementCollection(address _author, Agreements.CollectionType _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id) {
 		if (_author == 0x0 || _packageId == "") return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
-		id = keccak256(abi.encodePacked(abi.encodePacked(_author, _packageId, block.timestamp)));
+		id = keccak256(abi.encodePacked(abi.encodePacked(ActiveAgreementRegistryDb(database).getNumberOfCollections(), _packageId, block.timestamp)));
 		error = ActiveAgreementRegistryDb(database).createCollection(id, _author, _collectionType, _packageId);
 		if (error == BaseErrors.NO_ERROR()) {
 			emit LogAgreementCollectionCreation(

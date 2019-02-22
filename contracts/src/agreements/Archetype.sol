@@ -1,6 +1,5 @@
 pragma solidity ^0.4.25;
 
-import "commons-base/Named.sol";
 import "commons-utils/DataTypes.sol";
 import "commons-management/VersionedArtifact.sol";
 
@@ -9,14 +8,12 @@ import "commons-management/VersionedArtifact.sol";
  * @title Archetype Interface
  * @dev API for interaction with an agreement archetype
  */
-contract Archetype is VersionedArtifact, Named {
+contract Archetype is VersionedArtifact {
 
 	event LogArchetypeCreation(
 		bytes32 indexed eventId,
 		address archetypeAddress,
-		string name,
-		string description,
-		uint32 price,
+		uint price,
 		address author,
 		bool active,
 		bool isPrivate,
@@ -28,8 +25,7 @@ contract Archetype is VersionedArtifact, Named {
 	event LogGoverningArchetypeUpdate(
 		bytes32 indexed eventId,
 		address archetypeAddress,
-		address governingArchetypeAddress,
-		string governingArchetypeName
+		address governingArchetypeAddress
 	);
 
 	event LogArchetypeSuccessorUpdate(
@@ -41,7 +37,7 @@ contract Archetype is VersionedArtifact, Named {
 	event LogArchetypePriceUpdate(
 		bytes32 indexed eventId,
 		address archetypeAddress,
-		uint32 price
+		uint price
 	);
 
 	event LogArchetypeActivation(
@@ -81,9 +77,7 @@ contract Archetype is VersionedArtifact, Named {
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
-	 * @param _name name
 	 * @param _author author
-	 * @param _description description
 	 * @param _isPrivate determines if this archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
@@ -91,12 +85,10 @@ contract Archetype is VersionedArtifact, Named {
 	 * @param _governingArchetypes array of governing archetype addresses
 	 */
 	function initialize(
-		uint32 _price,
+		uint _price,
 		bool _isPrivate,
 		bool _active,
-		string _name,
 		address _author,
-		string _description,
 		address _formationProcess,
 		address _executionProcess,
 		address[] _governingArchetypes)
@@ -130,22 +122,16 @@ contract Archetype is VersionedArtifact, Named {
 	function addJurisdiction(bytes2 _country, bytes32 _region) external returns (uint error, bytes32 key);
 
 	/**
-	 * @dev Gets description
-	 * @return description
-	 */
-	function getDescription() external view returns (string description);
-
-	/**
 	 * @dev Gets price
 	 * @return price
 	 */
-	function getPrice() external view returns (uint32);
+	function getPrice() external view returns (uint);
 
 	/**
 	 * @dev Sets price
 	 * @param _price price of archetype
 	 */
-	function setPrice(uint32 _price) external;
+	function setPrice(uint _price) external;
 
 	/**
 	 * @dev Gets Author
@@ -230,13 +216,6 @@ contract Archetype is VersionedArtifact, Named {
 	 * @return the address for the governing archetype
 	 */
 	function getGoverningArchetypeAtIndex(uint _index) external view returns (address archetypeAddress);
-
-	/**
-	 * @dev Returns information about the governing archetype with the specified address
-	 * @param _archetype the governing archetype address
-	 * @return the name of the governing archetype
-	 */
-	function getGoverningArchetypeData(address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Returns all governing archetype address for this archetype

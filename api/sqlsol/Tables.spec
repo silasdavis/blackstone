@@ -206,17 +206,9 @@
         "type": "address",
         "primary": true
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
-      "description": {
-        "name": "description",
-        "type": "string"
-      },
       "price": {
         "name": "price",
-        "type": "uint32"
+        "type": "uint"
       },
       "author": {
         "name": "author",
@@ -253,14 +245,6 @@
         "type": "bytes32",
         "primary": true
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
-      "description": {
-        "name": "description",
-        "type": "string"
-      },
       "author": {
         "name": "author",
         "type": "address"
@@ -288,10 +272,6 @@
         "name": "archetype_address",
         "type": "address",
         "primary": true
-      },
-      "archetypeName": {
-        "name": "archetype_name",
-        "type": "string"
       }
     }
   },
@@ -375,10 +355,6 @@
         "name": "governing_archetype_address",
         "type": "address",
         "primary": true
-      },
-      "governingArchetypeName": {
-        "name": "governing_archetype_name",
-        "type": "string"
       }
     }
   },

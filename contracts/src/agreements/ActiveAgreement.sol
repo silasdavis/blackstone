@@ -1,6 +1,5 @@
 pragma solidity ^0.4.25;
 
-import "commons-base/Named.sol";
 import "commons-collections/DataStorage.sol";
 import "commons-collections/AddressScopes.sol";
 import "commons-events/EventEmitter.sol";
