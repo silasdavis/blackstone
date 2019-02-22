@@ -952,7 +952,7 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
     formattedValue = parseInt(value, 10);
     log.debug('Converted value to integer: %d', formattedValue);
   } else if (dataType === DATA_TYPES.BOOLEAN) {
-    formattedValue = Boolean(value);
+    formattedValue = (typeof value === 'string') ? (value.toLowerCase() === 'true') : Boolean(value);
     log.debug('Converted value to boolean: %s', formattedValue);
   } else if (dataType === DATA_TYPES.BYTES32) {
     formattedValue = global.stringToHex(value);
