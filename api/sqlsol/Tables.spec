@@ -431,11 +431,6 @@
         "primary": true,
         "bytesToString": true
       },
-      "modelAddress": {
-        "name": "model_address",
-        "type": "address",
-        "primary": true
-      },
       "processDefinitionAddress": {
         "name": "process_definition_address",
         "type": "address",
@@ -522,10 +517,6 @@
         "name": "id",
         "type": "bytes32",
         "bytesToString": true
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       },
       "versionMajor": {
         "name": "version_major",

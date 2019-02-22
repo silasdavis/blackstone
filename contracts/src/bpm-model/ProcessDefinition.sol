@@ -30,7 +30,6 @@ contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
 
 	event LogActivityDefinitionCreation(
 		bytes32 indexed eventId,
-		address modelAddress,
 		address processDefinitionAddress,
 		bytes32 activityId,
 		uint8 activityType,

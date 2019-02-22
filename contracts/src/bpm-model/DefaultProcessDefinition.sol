@@ -156,7 +156,6 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 		graphElements.rows[_id].exists = true;
 		emit LogActivityDefinitionCreation(
 			EVENT_ID_ACTIVITY_DEFINITIONS,
-			address(model),
 			address(this),
 			_id,
 			uint8(_activityType),

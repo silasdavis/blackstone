@@ -40,9 +40,9 @@ contract ProcessModelRepositoryTest {
 
 		ProcessModelRepository repo = createNewProcessModelRepository();
 		
-		( ,address pm1) = repo.createProcessModel("testModel", "Test Model", [1,0,0], author, false, dummyModelFileReference);
-		( ,address pm2) = repo.createProcessModel("testModel", "Test Model", [2,0,0], author, false, dummyModelFileReference);
-		( ,address pm3) = repo.createProcessModel("testModel", "Test Model", [3,0,0], author, false, dummyModelFileReference);
+		( ,address pm1) = repo.createProcessModel("testModel", [1,0,0], author, false, dummyModelFileReference);
+		( ,address pm2) = repo.createProcessModel("testModel", [2,0,0], author, false, dummyModelFileReference);
+		( ,address pm3) = repo.createProcessModel("testModel", [3,0,0], author, false, dummyModelFileReference);
 				
 		if (repo.getModel("testModel") != pm1) return "Version 1.0.0 should be the active one.";
 

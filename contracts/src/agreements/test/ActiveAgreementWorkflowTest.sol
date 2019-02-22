@@ -187,7 +187,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// make a model with participants that point to fields on the agreement
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", "Role Qualifiers", [1,0,0], this, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", [1,0,0], this, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		pm.addParticipant(participantId1, 0x0, "Buyer", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
@@ -241,7 +241,7 @@ contract ActiveAgreementWorkflowTest {
 		// the parties to the agreement are: one user, one org, and one org with department scope
 		parties.push(address(this));
 
-		(error, addr) = processModelRepository.createProcessModel("FormationExecution", "Formation Execution", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("FormationExecution", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
@@ -352,7 +352,7 @@ contract ActiveAgreementWorkflowTest {
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("AN-Model", "AN Model", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("AN-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		pm.addParticipant(participantId1, 0x0, DATA_FIELD_AGREEMENT_PARTIES, agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
@@ -488,7 +488,7 @@ contract ActiveAgreementWorkflowTest {
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", "Cancellation Model", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process

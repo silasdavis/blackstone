@@ -3,7 +3,6 @@ pragma solidity ^0.4.25;
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
 import "commons-base/AbstractVersioned.sol";
-import "commons-base/AbstractNamedElement.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "commons-management/ObjectProxy.sol";
@@ -17,36 +16,36 @@ import "bpm-model/DefaultProcessDefinition.sol";
  * @title DefaultProcessModel
  * @dev Default implementation of the ProcessModel interface 
  */
-contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractVersioned, AbstractNamedElement, ProcessModel {
+contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractVersioned, ProcessModel {
 
 	using MappingsLib for Mappings.Bytes32AddressMap;
 	using MappingsLib for Mappings.Bytes32UintMap;
 
+	bytes32 id;
+	address author;
+	bool privateFlag;
+	string modelFileReference;
+
+	bytes32[] processInterfaceKeys;
+	mapping(bytes32 => bool) processInterfaces;
 	Mappings.Bytes32UintMap dataDefinitions;
 	Mappings.Bytes32AddressMap processDefinitions;
 	BpmModel.ParticipantMap participants;
-	mapping(bytes32 => bool) processInterfaces;
-	bytes32[] processInterfaceKeys;
-	string modelFileReference;
-	address author;
-	bool privateFlag;
 
 	/**
 	 * @dev Initializes this DefaultProcessModel with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _id the model ID
-	 * @param _name the model name
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if model is visible only to creator
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function initialize(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference)
+	function initialize(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference)
 		external
 		pre_post_initialize
 	{
 		id = _id;
-		name = _name;
 		semanticVersion = _version;
 		modelFileReference = _modelFileReference;
 		author = _author;
@@ -55,7 +54,6 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			EVENT_ID_PROCESS_MODELS,
 			address(this),
 			_id,
-			_name,
 			_version[0],
 			_version[1],
 			_version[2],
@@ -107,6 +105,14 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 */
 	function getAuthor() external view returns (address) {
 		return author;
+	}
+
+	/**
+	 * @dev Returns this model's ID
+	 * @return the model ID
+	 */
+	function getId() external view returns (bytes32) {
+		return id;
 	}
 
 	/**
@@ -215,23 +221,6 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 */
 	function getProcessDefinitionAtIndex(uint _idx) external view returns (address) {
 		return processDefinitions.get(processDefinitions.keys[_idx]);
-	}
-
-	/**
-	 * @dev Returns information about the ProcessDefinition at the given address
-	 * @param _processDefinition the address
-	 * @return id the process ID
-	 * @return interfaceId the first process interface the process definition supports
-	 * @return modelId the id of the model to which this process definition belongs
-	 */
-	function getProcessDefinitionData(address _processDefinition) external view returns (bytes32 id, bytes32 interfaceId, bytes32 modelId) {
-		ProcessDefinition pd = ProcessDefinition(_processDefinition);
-		id = pd.getId();
-		modelId = pd.getModelId();
-		if (pd.getNumberOfImplementedProcessInterfaces() > 0) {
-			address model;
-			(model, interfaceId) = pd.getImplementedProcessInterfaceAtIndex(0);
-		} 
 	}
 
 	/**

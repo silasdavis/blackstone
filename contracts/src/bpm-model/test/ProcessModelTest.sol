@@ -33,9 +33,8 @@ contract ProcessModelTest {
         DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 		artifactsRegistry.registerArtifact(pm.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
 
-		pm.initialize("testModel", "Test Model", [1,2,3], author, false, dummyModelFileReference);
+		pm.initialize("testModel", [1,2,3], author, false, dummyModelFileReference);
 		if (pm.getId() != "testModel") return "ProcessModel ID not set correctly";
-		if (bytes(pm.getName()).length != bytes(modelName).length) return "ProcessModel Name not set correctly";
 		if (pm.getAuthor() != author) return "ProcessModel Author not set correctly";
 		if (pm.isPrivate() != false) return "ProcessModel expected to be public";
 		if (pm.getVersionMajor() != 1 || pm.getVersionMinor() != 2 || pm.getVersionPatch() != 3) return "ProcessModel Version not set correctly";
