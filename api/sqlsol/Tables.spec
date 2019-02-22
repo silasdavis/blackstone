@@ -893,10 +893,6 @@
       "userCount": {
         "name": "user_count",
         "type": "uint"
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       }
     }
   },

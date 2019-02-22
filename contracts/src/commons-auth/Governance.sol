@@ -13,6 +13,7 @@ library Governance {
     struct Organization {
         bytes20 lei;
         bytes3 countryCode;
+        bytes32 defaultDepartmentId;
         mapping(bytes32 => Department) departments;
         bytes32[] departmentKeys;
         bool exists;
@@ -20,7 +21,6 @@ library Governance {
 
     struct Department {
         bytes32 id;
-        string name;
         Mappings.AddressBoolMap users;
         bool exists;
         uint keyIdx;
