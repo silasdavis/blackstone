@@ -887,7 +887,6 @@
       "departmentId": {
         "name": "department_id",
         "type": "bytes32",
-        "bytesToString": true,
         "primary": true
       },
       "userCount": {
@@ -909,7 +908,6 @@
       "departmentId": {
         "name": "department_id",
         "type": "bytes32",
-        "bytesToString": true,
         "primary": true
       },
       "userAddress": {

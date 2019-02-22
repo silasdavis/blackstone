@@ -91,9 +91,6 @@ const dependencies = {
         if (element.dataPath) element.dataPath = hexToString(element.dataPath);
         if (element.dataStorageId) element.dataStorageId = hexToString(element.dataStorageId);
         break;
-      case 'Department':
-        element.id = hexToString(element.id);
-        break;
       case 'Parameter':
         element.name = hexToString(element.name);
         element.label = hexToString(element.label);
@@ -118,12 +115,6 @@ const dependencies = {
         if (element.interfaceId != null) element.interfaceId = hexToString(element.interfaceId);
         if (element.modelId != null) element.modelId = hexToString(element.modelId);
         element.isPrivate = Boolean(element.isPrivate);
-        break;
-      case 'Task':
-        if (element.scope && element.scope !== element.organizationKey) {
-          // organizationKey was originally entered in bytes32 and doesn't need to be converted to string
-          element.scope = hexToString(element.scope || '');
-        }
         break;
       case 'ParameterType':
         element.label = hexToString(element.label || '');

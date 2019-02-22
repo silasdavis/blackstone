@@ -316,7 +316,6 @@ describe('Organizations', () => {
     name: 'ACME Corp',
   };
   const accounting = {
-    id: 'accounting',
     name: 'Accounting Department',
   };
   const approver = {
@@ -382,7 +381,7 @@ describe('Organizations', () => {
             resAcme.should.exist;
             done();
           });
-        }, 2000);
+        }, 3000);
       });
   }).timeout(10000);
 
@@ -504,6 +503,7 @@ describe('Organizations', () => {
         .send(accounting)
         .end((err, res) => {
           if (err) return done(err);
+          accounting.id = res.body.id;
           res.should.have.status(200);
           setTimeout(function () {
             // verify departments on this organization
@@ -518,10 +518,8 @@ describe('Organizations', () => {
                 res.body.departments.should.be.a('array');
                 // Length should be 2 now because the default department should have been created upon organization creation
                 res.body.departments.should.have.length(2);
-                const acctDep = res.body.departments[1];
+                const acctDep = res.body.departments.find(({ id }) => id === accounting.id);
                 acctDep.should.be.a('object');
-                acctDep.id.should.exist;
-                acctDep.id.should.equal(accounting.id);
                 acctDep.name.should.exist;
                 acctDep.name.should.equal(accounting.name);
                 acctDep.users.should.be.a('array');
@@ -555,7 +553,8 @@ describe('Organizations', () => {
           .end((err, res) => {
             if (err) return done(err);
             res.should.have.status(200);
-            res.body.departments[1].users[0].should.equal(accountant.address);
+            const acctDep = res.body.departments.find(({ id }) => id === accounting.id);
+            acctDep.users[0].should.equal(accountant.address);
             done();
           });
       }, 2000);

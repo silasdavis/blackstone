@@ -8,7 +8,6 @@ const pgCache = require('./postgres-cache-helper');
 
 const {
   encrypt,
-  decrypt,
   format,
   splitMeta,
   addMeta,
@@ -91,7 +90,7 @@ const getArchetype = asyncMiddleware(async (req, res) => {
 const createArchetype = asyncMiddleware(async (req, res) => {
   const password = req.body.password || null;
   if (!req.body || Object.keys(req.body).length === 0) throw boom.badRequest('Archetype data required');
-  let type = req.body;
+  let type = { ...req.body };
   type.parameters = type.parameters || [];
   // TODO: Revisit setting of archetype author
   // The author is overwritten with the logged-in-user's address for now
@@ -104,7 +103,6 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   type = value;
   type.governingArchetypes = type.governingArchetypes || [];
-  type.description = _.escape(type.description);
   type.price = parseFloat(type.price, 10);
   type.active = type.active || false;
   if (type.packageId) {
@@ -120,6 +118,8 @@ const createArchetype = asyncMiddleware(async (req, res) => {
     if (packageData.author !== req.user.address) throw boom.forbidden(`Package with id ${type.packageId} is not modifiable by user at address ${req.user.address}`);
     if (type.isPrivate && !packageData.isPrivate) throw boom.badRequest(`Private archetype ${type.name} cannot be added to public package with id ${type.packageId}`);
   }
+  delete type.name; // don't save these parameters on chain
+  delete type.description;
   const archetypeAddress = await contracts.createArchetype(type);
   if (type.parameters.length > 0) {
     await contracts.addArchetypeParameters(archetypeAddress, type.parameters);
@@ -143,6 +143,7 @@ const createArchetype = asyncMiddleware(async (req, res) => {
   if (type.jurisdictions) {
     await contracts.addJurisdictions(archetypeAddress, type.jurisdictions);
   }
+  await sqlCache.insertArchetypeDetails({ address: archetypeAddress, name: req.body.name, description: _.escape(req.body.description) });
 
   return res
     .status(200)
@@ -211,11 +212,13 @@ const createArchetypePackage = asyncMiddleware(async (req, res) => {
   const { name, description } = req.body;
   let { author, isPrivate, active } = req.body;
   if (!name) throw boom.badRequest('Archetype package name is required');
+  if (!name.length > 255) throw boom.badRequest('Archetype package name cannot exceed 255 characters');
   if (!description) throw boom.badRequest('Archetype package description is required');
   author = author || req.user.address;
   isPrivate = isPrivate || false;
   active = active || false;
-  const id = await contracts.createArchetypePackage(name, description, author, isPrivate, active);
+  const id = await contracts.createArchetypePackage(author, isPrivate, active);
+  await sqlCache.insertPackageDetails({ id, name, description });
   res.status(200).json({ id });
 });
 
@@ -417,7 +420,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
 
   //     agreement.hoardAddress = ref.address;
   //     agreement.hoardSecret = ref.secretKey;
-
+  delete agreement.name; // Don't store name on chain
   const agreementAddress = await contracts.createAgreement(agreement);
   await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
   await setAgreementParameters(agreementAddress, req.body.archetype, parameters);
@@ -429,6 +432,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   if (!formation) {
     throw boom.badImplementation(`No formation process found for archetype ${req.body.archetype}`);
   }
+  await sqlCache.insertAgreementDetails({ address: agreementAddress, name: req.body.name });
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
   log.debug(`Process Instance Address: ${piAddress}`);
   res
@@ -576,10 +580,12 @@ const createAgreementCollection = asyncMiddleware(async (req, res) => {
   const { name, collectionType, packageId } = req.body;
   let { author } = req.body;
   if (!name) throw boom.badRequest('Agreement collection name required');
+  if (name.length > 255) throw boom.badRequest('Agreement collection name cannot exceed 255 characters');
   if (collectionType === undefined) throw boom.badRequest('Agreement collection type required');
   if (!packageId) throw boom.badRequest('Archetype packageId required');
   author = author || req.user.address;
-  const id = await contracts.createAgreementCollection(name, author, collectionType, packageId);
+  const id = await contracts.createAgreementCollection(author, collectionType, packageId);
+  await sqlCache.insertCollectionDetails({ id, name });
   res.status(200).json({ id });
 });
 

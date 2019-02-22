@@ -18,7 +18,7 @@ module.exports.createModel = (author, xml) => {
         .then(async (res) => {
           model = res.model;
           try {
-            model.address = await contracts.createProcessModel(model.id, model.name, model.version, author, model.private, '', '');
+            model.address = await contracts.createProcessModel(model.id, model.version, author, model.private, '', '');
             const processResponses = await addProcessesToModel(model.address, res.processes);
             return resolve({
               model, processes: processResponses

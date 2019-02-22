@@ -232,13 +232,11 @@ module.exports = (app, customMiddleware) => {
    * @apiDescription
    * Creating a new department within an organization and add members to it
    *
-   * @apiBodyParameter {String} id Departments's ID (must be unique within organization)
    * @apiBodyParameter {String} name Department's human readable name
    * @apiBodyParameter {String[] Optional} users Addresses of the members to add to the Department
    * If not given, department will be created with no members and members can be added later
    * @apiBodyParameterExample {json} Param Object
     {
-      "id": "accounting",
       "name": "Accounting",
       "users": ["9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E"]
     }

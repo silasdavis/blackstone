@@ -88,7 +88,7 @@ contract ActiveAgreementTest {
 		// Signer 2 is signing on behalf of an organization (default department)
 		address[] memory emptyAddressArray;
 		Organization org1 = new DefaultOrganization();
-		org1.initialize(emptyAddressArray, EMPTY_STRING);
+		org1.initialize(emptyAddressArray, EMPTY);
 		if (!org1.addUserToDepartment(signer2, EMPTY)) return "Unable to add user account to organization";
 		delete parties;
 		parties.push(address(signer1));
