@@ -177,7 +177,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// make an agreement with fields of type address and add role qualifiers. Note: archetype is not used, so setting address to 'this'
 		ActiveAgreement agreement = new DefaultActiveAgreement();
-		agreement.initialize(this, "RoleQualifierAgreement", this, "", false, parties, governingAgreements);
+		agreement.initialize(address(this), address(this), "", false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender
@@ -266,7 +266,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		addr = archetypeRegistry.createArchetype(10, false, true, "Combo1Archetype", this, "description", formationPD, address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo1Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting formation / no execution combo";
 		if (addr == address(0)) return "Starting formation / no execution combo should return a PI address for formation";
@@ -277,7 +277,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		addr = archetypeRegistry.createArchetype(10, false, true, "Combo2Archetype", this, "description", address(0), executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo2Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		// First try fail, because agreement is not executed
 		if (address(agreementRegistry).call(abi.encodeWithSignature("startProcessLifecycle(address)", address(agreement)))) return "Starting no formation / execution combo with a non-executed agreement should fail ";
 		agreement.sign();
@@ -291,7 +291,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		addr = archetypeRegistry.createArchetype(10, false, true, "Combo3Archetype", this, "description", address(0), address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo3Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != 0) return "Expected empty error code starting no formation / no execution combo";
 		if (addr != address(0)) return "Expected no address starting no formation / no execution combo";
@@ -381,7 +381,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// AGREEMENT
 		//
-		address agreement = agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements);
+		address agreement = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		// Org2 has a department, so we're setting the additional context on the agreement
 		ActiveAgreement(agreement).setAddressScope(address(org2), DATA_FIELD_AGREEMENT_PARTIES, departmentId1, EMPTY, EMPTY, 0x0);
 		//TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
@@ -517,9 +517,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		address agreement1;
 		address agreement2;
-		agreement1 = agreementRegistry.createAgreement(addr, "TestAgreement1", this, "", false, parties, EMPTY, governingAgreements);
+		agreement1 = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		if (agreement1 == 0x0) return "Unexpected error creating agreement1";
-		agreement2 = agreementRegistry.createAgreement(addr, "TestAgreement2", this, "", false, parties, EMPTY, governingAgreements);
+		agreement2 = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		if (agreement2 == 0x0) return "Unexpected error creating agreement2";
 
 		//

@@ -44,10 +44,6 @@
         "name": "archetype_address",
         "type": "address"
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
       "creator": {
         "name": "creator",
         "type": "address"
@@ -90,10 +86,6 @@
         "name": "collection_id",
         "type": "bytes32",
         "primary": true
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       },
       "author": {
         "name": "author",
@@ -146,14 +138,6 @@
         "name": "agreement_address",
         "type": "address",
         "primary": true
-      },
-      "agreementName": {
-        "name": "agreement_name",
-        "type": "string"
-      },
-      "archetypeAddress": {
-        "name": "archetype_address",
-        "type": "address"
       }
     }
   },
@@ -170,10 +154,6 @@
         "name": "governing_agreement_address",
         "type": "address",
         "primary": true
-      },
-      "governingAgreementName": {
-        "name": "governing_agreement_name",
-        "type": "string"
       }
     }
   },

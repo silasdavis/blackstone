@@ -13,13 +13,12 @@ import "agreements/Agreements.sol";
  * @title ActiveAgreement Interface
  * @dev API for interaction with an Active Agreement
  */
-contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes, Signable, EventEmitter {
+contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signable, EventEmitter {
 
 	event LogAgreementCreation(
 		bytes32 indexed eventId,
 		address	agreementAddress,
 		address	archetypeAddress,
-		string name,
 		address	creator,
 		bool isPrivate,
 		uint8 legalState,
@@ -57,8 +56,7 @@ contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes
 	event LogGoverningAgreementUpdate(
 		bytes32 indexed eventId,
 		address agreementAddress,
-		address governingAgreementAddress,
-		string governingAgreementName
+		address governingAgreementAddress
 	);
 
 	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
@@ -74,7 +72,6 @@ contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
-	 * @param _name name
 	 * @param _creator the account that created this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters
 	 * @param _isPrivate if agreement is private
@@ -83,7 +80,6 @@ contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes
 	 */
 	function initialize(
 		address _archetype, 
-		string _name, 
 		address _creator, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
@@ -103,13 +99,6 @@ contract ActiveAgreement is VersionedArtifact, Named, DataStorage, AddressScopes
 	 * @return the address for the governing agreement
 	 */
 	function getGoverningAgreementAtIndex(uint _index) external view returns (address agreementAddress);
-
-	/**
-	 * @dev Returns information about the governing agreement with the specified address
-	 * @param _agreement the governing agreement address
-	 * @return the name of the governing agreement
-	 */
-	function getGoverningAgreementData(address _agreement) external view returns (string agreementName);
 
 	/**
 	 * @dev Gets number of parties

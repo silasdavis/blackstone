@@ -17,7 +17,7 @@ library Agreements {
 
   struct ArchetypePackage {
     bytes32 id;
-    string name;
+    string name; // MP-711
     string description;
     address author;
     bool isPrivate;
@@ -38,9 +38,8 @@ library Agreements {
 
   struct AgreementCollection {
     bytes32 id;
-    string name;
     address author;
-    uint8 collectionType;
+    CollectionType collectionType;
     bytes32 packageId;
     address[] agreements;
   }

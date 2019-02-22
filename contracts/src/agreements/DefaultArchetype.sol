@@ -31,8 +31,8 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		bytes32 region;
 	}
 
-	string name;
-	string description;
+	string name; // MP-711
+	string description; // MP-711
 	uint32 price;
 	address author;
 	bool active;

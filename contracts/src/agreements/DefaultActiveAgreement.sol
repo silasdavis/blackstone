@@ -25,7 +25,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 
 	address archetype;
 	address creator;
-	string name;
 	string privateParametersFileReference;
 	string eventLogFileReference;
 	bool privateFlag;
@@ -40,7 +39,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
-	 * @param _name name
 	 * @param _creator the account that created this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters (optional)
 	 * @param _isPrivate if agreement is private
@@ -49,7 +47,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 */
 	function initialize(
 		address _archetype, 
-		string _name, 
 		address _creator, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
@@ -59,7 +56,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 		pre_post_initialize
 	{
 		archetype = _archetype;
-		name = _name;
 		creator = _creator;
 		privateParametersFileReference = _privateParametersFileReference;
 		privateFlag = _isPrivate;
@@ -71,7 +67,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,
-			_name,
 			_creator,
 			_isPrivate,
 			uint8(legalState),
@@ -83,7 +78,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
-			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i], _name);
+			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i]);
 		}
 	}
 
@@ -102,23 +97,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 */
 	function getGoverningAgreementAtIndex(uint _index) external view returns (address agreementAddress) {
 		return governingAgreements[_index];
-	}
-
-	/**
-	 * @dev Returns information about the governing agreement with the specified address
-	 * @param _agreement the governing agreement address
-	 * @return the name of the governing agreement
-	 */
-	function getGoverningAgreementData(address _agreement) external view returns (string agreementName) {
-		return ActiveAgreement(_agreement).getName();
-	}
-
-	/**
-	 * @dev Gets name
-	 * @return name name
-	 */
-	function getName() public view returns (string) {
-		return name;
 	}
 
 	/**

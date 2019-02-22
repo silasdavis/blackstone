@@ -4,6 +4,7 @@ import "commons-management/Upgradeable.sol";
 import "bpm-runtime/ProcessStateChangeListener.sol";
 
 import "agreements/ActiveAgreement.sol";
+import "agreements/Agreements.sol";
 
 /**
  * @title ActiveAgreementRegistry Interface
@@ -26,7 +27,6 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	event LogAgreementCollectionCreation(
 		bytes32 indexed eventId,
 		bytes32 collectionId,
-		string name,
 		address author,
 		uint8 collectionType,
 		bytes32 packageId
@@ -35,9 +35,7 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	event LogAgreementToCollectionUpdate(
 		bytes32 indexed eventId,
 		bytes32 collectionId,
-		address agreementAddress,
-		string agreementName,
-		address archetypeAddress
+		address agreementAddress
 	);
 
     string public constant OBJECT_CLASS_AGREEMENT = "agreements.ActiveAgreement";
@@ -50,7 +48,6 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	/**
 	 * @dev Creates an Active Agreement with the given parameters
 	 * @param _archetype archetype
-	 * @param _name name
 	 * @param _creator address
 	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
@@ -61,7 +58,6 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 */
 	function createAgreement(
 		address _archetype,
-		string _name, 
 		address _creator, 
 		string _privateParametersFileReference,
 		bool _isPrivate,
@@ -145,7 +141,6 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
      * @dev Returns data about the ActiveAgreement at the specified address
 	 * @param _activeAgreement Active Agreement
 	 * @return archetype - the agreement's archetype adress
-	 * @return name - the name of the agreement
 	 * @return creator - the creator of the agreement
 	 * @return privateParametersFileReference - the file reference to the private agreement parameters (only used when agreement is private)
 	 * @return eventLogFileReference - the file reference to the agreement's event log
@@ -155,7 +150,7 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, string name, address creator, string privateParametersFileReference, string eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, address creator, string privateParametersFileReference, string eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -203,12 +198,13 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 
 	/**
 	 * @dev Creates a new agreement collection
-	 * @param _name name
-	 * @param _author address of author
+	 * @param _author address of the author
+	 * @param _collectionType the Agreements.CollectionType
+	 * @param _packageId the ID of an archetype package
 	 * @return an error code indicating success or failure
 	 * @return id bytes32 id of package
 	 */
-	function createAgreementCollection(string _name, address _author, uint8 _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id);
+	function createAgreementCollection(address _author, Agreements.CollectionType _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id);
 
 	/**
 	 * @dev Gets number of agreement collections
@@ -226,12 +222,11 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	/**
 	 * @dev Gets collection data by id
 	 * @param _id bytes32 collection id
-	 * @return name string
 	 * @return author address
 	 * @return collectionType type of collection
 	 * @return packageId id of the archetype package
 	 */
-	function getAgreementCollectionData(bytes32 _id) external view returns (string name, address author, uint8 collectionType, bytes32 packageId);
+	function getAgreementCollectionData(bytes32 _id) external view returns (address author, uint8 collectionType, bytes32 packageId);
 
 	/**
 	 * @dev Gets number of agreements in given collection
@@ -249,15 +244,6 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	function getAgreementAtIndexInCollection(bytes32 _id, uint _index) external view returns (address agreement);
 
 	/**
-	 * @dev Get agreement data by collection id and agreement address
-	 * @param _id id of the collection
-	 * @param _agreement address of agreement
-	 * @return agreementName name of agreement
-	 * @return archetype address of archetype
-	 */
-	function getAgreementDataInCollection(bytes32 _id, address _agreement) external view returns (string agreementName, address archetype);	
-
-	/**
 	 * @dev Returns the number governing agreements for given agreement
 	 * @return the number of governing agreements
 	 */
@@ -271,11 +257,4 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 */
 	function getGoverningAgreementAtIndex(address _agreement, uint _index) external view returns (address governingAgreement);
 
-	/**
-	 * @dev Returns information about the governing agreement with the specified address
-	 * @param _agreement the agreement address
-	 * @param _governingAgreement the governing agreement address
-	 * @return the name of the governing agreement
-	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name);
 }
