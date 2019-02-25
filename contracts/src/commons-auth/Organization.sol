@@ -48,8 +48,7 @@ contract Organization is VersionedArtifact {
         bytes32 indexed eventId,
         address organizationAddress,
         bytes32 departmentId,
-        uint userCount,
-        string name        
+        uint userCount     
     );
 
     event LogOrganizationDepartmentRemoval(
@@ -84,35 +83,33 @@ contract Organization is VersionedArtifact {
 													bytes4(keccak256(abi.encodePacked("authorizeUser(address,bytes32)")));
 
 	/**
-	 * @dev The reserved ID of the "default department" of an organization
-	 */
-	bytes32 public constant DEFAULT_DEPARTMENT_ID = "DEFAULT_DEPARTMENT";
-
-	/**
 	 * @dev Initializes this DefaultOrganization with the provided list of initial approvers. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _initialApprovers an array of addresses that should be registered as approvers for this Organization
-	 * @param _defaultDepartmentName an optional custom name/label for the default department of this organization.
+	 * @param _defaultDepartmentId an optional ID for the default department of this organization
 	 */
-	function initialize(address[] _initialApprovers, string _defaultDepartmentName) external;
+	function initialize(address[] _initialApprovers, bytes32 _defaultDepartmentId) external;
 
 	/**
-	 * @dev Adds the department with the specified ID and name to this Organization.
+	 * @dev Adds the department with the specified ID to this Organization.
 	 * @param _id the department ID (must be unique)
-	 * @param _name the name/label for the department
 	 * @return true if the department was added successfully, false otherwise
 	 */
-	function addDepartment(bytes32 _id, string _name) public returns (bool);
+	function addDepartment(bytes32 _id) public returns (bool);
 
 	function getNumberOfDepartments() external view returns (uint size);
 
 	function getDepartmentAtIndex(uint _index) external view returns (bytes32 id);
 
-	function getDepartmentData(bytes32 _id) external view returns (uint userCount, string name);
-
-	function getDepartmentName(bytes32 _id) external view returns (string name);
+	function getDepartmentData(bytes32 _id) external view returns (uint userCount);
 	
 	function departmentExists(bytes32 _id) external view returns (bool);
+
+	/**
+	 * @dev Returns the ID of this Organization's default department
+	 * @return the ID of the default department
+	 */
+	function getDefaultDepartmentId() external view returns (bytes32);
 
 	/**
 	 * @dev Returns the number of registered approvers.

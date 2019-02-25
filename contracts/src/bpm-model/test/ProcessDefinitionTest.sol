@@ -47,7 +47,7 @@ contract ProcessDefinitionTest {
 		uint error;
 
 		ProcessModel pm = new DefaultProcessModel();
-		pm.initialize("testModel", "Test Model", [1,0,0], author, false, dummyModelFileReference);
+		pm.initialize("testModel", [1,0,0], author, false, dummyModelFileReference);
 		ProcessDefinition pd = new DefaultProcessDefinition();
 		pd.initialize("p1", address(pm));
 		
@@ -63,9 +63,6 @@ contract ProcessDefinitionTest {
 		error = pd.addProcessInterfaceImplementation(pm, "AgreementExecution");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add valid process interface Execution to process definition.";
 		if (pd.getNumberOfImplementedProcessInterfaces() != 2) return "Number of implemented interfaces should be 2";
-		(pId, pInterface, modelId) = pm.getProcessDefinitionData(pd);
-		if (pId != "p1") return "Expected process definition id to equal p1";
-		if (pInterface != "AgreementFormation") return "Expected process definition interface to equal AgreementFormation";
 
 		bool valid;
 		bytes32 errorMsg;
@@ -182,7 +179,7 @@ contract ProcessDefinitionTest {
 	function testTransitionConditionResolution() external returns (string) {
 
 		ProcessModel pm = new DefaultProcessModel();
-		pm.initialize("conditionsModel", "Conditions Model", [1,0,0], author, false, dummyModelFileReference);
+		pm.initialize("conditionsModel", [1,0,0], author, false, dummyModelFileReference);
 		ProcessDefinition pd = new DefaultProcessDefinition();
 		pd.initialize("p1", address(pm));
 

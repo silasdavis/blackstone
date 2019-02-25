@@ -23,7 +23,7 @@ const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
   const activities = await pgCache.populateTaskNames(data);
-  return res.status(200).json(activities.map(activity => format('Task', activity)));
+  return res.status(200).json(activities);
 });
 
 const _validateDataMappings = (dataMappings) => {
@@ -105,7 +105,7 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
   } catch (err) {
     throw boom.badImplementation(`Failed to get values for IN data mappings for activity instance id ${req.params.id}: ${err}`);
   }
-  return res.status(200).json(format('Task', activityInstanceResult));
+  return res.status(200).json(activityInstanceResult);
 });
 
 const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId } }, res) => {
@@ -144,7 +144,7 @@ const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res) => {
   if (!address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getTasksByUserAddress(address);
   const tasks = await pgCache.populateTaskNames(data);
-  return res.status(200).json(tasks.map(task => format('Task', task)));
+  return res.status(200).json(tasks);
 });
 
 const getModels = asyncMiddleware(async (req, res) => {
@@ -504,7 +504,7 @@ const createModelFromBpmn = asyncMiddleware(async (req, res) => {
   model.author = req.user.address;
   response.model.id = model.id;
   const hoardRef = await pushModelXmlToHoard(rawXml);
-  response.model.address = await contracts.createProcessModel(model.id, model.name, model.version, model.author, model.private, hoardRef);
+  response.model.address = await contracts.createProcessModel(model.id, model.version, model.author, model.private, hoardRef);
   response.model.dataStoreFields = await addDataDefinitionsToModel(response.model.address, model.dataStoreFields);
   response.processes = await addProcessesToModel(response.model.address, processes);
   response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));

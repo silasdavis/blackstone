@@ -632,7 +632,7 @@ contract BpmServiceTest {
 
 		bytes32 bytes32Value;
 
-		(error, addr) = processModelRepository.createProcessModel("testModel2", "Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModel2", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -714,7 +714,7 @@ contract BpmServiceTest {
 	 */
 	function testInternalProcessExecution() external returns (string) {
 
-		(error, addr) = processModelRepository.createProcessModel("testModel3", "Test Model 3", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModel3", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -779,7 +779,7 @@ contract BpmServiceTest {
 		bytes32 activityId;
 		uint8 state;
 
-		(error, addr) = processModelRepository.createProcessModel("routingModel", "Routing Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("routingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -867,7 +867,7 @@ contract BpmServiceTest {
 		bytes32 activityId;
 		uint8 state;
 
-		(error, addr) = processModelRepository.createProcessModel("loopingModel", "Looping Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("loopingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -987,7 +987,7 @@ contract BpmServiceTest {
 		// re-usable variables for return values
 		bytes32 activityId;
 
-		(error, addr) = processModelRepository.createProcessModel("twoGatewayModel", "2 Gateway Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("twoGatewayModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1113,7 +1113,7 @@ contract BpmServiceTest {
 		EventApplication eventApp = new EventApplication(service);
 		FailureServiceApplication serviceApp = new FailureServiceApplication();
 
-		(error, addr) = processModelRepository.createProcessModel("serviceApplicationsModel", "Service Applications", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("serviceApplicationsModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1212,7 +1212,7 @@ contract BpmServiceTest {
 		bytes32 dataStorageId = "agreement";
 		bytes32 dataPathOnProcess = "customAssignee";
 	
-		(error, addr) = processModelRepository.createProcessModel("conditionalPerformerModel", "Test Model CP", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("conditionalPerformerModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1278,14 +1278,14 @@ contract BpmServiceTest {
 		UserAccount organizationUser = new DefaultUserAccount();
 		organizationUser.initialize(this, 0x0);
 		DefaultOrganization org1 = new DefaultOrganization();
-		org1.initialize(emptyAddressArray, EMPTY_STRING);
+		org1.initialize(emptyAddressArray, EMPTY);
 		if (!org1.addUserToDepartment(organizationUser, EMPTY)) return "Unable to add user account to organization default department";
 
 		// Register a typical WEB application with only a webform
 		error = applicationRegistry.addApplication("Webform1", BpmModel.ApplicationType.WEB, 0x0, bytes4(EMPTY), "MyCustomWebform");
 		if (error != BaseErrors.NO_ERROR()) return "Error registering WEB application for user task";
 
-		(error, addr) = processModelRepository.createProcessModel("testModelUserTasks", "UserTask Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModelUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1413,7 +1413,7 @@ contract BpmServiceTest {
 		UserAccount user1 = new DefaultUserAccount();
 		user1.initialize(this, 0x0);
 	
-		(error, addr) = processModelRepository.createProcessModel("testModelAbort", "Abort Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModelAbort", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1499,7 +1499,7 @@ contract BpmServiceTest {
 		signatories[1] = address(user2);
 		dataStorage.setDataValueAsAddressArray("SIGNATORIES", signatories);
 
-		(error, addr) = processModelRepository.createProcessModel("multiInstanceUserTasks", "Multi Instance User Tasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("multiInstanceUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1584,12 +1584,12 @@ contract BpmServiceTest {
 		TestBpmService service = createNewTestBpmService();
 
 		// Two process models
-		(error, addr) = processModelRepository.createProcessModel("ModelA", "Model A", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("ModelA", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create ProcessModel A";
 		ProcessModel pmA = ProcessModel(addr);
 		pmA.addParticipant(participantId1, address(this), EMPTY, EMPTY, 0x0);
 
-		(error, addr) = processModelRepository.createProcessModel("ModelB", "Model B", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("ModelB", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create ProcessModel B";
 		ProcessModel pmB = ProcessModel(addr);
 

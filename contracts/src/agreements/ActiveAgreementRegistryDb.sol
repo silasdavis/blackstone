@@ -10,26 +10,25 @@ import "agreements/Agreements.sol";
 
 contract ActiveAgreementRegistryDb is SystemOwned {
 
-  using MappingsLib for Mappings.AddressStringMap;
+  using MappingsLib for Mappings.AddressBoolMap;
   using ArrayUtilsAPI for address[];
 
-  Mappings.AddressStringMap activeAgreements;
+  Mappings.AddressBoolMap activeAgreements;
   Agreements.AgreementCollectionMap collections;
   
   // Tracks the formation and execution workflows per agreement
   mapping(address => address[2]) agreementProcesses;
   
-
   constructor() public {
     systemOwner = msg.sender;
   }
 
-  function agreementIsRegistered(address _activeAgreement) external view returns (bool) {
+  function isAgreementRegistered(address _activeAgreement) external view returns (bool) {
     return activeAgreements.exists(_activeAgreement);
   }
 
-  function registerActiveAgreement(address _activeAgreement, string _name) external pre_onlyBySystemOwner returns (uint error) {
-    error = activeAgreements.insert(_activeAgreement, _name);
+  function registerActiveAgreement(address _activeAgreement) external pre_onlyBySystemOwner returns (uint error) {
+    error = activeAgreements.insert(_activeAgreement, true);
   }
 
   function getAgreementFormationProcess(address _activeAgreement) external view returns (address) {
@@ -57,15 +56,10 @@ contract ActiveAgreementRegistryDb is SystemOwned {
     (error, activeAgreement) = activeAgreements.keyAtIndex(_index);
   }
 
-  function getActiveAgreementName(address _activeAgreement) external view returns (string name) {
-    return activeAgreements.get(_activeAgreement);
-  }
-
-  function createCollection(bytes32 _id, string _name, address _author, uint8 _collectionType, bytes32 _packageId) external pre_onlyBySystemOwner returns (uint) {
+  function createCollection(bytes32 _id, address _author, Agreements.CollectionType _collectionType, bytes32 _packageId) external pre_onlyBySystemOwner returns (uint) {
     if (collections.rows[_id].exists) return BaseErrors.RESOURCE_ALREADY_EXISTS();
     collections.rows[_id].keyIdx = collections.keys.push(_id);
     collections.rows[_id].value.id = _id;
-    collections.rows[_id].value.name = _name;
     collections.rows[_id].value.author = _author;
     collections.rows[_id].value.collectionType = _collectionType;
     collections.rows[_id].value.packageId = _packageId;
@@ -92,10 +86,9 @@ contract ActiveAgreementRegistryDb is SystemOwned {
     return collections.keys[_index];
   }
 
-  function getCollectionData(bytes32 _id) external view returns (string name, address author, uint8 collectionType, bytes32 packageId) {
-    name = collections.rows[_id].value.name;
+  function getCollectionData(bytes32 _id) external view returns (address author, uint8 collectionType, bytes32 packageId) {
     author = collections.rows[_id].value.author;
-    collectionType = collections.rows[_id].value.collectionType;
+    collectionType = uint8(collections.rows[_id].value.collectionType);
     packageId = collections.rows[_id].value.packageId;
   }
 

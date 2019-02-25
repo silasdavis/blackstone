@@ -57,7 +57,7 @@ sample archetype:
 
 const archetypeSchema = Joi.object().keys({
   name: Joi.string()
-    .required(),
+    .required().max(255, 'utf8'),
   password: Joi.string().optional(),
   author: Joi.string()
     .hex()

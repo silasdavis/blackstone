@@ -44,10 +44,6 @@
         "name": "archetype_address",
         "type": "address"
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
       "creator": {
         "name": "creator",
         "type": "address"
@@ -90,10 +86,6 @@
         "name": "collection_id",
         "type": "bytes32",
         "primary": true
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       },
       "author": {
         "name": "author",
@@ -146,14 +138,6 @@
         "name": "agreement_address",
         "type": "address",
         "primary": true
-      },
-      "agreementName": {
-        "name": "agreement_name",
-        "type": "string"
-      },
-      "archetypeAddress": {
-        "name": "archetype_address",
-        "type": "address"
       }
     }
   },
@@ -170,10 +154,6 @@
         "name": "governing_agreement_address",
         "type": "address",
         "primary": true
-      },
-      "governingAgreementName": {
-        "name": "governing_agreement_name",
-        "type": "string"
       }
     }
   },
@@ -226,17 +206,9 @@
         "type": "address",
         "primary": true
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
-      "description": {
-        "name": "description",
-        "type": "string"
-      },
       "price": {
         "name": "price",
-        "type": "uint32"
+        "type": "uint"
       },
       "author": {
         "name": "author",
@@ -273,14 +245,6 @@
         "type": "bytes32",
         "primary": true
       },
-      "name": {
-        "name": "name",
-        "type": "string"
-      },
-      "description": {
-        "name": "description",
-        "type": "string"
-      },
       "author": {
         "name": "author",
         "type": "address"
@@ -308,10 +272,6 @@
         "name": "archetype_address",
         "type": "address",
         "primary": true
-      },
-      "archetypeName": {
-        "name": "archetype_name",
-        "type": "string"
       }
     }
   },
@@ -395,10 +355,6 @@
         "name": "governing_archetype_address",
         "type": "address",
         "primary": true
-      },
-      "governingArchetypeName": {
-        "name": "governing_archetype_name",
-        "type": "string"
       }
     }
   },
@@ -474,11 +430,6 @@
         "type": "bytes32",
         "primary": true,
         "bytesToString": true
-      },
-      "modelAddress": {
-        "name": "model_address",
-        "type": "address",
-        "primary": true
       },
       "processDefinitionAddress": {
         "name": "process_definition_address",
@@ -566,10 +517,6 @@
         "name": "id",
         "type": "bytes32",
         "bytesToString": true
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       },
       "versionMajor": {
         "name": "version_major",
@@ -940,16 +887,11 @@
       "departmentId": {
         "name": "department_id",
         "type": "bytes32",
-        "bytesToString": true,
         "primary": true
       },
       "userCount": {
         "name": "user_count",
         "type": "uint"
-      },
-      "name": {
-        "name": "name",
-        "type": "string"
       }
     }
   },
@@ -966,7 +908,6 @@
       "departmentId": {
         "name": "department_id",
         "type": "bytes32",
-        "bytesToString": true,
         "primary": true
       },
       "userAddress": {

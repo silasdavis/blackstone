@@ -14,8 +14,6 @@ import "commons-auth/UserAccount.sol";
  * @dev the default implementation of the Organization interface.
  */
 contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Organization {
-
-	//TODO as a DelegateTarget we need to make sure the functions on this contract cannot be called directly. All functions can be guarded by checking for initialized. Only initialize() must not be callable unless through the proxy ...
 	
 	using MappingsLib for Mappings.AddressBoolMap;
 	using ArrayUtilsAPI for address[];
@@ -25,7 +23,6 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	// The approvers list is intended to be used as a "board" or admin permission list to make changes to this organization
 	address[] approvers;
 	Mappings.AddressBoolMap users;
-	string public defaultDepartmentName = "Default";
 
 	/**
 	 * @dev Modifier to guard functions only accessible by one of the approvers.
@@ -47,9 +44,9 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 * REVERTS if:
 	 * - the contract had already been initialized before
 	 * @param _initialApprovers an array of addresses that should be registered as approvers for this Organization
-	 * @param _defaultDepartmentName an optional custom name/label for the default department of this organization.
+	 * @param _defaultDepartmentId an optional ID for the default department of this organization
 	 */
-	function initialize(address[] _initialApprovers, string _defaultDepartmentName)
+	function initialize(address[] _initialApprovers, bytes32 _defaultDepartmentId)
 		external
 		pre_post_initialize
 	{
@@ -61,10 +58,12 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			approvers = _initialApprovers;
 		}
 		// creating the default department
-		if (bytes(_defaultDepartmentName).length > 0) {
-			defaultDepartmentName = _defaultDepartmentName;
+		if (_defaultDepartmentId != "") {
+			self.defaultDepartmentId = _defaultDepartmentId;
+		} else {
+			self.defaultDepartmentId = "DEFAULT_DEPARTMENT";
 		}
-		addDepartment(DEFAULT_DEPARTMENT_ID, defaultDepartmentName);
+		addDepartment(self.defaultDepartmentId);
 		addInterfaceSupport(ERC165_ID_Organization);
 		emit LogOrganizationCreation(
 			EVENT_ID_ORGANIZATION_ACCOUNTS,
@@ -82,36 +81,33 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	}
 
 	/**
-	 * @dev Adds the department with the specified ID and name to this Organization.
+	 * @dev Adds the department with the specified ID to this Organization.
 	 * @param _id the department ID (must be unique)
-	 * @param _name the name/label for the department
 	 * @return true if the department was added successfully, false otherwise (e.g. if the ID already exists)
 	 */
-	function addDepartment(bytes32 _id, string _name) public returns (bool) {
+	function addDepartment(bytes32 _id) public returns (bool) {
 		if (self.departments[_id].exists) {
 			return false;
 		}
 		self.departments[_id].keyIdx = self.departmentKeys.push(_id)-1;
 		self.departments[_id].id = _id;
-		self.departments[_id].name = _name;
 		self.departments[_id].exists = true;
 		emit LogOrganizationDepartmentUpdate(
 			EVENT_ID_ORGANIZATION_DEPARTMENTS,
 			address(this),
 			_id,
-			self.departments[_id].users.keys.length,
-			self.departments[_id].name
+			self.departments[_id].users.keys.length
 		);
 		return true;
 	}
 
 	/**
-	 * @dev Removes the department with the specified ID, if it exists and is not the DEFAULT_DEPARTMENT_ID.
+	 * @dev Removes the department with the specified ID, if it exists and is not the defaultDepartmentId.
 	 * @param _depId a department ID
 	 * @return true if a department with that ID existed and was successfully removed, false otherwise
 	 */
 	function removeDepartment(bytes32 _depId) external returns (bool) {
-		if (self.departments[_depId].exists && _depId != DEFAULT_DEPARTMENT_ID) {
+		if (self.departments[_depId].exists && _depId != self.defaultDepartmentId) {
 			uint256 depKeyIdx = self.departments[_depId].keyIdx;
 			bytes32 swapKey = Mappings.deleteInKeys(self.departmentKeys, depKeyIdx);
 			if (swapKey != "") {
@@ -137,17 +133,20 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 		return self.departmentKeys[_index];
 	}
 
-	function getDepartmentData(bytes32 _id) external view returns (uint userCount, string name) {
+	function getDepartmentData(bytes32 _id) external view returns (uint userCount) {
 		userCount = self.departments[_id].users.keys.length;
-		name = self.departments[_id].name;
-	}
-
-	function getDepartmentName(bytes32 _id) external view returns (string name) {
-		name = self.departments[_id].name;
 	}
 
 	function departmentExists(bytes32 _id) external view returns (bool) {
 		return self.departments[_id].exists;
+	}
+
+	/**
+	 * @dev Returns the ID of this Organization's default department
+	 * @return the ID of the default department
+	 */
+	function getDefaultDepartmentId() external view returns (bytes32) {
+		return self.defaultDepartmentId;
 	}
 
 	/**
@@ -254,7 +253,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 * @return true if successfully added, false otherwise (e.g. if the department does not exist or if the user account address is empty)
 	 */
 	function addUserToDepartment(address _userAccount, bytes32 _department) external returns (bool) {
-		bytes32 targetDepartment = (_department == "") ? DEFAULT_DEPARTMENT_ID : _department;
+		bytes32 targetDepartment = (_department == "") ? self.defaultDepartmentId : _department;
 		if (!self.departments[targetDepartment].exists || _userAccount == address(0)) {
 			return false;
 		}
@@ -309,7 +308,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 			return users.exists(_userAccount);
 		}
 		else if (_department == "" || !self.departments[_department].exists) {
-			return self.departments[DEFAULT_DEPARTMENT_ID].users.exists(_userAccount);
+			return self.departments[self.defaultDepartmentId].users.exists(_userAccount);
 		}
 		else {
 			return self.departments[_department].users.exists(_userAccount);

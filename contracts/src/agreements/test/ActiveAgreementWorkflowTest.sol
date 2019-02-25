@@ -177,7 +177,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// make an agreement with fields of type address and add role qualifiers. Note: archetype is not used, so setting address to 'this'
 		ActiveAgreement agreement = new DefaultActiveAgreement();
-		agreement.initialize(this, "RoleQualifierAgreement", this, "", false, parties, governingAgreements);
+		agreement.initialize(address(this), address(this), "", false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender
@@ -187,7 +187,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// make a model with participants that point to fields on the agreement
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", "Role Qualifiers", [1,0,0], this, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", [1,0,0], this, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		pm.addParticipant(participantId1, 0x0, "Buyer", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
@@ -241,7 +241,7 @@ contract ActiveAgreementWorkflowTest {
 		// the parties to the agreement are: one user, one org, and one org with department scope
 		parties.push(address(this));
 
-		(error, addr) = processModelRepository.createProcessModel("FormationExecution", "Formation Execution", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("FormationExecution", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
@@ -264,9 +264,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 1: Formation, but no execution
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, "Combo1Archetype", this, "description", formationPD, address(0), EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo1Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting formation / no execution combo";
 		if (addr == address(0)) return "Starting formation / no execution combo should return a PI address for formation";
@@ -275,9 +275,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 2: Execution, but no formation
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, "Combo2Archetype", this, "description", address(0), executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo2Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		// First try fail, because agreement is not executed
 		if (address(agreementRegistry).call(abi.encodeWithSignature("startProcessLifecycle(address)", address(agreement)))) return "Starting no formation / execution combo with a non-executed agreement should fail ";
 		agreement.sign();
@@ -289,9 +289,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 1: No formation, no execution
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, "Combo3Archetype", this, "description", address(0), address(0), EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo3Archetype, address is empty";
-		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements));
+		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != 0) return "Expected empty error code starting no formation / no execution combo";
 		if (addr != address(0)) return "Expected no address starting no formation / no execution combo";
@@ -335,11 +335,11 @@ contract ActiveAgreementWorkflowTest {
 		nonPartyAccount.initialize(this, address(0));
 
 		org1 = new DefaultOrganization();
-		org1.initialize(approvers, EMPTY_STRING);
+		org1.initialize(approvers, EMPTY);
 		org2 = new DefaultOrganization();
-		org2.initialize(approvers, EMPTY_STRING);
+		org2.initialize(approvers, EMPTY);
 		org1.addUserToDepartment(userAccount2, EMPTY);
-		org2.addDepartment(departmentId1, "Department 1");
+		org2.addDepartment(departmentId1);
 		if (!org2.addUserToDepartment(userAccount3, departmentId1)) return "Failed to add user3 to department1";
 
 		delete parties;
@@ -352,7 +352,7 @@ contract ActiveAgreementWorkflowTest {
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("AN-Model", "AN Model", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("AN-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		pm.addParticipant(participantId1, 0x0, DATA_FIELD_AGREEMENT_PARTIES, agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
@@ -375,13 +375,13 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, "TestArchetype", this, "description", formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//
 		// AGREEMENT
 		//
-		address agreement = agreementRegistry.createAgreement(addr, "TestAgreement", this, "", false, parties, EMPTY, governingAgreements);
+		address agreement = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		// Org2 has a department, so we're setting the additional context on the agreement
 		ActiveAgreement(agreement).setAddressScope(address(org2), DATA_FIELD_AGREEMENT_PARTIES, departmentId1, EMPTY, EMPTY, 0x0);
 		//TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
@@ -406,7 +406,7 @@ contract ActiveAgreementWorkflowTest {
 		if (addr != address(userAccount1)) return "userAccount1 should be the performer of activity1";
 
 		// the agreement should NOT be available as IN data via the application at this point since the user is still the performer!
-		if (address(signatureCheckApp).call(keccak256(abi.encodePacked("getInDataAgreement(bytes32)")), pi.getActivityInstanceAtIndex(0)))
+		if (address(signatureCheckApp).call(abi.encodeWithSignature("getInDataAgreement(bytes32)", pi.getActivityInstanceAtIndex(0))))
 			return "Retrieving IN data via the application should REVERT while the user is still the performer";
 
 		// test fail on invalid user
@@ -488,7 +488,7 @@ contract ActiveAgreementWorkflowTest {
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", "Cancellation Model", [1,0,0], userAccount1, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
@@ -509,7 +509,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, "TestArchetype", this, "description", formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//
@@ -517,9 +517,9 @@ contract ActiveAgreementWorkflowTest {
 		//
 		address agreement1;
 		address agreement2;
-		agreement1 = agreementRegistry.createAgreement(addr, "TestAgreement1", this, "", false, parties, EMPTY, governingAgreements);
+		agreement1 = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		if (agreement1 == 0x0) return "Unexpected error creating agreement1";
-		agreement2 = agreementRegistry.createAgreement(addr, "TestAgreement2", this, "", false, parties, EMPTY, governingAgreements);
+		agreement2 = agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements);
 		if (agreement2 == 0x0) return "Unexpected error creating agreement2";
 
 		//

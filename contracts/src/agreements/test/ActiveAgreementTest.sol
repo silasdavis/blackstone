@@ -21,7 +21,6 @@ contract ActiveAgreementTest {
 	uint maxNumberOfEvents = 5;
 	bytes32 DATA_FIELD_AGREEMENT_PARTIES = "AGREEMENT_PARTIES";
 
-	string agreementName = "active agreement name";
 	bytes32 bogusId = "bogus";
 	UserAccount signer1;
 	UserAccount signer2;
@@ -49,12 +48,11 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setDataValueAsAddressArray(bogusId, bogusArray);
 
-		if (bytes(agreement.getName()).length != bytes(agreementName).length) return "Name not set correctly";
 		if (agreement.getNumberOfParties() != parties.length) return "Number of parties not returning expected size";
 
 		result = agreement.getPartyAtIndex(1);
@@ -90,16 +88,16 @@ contract ActiveAgreementTest {
 		// Signer 2 is signing on behalf of an organization (default department)
 		address[] memory emptyAddressArray;
 		Organization org1 = new DefaultOrganization();
-		org1.initialize(emptyAddressArray, EMPTY_STRING);
+		org1.initialize(emptyAddressArray, EMPTY);
 		if (!org1.addUserToDepartment(signer2, EMPTY)) return "Unable to add user account to organization";
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(org1));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test signing
 		address signee;
@@ -155,11 +153,11 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement1 = new DefaultActiveAgreement();
-		agreement1.initialize(archetype, "Agreement1", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement1.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement2 = new DefaultActiveAgreement();
-		agreement2.initialize(archetype, "Agreement2", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement2.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
 		if (address(agreement1).call(bytes4(keccak256(abi.encodePacked("cancel()")))))

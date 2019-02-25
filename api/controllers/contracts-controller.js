@@ -8,7 +8,6 @@ const logger = require(`${global.__common}/monax-logger`);
 const monaxUtils = require(`${global.__common}/monax-utils`);
 const monaxDB = require(`${global.__common}/monax-db`);
 const monaxApp = require(`${global.__common}/monax-app`);
-
 const {
   DATA_TYPES,
   ERROR_CODES: ERR,
@@ -220,7 +219,7 @@ const load = () => new Promise((resolve, reject) => {
  */
 const createOrganization = org => new Promise((resolve, reject) => {
   log.trace(`Creating organization with: ${JSON.stringify(org)}`);
-  appManager.contracts['ParticipantsManager'].factory.createOrganization(org.approvers ? org.approvers : [], org.defaultDepartmentName || '', (error, data) => {
+  appManager.contracts['ParticipantsManager'].factory.createOrganization(org.approvers ? org.approvers : [], org.defaultDepartmentId, (error, data) => {
     if (error || !data.raw) return reject(boom.badImplementation(`Failed to create organization ${org.name}: ${error}`));
     if (parseInt(data.raw[0], 10) === 1002) return reject(boom.badRequest('Organization id must be unique'));
     if (parseInt(data.raw[0], 10) !== 1) {
@@ -242,9 +241,7 @@ const createArchetype = (type) => {
       archetype.price,
       archetype.isPrivate,
       archetype.active,
-      archetype.name,
       archetype.author,
-      archetype.description,
       archetype.formationProcessDefinition,
       archetype.executionProcessDefinition,
       archetype.packageId,
@@ -408,19 +405,19 @@ const setArchetypePrice = (address, price) => new Promise((resolve, reject) => {
   });
 });
 
-const createArchetypePackage = (name, description, author, isPrivate, active) => new Promise((resolve, reject) => {
-  log.trace(`Adding a ${(isPrivate ? 'private' : 'public')}, ${(active ? 'active' : 'inactive')} archetype package with name ${name}, ` +
-    `and description ${description}, created by user at ${author}`);
+const createArchetypePackage = (author, isPrivate, active) => new Promise((resolve, reject) => {
+  log.trace(`Adding a ${(isPrivate ? 'private' : 'public')}, ${(active ? 'active' : 'inactive')} archetype package ` +
+    `created by user at ${author}`);
   appManager
     .contracts['ArchetypeRegistry']
-    .factory.createArchetypePackage(name, description, author, isPrivate, active, (error, data) => {
+    .factory.createArchetypePackage(author, isPrivate, active, (error, data) => {
       if (error || !data.raw) {
-        return reject(boom.badImplementation(`Failed to add archetype package ${name}: ${error}`));
+        return reject(boom.badImplementation(`Failed to add archetype package by user ${author}: ${error}`));
       }
       if (parseInt(data.raw[0], 10) !== 1) {
-        return reject(boom.badImplementation(`Error code adding archetype package ${name}: ${data.raw[0]}`));
+        return reject(boom.badImplementation(`Error code adding archetype package by user ${author}: ${data.raw[0]}`));
       }
-      log.info(`Created new archetype package ${name} with id ${data.raw[1]}`);
+      log.info(`Created new archetype package by author ${author} with id ${data.raw[1]}`);
       return resolve(data.raw[1]);
     });
 });
@@ -497,7 +494,6 @@ const addJurisdictions = (address, jurisdictions) => new Promise((resolve, rejec
 const createAgreement = agreement => new Promise((resolve, reject) => {
   const {
     archetype,
-    name,
     creator,
     privateParametersFileReference,
     parties,
@@ -508,12 +504,12 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreement(archetype, name, creator, privateParametersFileReference, isPrivate,
+    .factory.createAgreement(archetype, creator, privateParametersFileReference, isPrivate,
       parties, collectionId, governingAgreements, (error, data) => {
         if (error || !data.raw) {
-          return reject(boomify(error, `Failed to create agreement ${agreement.name} from archetype at ${agreement.archetype}`));
+          return reject(boomify(error, `Failed to create agreement by ${creator} from archetype at ${agreement.archetype}`));
         }
-        log.info(`Created agreement ${agreement.name} at address ${data.raw[0]}`);
+        log.info(`Created agreement by ${creator} at address ${data.raw[0]}`);
         return resolve(data.raw[0]);
       });
 });
@@ -563,19 +559,19 @@ const updateAgreementEventLog = (agreementAddress, hoardRef) => new Promise((res
     });
 });
 
-const createAgreementCollection = (name, author, collectionType, packageId) => new Promise((resolve, reject) => {
-  log.trace(`Adding agreement collection ${name} with type ${collectionType} ` +
+const createAgreementCollection = (author, collectionType, packageId) => new Promise((resolve, reject) => {
+  log.trace(`Adding agreement collection by ${author} with type ${collectionType} ` +
     `and packageId ${packageId} created by user at ${author}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreementCollection(name, author, collectionType, packageId, (error, data) => {
+    .factory.createAgreementCollection(author, collectionType, packageId, (error, data) => {
       if (error || !data.raw) {
-        return reject(boom.badImplementation(`Failed to add agreement collection ${name}: ${error}`));
+        return reject(boom.badImplementation(`Failed to add agreement collection by ${author}: ${error}`));
       }
       if (parseInt(data.raw[0], 10) !== 1) {
-        return reject(boom.badImplementation(`Error code adding agreement collection ${name}: ${data.raw[0]}`));
+        return reject(boom.badImplementation(`Error code adding agreement collection by ${author}: ${data.raw[0]}`));
       }
-      log.info(`Created new agreement collection ${name} with id ${data.raw[1]}`);
+      log.info(`Created new agreement collection by ${author} with id ${data.raw[1]}`);
       return resolve(data.raw[1]);
     });
 });
@@ -667,10 +663,10 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
     .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const createDepartment = (organizationAddress, { id, name }, actingUserAddress) => new Promise((resolve, reject) => {
-  log.trace('Creating department ID %s with name %s in organization %s', id, name, organizationAddress);
+const createDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Creating department ID %s with name %s in organization %s', id, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addDepartment.encode(global.stringToHex(id), name);
+  const payload = organization.addDepartment.encode(id);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addDepartment.decode(returnData);
@@ -686,7 +682,7 @@ const createDepartment = (organizationAddress, { id, name }, actingUserAddress) 
 const removeDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing department %s from organization %s', id, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeDepartment.encode(global.stringToHex(id));
+  const payload = organization.removeDepartment.encode(id);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeDepartment.decode(returnData);
@@ -702,7 +698,7 @@ const removeDepartment = (organizationAddress, id, actingUserAddress) => new Pro
 const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Adding user %s to department ID in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.addUserToDepartment.encode(userAddress, global.stringToHex(depId));
+  const payload = organization.addUserToDepartment.encode(userAddress, depId);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.addUserToDepartment.decode(returnData);
@@ -718,7 +714,7 @@ const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAd
 const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
   log.trace('Removing user %s from department ID %s in organization %s', userAddress, depId, organizationAddress);
   const organization = getOrganization(organizationAddress);
-  const payload = organization.removeUserFromDepartment.encode(userAddress, global.stringToHex(depId));
+  const payload = organization.removeUserFromDepartment.encode(userAddress, depId);
   callOnBehalfOf(actingUserAddress, organizationAddress, payload)
     .then((returnData) => {
       const data = organization.removeUserFromDepartment.decode(returnData);
@@ -731,21 +727,20 @@ const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUse
     .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });
 
-const createProcessModel = (modelId, modelName, modelVersion, author, isPrivate, modelFileReference) => new Promise((resolve, reject) => {
+const createProcessModel = (modelId, modelVersion, author, isPrivate, modelFileReference) => new Promise((resolve, reject) => {
   log.trace(`Creating process model with following data: ${JSON.stringify({
-    modelId, modelName, modelVersion, author, isPrivate, modelFileReference,
+    modelId, modelVersion, author, isPrivate, modelFileReference,
   })}`);
   const modelIdHex = global.stringToHex(modelId);
-  const modelNameHex = global.stringToHex(modelName);
   appManager
     .contracts['ProcessModelRepository']
-    .factory.createProcessModel(modelIdHex, modelNameHex, modelVersion, author, isPrivate, modelFileReference)
+    .factory.createProcessModel(modelIdHex, modelVersion, author, isPrivate, modelFileReference)
     .then((data) => {
-      log.info(`Model ${modelName} with Id ${modelId} created at ${data.raw[1]}`);
+      log.info(`Model with Id ${modelId} created at ${data.raw[1]}`);
       return resolve(data.raw[1]);
     })
     .catch((err) => {
-      reject(boomify(err, `Failed to create process model ${modelName} with id ${modelId}`));
+      reject(boomify(err, `Failed to create process model with id ${modelId}: ${JSON.stringify(err)}`));
     });
 });
 
@@ -1190,8 +1185,8 @@ const getArchetypeProcesses = archAddress => new Promise((resolve, reject) => {
   appManager.contracts['ArchetypeRegistry']
     .factory.getArchetypeData(archAddress, (err, data) => {
       if (err || !data.raw) return reject(boom.badImplementation(`Failed to get archetype processes: ${err}`));
-      formation = data.raw[7] ? data.raw[7].valueOf() : '';
-      execution = data.raw[10] ? data.raw[10].valueOf() : '';
+      formation = data.raw[5] ? data.raw[5].valueOf() : '';
+      execution = data.raw[6] ? data.raw[6].valueOf() : '';
       return resolve({
         formation,
         execution,
