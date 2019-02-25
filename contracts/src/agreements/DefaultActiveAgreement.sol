@@ -75,7 +75,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			eventLogFileReference
 		);
 		for (uint i = 0; i < _parties.length; i++) {
-			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
+			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
 			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i]);
@@ -202,7 +202,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 		if (signatures[party].timestamp == 0) {
 			signatures[party].signee = signee;
 			signatures[party].timestamp = block.timestamp;
-			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
+			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
 			if (ActiveAgreement(this).isFullyExecuted()) {
 				legalState = Agreements.LegalState.EXECUTED;
 				emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
@@ -320,6 +320,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			legalState == Agreements.LegalState.FORMULATED) {
 			// unilateral cancellation is allowed before execution phase
 			legalState = Agreements.LegalState.CANCELED;
+			emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 			emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
 			emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
 		}
@@ -328,6 +329,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			if (cancellations[party].timestamp == 0) {
 				cancellations[party].signee = actor;
 				cancellations[party].timestamp = block.timestamp;
+			  emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 				for (uint i=0; i<parties.length; i++) {
 					if (cancellations[parties[i]].timestamp == 0) {
 						break;

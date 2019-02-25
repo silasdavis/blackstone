@@ -330,14 +330,18 @@ const getAgreementData = (agreementAddress, userAccount) => {
 };
 
 const getAgreementParties = (agreementAddress) => {
-  const queryString = `SELECT parties.party AS address, parties.signature_timestamp::integer as "signatureTimestamp",
-    parties.signed_by as "signedBy", user_accounts.user_account_address, accounts.id, accounts.name
+  const queryString = `SELECT parties.party AS address, parties.signature_timestamp::integer AS "signatureTimestamp",
+    parties.signed_by AS "signedBy", user_accounts.user_account_address, COALESCE(party.username, party.name) AS "partyDisplayName",
+    signer.username AS "signedByDisplayName", canceler.username AS "canceledByDisplayName",
+    parties.cancelation_timestamp::integer AS "cancelationTimestamp", parties.canceled_by AS "canceledBy"
     FROM agreement_to_party parties
     LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address
-    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
+    LEFT JOIN (SELECT username, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
-      SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
-    ) accounts ON parties.party = accounts.address
+      SELECT NULL AS username, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
+    ) party ON parties.party = party.address
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users signer ON parties.signed_by = signer.address
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users canceler ON parties.canceled_by = canceler.address
     WHERE parties.agreement_address = $1;`;
   return runChainDbQuery(queryString, [agreementAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement parties: ${err}`); });

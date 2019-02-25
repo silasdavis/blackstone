@@ -496,7 +496,7 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   let data = (await sqlCache.getAgreementData(addr, req.user.address))[0];
   if (!data) throw boom.notFound(`Agreement at ${addr} not found or user has insufficient privileges`);
   const parameters = await getAgreementParameters(addr, null);
-  const parties = await sqlCache.getAgreementParties(addr);
+  data.parties = await sqlCache.getAgreementParties(addr);
   data = format('Agreement', data);
   const documentMetadata = await sqlCache.getArchetypeDocuments(data.archetype);
   data.documents = documentMetadata.map(({ name, fileReference }) => ({ name, ...JSON.parse(fileReference) }));
@@ -506,7 +506,6 @@ const getAgreement = asyncMiddleware(async (req, res) => {
     if (id || name) withNamesObj[value] = { value, displayValue: id || name };
   });
   data.parameters = parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
-  data.parties = parties.map(party => format('Parameter Value', party));
   data.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
   return res.status(200).json(data);
 });

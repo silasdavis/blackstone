@@ -44,12 +44,20 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 		string eventLogFileReference
 	);
 
-	event LogActiveAgreementToPartyUpdate(
+	event LogActiveAgreementToPartySignaturesUpdate(
 		bytes32 indexed eventId,
 		address agreementAddress,
 		address party,
 		address signedBy,
 		uint signatureTimestamp
+	);
+
+	event LogActiveAgreementToPartyCancelationsUpdate(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		address party,
+		address canceledBy,
+		uint cancelationTimestamp
 	);
 
 	event LogGoverningAgreementUpdate(

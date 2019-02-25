@@ -593,7 +593,8 @@ module.exports = (app, customMiddleware) => {
           "address": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
           "signatureTimestamp": 1539260590000,
           "signedBy": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
-          "id": "jsmith"
+          "partyDisplayName": "jsmith",
+          "signedByDisplayName": "jsmith"
         }
     ],
     "documents": [
