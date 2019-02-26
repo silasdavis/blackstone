@@ -1,4 +1,4 @@
-FROM hyperledger/burrow:0.23.3
+FROM quay.io/monax/burrow:0.24.0-dev-2019-02-26-8b59aade
 USER root
 
 RUN apk add --update --no-cache bash curl jq

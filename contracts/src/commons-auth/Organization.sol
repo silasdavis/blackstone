@@ -8,6 +8,10 @@ import "commons-management/VersionedArtifact.sol";
  * Also provides access to constants required when dealing with organizations.
  */
 contract Organization is VersionedArtifact {
+	// The *Removal events are interpreted as delete event by vent because the __DELETE__ field
+	// is specified as DeleteMarkerField. When emitting the event, solidity requires that we provide
+	// a value for __DELETE__. It's actual value is ignored by vent.
+	int constant NOTHING = 0;
 
     event LogOrganizationCreation(
         bytes32 indexed eventId,
@@ -24,7 +28,7 @@ contract Organization is VersionedArtifact {
 
     event LogOrganizationUserRemoval(
         bytes32 indexed eventId,
-        bytes32 CRUD_ACTION,
+        int __DELETE__,
         address organizationAddress,
         address userAddress
     ); 
@@ -38,7 +42,7 @@ contract Organization is VersionedArtifact {
 
     event LogDepartmentUserRemoval(
         bytes32 indexed eventId,
-        bytes32 CRUD_ACTION,
+        int __DELETE__,
         address organizationAddress,
         bytes32 departmentId,
         address userAddress
@@ -53,7 +57,7 @@ contract Organization is VersionedArtifact {
 
     event LogOrganizationDepartmentRemoval(
         bytes32 indexed eventId,
-        bytes32 CRUD_ACTION,
+        int __DELETE__,
         address organizationAddress,
         bytes32 departmentId
     );
@@ -66,7 +70,7 @@ contract Organization is VersionedArtifact {
 
     event LogOrganizationApproverRemoval(
         bytes32 indexed eventId,
-        bytes32 CRUD_ACTION,
+        int __DELETE__,
         address organizationAddress,
         address approverAddress
     );
