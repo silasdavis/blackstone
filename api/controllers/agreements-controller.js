@@ -21,7 +21,7 @@ const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/part
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements');
 const sqlCache = require('./postgres-query-helper');
-const { PARAMETER_TYPES: PARAM_TYPE, AGREEMENT_PARTIES } = global.__monax_constants;
+const { PARAMETER_TYPES: PARAM_TYPE, AGREEMENT_PARTIES, AGREEMENT_ATTACHMENT_CONTENT_TYPES } = global.__monax_constants;
 
 const AGREEMENT_DATA_ID = 'agreement';
 
@@ -431,7 +431,7 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   agreement.privateParametersFileReference = await hoardPut({ name: 'privateParameters.json' }, JSON.stringify(privateParams));
   delete agreement.name; // Don't store name on chain
   const agreementAddress = await contracts.createAgreement(agreement);
-  await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
+  await contracts.setMaxNumberOfAttachments(agreementAddress, parseInt(req.body.maxNumberOfAttachments, 10));
   await setAgreementParameters(agreementAddress, req.body.archetype, publicParams);
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters
@@ -524,34 +524,53 @@ const getAgreement = asyncMiddleware(async (req, res) => {
   return res.status(200).json(data);
 });
 
-const updateAgreementEventLog = asyncMiddleware(async ({ params: { address }, body: { eventName, content }, user }, res) => {
-  if (!address) throw boom.badRequest('Agreement address is required');
-  if (!eventName) throw boom.badRequest('eventName is required');
-  const data = await sqlCache.getAgreementEventLogDetails(address);
-  const newEvent = {
-    name: eventName,
-    submitter: user.address,
-    timestamp: Date.now(),
-    content: content || '',
-  };
-  let eventLog;
-  if (!data.eventLogFileReference) {
-    // No reference stored- start new event log
-    eventLog = { data: [] };
+const updateAgreementAttachments = asyncMiddleware(async (req, res) => {
+  const { address } = req.params;
+  const data = (await sqlCache.getAgreementData(address, req.user.address, false))[0];
+  if (!data) throw boom.notFound(`Agreement at ${address} not found or user has insufficient privileges`);
+  let name;
+  let content;
+  let contentType;
+  if (req.headers['content-type'].startsWith('multipart/form-data')) {
+    // Receiving file - upload to hoard and get grant
+    if (!req.files) throw boom.badRequest('No file received for attachment');
+    const file = req.files[0];
+    name = file.originalname;
+    const meta = {
+      name,
+      mime: file.mimetype,
+    };
+    content = await hoardPut(meta, file.buffer);
+    contentType = AGREEMENT_ATTACHMENT_CONTENT_TYPES.fileReference;
+  } else {
+    ({ name, content } = req.body);
+    if (!name || !content) throw boom.badRequest('Name and content are required fields');
+    contentType = AGREEMENT_ATTACHMENT_CONTENT_TYPES.plaintext;
+  }
+  let attachments;
+  if (!data.attachmentsFileReference) {
+    // No reference stored- start new attachments
+    attachments = [];
   } else {
     // Get existing data with reference
-    eventLog = await hoardGet(data.eventLogFileReference);
-    eventLog = splitMeta(eventLog);
-    eventLog.data = JSON.parse(eventLog.data);
+    attachments = await hoardGet(data.attachmentsFileReference);
+    attachments = splitMeta(attachments);
+    attachments = JSON.parse(attachments.data);
   }
-  if (eventLog.data.length < data.maxNumberOfEvents) {
-    eventLog.data.push(newEvent);
+  if (attachments.length < data.maxNumberOfAttachments) {
+    attachments.push({
+      name,
+      submitter: req.user.address,
+      timestamp: Date.now(),
+      content,
+      contentType,
+    });
     // Store new data in hoard
-    const hoardGrant = await hoardPut({ agreement: address }, JSON.stringify(eventLog.data));
-    await contracts.updateAgreementEventLog(address, hoardGrant);
-    return res.status(200).json({ grant: hoardGrant });
+    const hoardGrant = await hoardPut({ agreement: address, name }, JSON.stringify(attachments));
+    await contracts.updateAgreementAttachments(address, hoardGrant);
+    return res.status(200).json({ attachmentsFileReference: hoardGrant, attachments });
   }
-  throw boom.badRequest(`Cannot log event. Max number of events (${data.maxNumberOfEvents}) has been reached.`);
+  throw boom.badRequest(`Cannot log event. Max number of events (${data.maxNumberOfAttachments}) has been reached.`);
 });
 
 const signAgreement = asyncMiddleware(async (req, res) => {
@@ -650,7 +669,7 @@ module.exports = {
   getAgreementParameters,
   getAgreements,
   getAgreement,
-  updateAgreementEventLog,
+  updateAgreementAttachments,
   signAgreement,
   cancelAgreement,
 };

@@ -299,7 +299,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let publicPackage1 = {
@@ -493,7 +493,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
           isPrivate: false,
           parties: [],
           parameters: [],
-          maxNumberOfEvents: 5,
+          maxNumberOfAttachments: 5,
         }
         await assert.isRejected(api.createAgreement(agr, user1.token));
         done();
@@ -649,7 +649,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let ndaAgreement = {
@@ -658,7 +658,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   const process1 = {};
@@ -788,7 +788,7 @@ describe(':: External Users ::', () => {
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 

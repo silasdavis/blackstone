@@ -104,6 +104,11 @@ const NOTIFICATION = {
   ACTIVITY_INSTANCE_STATE_CHANGED: 'activityinstancestatechanged',
 };
 
+const AGREEMENT_ATTACHMENT_CONTENT_TYPES = {
+  fileReference: 'fileReference',
+  plaintext: 'plaintext',
+};
+
 module.exports = {
   MONAX_BUNDLES,
   PARAMETER_TYPES,
@@ -115,4 +120,5 @@ module.exports = {
   AGREEMENT_PARTIES,
   DEFAULT_DEPARTMENT_ID,
   NOTIFICATION,
+  AGREEMENT_ATTACHMENT_CONTENT_TYPES,
 };

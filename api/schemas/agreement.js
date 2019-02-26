@@ -8,7 +8,7 @@ note- parameters are handled separately
   creator: '36ADA22D3A4B841EFB73414CD97C35C0A660C1C2',
   isPrivate: '1',
   parties: ['36ADA22D3A4B841EFB73414CD97C35C0A660C1C2'],
-  maxNumberOfEvents: 10,
+  maxNumberOfAttachments: 10,
   collectionId: 'D37EDB770A6BF4C18B3C8D37EDB770A617ED601882335549119BF4C18B3C8D37',
   governingAgreements: [
     '686b6aefa7467db432903d4fed9cd23c2ee6bd57'
@@ -36,7 +36,7 @@ const agreementSchema = Joi.object().keys({
       .max(1),
   ],
   privateParametersFileReference: Joi.string(),
-  maxNumberOfEvents: Joi.number()
+  maxNumberOfAttachments: Joi.number()
     .min(0)
     .default(0),
   parties: Joi.array()

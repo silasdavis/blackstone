@@ -509,15 +509,15 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
       });
 });
 
-const setMaxNumberOfEvents = (agreementAddress, maxNumberOfEvents) => new Promise((resolve, reject) => {
-  log.trace(`Setting max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}`);
+const setMaxNumberOfAttachments = (agreementAddress, maxNumberOfAttachments) => new Promise((resolve, reject) => {
+  log.trace(`Setting max number of events to ${maxNumberOfAttachments} for agreement at ${agreementAddress}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.setMaxNumberOfEvents(agreementAddress, maxNumberOfEvents, (error) => {
+    .factory.setMaxNumberOfEvents(agreementAddress, maxNumberOfAttachments, (error) => {
       if (error) {
-        return reject(boom.badImplementation(`Failed to set max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}: ${error}`));
+        return reject(boom.badImplementation(`Failed to set max number of events to ${maxNumberOfAttachments} for agreement at ${agreementAddress}: ${error}`));
       }
-      log.info(`Set max number of events to ${maxNumberOfEvents} for agreement at ${agreementAddress}`);
+      log.info(`Set max number of events to ${maxNumberOfAttachments} for agreement at ${agreementAddress}`);
       return resolve();
     });
 });
@@ -541,15 +541,15 @@ const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) 
   }
 };
 
-const updateAgreementEventLog = (agreementAddress, hoardGrant) => new Promise((resolve, reject) => {
-  log.trace(`Updating event log hoard reference for agreement at ${agreementAddress} with new hoard reference`);
+const updateAgreementAttachments = (agreementAddress, hoardGrant) => new Promise((resolve, reject) => {
+  log.trace(`Updating attachments hoard reference for agreement at ${agreementAddress} with new hoard reference ${hoardGrant}`);
   appManager
     .contracts['ActiveAgreementRegistry']
     .factory.setEventLogReference(agreementAddress, hoardGrant, (error) => {
       if (error) {
-        return reject(boom.badImplementation(`Failed to update event log for agreement at ${agreementAddress}: ${error}`));
+        return reject(boom.badImplementation(`Failed to update attachments for agreement at ${agreementAddress}: ${error}`));
       }
-      log.info(`Event log hoard reference updated for agreement at ${agreementAddress}`);
+      log.info(`Attachments hoard reference updated for agreement at ${agreementAddress}`);
       return resolve();
     });
 });
@@ -1222,7 +1222,7 @@ const getActiveAgreementData = agreementAddress => new Promise((resolve, reject)
         archetype: data.raw[0] ? data.raw[0].valueOf() : '',
         name: data.raw[1] ? global.hexToString(data.raw[1].valueOf()) : '',
         creator: data.raw[2] ? data.raw[2].valueOf() : '',
-        maxNumberOfEvents: data.raw[7] ? data.raw[7].valueOf() : '',
+        maxNumberOfAttachments: data.raw[7] ? data.raw[7].valueOf() : '',
         isPrivate: data.raw[8] ? data.raw[8].valueOf() : '',
         legalState: data.raw[9] ? data.raw[9].valueOf() : '',
         formationProcessInstance: data.raw[10] ? data.raw[10].valueOf() : '',
@@ -1259,9 +1259,9 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
-  setMaxNumberOfEvents,
+  setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,
-  updateAgreementEventLog,
+  updateAgreementAttachments,
   cancelAgreement,
   createAgreementCollection,
   addAgreementToCollection,
