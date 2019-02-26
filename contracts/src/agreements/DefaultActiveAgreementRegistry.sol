@@ -10,7 +10,7 @@ import "commons-management/ArtifactsFinderEnabled.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/AbstractObjectFactory.sol";
 import "commons-management/ObjectProxy.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 import "bpm-runtime/BpmRuntime.sol";
 import "bpm-runtime/BpmService.sol";
 import "bpm-runtime/ProcessInstance.sol";
@@ -29,7 +29,7 @@ import "agreements/ArchetypeRegistry.sol";
  */
 contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
 
-	using ArrayUtilsAPI for address[];
+	using ArrayUtilsLib for address[];
 
 	/**
 	 * verifies that the msg.sender is an agreement known to this registry
@@ -39,9 +39,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreementRegistry.pre_OnlyByRegisteredAgreements", "The msg.sender must be a registered ActiveAgreement");
 		_;
 	}
-
-	// Temporary mapping to detect duplicates in address[] _governingAgreements
-	mapping(address => uint) duplicateMap;
 
 	string serviceIdArchetypeRegistry;
 	string serviceIdBpmService;
@@ -88,7 +85,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		address[] _governingAgreements) 
 		external returns (address agreementAddress)
 	{
-		validateAgreementRequirements(_archetype, _governingAgreements);
     agreementAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_AGREEMENT);
 		ActiveAgreement agreement = ActiveAgreement(agreementAddress);
     agreement.initialize(_archetype, _creator, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
@@ -98,79 +94,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		agreement.addEventListener(agreement.EVENT_ID_STATE_CHANGED());
 		if (_collectionId != "") {
 			addAgreementToCollection(_collectionId, agreementAddress);
-		}
-	}
-
-	/**
-	 * @dev Validates agreement creation requirements
-	 */
-	function validateAgreementRequirements(address _archetype, address[] _governingAgreements)	internal {
-		ErrorsLib.revertIf(_archetype == address(0),
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Archetype address must not be empty");
-		validateGoverningAgreements(_archetype, _governingAgreements);
-		ErrorsLib.revertIf(!Archetype(_archetype).isActive(),
-			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.createAgreement", "Archetype must be active");
-	}
-
-	/**
-	 * @dev Validates governing agreements
-	 */
-	function validateGoverningAgreements(address _archetype, address[] _governingAgreements) internal {
-		address derivedGoverningArchetype;
-		verifyNoDuplicates(_governingAgreements);
-		
-		// predefined governing archetypes of this agreement's archetype
-		address[] memory governingArchetypes = Archetype(_archetype).getGoverningArchetypes();
-		
-		// _governingAgreements length must match governingArchetypes length
-		if (governingArchetypes.length != _governingAgreements.length) {
-			revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-				"DefaultActiveAgreement.verifyGoverningAgreements", 
-				"Number of provided governing agreements do not match the number of predefined governing archetypes"));
-		}
-
-		// each of _governingAgreement's archetypes should be in governingArchetypes array
-		for (uint i = 0; i < _governingAgreements.length; i++) {
-			derivedGoverningArchetype = ActiveAgreement(_governingAgreements[i]).getArchetype();
-			if (!governingArchetypes.contains(derivedGoverningArchetype)) {
-				revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-					"DefaultActiveAgreement.verifyGoverningAgreements", 
-					"Provided governing agreement's archetype does not match any predefined governing archetype"));
-			}
-		}
- 	}
-
-	/**
-	 * @dev Detects if governing agreements array has duplicates and reverts accordingly
-	 * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	 * @param _agreements the address[] array of governing agreements
-	 */
-	function verifyNoDuplicates(address[] _agreements) internal {
-		if (_agreements.length > 0) {
-			for (uint i = 0; i < _agreements.length; i++) {
-				if (duplicateMap[_agreements[i]] != 0) {
-					duplicateMap[_agreements[i]]++;
-				} else {
-					duplicateMap[_agreements[i]] = 1;
-				}
-				if (duplicateMap[_agreements[i]] > 1) {
-					clearDuplicateMap(_agreements);
-					revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-						"DefaultActiveAgreementRegistry.verifyNoDuplicates", 
-						"Governing agreements has duplicates"));
-				}
-			}
-			clearDuplicateMap(_agreements);
-		}
-	}
-
-	/**
-	 * @dev Clears the temporary mapping that is used to check for duplicate governing agreements
-	 * @param _agreements the address[] array of governing agreements
-	 */
-	function clearDuplicateMap (address[] _agreements) internal {
-		for (uint i = 0; i < _agreements.length; i++) {
-			delete duplicateMap[_agreements[i]];
 		}
 	}
 

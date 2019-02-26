@@ -1,15 +1,15 @@
 pragma solidity ^0.4.25;
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 contract TypeUtilsTest {
 
-	using TypeUtilsAPI for uint;
-	using TypeUtilsAPI for int;
-	using TypeUtilsAPI for bytes32;
-	using TypeUtilsAPI for string;
-	using TypeUtilsAPI for address;
-	using TypeUtilsAPI for bytes;
+	using TypeUtilsLib for uint;
+	using TypeUtilsLib for int;
+	using TypeUtilsLib for bytes32;
+	using TypeUtilsLib for string;
+	using TypeUtilsLib for address;
+	using TypeUtilsLib for bytes;
 
 	function testLengthBytes32() external pure returns (string) {
 		bytes32 b = "Hello World";
@@ -20,7 +20,7 @@ contract TypeUtilsTest {
 		if (b.contentLength() != 9) { return "Length of '000one000' bytes32 should be 9"; }
 		b = "";
 		if (b.contentLength() != 0) { return "Length of empty bytes32 variable should be 0"; }
-		if (TypeUtilsAPI.contentLength("") != 0) { return "Length of empty bytes32 literal should be 0"; }
+		if (TypeUtilsLib.contentLength("") != 0) { return "Length of empty bytes32 literal should be 0"; }
 
 		return "success";
 	}

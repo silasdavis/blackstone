@@ -18,19 +18,19 @@ jobs:
     function: lookup
     data: [ErrorsLib]
 
-- name: TypeUtils
+- name: TypeUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [TypeUtils]
+    data: [TypeUtilsLib]
 
-- name: ArrayUtils
+- name: ArrayUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [ArrayUtils]
+    data: [ArrayUtilsLib]
 
 - name: MappingsLib
   query-contract:
@@ -98,12 +98,12 @@ jobs:
 - name: ParticipantsManager
   deploy:
     contract: DefaultParticipantsManager.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ParticipantsManagerDb
   deploy:
     contract: ParticipantsManagerDb.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeParticipantsManagerDbOwnership
   call:
@@ -152,7 +152,7 @@ jobs:
 - name: DefaultOrganizationImplementation
   deploy:
     contract: DefaultOrganization.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ObjectClassOrganization
   query-contract:
@@ -170,7 +170,7 @@ jobs:
 - name: DefaultUserAccountImplementation
   deploy:
     contract: DefaultUserAccount.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ObjectClassUserAccount
   query-contract:
@@ -188,7 +188,7 @@ jobs:
 - name: DefaultEcosystemImplementation
   deploy:
     contract: DefaultEcosystem.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ObjectClassEcosystem
   query-contract:

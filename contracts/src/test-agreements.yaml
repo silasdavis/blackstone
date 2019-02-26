@@ -5,23 +5,23 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: DataStorageUtils
   deploy:
     contract: DataStorageUtils.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsAPI
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsLib:$TypeUtilsLib
 
 - name: ERC165Utils
   deploy:
@@ -36,7 +36,7 @@ jobs:
   deploy:
     contract: bpm-runtime/BpmRuntimeLib.sol
     instance: BpmRuntimeLib
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: AgreementsAPI
   deploy:
@@ -55,7 +55,7 @@ jobs:
   deploy:
     contract: ArchetypeRegistryTest.bin
     instance: ArchetypeRegistryTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
     data: [$IsoCountries]
 
 - name: testArchetypeCreation
@@ -112,7 +112,7 @@ jobs:
   deploy:
     contract: ActiveAgreementTest.bin
     instance: ActiveAgreementTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
 
 - name: testActiveAgreementSetup
   call:
@@ -156,7 +156,7 @@ jobs:
   deploy:
     contract: ActiveAgreementRegistryTest.bin
     instance: ActiveAgreementRegistryTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
 
 - name: testActiveAgreementRegistry
   call:
@@ -202,12 +202,12 @@ jobs:
 - name: ArchetypeRegistry
   deploy:
     contract: DefaultArchetypeRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ArchetypeRegistryDb
   deploy:
     contract: ArchetypeRegistryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeArchetypeRegistryDbOwnership
   call:
@@ -264,7 +264,7 @@ jobs:
   deploy:
     contract: ActiveAgreementWorkflowTest.bin
     instance: ActiveAgreementWorkflowTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
     data: [$ArchetypeRegistry, $ApplicationRegistry]
 
 - name: testAddressScopeTransfer

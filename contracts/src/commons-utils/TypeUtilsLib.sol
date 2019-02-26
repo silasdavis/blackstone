@@ -1,11 +1,10 @@
 pragma solidity ^0.4.25;
 
 /**
- * @title TypeUtils Library Implementation
+ * @title TypeUtils Library
  * @dev Library containing various conversion and other utility functions for primitive Solidity data types.
- * Note: functions with dynamic types (e.g. string, bytes) MUST be 'internal', so the current situation creates non-uniformity. 
  */
-library TypeUtilsImpl {
+library TypeUtilsLib {
 	
     /**
      * 3RD PARTY - https://github.com/Arachnid/solidity-stringutils

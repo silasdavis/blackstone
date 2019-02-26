@@ -1,7 +1,7 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/SystemOwned.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-standards/IsoCountries100.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/ArtifactsRegistry.sol";

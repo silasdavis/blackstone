@@ -18,19 +18,19 @@ jobs:
     function: lookup
     data: [ErrorsLib]
 
-- name: TypeUtils
+- name: TypeUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [TypeUtils]
+    data: [TypeUtilsLib]
 
-- name: ArrayUtils
+- name: ArrayUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [ArrayUtils]
+    data: [ArrayUtilsLib]
 
 - name: MappingsLib
   query-contract:
@@ -83,12 +83,12 @@ jobs:
 - name: ArchetypeRegistry
   deploy:
     contract: DefaultArchetypeRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ArchetypeRegistryDb
   deploy:
     contract: ArchetypeRegistryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeArchetypeRegistryDbOwnership
   call:
@@ -136,13 +136,13 @@ jobs:
 - name: ActiveAgreementRegistry
   deploy:
     contract: agreements/DefaultActiveAgreementRegistry.sol
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
     data: ["ArchetypeRegistry", "BpmService"]
 
 - name: ActiveAgreementRegistryDb
   deploy:
     contract: ActiveAgreementRegistryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeAgreementRegistryDbOwnership
   call:
@@ -215,7 +215,7 @@ jobs:
 - name: DefaultArchetypeImplementation
   deploy:
     contract: DefaultArchetype.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ObjectClassArchetype
   query-contract:
@@ -233,7 +233,7 @@ jobs:
 - name: DefaultActiveAgreementImplementation
   deploy:
     contract: DefaultActiveAgreement.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtils, ArrayUtilsAPI:$ArrayUtils, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, AgreementsAPI:$AgreementsAPI
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, AgreementsAPI:$AgreementsAPI
 
 - name: ObjectClassActiveAgreement
   query-contract:

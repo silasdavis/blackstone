@@ -2,8 +2,8 @@ pragma solidity ^0.4.25;
 
 // Libraries
 import "commons-base/BaseErrors.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-collections/Mappings.sol";
 
@@ -32,9 +32,9 @@ import "commons-collections/Mappings.sol";
  */
 library MappingsLib {
 
-	using TypeUtilsAPI for bytes32;
-    using ArrayUtilsAPI for bytes32[];
-    using ArrayUtilsAPI for address[];
+	using TypeUtilsLib for bytes32;
+    using ArrayUtilsLib for bytes32[];
+    using ArrayUtilsLib for address[];
     
     /**
      * ---------> Bytes32AddressMap <---------

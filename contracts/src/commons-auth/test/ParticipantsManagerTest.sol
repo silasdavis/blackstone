@@ -1,6 +1,6 @@
 pragma solidity ^0.4.25;
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/ArtifactsRegistry.sol";
@@ -86,7 +86,7 @@ contract ParticipantsManagerTest {
         participantsManager = createNewParticipantsManager();
 
         // generate unique names for this test
-        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc1Id = TypeUtilsLib.toBytes32(block.number+34);
         acc2Id = "dummyId";
         acc3Id = "dummyId2";
         bytes32 dep1Id = "dep1Id";
@@ -184,7 +184,7 @@ contract ParticipantsManagerTest {
 
 		// reusable variables in this test
 		address[] memory emptyAdmins;
-        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc1Id = TypeUtilsLib.toBytes32(block.number+34);
         acc2Id = "dummyId";
         bytes32 dep1Id = "dep1Id";
 		

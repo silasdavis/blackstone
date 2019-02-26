@@ -1,8 +1,8 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
@@ -18,8 +18,8 @@ import "agreements/ActiveAgreement.sol";
 
 contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
-	using ArrayUtilsAPI for address[];
-	using TypeUtilsAPI for bytes32;
+	using ArrayUtilsLib for address[];
+	using TypeUtilsLib for bytes32;
 	using AgreementsAPI for ActiveAgreement;
 	using MappingsLib for Mappings.Bytes32Bytes32Map;
 
@@ -55,6 +55,13 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 		external
 		pre_post_initialize
 	{
+		ErrorsLib.revertIf(_archetype == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.initialize", "Archetype address must not be empty");
+		ErrorsLib.revertIf(!Archetype(_archetype).isActive(),
+			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreement.initialize", "Archetype must be active");
+		
+		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
+
 		archetype = _archetype;
 		creator = _creator;
 		privateParametersFileReference = _privateParametersFileReference;
@@ -81,6 +88,36 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i]);
 		}
 	}
+
+	/**
+	 * @dev Validates the provided governing agreements against the given governing archetypes by checking that each
+	 * governing agreement's archetype corresponds to one of the governing archetypes.
+	 * This function makes sure that all governing agreements that are required were passed.
+	 */
+	function validateGoverningAgreements(address[] memory _governingAgreements, address[] _governingArchetypes) internal view {
+	
+		// _governingAgreements length must match governingArchetypes length. This is a shortcut verification to avoid expensive looping
+		ErrorsLib.revertIf(_governingAgreements.length != _governingArchetypes.length,
+			ErrorsLib.INVALID_INPUT(), "DefaultActiveAgreement.validateGoverningAgreements", "The number of provided governing agreements does not match the required number of governing archetypes");
+
+		uint verifiedArchetypesCount = 0;
+		// each of _governingAgreement's archetypes should have a match in governingArchetypes array
+		for (uint i = 0; i < _governingAgreements.length; i++) {
+			for (uint j=0; j < _governingArchetypes.length; j++) {
+				if (_governingArchetypes[j] == address(0))
+					continue;
+				else if (_governingArchetypes[j] == ActiveAgreement(_governingAgreements[i]).getArchetype()) {
+					delete _governingArchetypes[j]; // marking as found by deleting the entry
+					verifiedArchetypesCount++;
+					break;
+				}
+			}
+		}
+
+		ErrorsLib.revertIf(_governingArchetypes.length > 0 && verifiedArchetypesCount != _governingArchetypes.length,
+			ErrorsLib.INVALID_INPUT(), "DefaultActiveAgreement.validateGoverningAgreements", 
+				"The provided governing agreements do not match all of the governing archetypes required by the archetype of this agreement");
+ 	}
 
 	/**
 	 * @dev Returns the number governing agreements for this agreement
@@ -170,7 +207,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Returns the creator
 	 * @return the creator address
 	 */
-	function getCreator() external view returns (address){
+	function getCreator() external view returns (address) {
 		return creator;
 	}
 
@@ -178,7 +215,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Returns the private flag
 	 * @return the private flag 
 	 */
-	function isPrivate() external view returns (bool){
+	function isPrivate() external view returns (bool) {
 		return privateFlag;
 	}
 
