@@ -4,12 +4,12 @@ import "commons-base/SystemOwned.sol";
 import "commons-base/BaseErrors.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 
 contract ProcessModelRepositoryDb is SystemOwned {
   
   using MappingsLib for Mappings.Bytes32AddressMap;
-  using ArrayUtilsAPI for address[];
+  using ArrayUtilsLib for address[];
 
   mapping(bytes32 => Mappings.Bytes32AddressMap) models;
 	address[] public modelAddresses;

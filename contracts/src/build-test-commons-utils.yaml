@@ -1,10 +1,10 @@
 jobs:
-  - name: TypeUtilsAPI
+  - name: TypeUtilsLib
     build:
-      contract: commons-utils/TypeUtilsImpl.sol
-  - name: ArrayUtilsAPI
+      contract: commons-utils/TypeUtilsLib.sol
+  - name: ArrayUtilsLib
     build:
-      contract: commons-utils/ArrayUtilsImpl.sol
+      contract: commons-utils/ArrayUtilsLib.sol
   - name: TypeUtilsLibTest
     build:
       contract: commons-utils/test/TypeUtilsTest.sol

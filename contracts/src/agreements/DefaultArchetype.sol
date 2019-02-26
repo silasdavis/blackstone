@@ -2,8 +2,8 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-utils/DataTypes.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
@@ -19,8 +19,9 @@ import "agreements/Archetype.sol";
  */
 contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Archetype {
 
-	using ArrayUtilsAPI for bytes32[];
-	using TypeUtilsAPI for string;
+	using ArrayUtilsLib for bytes32[];
+	using ArrayUtilsLib for address[];
+	using TypeUtilsLib for string;
 	using MappingsLib for Mappings.Bytes32AddressMap;
 	using MappingsLib for Mappings.Bytes32UintMap;
 
@@ -71,6 +72,9 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		external
 		pre_post_initialize
 	{
+		ErrorsLib.revertIf(_governingArchetypes.hasDuplicates(),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.initialize", "Governing archetypes must not contain duplicates");
+
 		author = _author;
 		price = _price;
 		privateFlag = _isPrivate;

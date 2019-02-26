@@ -2,7 +2,7 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 

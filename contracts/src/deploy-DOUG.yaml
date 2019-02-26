@@ -8,23 +8,23 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsImpl
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsImpl
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: DataStorageUtils
   deploy:
     contract: DataStorageUtils.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsImpl
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsLib:$TypeUtilsLib
 
 - name: ERC165Utils
   deploy:
@@ -38,7 +38,7 @@ jobs:
 - name: BpmRuntimeLib
   deploy:
     contract: bpm-runtime/BpmRuntimeLib.sol
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: AgreementsAPI
   deploy:
@@ -79,7 +79,7 @@ jobs:
 - name: DefaultDoug
   deploy:
     contract: DefaultDoug.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 # Proxy contract
 - name: DOUG
@@ -140,14 +140,14 @@ jobs:
     destination: $DOUG
     bin: DefaultDoug
     function: register
-    data: [TypeUtils, $TypeUtilsImpl]
+    data: [TypeUtilsLib, $TypeUtilsLib]
 
 - name: registerArrayUtilsLibrary
   call:
     destination: $DOUG
     bin: DefaultDoug
     function: register
-    data: [ArrayUtils, $ArrayUtilsImpl]
+    data: [ArrayUtilsLib, $ArrayUtilsLib]
 
 - name: registerMappingsLibrary
   call:

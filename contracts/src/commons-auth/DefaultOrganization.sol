@@ -1,7 +1,7 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 import "commons-management/AbstractDelegateTarget.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
 
@@ -16,7 +16,7 @@ import "commons-auth/UserAccount.sol";
 contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Organization {
 	
 	using MappingsLib for Mappings.AddressBoolMap;
-	using ArrayUtilsAPI for address[];
+	using ArrayUtilsLib for address[];
 
 	Governance.Organization self;
 

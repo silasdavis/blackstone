@@ -390,15 +390,15 @@ jobs:
     binpath: ../../docs/docdev/agreements
     instance: all
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   build:
-    contract: commons-utils/ArrayUtilsAPI.sol
+    contract: commons-utils/ArrayUtilsLib.sol
     binpath: ../../docs/docdev/commons-utils
     instance: all
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   build:
-    contract: commons-utils/TypeUtilsAPI.sol
+    contract: commons-utils/TypeUtilsLib.sol
     binpath: ../../docs/docdev/commons-utils
     instance: all
 

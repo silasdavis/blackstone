@@ -12,12 +12,12 @@ jobs:
     function: lookup
     data: [ErrorsLib]
 
-- name: ArrayUtils
+- name: ArrayUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [ArrayUtils]
+    data: [ArrayUtilsLib]
 
 - name: IsoCountries
   deploy:

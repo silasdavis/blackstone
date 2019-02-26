@@ -1,7 +1,7 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
 
 import "bpm-model/ProcessDefinition.sol";
@@ -9,7 +9,7 @@ import "bpm-model/DefaultProcessModel.sol";
 
 contract ProcessDefinitionTest {
 	
-	using TypeUtilsAPI for bytes32;
+	using TypeUtilsLib for bytes32;
 
 	string constant SUCCESS = "success";
 

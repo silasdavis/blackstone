@@ -22,9 +22,6 @@ import "agreements/Agreements.sol";
  */
 contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
 	
-	// Temporary mapping to detect duplicates in governing archetypes
-	mapping(address => uint) duplicateMap;
-
 	/**
 	 * @dev Creates a new archetype
 	 * @param _author author
@@ -52,45 +49,12 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	{
 		ErrorsLib.revertIf(_author == 0x0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype author address must not be empty");
-		verifyNoDuplicates(_governingArchetypes);
 		archetype = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ARCHETYPE);
 		Archetype(archetype).initialize(_price, _isPrivate, _active, _author,  _formationProcess, _executionProcess, _governingArchetypes);
 		// since this is a newly created archetype address, we can safely ignore the return value of the DB.addArchetype() function
 		ArchetypeRegistryDb(database).addArchetype(archetype);
 		if (_packageId != "")
 			addArchetypeToPackage(_packageId, archetype);
-	}
-
-	/**
-	 * @dev Detects if governing archetypes array has duplicates and reverts accordingly
-	 * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	 * @param _archetypes the address[] array of governing archetypes
-	 */
-	function verifyNoDuplicates(address[] _archetypes) internal {
-		for (uint i = 0; i < _archetypes.length; i++) {
-			if (duplicateMap[_archetypes[i]] != 0) {
-				duplicateMap[_archetypes[i]]++;
-			} else {
-				duplicateMap[_archetypes[i]] = 1;
-			}
-			if (duplicateMap[_archetypes[i]] > 1) {
-				clearDuplicateMap(_archetypes);
-				revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-					"DefaultArchetypeRegistry.verifyNoDuplicates", 
-					"Governing archetypes has duplicates"));
-			}
-		}
-		clearDuplicateMap(_archetypes);
-	}
-
-	/**
-	 * @dev Clears the temporary mapping that is used to check for duplicate governing archetypes
-	 * @param _archetypes the address[] array of governing archetypes
-	 */
-	function clearDuplicateMap (address[] _archetypes) internal {
-		for (uint i = 0; i < _archetypes.length; i++) {
-			delete duplicateMap[_archetypes[i]];
-		}
 	}
 
 	/**

@@ -3,7 +3,7 @@ pragma solidity ^0.4.25;
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
 import "commons-utils/DataTypes.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-collections/DataStorage.sol";
 import "commons-collections/Mappings.sol";
@@ -163,7 +163,7 @@ library DataStorageUtils {
     DataElement memory elem = _map.rows[_key];
     
     bytes32 swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-    if (TypeUtilsAPI.contentLength(swapKey) > 0) {
+    if (TypeUtilsLib.contentLength(swapKey) > 0) {
       _map.rows[swapKey].keyIdx = elem.keyIdx;
     }
     

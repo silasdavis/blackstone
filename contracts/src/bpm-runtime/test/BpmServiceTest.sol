@@ -2,8 +2,8 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/DefaultArtifactsRegistry.sol";
@@ -28,9 +28,9 @@ import "bpm-runtime/TransitionConditionResolver.sol";
 
 contract BpmServiceTest {
 
-	using TypeUtilsAPI for bytes32;
-	using TypeUtilsAPI for bytes;
-	using ArrayUtilsAPI for bytes32[];
+	using TypeUtilsLib for bytes32;
+	using TypeUtilsLib for bytes;
+	using ArrayUtilsLib for bytes32[];
 	using BpmRuntimeLib for BpmRuntime.ProcessGraph;
 	using BpmRuntimeLib for BpmRuntime.ActivityNode;
 	using BpmRuntimeLib for BpmRuntime.Transition;

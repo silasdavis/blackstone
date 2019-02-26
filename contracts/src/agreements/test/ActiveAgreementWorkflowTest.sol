@@ -3,7 +3,7 @@ pragma solidity ^0.4.25;
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-utils/DataTypes.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-auth/Organization.sol";
 import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
@@ -40,8 +40,8 @@ import "agreements/AgreementSignatureCheck.sol";
 
 contract ActiveAgreementWorkflowTest {
 
-	using TypeUtilsAPI for bytes32;
-	using TypeUtilsAPI for bytes;
+	using TypeUtilsLib for bytes32;
+	using TypeUtilsLib for bytes;
 
 	string constant EMPTY_STRING = "";
 
@@ -175,9 +175,10 @@ contract ActiveAgreementWorkflowTest {
 
 		agreementRegistry = createNewAgreementRegistry();
 
-		// make an agreement with fields of type address and add role qualifiers. Note: archetype is not used, so setting address to 'this'
+		// make an agreement with fields of type address and add role qualifiers.
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), address(0), EMPTY, governingArchetypes);
 		ActiveAgreement agreement = new DefaultActiveAgreement();
-		agreement.initialize(address(this), address(this), "", false, parties, governingAgreements);
+		agreement.initialize(addr, address(this), "", false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender

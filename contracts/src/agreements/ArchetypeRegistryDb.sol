@@ -4,14 +4,14 @@ import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 
 import "agreements/Agreements.sol";
 
 contract ArchetypeRegistryDb is SystemOwned {
 
   using MappingsLib for Mappings.AddressBoolMap;
-  using ArrayUtilsAPI for address[];
+  using ArrayUtilsLib for address[];
 
   Mappings.AddressBoolMap archetypes;
   Agreements.ArchetypePackageMap packages;

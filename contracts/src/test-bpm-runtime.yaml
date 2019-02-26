@@ -7,23 +7,23 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: DataStorageUtils
   deploy:
     contract: DataStorageUtils.bin
-    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsAPI:$TypeUtilsAPI
+    libraries: ErrorsLib:$ErrorsLib, MappingsLib:$MappingsLib, TypeUtilsLib:$TypeUtilsLib
 
 - name: BpmModelLib
   deploy:
@@ -38,7 +38,7 @@ jobs:
   deploy:
     contract: bpm-runtime/BpmRuntimeLib.sol
     instance: BpmRuntimeLib
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 ##########
 # Service Upgradeability Tests
@@ -89,12 +89,12 @@ jobs:
 - name: ProcessModelRepository
   deploy:
     contract: DefaultProcessModelRepository.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
 
 - name: ProcessModelRepositoryDb
   deploy:
     contract: ProcessModelRepositoryDb.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeRepositoryDbOwnership
   call:
@@ -151,7 +151,7 @@ jobs:
   deploy:
     contract: BpmServiceTest.bin
     instance: BpmServiceTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils
     data: [$ProcessModelRepository, $ApplicationRegistry]
 
 - name: testProcessGraphSequential

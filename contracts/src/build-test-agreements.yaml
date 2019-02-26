@@ -2,12 +2,12 @@ jobs:
   - name: ErrorsLib
     build:
       contract: commons-base/ErrorsLib.sol
-  - name: TypeUtilsAPI
+  - name: TypeUtilsLib
     build:
-      contract: commons-utils/TypeUtilsImpl.sol
-  - name: ArrayUtilsAPI
+      contract: commons-utils/TypeUtilsLib.sol
+  - name: ArrayUtilsLib
     build:
-      contract: commons-utils/ArrayUtilsImpl.sol
+      contract: commons-utils/ArrayUtilsLib.sol
   - name: DataTypesAccess
     build:
       contract: commons-utils/DataTypesAccess.sol

@@ -1,13 +1,13 @@
 pragma solidity ^0.4.25;
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
 
 contract UserAccountTest {
 
-	using TypeUtilsAPI for bytes;
+	using TypeUtilsLib for bytes;
 
 	string constant SUCCESS = "success";
 	string longString = "longString";
