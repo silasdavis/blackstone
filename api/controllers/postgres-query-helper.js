@@ -438,35 +438,15 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
 
 const getActivityInstanceData = (id, userAddress) => {
   const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
-  const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress",
+  const queryString = `SELECT ai.state::integer, ai.process_instance_address as "processAddress",
     UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId",
     ai.created, ai.performer, ai.completed, ad.task_type as "taskType", ad.application as application,
     pd.model_address as "modelAddress", pm.id as "modelId", pd.id as "processDefinitionId",
     pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
     ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope, UPPER(encode(o.organization_id::bytea, 'hex')) as "organizationKey",
-    COALESCE(accounts.id, accounts.name) AS "performerDisplayName", dd.name AS "scopeDisplayName"
-    FROM activity_instances ai
-    JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
-    JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address
-    JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address
-    JOIN process_models pm ON pm.model_address = pd.model_address
-    LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address
-    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 
-    LEFT JOIN applications app ON app.application_id = ad.application
-    LEFT JOIN organization_accounts o ON o.organization_address = ai.performer 
-    LEFT JOIN entities_address_scopes scopes ON (
-      scopes.entity_address = ds.storage_address 
-      AND scopes.scope_address = ai.performer 
-      AND scopes.scope_context = ai.activity_id
-    )
-    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
-      UNION
-      SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
-    ) accounts ON ai.performer = accounts.address
-    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON ai.performer = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
-    WHERE ai.activity_instance_id = $1
-    AND (
+    COALESCE(accounts.id, accounts.name) AS "performerDisplayName", dd.name AS "scopeDisplayName",
+    (
       ai.performer = $2 OR (
         ai.performer IN (
           select organization_address FROM organization_users ou WHERE ou.user_address = $2
@@ -488,15 +468,30 @@ const getActivityInstanceData = (id, userAddress) => {
           )
         )
       )
+    ) AS "assignedToUser"
+    FROM activity_instances ai
+    JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address
+    JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address
+    JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address
+    JOIN process_models pm ON pm.model_address = pd.model_address
+    LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 
+    LEFT JOIN applications app ON app.application_id = ad.application
+    LEFT JOIN organization_accounts o ON o.organization_address = ai.performer 
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = ds.storage_address 
+      AND scopes.scope_address = ai.performer 
+      AND scopes.scope_context = ai.activity_id
     )
+    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
+      UNION
+      SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
+    ) accounts ON ai.performer = accounts.address
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON ai.performer = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
+    WHERE ai.activity_instance_id = $1
     AND ds.data_id = 'agreement'`; // Hard-coded dataId 'agreement' which all processes in the Agreements Network have
   return runChainDbQuery(queryString, [`\\x${id}`, userAddress])
-    .then((data) => {
-      if (!data) throw boom.notFound(`Activity ${id} not found`);
-      return data;
-    })
     .catch((err) => {
-      if (err.isBoom) throw err;
       throw boom.badImplementation(`Failed to get activity instance ${id}: ${err}`);
     });
 };
@@ -515,7 +510,7 @@ const getTasksByUserAddress = (userAddress) => {
   // IMPORTANT: The below query uses two LEFT JOIN to retrieve data from the agreement that is attached to the process in one single query.
   // This relies on the fact that all processes in the Agreements Network have a process data with the ID "agreement".
   // If we ever want to retrieve more process data (from other data objects in the process or flexibly retrieve data based on a future process configuration aka 'descriptors'), multiple queries will have to be used
-  const queryString = `SELECT ai.state, ai.process_instance_address as "processAddress",
+  const queryString = `SELECT ai.state::integer, ai.process_instance_address as "processAddress",
     UPPER(encode(ai.activity_instance_id::bytea, 'hex')) as "activityInstanceId", ai.activity_id as "activityId", ai.created, ai.performer,
     pd.model_address as "modelAddress", pd.process_definition_address as "processDefinitionAddress", pd.id as "processDefinitionId", 
     agr.name as "agreementName", pm.id as "modelId", ds.address_value as "agreementAddress",
