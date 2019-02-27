@@ -1,7 +1,5 @@
 pragma solidity ^0.4.25;
 
-import "commons-auth/Permissioned.sol";
-
 /**
  * @title Permissioned Interface
  * A contract with string-based permissioning capabilities.
@@ -17,5 +15,7 @@ contract Permissioned {
     function transferPermission(string _permission, address _newHolder) external;
 
     function revokePermission(string _permission, address _holder) external;
+
+    function hasPermission(string _permission, address _holder) public view returns (bool);
 
 }

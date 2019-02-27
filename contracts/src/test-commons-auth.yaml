@@ -131,23 +131,23 @@ jobs:
 ##########
 # UserAccount Tests
 
-- name: UserAccountTest
-  deploy:
-    contract: UserAccountTest.bin
-    instance: UserAccountTest
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
+# - name: UserAccountTest
+#   deploy:
+#     contract: UserAccountTest.bin
+#     instance: UserAccountTest
+#     libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
 
-- name: testCallForwarding
-  call:
-    destination: $UserAccountTest
-    bin: UserAccountTest
-    function: testCallForwarding
+# - name: testCallForwarding
+#   call:
+#     destination: $UserAccountTest
+#     bin: UserAccountTest
+#     function: testCallForwarding
 
-- name: assertCallForwarding
-  assert:
-    key: $testCallForwarding
-    relation: eq
-    val: success
+# - name: assertCallForwarding
+#   assert:
+#     key: $testCallForwarding
+#     relation: eq
+#     val: success
 
 
 ##########
@@ -157,7 +157,7 @@ jobs:
   deploy:
     contract: PermissionedTest.bin
     instance: PermissionedTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: testPermissions
   call:
