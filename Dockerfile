@@ -1,5 +1,5 @@
 ARG SOLC_VERSION=0.4.25
-ARG BURROW_VERSION=0.23.3
+ARG BURROW_VERSION=0.24.0
 # This container provides the test environment from which the various test scripts
 # can be run
 # For solc binary

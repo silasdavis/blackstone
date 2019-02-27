@@ -31,9 +31,10 @@ services:
     - -c
     - burrow start &> burrow.log
   vent:
-    image: quay.io/monax/burrow:0.24.0-dev-2019-02-26-8b59aade
+    build: .
     restart: always
     command:
+    - burrow
     - vent
     - start
     - --db-adapter
