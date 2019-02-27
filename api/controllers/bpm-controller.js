@@ -97,7 +97,7 @@ const addDataTypes = dataMappings => dataMappings.map(dm => ({
 const getActivityInstance = asyncMiddleware(async (req, res) => {
   let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
   if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found`);
-  if (activityInstanceResult.state === 2) return res.status(200).json({ activityInstanceId: req.params.id, state: activityInstanceResult.state });
+  if (activityInstanceResult.state !== 4) return res.status(200).json({ activityInstanceId: req.params.id, state: activityInstanceResult.state });
   if (!activityInstanceResult.assignedToUser) throw boom.forbidden(`User is not an authorized performer for activity instance ${req.params.id}`);
   activityInstanceResult = (await pgCache.populateTaskNames([activityInstanceResult]))[0];
   activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
