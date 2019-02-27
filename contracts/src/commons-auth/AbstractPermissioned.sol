@@ -30,8 +30,9 @@ contract AbstractPermissioned is Permissioned {
         _;
     }
 
-    constructor() internal {
-        permissions[ROLE_ID_PERMISSION_ADMIN].holders.push(msg.sender);
+    // this will allow the agreement to set the creator as admin without having the registry have to transfer it afterwards!
+    constructor(address _admin) internal {
+        permissions[ROLE_ID_PERMISSION_ADMIN].holders.push(_admin == address(0) ? msg.sender : _admin);
         permissions[ROLE_ID_PERMISSION_ADMIN].multiHolder = true;
         permissions[ROLE_ID_PERMISSION_ADMIN].revocable = false;
         permissions[ROLE_ID_PERMISSION_ADMIN].transferable = true;
@@ -84,6 +85,8 @@ contract AbstractPermissioned is Permissioned {
     function transferPermission(string _permission, address _newHolder)
         external
     {
+		// TODO, if perm is multiholder, then transferPermission needs to check if the new holder is already a holder!
+
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.transferPermission", "The specified permission does not exist. Create it first.");
         ErrorsLib.revertIf(!permissions[_permission].transferable,
