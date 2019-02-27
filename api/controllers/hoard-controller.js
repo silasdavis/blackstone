@@ -15,7 +15,7 @@ const hoardPut = (metadata, data) => new Promise((resolve, reject) => {
     },
     GrantSpec: {
       Symmetric: {
-        PublicID: process.env.PUBLIC_ID,
+        PublicID: Buffer.from(process.env.PUBLIC_ID, 'utf8'),
       },
     },
   };
