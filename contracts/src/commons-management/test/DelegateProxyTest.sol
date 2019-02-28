@@ -28,7 +28,7 @@ contract DelegateProxyTest {
         uint returnSize;
         assembly {
             let freeMemSlot := mload(0x40)
-            success := call(gas, target, 0, add(data, 0x20), mload(data), data, 0)
+            success := call(gas, target, 0, add(data, 0x20), mload(data), freeMemSlot, 0)
             returnSize := returndatasize
         }
         returnData = new bytes(returnSize);
@@ -37,8 +37,7 @@ contract DelegateProxyTest {
         }
 
         if (returnData.length < 32) return "The data returned from invoking the revert function should be at least 32 bytes long";
-        bytes memory errorReason = "TestDelegate::error";
-        uint charCount;
+        bytes memory expectedReason = "TestDelegate::error";
         delete tempByteArray;
 
         // There currently is no elegant way to decode the returned bytes of a revert. The bytes being received have the following structure:
@@ -58,7 +57,7 @@ contract DelegateProxyTest {
             trimmedBytes[i] = tempByteArray[i];
         }
 
-        if (keccak256(abi.encodePacked(trimmedBytes)) != keccak256(abi.encodePacked(errorReason)))
+        if (keccak256(abi.encodePacked(trimmedBytes)) != keccak256(abi.encodePacked(expectedReason)))
             return "The return data from invoking the revert function should contain the error reason from the TargetDelegate";
 
         return SUCCESS;

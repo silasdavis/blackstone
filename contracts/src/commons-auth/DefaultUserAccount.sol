@@ -102,7 +102,7 @@ contract DefaultUserAccount is AbstractVersionedArtifact(1,0,0), AbstractDelegat
         if (!success) {
             if (returnData.length > 0) {
                 assembly {
-                    revert(returnData, returnSize)
+                    revert(add(returnData, 0x20), returnSize) // a revert(string(returnData)) would add add another 4 bytes for this functions signature to the beginning of the reason, so we'll use assembly here
                 }
             }
             else
