@@ -984,8 +984,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     ],
     documents: [{
       name: 'doc1.md',
-      address: '0x0',
-      secretKey: '0x0',
+      grant: hoardGrant,
     }],
     jurisdictions: [],
     executionProcessDefinition: '',
@@ -1048,8 +1047,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     // CREATE ARCHETYPE
     setTimeout(async () => {
       try {
-        archetype.documents[0].address = hoardRef.address;
-        archetype.documents[0].secretKey = hoardRef.secretKey;
+        archetype.documents[0].grant = hoardGrant;
         Object.assign(archetype, await api.createArchetype(archetype, user.token));
         expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         agreement.archetype = archetype.address;
