@@ -1345,17 +1345,14 @@ contract BpmServiceTest {
 		// test data mappings via user-assigned task
 		if (address(pi).call(bytes4(keccak256(abi.encodePacked("getActivityInDataAsBytes32(bytes32,bytes32)"))), pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")))
 			 return "It should not be possible to access IN data mappings from a non-performer address";
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
-		if(!success) return "Retrieving IN data mapping Name should be successful";
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
 		if (returnData.toBytes32() != "Smith") return "IN data mapping Name should return correctly via user1";
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
-		if (!success) return "Unable to set OUT data boolean approvedAccessPoint";
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
 
 		// complete user task 1 and check outcome
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity1 by organizationUser should fail";
-		(success, ) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
-		if (!success) return "Unexpected error attempting to complete activity1 user task via assigned user1 in activity1";
+		user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1 should be completed";
 		if (addr != address(user1)) return "Activity1 should be completedBy user1";
@@ -1368,23 +1365,19 @@ contract BpmServiceTest {
 		if (addr != address(org1)) return "Activity2 should be assigned to the organization org1";
 
 		// test data mappings via organization-assigned task
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
-		if (success) return "It should not be possible to access IN data mappings from a user account that is not the performer";
-
-
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		if (address(user1).call(abi.encodeWithSignature("forwardCall(address,bytes)", address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")))))
+			return "Accessing IN data mappings from a user account that is not the performer should revert";
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
 		if (returnData.length != 32) return "should have length 32";
 		if (uint(returnData[31]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
-		(success, ) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
-		if (!success) return "Unable to set OUT data uint ageAccessPoint";
+		organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
 
 		// complete user task 2 and check outcome
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity2 by user1 should fail";
 
 		// complete the activity here using an OUT data mapping to set the Age
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
-		if (!success) return "Unexpected error attempting to complete activity2 user task via organizationUser";
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
 		if (returnData.toUint() != BaseErrors.NO_ERROR()) return "Attempt to complete activity2 by organizationUser should be successful";
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity2 should be completed";
@@ -1542,8 +1535,7 @@ contract BpmServiceTest {
 		if (addr != address(user2)) return "Activity1.2 should be assigned to user2";
 
 		// complete first user task
-		(success, ) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
-		if (!success) return "Unexpected error attempting to complete activity1.1 user task via user1";
+		user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1.1 should be completed";
 
@@ -1554,8 +1546,7 @@ contract BpmServiceTest {
 		if (service.getNumberOfActivityInstances(pi) != 2) return "There should still be 2 AIs after completing only 1 instance";
 
 		// complete remaining user task
-		(success, ) = user2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
-		if (!success) return "Unexpected error attempting to complete activity1.2 user task via user2";
+		user2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1.2 should be completed";
 

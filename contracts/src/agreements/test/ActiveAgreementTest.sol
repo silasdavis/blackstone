@@ -110,8 +110,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED";
 
 		// Signing with Signer1 as party
-		(success, ) = signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing the agreement via signer1 should be successful";
+		signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer1";
 		(signee, timestamp) = agreement.getSignatureDetails(signer1);
 		if (signee != address(signer1)) return "Signee for signer1 should be signer1";
@@ -120,8 +119,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED after signer1";
 
 		// Signing with Signer2 via the organization
-		(success, ) = signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing the agreement via signer2 should be successful";
+		signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer2";
 		if (agreement.isSignedBy(org1)) return "Agreement should NOT be signed by org1";
 		(signee, timestamp) = agreement.getSignatureDetails(org1);
@@ -166,21 +164,16 @@ contract ActiveAgreementTest {
 		if (agreement2.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should NOT be CANCELED";
 
 		// Agreement1 is canceled during formation
-		(success, ) = signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement1 via signer2 should be successful";
+		signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
 		if (agreement1.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should be CANCELED after unilateral cancellation in formation";
 
 		// Agreement2 is canceled during execution
-		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing agreement2 via signer1 should be successful";
-		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing agreement2 via signer2 should be successful";
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreemen2 legal state should be EXECUTED after parties signed";
-		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement2 via signer1 should be successful";
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement2 legal state should still be EXECUTED after unilateral cancellation";
-		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement2 via signer2 should be successful";
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should be CANCELED after bilateral cancellation";
 
 		return SUCCESS;

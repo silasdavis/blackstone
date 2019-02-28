@@ -14,6 +14,9 @@ jobs:
   - name: ERC165Utils
     build:
       contract: commons-standards/ERC165Utils.sol
+  - name: DelegateProxyTest
+    build:
+      contract: commons-management/test/DelegateProxyTest.sol
   - name: UpgradeableTest
     build:
       contract: commons-management/test/UpgradeableTest.sol

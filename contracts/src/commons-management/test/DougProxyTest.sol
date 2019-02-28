@@ -1,7 +1,5 @@
 pragma solidity ^0.4.25;
 
-import "commons-base/BaseErrors.sol";
-
 import "commons-management/DOUG.sol";
 import "commons-management/DefaultDoug.sol";
 import "commons-management/DougProxy.sol";

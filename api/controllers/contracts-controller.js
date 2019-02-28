@@ -103,13 +103,10 @@ const callOnBehalfOf = (userAddress, targetAddress, payload) => new Promise((res
       return reject(boom.badImplementation(`Unexpected error in forwardCall function on user ${userAddress} attempting to call target ${targetAddress}: ${error}`));
     }
     if (!data.raw) {
-      return reject(boom.badImplementation(`The forwardCall function from user ${userAddress} to target ${targetAddress} returned no data!`));
+      return reject(boom.badImplementation(`The forwardCall function from user ${userAddress} to target ${targetAddress} returned no raw data!`));
     }
-    log.debug('ReturnData from forwardCall: %s', data.values.returnData);
-    if (data.values.success === false) {
-      return reject(boom.badRequest(`Exception thrown in forwarded call from ${userAddress} to contract ${targetAddress}: ${data.values.returnData}`));
-    }
-    return resolve(data.values.returnData);
+    log.debug('ReturnData from forwardCall: %s', data.raw[0]);
+    return resolve(data.raw[0]);
   });
 });
 

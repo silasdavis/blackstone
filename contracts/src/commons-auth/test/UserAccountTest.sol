@@ -12,7 +12,9 @@ contract UserAccountTest {
 	string constant SUCCESS = "success";
 	string longString = "longString";
 
-	string testServiceFunctionSig = "serviceInvocation(address,uint256,bytes32)";
+	string constant functionSigForwardCall = "forwardCall(address,bytes)";
+
+	string constant functionSigServiceInvocation = "serviceInvocation(address,uint256,bytes32)";
 
 	/**
 	 * @dev Tests the UserAccount call forwarding logic
@@ -22,30 +24,32 @@ contract UserAccountTest {
 		uint testState = 42;
 		bytes32 testKey = "myKey";
 		TestService testService = new TestService();
-		bool success;
 
 		UserAccount account = new DefaultUserAccount();
 		account.initialize(this, 0x0);
 		UserAccount externalAccount = new DefaultUserAccount();
 		externalAccount.initialize(msg.sender, 0x0);
 
-		bytes memory payload = abi.encodeWithSignature(testServiceFunctionSig, address(this), testState, testKey);
+		bytes memory payload;
+		payload = abi.encodeWithSignature("fakeFunction(bytes32)", testState);
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "Forwarding a call to a non-existent function should revert";
+
+		payload = abi.encodeWithSignature(functionSigServiceInvocation, address(this), testState, testKey);
+		// first test that the correct signature is working
+		if (!address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "Forwarding a call to the valid function signature should not revert";
+
 		// test failures
-		// *IMPORTANT*: the use of the abi.encode function for this call is extremely important since sending the parameters individually via call(bytes4, args...)
-		// has known problems encoding the dynamic-size parameters correctly, see https://github.com/ethereum/solidity/issues/2884
-		if (address(account).call(bytes4(keccak256("forwardCall(address,bytes)")), abi.encode(address(0), payload))) 
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(0), payload)))
 			return "Forwarding a call to an empty address should revert";
-		(success, ) = account.forwardCall(address(testService), abi.encodeWithSignature("fakeFunction(bytes32)", testState));
-		if (success)
-			return "Forwarding a call to a non-existent function should return false";
 		// unauthorized accounts (not owner)
-		if (address(externalAccount).call(bytes4(keccak256(abi.encodePacked("forwardCall(address,bytes)"))), abi.encode(address(testService), payload)))
+		if (address(externalAccount).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
 			return "Forwarding a call from an unauthorized address should fail";
 
 		// test successful invocation
 		bytes memory returnData;
-		(success, returnData) = account.forwardCall(address(testService), payload);
-		if (!success) return "Forwarding a call from an authorized address with correct payload should return true";
+		returnData = account.forwardCall(address(testService), payload);
 		if (testService.currentEntity() != address(this)) return "The testService should show this address as the current entity";
 		if (testService.currentState() != testState) return "The testService should have the testState set";
 		if (testService.currentKey() != testKey) return "The testService should have the testKey set";
@@ -57,9 +61,13 @@ contract UserAccountTest {
 
 		// test different input/return data
 		payload = abi.encodeWithSignature("isStringLonger5(string)", longString);
-		(success, returnData) = account.forwardCall(address(testService), payload);
-		if (!success) return "isStringLonger5 invocation should succeed";
+		returnData = account.forwardCall(address(testService), payload);
 		if (returnData[31] != 1) return "isStringLonger5 should return true for longString"; // boolean is left-padded, so the value is at the end of the bytes
+
+		// test revert reason return
+		payload = abi.encodeWithSignature("invokeRevert()");
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "A revert from a forwarded function call should propagate as revert";
 
 		return SUCCESS;
 	}
@@ -94,5 +102,9 @@ contract TestService {
 
 	function getSuccessMessage() public pure returns (bytes32) {
 		return "congrats";	
+	}
+
+	function invokeRevert() public pure {
+		revert("UserAccountTest::error message");
 	}
 }
