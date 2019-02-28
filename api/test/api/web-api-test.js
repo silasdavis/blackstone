@@ -6,8 +6,6 @@ const rid = require('random-id')
 const path = require('path')
 const fs = require('fs')
 const _ = require('lodash')
-const hexToString = require('@monax/burrow').utils.hexToAscii;
-const stringToHex = require('@monax/burrow').utils.asciiToHex;
 const crypto = require('crypto');
 
 const app = require('../../app')();
@@ -68,8 +66,8 @@ describe('hex to string conversions', () => {
     const in_oddLeftPaddedHex = '00041737369676e6565';
     const in_oddRightPaddedHex = '41737369676e6565000';
     const in_nullHex = '000000000000';
-    const in_noPadMultiByteHex = '6964656e7469666963616369f36e';
-    const in_paddedMultiByteHex = '62e47200000000';
+    const in_noPadMultiByteHex = '6964656e7469666963616369c3b36e';
+    const in_paddedMultiByteHex = '62c3a472000000';
     const out_str_assignee = 'Assignee';
     const out_str_identification = 'identificación';
     const out_str_bear = 'bär';
@@ -81,34 +79,34 @@ describe('hex to string conversions', () => {
     expect(conv_text1).to.equal(text1)
 
     // expect null hex to match empty string
-    expect(hexToString(in_nullHex)).to.equal(emptyString);
+    expect(global.hexToString(in_nullHex)).to.equal(emptyString);
     
     // expect empty string to match empty hex 
-    expect(stringToHex(emptyString)).to.equal('');
+    expect(global.stringToHex(emptyString)).to.equal('');
     
     // expect spaces roundtrip to spaces to pass
-    expect(hexToString(stringToHex(spaces))).to.equal(spaces);
+    expect(global.hexToString(global.stringToHex(spaces))).to.equal(spaces);
 
     // expect no padded hex to match no padded string
-    expect(hexToString(in_noPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_noPaddedHex)).to.equal(out_str_assignee);
 
     // expect even left padded hex to match string
-    expect(hexToString(in_evenLeftPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_evenLeftPaddedHex)).to.equal(out_str_assignee);
 
     // expect even right padded hex to match string
-    expect(hexToString(in_evenRightPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_evenRightPaddedHex)).to.equal(out_str_assignee);
 
     // expect odd left padded hex to NOT match string
-    expect(hexToString(in_oddLeftPaddedHex)).to.not.equal(out_str_assignee);
+    expect(global.hexToString(in_oddLeftPaddedHex)).to.not.equal(out_str_assignee);
 
     // expect odd right padded hex to match string
-    expect(hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
+    expect(global.hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
 
     // expect multibyte hex to match string 
-    expect(hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
+    expect(global.hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
 
     // expect padded multibyte hex to match string
-    expect(hexToString(in_paddedMultiByteHex)).to.equal(out_str_bear);
+    expect(global.hexToString(in_paddedMultiByteHex)).to.equal(out_str_bear);
 
     done();
   });

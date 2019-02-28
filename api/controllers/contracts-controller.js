@@ -116,8 +116,8 @@ const callOnBehalfOf = (userAddress, targetAddress, payload) => new Promise((res
 const createEcosystem = name => new Promise((resolve, reject) => {
   log.trace(`Creating new Ecosystem with name ${name}`);
   appManager.contracts['EcosystemRegistry'].factory.createEcosystem(name, (err, data) => {
-    if (err || !data.raw) return reject(boomify(err, `Failed to create and register Ecosystem ${name}: ${err.stack}`));
-    log.debug(`Created and registered Ecosystem ${name} at ${data.raw[0]}`);
+    if (err || !data.raw) return reject(boomify(err, `Failed to create Ecosystem ${name}: ${err.stack}`));
+    log.debug(`Created Ecosystem ${name} at ${data.raw[0]}`);
     return resolve(data.raw[0]);
   });
 });

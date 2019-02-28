@@ -22,7 +22,7 @@ const trimBufferPadding = (buf) => {
   return buf.slice(lo, hi);
 };
 const hexToString = (hex = '') => trimBufferPadding(Buffer.from(hex, 'hex')).toString('utf8');
-const stringToHex = (str = '') => Buffer.from(str).toString('hex');
+const stringToHex = (str = '') => Buffer.from(str, 'utf8').toString('hex');
 
 const dependencies = {
   rightPad: (hex, len) => {
