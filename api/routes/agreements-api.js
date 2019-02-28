@@ -583,6 +583,9 @@ module.exports = (app, customMiddleware) => {
     "formationProcessDefinition": "65BF0FB03BA5C140B1584A290B157F8907B8FEBE",
     "executionProcessDefinition": "E6534E45E2B26AF4FBB64E42CE7FC66688696483",
     "collectionId": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
+    "isParty": true,
+    "isCreator": true,
+    "isAssignedTask": false,
     "parties": [
         {
           "address": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
