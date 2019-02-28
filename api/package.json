@@ -29,7 +29,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
     "@monax/burrow": "~0.24.3",
-    "@monax/hoard": "^1.5.5",
+    "@monax/hoard": "~1.5.5",
     "@sendgrid/mail": "~6.2.1",
     "async": "~2.1.4",
     "bcryptjs": "~2.4.3",
@@ -63,7 +63,7 @@
     "pg": "~7.4.3",
     "ramda": "~0.23.0",
     "sqlite3": "~4.0.2",
-    "toml": "2.3.0",
+    "toml": "~2.3.0",
     "util": "~0.10.3",
     "xml2js": "~0.4.19"
   },

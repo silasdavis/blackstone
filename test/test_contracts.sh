@@ -17,7 +17,7 @@ main() {
         set -e
         for bundle in "${testBundles[@]}"
         do
-            $CI_PROJECT_DIR/test/test_bundle.sh $bundle
+            $CI_PROJECT_DIR/test/test_bundle.sh $bundle.yaml
         done
     else
         # test all bundles

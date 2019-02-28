@@ -83,12 +83,13 @@ contract DefaultUserAccount is AbstractVersionedArtifact(1,0,0), AbstractDelegat
         pre_onlyAuthorizedCallers
         returns (bytes returnData)
     {
-        ErrorsLib.revertIf(_target == address(0), 
+        ErrorsLib.revertIf(_target == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");
-        bytes memory data = _payload;
         bool success;
+        bytes memory data = _payload;
         assembly {
-            success := call(gas, _target, 0, add(data, 0x20), mload(data), 0, 0)
+            let freeMemSlot := mload(0x40)
+            success := call(gas, _target, 0, add(data, 0x20), mload(data), freeMemSlot, 0)
         }
         uint returnSize;
         assembly {
@@ -99,9 +100,13 @@ contract DefaultUserAccount is AbstractVersionedArtifact(1,0,0), AbstractDelegat
             returndatacopy(add(returnData, 0x20), 0, returnSize) // copies the returned bytes from the function call into the return variable
         }
         if (!success) {
-            assembly {
-                revert(returnData, returnSize)
+            if (returnData.length > 0) {
+                assembly {
+                    revert(returnData, returnSize)
+                }
             }
+            else
+                revert(ErrorsLib.format(ErrorsLib.RUNTIME_ERROR(), "DefaultUserAccount.forwardCall", "The target function of the forward call reverted without a reason"));
         }
     }
 }

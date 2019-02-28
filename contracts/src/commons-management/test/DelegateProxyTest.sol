@@ -9,6 +9,7 @@ contract DelegateProxyTest {
     using TypeUtilsLib for bytes32;
 
     string constant SUCCESS = "success";
+    bytes1[] tempByteArray;
 
     function testDelegateCallReturns() external returns (string) {
 
@@ -34,10 +35,31 @@ contract DelegateProxyTest {
         assembly {
             returndatacopy(add(returnData, 0x20), 0, returnSize)
         }
-        // TODO the bytes returned here are longer than the bytes representing the revert reason. It looks like the function signature as well as 0-padding precedes the revert reason
-        // This resembles the example of how a revert is encoded here: https://github.com/ethereum/EIPs/issues/838#issuecomment-458919375
-        // However, a way to reliably extract the revert reason string from the bytes is currently not known, so we can't test for the reason being correctly transmitted
-        // Not catching the revert in assembly above shows, though, that the inner revert reason from TestDelegate is re-thrown
+
+        if (returnData.length < 32) return "The data returned from invoking the revert function should be at least 32 bytes long";
+        bytes memory errorReason = "TestDelegate::error";
+        uint charCount;
+        delete tempByteArray;
+
+        // There currently is no elegant way to decode the returned bytes of a revert. The bytes being received have the following structure:
+        // 0x08c379a0                                                         // Function selector for Error(string)
+        // 0x0000000000000000000000000000000000000000000000000000000000000020 // Data offset
+        // 0x000000000000000000000000000000000000000000000000000000000000001a // String length
+        // 0x4e6f7420656e6f7567682045746865722070726f76696465642e000000000000 // String data
+
+        // Since we know that the expected revert reason fits into 32 bytes, we can simply grab those last 32 bytes
+        for (uint i=returnData.length-32; i<returnData.length; i++) {
+            if (uint(returnData[i]) != 0) {
+                tempByteArray.push(returnData[i]);
+            }
+        }
+        bytes memory trimmedBytes = new bytes(tempByteArray.length);
+        for (i=0; i<tempByteArray.length; i++) {
+            trimmedBytes[i] = tempByteArray[i];
+        }
+
+        if (keccak256(abi.encodePacked(trimmedBytes)) != keccak256(abi.encodePacked(errorReason)))
+            return "The return data from invoking the revert function should contain the error reason from the TargetDelegate";
 
         return SUCCESS;
     }

@@ -31,7 +31,7 @@ contract AbstractDelegateProxy {
         assembly {
             let freeMemSlot := mload(0x40)
             calldatacopy(freeMemSlot, 0, calldatasize)
-            let result := delegatecall(gas, target, freeMemSlot, calldatasize, 0, 0)
+            let result := delegatecall(gas, target, freeMemSlot, calldatasize, freeMemSlot, 0)
             let size := returndatasize
             returndatacopy(freeMemSlot, 0, size)
 
