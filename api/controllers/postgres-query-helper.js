@@ -687,12 +687,34 @@ const getProcessDefinitions = (author, { interfaceId, processDefinitionId, model
     .catch((err) => { throw boom.badImplementation(`Failed to get process definitions: ${err}`); });
 };
 
-const getProcessDefinitionData = (address) => {
-  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author, pm.id as "modelId" ' +
-    'FROM process_definitions pd JOIN process_models pm ' +
-    'ON pd.model_address = pm.model_address WHERE pd.process_definition_address = $1;';
+const getProcessDefinitionData = (address, userAddress) => {
+  const queryString = `SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address,
+    pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.model_file_reference as "modelFileReference",
+    pm.is_private as "isPrivate", pm.author, pm.id as "modelId"
+    FROM process_definitions pd
+    JOIN process_models pm ON pd.model_address = pm.model_address
+    LEFT JOIN archetypes arch ON (arch.formation_process_definition = pd.process_definition_address OR arch.execution_process_definition = pd.process_definition_address)
+    LEFT JOIN agreements a ON a.archetype_address = arch.archetype_address
+    WHERE pd.process_definition_address = $1 AND (
+      pm.is_private = FALSE OR 
+      (
+        pm.author = '${userAddress}' OR
+        pm.author IN (
+          SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAddress}'
+        ) OR
+        ${checkAgreementTasks(userAddress)} OR
+        ${checkParties(userAddress)}
+      )
+    );`;
   return runChainDbQuery(queryString, [address])
-    .catch((err) => { throw boom.badImplementation(`Failed to get process definition: ${err}`); });
+    .then((rows) => {
+      if (!rows[0]) throw boom.notFound(`Process definition at ${address} not found or user does not have sufficient privileges`);
+      return rows[0];
+    })
+    .catch((err) => {
+      if (err.isBoom) throw err;
+      throw boom.badImplementation(`Failed to get process definition: ${err}`);
+    });
 };
 
 const getProcessModelData = (address) => {
@@ -713,6 +735,34 @@ const getArchetypeModelFileReferences = (archetypeAddress) => {
   WHERE a.archetype_address = $1;`;
   return runChainDbQuery(queryString, [archetypeAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get process model file refs for archetype ${archetypeAddress}: ${err}`); });
+};
+
+const getProcessModelFileReference = (address, userAddress) => {
+  const queryString = `SELECT model_file_reference as "modelFileReference"
+    FROM process_models pm
+    LEFT JOIN process_definitions pd ON pd.model_address = pm.model_address
+    LEFT JOIN archetypes arch ON (arch.formation_process_definition = pd.process_definition_address OR arch.execution_process_definition = pd.process_definition_address)
+    LEFT JOIN agreements a ON a.archetype_address = arch.archetype_address
+    WHERE pm.model_address = $1 AND (
+      pm.is_private = FALSE OR 
+      (
+        pm.author = '${userAddress}' OR
+        pm.author IN (
+          SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAddress}'
+        ) OR
+        ${checkAgreementTasks(userAddress)} OR
+        ${checkParties(userAddress)}
+      )
+    );`;
+  return runChainDbQuery(queryString, [address])
+    .then((rows) => {
+      if (!rows[0]) throw boom.notFound(`Model at ${address} not found or user does not have sufficient privileges`);
+      return rows[0].modelFileReference;
+    })
+    .catch((err) => {
+      if (err.isBoom) throw err;
+      throw boom.badImplementation(`Failed to get model file reference: ${JSON.stringify(err)}`);
+    });
 };
 
 const getActivityDetailsFromCache = (activityId, modelId, processId) => {
@@ -844,6 +894,7 @@ module.exports = {
   getProcessDefinitionData,
   getProcessModelData,
   getArchetypeModelFileReferences,
+  getProcessModelFileReference,
   getActivityDetailsFromCache,
   updateActivityDetailsCache,
   getProcessDetailsFromCache,
