@@ -6,7 +6,7 @@ main() {
     cd "$(dirname "${BASH_SOURCE[0]}")/src"
 
     build_file="build.yaml"
-    [[ -z "$1" ]] || build_file="build-$1"
+    [[ -z "$1" ]] || build_file="build-$1.yaml"
 
     echo "Building contract suite from $(readlink -f "$build_file")"
 
