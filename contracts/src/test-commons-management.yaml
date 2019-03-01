@@ -25,6 +25,26 @@ jobs:
     contract: ERC165Utils.bin
 
 ##########
+# DelegateProxy Test
+############################################################################################
+- name: DelegateProxyTest
+  deploy:
+    contract: DelegateProxyTest.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib
+
+- name: testDelegateCallReturns
+  call:
+    destination: $DelegateProxyTest
+    bin: DelegateProxyTest
+    function: testDelegateCallReturns
+
+- name: assertDelegateCallReturns
+  assert:
+    key: $testDelegateCallReturns
+    relation: eq
+    val: success
+
+##########
 # Upgradeable Test
 ############################################################################################
 - name: UpgradeableTest

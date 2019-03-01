@@ -73,31 +73,40 @@ contract DefaultUserAccount is AbstractVersionedArtifact(1,0,0), AbstractDelegat
      * @param _target the address to call
      * @param _payload the function payload consisting of the 4-bytes function hash and the abi-encoded function parameters which is typically created by
      * calling abi.encodeWithSelector(bytes4, args...) or abi.encodeWithSignature(signatureString, args...) 
-     * @return success - whether the forwarding call returned normally
-     * @return returnData - the bytes returned from calling the target function, if successful (NOTE: this is currently not supported, yet, and the returnData will always be empty)
+     * @return returnData - the bytes returned from calling the target function, if successful.
      * REVERTS if:
      * - the target address is empty (0x0)
+     * - the target contract threw an exception (reverted). In this case this function will revert using the same reason
      */
     function forwardCall(address _target, bytes _payload)
         external
         pre_onlyAuthorizedCallers
-        returns (bool success, bytes returnData)
+        returns (bytes returnData)
     {
-        ErrorsLib.revertIf(_target == address(0), 
+        ErrorsLib.revertIf(_target == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");
+        bool success;
         bytes memory data = _payload;
         assembly {
-            success := call(gas, _target, 0, add(data, 0x20), mload(data), data, 0)
+            let freeMemSlot := mload(0x40)
+            success := call(gas, _target, 0, add(data, 0x20), mload(data), freeMemSlot, 0)
         }
-        if (success) {
-            uint returnSize;
-            assembly {
-                returnSize := returndatasize
+        uint returnSize;
+        assembly {
+            returnSize := returndatasize
+        }
+        returnData = new bytes(returnSize); // allocates a new byte array with the right size
+        assembly {
+            returndatacopy(add(returnData, 0x20), 0, returnSize) // copies the returned bytes from the function call into the return variable
+        }
+        if (!success) {
+            if (returnData.length > 0) {
+                assembly {
+                    revert(add(returnData, 0x20), returnSize) // a revert(string(returnData)) would add add another 4 bytes for this functions signature to the beginning of the reason, so we'll use assembly here
+                }
             }
-            returnData = new bytes(returnSize); // allocates a new byte array with the right size
-            assembly {
-                returndatacopy(add(returnData, 0x20), 0, returnSize) // copies the returned bytes from the function call into the return variable
-            }
+            else
+                revert(ErrorsLib.format(ErrorsLib.RUNTIME_ERROR(), "DefaultUserAccount.forwardCall", "The target function of the forward call reverted without a reason"));
         }
     }
 }
