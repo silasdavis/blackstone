@@ -499,8 +499,7 @@ const getAgreements = asyncMiddleware(async (req, res) => {
   const retData = [];
   const forCurrentUser = req.query.forCurrentUser === 'true';
   delete req.query.forCurrentUser;
-  const queryParams = Object.keys(req.query).length ? req.query : null;
-  const data = await sqlCache.getAgreements(queryParams, forCurrentUser, req.user.address);
+  const data = await sqlCache.getAgreements(req.query, forCurrentUser, req.user.address);
   data.forEach((elem) => { retData.push(format('Agreement', elem)); });
   return res.json(retData);
 });
