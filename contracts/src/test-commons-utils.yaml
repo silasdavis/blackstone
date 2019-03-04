@@ -4,21 +4,21 @@ jobs:
 #####
 # Libraries
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 #####
-# TypeUtils Test
+# TypeUtilsLib Test
 - name: TypeUtilsLibTest
   deploy:
     contract: TypeUtilsTest.bin
     instance: TypeUtilsTest
-    libraries: TypeUtilsAPI:$TypeUtilsAPI
+    libraries: TypeUtilsLib:$TypeUtilsLib
 
 # contentLength bytes32
 - name: testLengthBytes32
@@ -112,21 +112,33 @@ jobs:
     val: success
 
 #####
-# ArrayUtils Test
+# ArrayUtilsLib Test
 - name: ArrayUtilsLibTest
   deploy:
     contract: ArrayUtilsTest.bin
     instance: ArrayUtilsTest
-    libraries: ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: ArrayUtilsLib:$ArrayUtilsLib
 
-- name: testContainsBytes32
+- name: testContains
   call:
     destination: $ArrayUtilsLibTest
     bin: ArrayUtilsTest
-    function: testContainsBytes32
+    function: testContains
 
-- name: assertContainsBytes32
+- name: assertContains
   assert:
-    key: $testContainsBytes32
+    key: $testContains
+    relation: eq
+    val: success
+
+- name: testHasDuplicates
+  call:
+    destination: $ArrayUtilsLibTest
+    bin: ArrayUtilsTest
+    function: testHasDuplicates
+
+- name: assertHasDuplicates
+  assert:
+    key: $testHasDuplicates
     relation: eq
     val: success

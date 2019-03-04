@@ -15,8 +15,6 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	event LogArchetypePackageCreation(
 		bytes32 indexed eventId,
 		bytes32 packageId,
-		string name,
-		string description,
 		address author,
 		bool isPrivate,
 		bool active
@@ -31,8 +29,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	event LogArchetypeToPackageUpdate(
 		bytes32 indexed eventId,
 		bytes32 packageId,
-		address archetypeAddress,
-		string archetypeName
+		address archetypeAddress
 	);
 
     string public constant OBJECT_CLASS_ARCHETYPE = "agreements.Archetype";
@@ -43,9 +40,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 
 	/**
 	 * @dev Creates a new archetype
-	 * @param _name name
 	 * @param _author author
-	 * @param _description description
 	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
@@ -57,12 +52,10 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
-		uint32 _price, 
+		uint _price, 
 		bool _isPrivate, 
 		bool _active, 
-		string _name,
 		address _author, 
-		string _description,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
@@ -156,8 +149,6 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	/**
     * @dev Returns data about an archetype
 		* @param _archetype the archetype address
-		* @return name name
-		* @return description description
 		* @return price price
 		* @return author author address
 		* @return active bool
@@ -167,9 +158,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 		* @return executionProcessDefinition
 		*/
 	function getArchetypeData(address _archetype) external view returns (
-		string name,
-		string description,
-		uint32 price,
+		uint price,
 		address author,
 		bool active,
 		bool isPrivate,
@@ -192,19 +181,17 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @param _archetype archetype
 	 * @param _price price
 	 */
-	function setArchetypePrice(address _archetype, uint32 _price) external;
+	function setArchetypePrice(address _archetype, uint _price) external;
 
 	/**
 	 * @dev Adds a new archetype package
-	 * @param _name name
-	 * @param _description description
 	 * @param _author address of author (user account of organization)
 	 * @param _isPrivate makes it a private package visible to only the author
 	 * @param _active makes it a inactive package
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.NULL_PARAM_NOT_ALLOWED(), BaseErrors.RESOURCE_ALREADY_EXISTS()
 	 * @return id bytes32 id of package
 	 */
-	function createArchetypePackage(string _name, string _description, address _author, bool _isPrivate, bool _active) external returns (uint error, bytes32 id);
+	function createArchetypePackage(address _author, bool _isPrivate, bool _active) external returns (uint error, bytes32 id);
 
 	/**
 	 * @dev Sets active to true for given archetype package
@@ -236,13 +223,11 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	/**
 	 * @dev Gets package data by id
 	 * @param _id bytes32 package id
-	 * @return name string
-	 * @return description string
 	 * @return author address
 	 * @return isPrivate bool
 	 * @return active bool
 	 */
-	function getArchetypePackageData(bytes32 _id) external view returns (string name, string description, address author, bool isPrivate, bool active);
+	function getArchetypePackageData(bytes32 _id) external view returns (address author, bool isPrivate, bool active);
 
 	/**
 	 * @dev Gets number of archetypes in given package
@@ -258,14 +243,6 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @return archetype address of archetype
 	 */
 	function getArchetypeAtIndexInPackage(bytes32 _id, uint _index) external view returns (address archetype);
-
-	/**
-	 * @dev Get archetype data by package id and archetype address
-	 * @param _id id of the package
-	 * @param _archetype address of archetype
-	 * @return archetypeName name of archetype
-	 */
-	function getArchetypeDataInPackage(bytes32 _id, address _archetype) external view returns (string archetypeName);
 
 	/**
 	 * @dev Determines whether given archetype address is in the package identified by the packageId
@@ -361,11 +338,4 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 */
 	function getGoverningArchetypeAtIndex(address _archetype, uint _index) external view returns (address archetype);
 	
-	/**
-	 * @dev Returns information about the governing archetype with the specified address
-	 * @param _archetype the archetype address
-	 * @param _governingArchetype the governing archetype address
-	 * @return the name of the governing archetype
-	 */
-	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (string name);
 }

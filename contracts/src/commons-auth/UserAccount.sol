@@ -29,9 +29,8 @@ contract UserAccount is VersionedArtifact, Owned {
      * @dev Forwards a call to the specified target using the given bytes message.
      * @param _target the address to call
      * @param _payload the function payload consisting of the 4-bytes function hash and the abi-encoded function parameters
-     * @return success - whether the forwarding call returned normally
-     * @return returnData - the bytes returned from calling the target function
+     * @return returnData - the bytes returned from calling the target function, if successful
      */
-    function forwardCall(address _target, bytes _payload) external returns (bool success, bytes returnData);
+    function forwardCall(address _target, bytes _payload) external returns (bytes returnData);
 
 }

@@ -22,14 +22,9 @@ import "agreements/Agreements.sol";
  */
 contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
 	
-	// Temporary mapping to detect duplicates in governing archetypes
-	mapping(address => uint) duplicateMap;
-
 	/**
 	 * @dev Creates a new archetype
-	 * @param _name name
 	 * @param _author author
-	 * @param _description description
 	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
@@ -41,12 +36,10 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
-		uint32 _price, 
+		uint _price, 
 		bool _isPrivate, 
 		bool _active, 
-		string _name,
-		address _author, 
-		string _description,
+		address _author,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
@@ -54,46 +47,14 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		external
 		returns (address archetype)
 	{
-		ErrorsLib.revertIf(bytes(_name).length == 0 || _author == 0x0,
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype name and author address must not be empty");
-		verifyNoDuplicates(_governingArchetypes);
+		ErrorsLib.revertIf(_author == 0x0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype author address must not be empty");
 		archetype = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ARCHETYPE);
-		Archetype(archetype).initialize(_price, _isPrivate, _active, _name, _author, _description,  _formationProcess, _executionProcess, _governingArchetypes);
+		Archetype(archetype).initialize(_price, _isPrivate, _active, _author,  _formationProcess, _executionProcess, _governingArchetypes);
 		// since this is a newly created archetype address, we can safely ignore the return value of the DB.addArchetype() function
-		ArchetypeRegistryDb(database).addArchetype(archetype, _name);
-		if (_packageId != "") addArchetypeToPackage(_packageId, archetype);
-	}
-
-	/**
-	 * @dev Detects if governing archetypes array has duplicates and reverts accordingly
-	 * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	 * @param _archetypes the address[] array of governing archetypes
-	 */
-	function verifyNoDuplicates(address[] _archetypes) internal {
-		for (uint i = 0; i < _archetypes.length; i++) {
-			if (duplicateMap[_archetypes[i]] != 0) {
-				duplicateMap[_archetypes[i]]++;
-			} else {
-				duplicateMap[_archetypes[i]] = 1;
-			}
-			if (duplicateMap[_archetypes[i]] > 1) {
-				clearDuplicateMap(_archetypes);
-				revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-					"DefaultArchetypeRegistry.verifyNoDuplicates", 
-					"Governing archetypes has duplicates"));
-			}
-		}
-		clearDuplicateMap(_archetypes);
-	}
-
-	/**
-	 * @dev Clears the temporary mapping that is used to check for duplicate governing archetypes
-	 * @param _archetypes the address[] array of governing archetypes
-	 */
-	function clearDuplicateMap (address[] _archetypes) internal {
-		for (uint i = 0; i < _archetypes.length; i++) {
-			delete duplicateMap[_archetypes[i]];
-		}
+		ArchetypeRegistryDb(database).addArchetype(archetype);
+		if (_packageId != "")
+			addArchetypeToPackage(_packageId, archetype);
 	}
 
 	/**
@@ -109,8 +70,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		emit LogArchetypeToPackageUpdate(
 			EVENT_ID_ARCHETYPE_PACKAGE_MAP,
 			_packageId,
-			_archetype,
-			Archetype(_archetype).getName()
+			_archetype
 		);
 	}
 
@@ -252,8 +212,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
   /**
     * @dev Returns data about an archetype
 		* @param _archetype the archetype address
-		* @return name name
-		* @return description description
 		* @return price price
 		* @return author author address
 		* @return active bool
@@ -263,9 +221,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		* @return executionProcessDefinition
 		*/
 	function getArchetypeData(address _archetype) external view returns (
-		string name,
-		string description,
-		uint32 price,
+		uint price,
 		address author,
 		bool active,
 		bool isPrivate,
@@ -273,9 +229,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		address formationProcessDefinition,
 		address executionProcessDefinition
 	) {
-		name = ArchetypeRegistryDb(database).getArchetypeName(_archetype);
-		if (bytes(name).length != 0) {
-			description = Archetype(_archetype).getDescription();
+		if (ArchetypeRegistryDb(database).archetypeExists(_archetype)) {
 			price = Archetype(_archetype).getPrice();
 			author = Archetype(_archetype).getAuthor();
 			active = Archetype(_archetype).isActive();
@@ -304,27 +258,26 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	 * @param _archetype archetype
 	 * @param _price price
 	 */
-	function setArchetypePrice(address _archetype, uint32 _price) external {
+	function setArchetypePrice(address _archetype, uint _price) external {
 		Archetype(_archetype).setPrice(_price);
 	}
 
 	/**
 	 * @dev Adds a new archetype package
-	 * @param _name name
-	 * @param _description description
 	 * @param _author address of author (user account of organization)
 	 * @param _isPrivate makes it a private package visible to only the author
 	 * @param _active makes it a inactive package
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.NULL_PARAM_NOT_ALLOWED(), BaseErrors.RESOURCE_ALREADY_EXISTS()
 	 * @return id bytes32 id of package
 	 */
-	function createArchetypePackage(string _name, string _description, address _author, bool _isPrivate, bool _active) external returns (uint error, bytes32 id) {
-		if (_author == 0x0) return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
-		id = keccak256(abi.encodePacked(_name, _author, block.timestamp));
-		error = ArchetypeRegistryDb(database).createPackage(id, _name, _description, _author, _isPrivate, _active);
+	function createArchetypePackage(address _author, bool _isPrivate, bool _active) external returns (uint error, bytes32 id) {
+		ErrorsLib.revertIf(_author == 0x0,
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetypePackage", "Package author must not be empty");
+		id = keccak256(abi.encodePacked(ArchetypeRegistryDb(database).getNumberOfPackages(), _author, block.timestamp));
+		error = ArchetypeRegistryDb(database).createPackage(id, _author, _isPrivate, _active);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
 			ErrorsLib.INVALID_STATE(), "DefaultArchetypeRegistry.createArchetypePackage", "A package with the same ID already exists");
-		emit LogArchetypePackageCreation(EVENT_ID_ARCHETYPE_PACKAGES, id, _name, _description, _author, _isPrivate, _active);
+		emit LogArchetypePackageCreation(EVENT_ID_ARCHETYPE_PACKAGES, id, _author, _isPrivate, _active);
 	}
 
 	/**
@@ -336,7 +289,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		ErrorsLib.revertIf(!ArchetypeRegistryDb(database).packageExists(_id),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetypeRegistry.activatePackage", "Package with given id not found");
 		address packageAuthor;
-		( , , packageAuthor, , ) = ArchetypeRegistryDb(database).getPackageData(_id);
+		(packageAuthor, , ) = ArchetypeRegistryDb(database).getPackageData(_id);
 		ErrorsLib.revertIf(_author != packageAuthor,
 			ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activatePackage", "Given address is not authorized to activate archetype package");
 		ArchetypeRegistryDb(database).activatePackage(_id);
@@ -352,7 +305,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		ErrorsLib.revertIf(!ArchetypeRegistryDb(database).packageExists(_id),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetypeRegistry.activatePackage", "Package with given id not found");
 		address packageAuthor;
-		( , , packageAuthor, , ) = ArchetypeRegistryDb(database).getPackageData(_id);
+		(packageAuthor, , ) = ArchetypeRegistryDb(database).getPackageData(_id);
 		ErrorsLib.revertIf(_author != packageAuthor,
 			ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activatePackage", "Given address is not authorized to deactivate archetype package");
 		ArchetypeRegistryDb(database).deactivatePackage(_id);
@@ -379,14 +332,12 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	/**
 	 * @dev Gets package data by id
 	 * @param _id bytes32 package id
-	 * @return name string
-	 * @return description string
 	 * @return author address
 	 * @return isPrivate bool
 	 * @return active bool
 	 */
-	function getArchetypePackageData(bytes32 _id) external view returns (string name, string description, address author, bool isPrivate, bool active) {
-		(name, description, author, isPrivate, active) = ArchetypeRegistryDb(database).getPackageData(_id);
+	function getArchetypePackageData(bytes32 _id) external view returns (address author, bool isPrivate, bool active) {
+		return ArchetypeRegistryDb(database).getPackageData(_id);
 	}
 
 	/**
@@ -408,17 +359,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		return ArchetypeRegistryDb(database).getArchetypeAtIndexInPackage(_id, _index);
 	}
 
-	/**
-	 * @dev Get archetype data by package id and archetype address
-	 * Currently unused parameters were unnamed to avoid compiler warnings:
-	 * param _id id of the package
-	 * @param _archetype address of archetype
-	 * @return archetypeName name of archetype
-	 */
-	function getArchetypeDataInPackage(bytes32 /*_id*/, address _archetype) external view returns (string archetypeName) {
-		return DefaultArchetype(_archetype).getName();
-	}
-	
 	/**
 	 * @dev Determines whether given archetype address is in the package identified by the packageId
 	 * @param _packageId id of the package
@@ -545,16 +485,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	 */
 	function getGoverningArchetypeAtIndex(address _archetype, uint _index) external view returns (address governingArchetype) {
 		return Archetype(_archetype).getGoverningArchetypeAtIndex(_index);
-	}
-
-	/**
-	 * @dev Returns information about the governing archetype with the specified address
-	 * @param _archetype the archetype address
-	 * @param _governingArchetype the governing archetype address
-	 * @return the name of the governing archetype
-	 */
-	function getGoverningArchetypeData(address _archetype, address _governingArchetype) external view returns (string name) {
-		return Archetype(_archetype).getGoverningArchetypeData(_governingArchetype);
 	}
 
 }

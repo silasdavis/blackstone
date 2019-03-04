@@ -1,6 +1,6 @@
 pragma solidity ^0.4.25;
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/ArtifactsRegistry.sol";
@@ -30,7 +30,6 @@ contract ParticipantsManagerTest {
     Ecosystem myEcosystem;
 
     bytes32 EMPTY = "";
-    string constant EMPTY_STRING = "";
 
     bytes32 acc1Id;
     bytes32 acc2Id;
@@ -87,20 +86,18 @@ contract ParticipantsManagerTest {
         participantsManager = createNewParticipantsManager();
 
         // generate unique names for this test
-        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc1Id = TypeUtilsLib.toBytes32(block.number+34);
         acc2Id = "dummyId";
         acc3Id = "dummyId2";
         bytes32 dep1Id = "dep1Id";
-        string memory dep1Name = "dep1Name";
         bytes32 dep2Id = "dep2Id";
-        string memory dep2Name = "dep1Name";
 
         // create the required organizations
         address[] memory approvers;
         DefaultOrganization org1 = new DefaultOrganization();
-        org1.initialize(approvers, EMPTY_STRING);
+        org1.initialize(approvers, EMPTY);
         DefaultOrganization org2 = new DefaultOrganization();
-        org2.initialize(approvers, EMPTY_STRING);
+        org2.initialize(approvers, EMPTY);
 
         uint oldSize = participantsManager.getUserAccountsSize();
 
@@ -152,14 +149,14 @@ contract ParticipantsManagerTest {
         if (org2.authorizeUser(account2, keccak256(abi.encodePacked(address(org2))))) return "account2 expected to be inactive in org2";
 
         // users can be added to departments in organization
-        if (!org1.addDepartment(dep1Id, dep1Name)) return "Adding dep1 to org1 should be successful";
-        if (!org1.addDepartment(dep2Id, dep2Name)) return "Adding dep2 to org1 should be successful";
+        if (!org1.addDepartment(dep1Id)) return "Adding dep1 to org1 should be successful";
+        if (!org1.addDepartment(dep2Id)) return "Adding dep2 to org1 should be successful";
         if (!org1.addUserToDepartment(account1, dep1Id)) return "Failed to add account1 to dep1";
         if (!org1.addUserToDepartment(account1, dep2Id)) return "Failed to add account1 to dep2";
         if (!org1.addUserToDepartment(account2, dep1Id)) return "Failed to add account2 to dep1";
-        (departmentUserSize, ) = org1.getDepartmentData(dep1Id);
+        departmentUserSize = org1.getDepartmentData(dep1Id);
         if (departmentUserSize != 2) return "Expected dep1 in org1 to have two users after adding accounts 1 and 2";
-        (departmentUserSize, ) = org1.getDepartmentData(dep2Id);
+        departmentUserSize = org1.getDepartmentData(dep2Id);
         if (departmentUserSize != 1) return "Expected dep2 in org1 to have one user after adding account1";
         if (org1.authorizeUser(account1, "fakeDepId")) return "Account1 should not be authorized for fake department in org1";
         if (!org1.authorizeUser(account1, dep1Id)) return "Account1 should be authorized for department1 in org1";
@@ -168,14 +165,14 @@ contract ParticipantsManagerTest {
 
         // user can be removed from department in organization
         if (!org1.removeUserFromDepartment(account2, dep1Id)) return "Failed to remove account2 from dep1";
-        (departmentUserSize, ) = org1.getDepartmentData(dep1Id);
+        departmentUserSize = org1.getDepartmentData(dep1Id);
         if (departmentUserSize != 1) return "Expected dep1 in org1 to have 1 user after removing account2";
 
         // removing user from organization removes user from department
         if (!org1.removeUser(account1)) return "Failed to remove account2 from org1";
-        (departmentUserSize, ) = org1.getDepartmentData(dep1Id);
+        departmentUserSize = org1.getDepartmentData(dep1Id);
         if (departmentUserSize != 0) return "Expected dep1 in org1 to have no users after removing account1 from org1";
-        (departmentUserSize, ) = org1.getDepartmentData(dep2Id);
+        departmentUserSize = org1.getDepartmentData(dep2Id);
         if (departmentUserSize != 0) return "Expected dep2 in org1 to have no users after removing account1 from org1";
 
         return SUCCESS;
@@ -187,10 +184,9 @@ contract ParticipantsManagerTest {
 
 		// reusable variables in this test
 		address[] memory emptyAdmins;
-        acc1Id = TypeUtilsAPI.toBytes32(block.number+34);
+        acc1Id = TypeUtilsLib.toBytes32(block.number+34);
         acc2Id = "dummyId";
         bytes32 dep1Id = "dep1Id";
-        string memory dep1Name = "Department 1 Name";
 		
 		// 1. Create organization with empty admins
         
@@ -203,11 +199,9 @@ contract ParticipantsManagerTest {
         user2.initialize(participantsManager, 0x0);
 		
         // Test special handling of the default department in the organization
-        if (!org1.departmentExists(org1.DEFAULT_DEPARTMENT_ID()))
+        if (!org1.departmentExists(org1.getDefaultDepartmentId()))
             return "The default department should have been created when creating the organization";
-        if (keccak256(abi.encodePacked(DefaultOrganization(org1).defaultDepartmentName())) != keccak256(abi.encodePacked("Unassigned")))
-            return "The default department name should have been overwritten";
-        if (org1.removeDepartment(org1.DEFAULT_DEPARTMENT_ID()))
+        if (org1.removeDepartment(org1.getDefaultDepartmentId()))
             return "It should not be possible to remove the default department";
 
 		if (participantsManager.getNumberOfOrganizations() != 1) return "Number of Orgs in participantsManager should be 1";
@@ -216,14 +210,13 @@ contract ParticipantsManagerTest {
 		if (!participantsManager.organizationExists(address(org1))) return "org1 should exist in the the ParticipantsManager";
 
         // departments
-        if (!org1.addDepartment(dep1Id, dep1Name)) return "Adding department1 to org1 should be successful";
+        if (!org1.addDepartment(dep1Id)) return "Adding department1 to org1 should be successful";
         // reminder: number of deps is +1 due to the default department
         if (org1.getNumberOfDepartments() != 2) return "Failed to get number of departments in org1";
         if (org1.getDepartmentAtIndex(1) != dep1Id) return "Failed to get department id at pos 0 in org1";
         if (!org1.departmentExists(dep1Id)) return "Failed to find existance of dep1 in org1";
-        (uint retUserCount, string memory retDepName) = org1.getDepartmentData(dep1Id);
+        uint retUserCount = org1.getDepartmentData(dep1Id);
         if (retUserCount != 0) return "Failed to get department data (user count) for dep1 in org1";
-        if (keccak256(abi.encodePacked(retDepName)) != keccak256(abi.encodePacked(dep1Name))) return "Failed to get department data (name) for dep1 in org1";
 		address orgAddr = participantsManager.getOrganizationAtIndex(0);
 		if (orgAddr != address(org1)) return "Expected org1 address";
         (retUserCount, ) = participantsManager.getOrganizationData(orgAddr);
@@ -252,7 +245,7 @@ contract ParticipantsManagerTest {
 		knownAdmins[1] = address(org1);
 
         address orgAddress2;
-        (error, orgAddress2) = participantsManager.createOrganization(knownAdmins, EMPTY_STRING);
+        (error, orgAddress2) = participantsManager.createOrganization(knownAdmins, EMPTY);
         if (BaseErrors.NO_ERROR() != error) return "Unexpected error creating organization 2 (known admins)";
 		if (Organization(orgAddress2).getNumberOfApprovers() != 2) return "Number of approvers in organization 2 not correct";
 		if (Organization(orgAddress2).getApproverAtIndex(0) != tx.origin) return "Approver 1 in organization 2 should be tx.origin";
@@ -260,7 +253,7 @@ contract ParticipantsManagerTest {
 		if (participantsManager.organizationExists(orgAddress2) != true) return "Organization 2 should exist in the ParticipantsManager";
 		// create with emptyAdmins again, so that msg.sender is automatically used for approver
 		address orgAddress3;
-        (error, orgAddress3) = participantsManager.createOrganization(emptyAdmins, EMPTY_STRING);
+        (error, orgAddress3) = participantsManager.createOrganization(emptyAdmins, EMPTY);
         if (BaseErrors.NO_ERROR() != error) return "Unexpected error creating organization 3 (empty admins)";
 		if (Organization(orgAddress3).getNumberOfApprovers() != 1) return "Number of approvers in organization 3 not correct";
 		if (Organization(orgAddress3).getApproverAtIndex(0) != address(this)) return "Approver in organization 3 should be the test contract as the creator.";
@@ -284,7 +277,7 @@ contract ParticipantsManagerTest {
 		address[] memory emptyAdmins;
 
         Organization org = new DefaultOrganization();
-        org.initialize(emptyAdmins, EMPTY_STRING);
+        org.initialize(emptyAdmins, EMPTY);
         bytes32 dep1Id = "department";
 
         UserAccount user1 = new DefaultUserAccount();
@@ -297,7 +290,7 @@ contract ParticipantsManagerTest {
         // User1 -> default department
         // User2 -> Department 1
         // User3 -> Organization only 
-        if (!org.addDepartment(dep1Id, "Department 1")) return "Adding department1 to org1 should be successful";
+        if (!org.addDepartment(dep1Id)) return "Adding department1 to org1 should be successful";
         if (!org.addUserToDepartment(user1, EMPTY)) return "Failed to add user1 to default department";
         if (!org.addUserToDepartment(user2, dep1Id)) return "Failed to add user2 to department1";
         if (!org.addUser(user3)) return "Failed to add user3 to organization";

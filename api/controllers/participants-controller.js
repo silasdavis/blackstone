@@ -10,7 +10,6 @@ const sqlCache = require('./postgres-query-helper');
 const {
   format,
   pgUpdate,
-  getParticipantNames,
   asyncMiddleware,
   getSHA256Hash,
   prependHttps,
@@ -19,6 +18,7 @@ const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('participants');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const { DEFAULT_DEPARTMENT_ID } = require(`${global.__common}/monax-constants`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 
@@ -32,14 +32,17 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
     // Vent query has join that results in multiple rows for each org
     // Consolidate data by storing in object 'aggregated'
     const aggregated = {};
-    data.forEach(({ address, organizationKey, approver }) => {
+    data.forEach(({
+      address, name, organizationKey, approver,
+    }) => {
       if (!aggregated[address]) {
-        aggregated[address] = { address, organizationKey, approvers: [] };
+        aggregated[address] = {
+          address, name, organizationKey, approvers: [],
+        };
       }
       aggregated[address].approvers.push(approver);
     });
-    const organizations = await getParticipantNames(Object.values(aggregated));
-    return res.json(organizations);
+    return res.json(Object.values(aggregated));
   } catch (err) {
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
@@ -54,25 +57,24 @@ const getOrganization = asyncMiddleware(async (req, res) => {
     let approvers = {};
     let users = {};
     let departments = {};
-    const departmentUserKeys = {};
+    const departmentUsers = {};
     data.forEach(({
-      approver, user, department, departmentName, departmentUserKey,
+      approver, approverName, user, userName, department, departmentName, departmentUser,
     }) => {
       if (approver && !approvers[approver]) {
-        approvers[approver] = { address: approver };
+        approvers[approver] = { address: approver, id: approverName };
       }
       if (user && !users[user]) {
-        users[user] = { address: user, departments: [] };
+        users[user] = { address: user, id: userName, departments: [] };
       }
-      const { id } = format('Department', { id: department });
-      if (department && !departments[id]) {
-        departments[id] = { id, name: departmentName, users: [] };
-        departmentUserKeys[id] = {};
+      if (department && !departments[department]) {
+        departments[department] = { id: department, name: departmentName, users: [] };
+        departmentUsers[department] = {};
       }
-      if (departmentUserKey && !departmentUserKeys[id][departmentUserKey]) {
-        departments[id].users.push(departmentUserKey);
-        users[user].departments.push(id);
-        departmentUserKeys[id][departmentUserKey] = true;
+      if (departmentUser && !departmentUsers[department][departmentUser]) {
+        departments[department].users.push(departmentUser);
+        users[user].departments.push(department);
+        departmentUsers[department][departmentUser] = true;
       }
     });
     approvers = Object.values(approvers);
@@ -81,13 +83,10 @@ const getOrganization = asyncMiddleware(async (req, res) => {
     if (!approvers.find(({ address }) => address === req.user.address) && !users.find(({ address }) => address === req.user.address)) {
       throw boom.forbidden('User is not an approver or member of this organization and not allowed access');
     }
-    const { address, organizationKey } = data[0];
-    const { 0: { name } } = await getParticipantNames([{ address }]);
+    const { address, name, organizationKey } = data[0];
     const org = {
       address, organizationKey, name, approvers, users, departments,
     };
-    org.approvers = await getParticipantNames(org.approvers);
-    org.users = await getParticipantNames(org.users);
     return res.status(200).send(org);
   } catch (err) {
     if (boom.isBoom(err)) throw err;
@@ -98,17 +97,21 @@ const getOrganization = asyncMiddleware(async (req, res) => {
 const createOrganization = asyncMiddleware(async (req, res) => {
   const org = req.body;
   if (!org.name) throw boom.badRequest('Organization name is required');
+  if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
   log.info(`Request to create new organization: ${org.name}`);
   if (!org.approvers || org.approvers.length === 0) {
     log.debug(`No approvers provided for new organization. Setting current user ${req.user.address} as approver.`);
     org.approvers = [req.user.address];
   }
+  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
+  org.defaultDepartmentId = defDepId;
   try {
     const address = await contracts.createOrganization(org);
     await app_db_pool.query({
       text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
       values: [address, org.name],
     });
+    await sqlCache.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
     log.info('Added organization name and address to postgres');
     return res.status(200).json({ address, name: org.name });
   } catch (err) {
@@ -136,22 +139,24 @@ const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
 });
 
 const createDepartment = asyncMiddleware(async (req, res) => {
-  const { id, name, users = [] } = req.body;
+  const { name, users = [] } = req.body;
   const { address } = req.params;
-  if (!id || !name) {
-    throw boom.badRequest('Id and name are required for organization');
-  } else if (!/^[a-zA-Z0-9_]+/.test(id)) {
-    throw boom.badRequest('Id cannot include spaces');
+  if (!name) {
+    throw boom.badRequest('Name is required for department');
+  } else if (name.length > 255) {
+    throw boom.badRequest('Name length cannot exceed 255 characters');
   }
   const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
   if (!orgData.find(({ approver }) => approver === req.user.address)) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to create departments');
   }
-  await contracts.createDepartment(address, { id, name }, req.user.address);
+  const id = getSHA256Hash(`${req.user.address}${name}${Date.now()}`).toUpperCase();
+  await contracts.createDepartment(address, id, req.user.address);
+  await sqlCache.insertDepartmentDetails({ organizationAddress: address, id, name });
   // Optionally also add users in the same request
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
-    .then(() => res.status(200).send({ id, name, users }))
+    .then(() => res.status(200).json({ id, name, users }))
     .catch((err) => {
       if (boom.isBoom(err)) throw err;
       throw boom.badImplementation(err);
@@ -165,6 +170,7 @@ const removeDepartment = asyncMiddleware(async (req, res) => {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove departments');
   }
   await contracts.removeDepartment(address, id, req.user.address);
+  await sqlCache.removeDepartmentDetails({ organizationAddress: address, id });
   res.status(200).send();
 });
 
@@ -392,17 +398,19 @@ const getProfile = asyncMiddleware(async (req, res) => {
   // Consolidating data in object.
   const organizations = {};
   data.forEach(({
-    organization, organizationKey, department, departmentName,
+    organization, organizationName, organizationKey, department, departmentName,
   }) => {
     if (organization && !organizations[organization]) {
-      organizations[organization] = { address: organization, organizationKey, departments: [] };
+      organizations[organization] = {
+        address: organization, name: organizationName, organizationKey, departments: [],
+      };
     }
     if (department) {
       const { id } = format('Department', { id: department });
       organizations[organization].departments.push({ id, name: departmentName });
     }
   });
-  user.organizations = await getParticipantNames(Object.values(organizations));
+  user.organizations = Object.values(organizations);
   delete user.organization;
   try {
     const { rows } = await app_db_pool.query({

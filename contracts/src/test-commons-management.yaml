@@ -7,22 +7,42 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: ERC165Utils
   deploy:
     contract: ERC165Utils.bin
+
+##########
+# DelegateProxy Test
+############################################################################################
+- name: DelegateProxyTest
+  deploy:
+    contract: DelegateProxyTest.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib
+
+- name: testDelegateCallReturns
+  call:
+    destination: $DelegateProxyTest
+    bin: DelegateProxyTest
+    function: testDelegateCallReturns
+
+- name: assertDelegateCallReturns
+  assert:
+    key: $testDelegateCallReturns
+    relation: eq
+    val: success
 
 ##########
 # Upgradeable Test
@@ -72,7 +92,7 @@ jobs:
   deploy:
     contract: DougTest.bin
     instance: DougTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: testRegistration
   call:
@@ -105,7 +125,7 @@ jobs:
   deploy:
     contract: DougProxyTest.bin
     instance: DougProxyTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: testProxyDelegation
   call:
@@ -127,7 +147,7 @@ jobs:
   deploy:
     contract: ObjectProxyTest.bin
     instance: ObjectProxyTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: testProxyHandling
   call:
@@ -166,7 +186,7 @@ jobs:
 - name: DefaultDoug
   deploy:
     contract: DefaultDoug.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 # proxy contract
 - name: DOUG

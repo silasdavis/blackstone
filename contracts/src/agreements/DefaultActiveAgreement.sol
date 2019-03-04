@@ -1,8 +1,8 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
@@ -18,14 +18,13 @@ import "agreements/ActiveAgreement.sol";
 
 contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
-	using ArrayUtilsAPI for address[];
-	using TypeUtilsAPI for bytes32;
+	using ArrayUtilsLib for address[];
+	using TypeUtilsLib for bytes32;
 	using AgreementsAPI for ActiveAgreement;
 	using MappingsLib for Mappings.Bytes32Bytes32Map;
 
 	address archetype;
 	address creator;
-	string name;
 	string privateParametersFileReference;
 	string eventLogFileReference;
 	bool privateFlag;
@@ -40,7 +39,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
-	 * @param _name name
 	 * @param _creator the account that created this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters (optional)
 	 * @param _isPrivate if agreement is private
@@ -49,7 +47,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 */
 	function initialize(
 		address _archetype, 
-		string _name, 
 		address _creator, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
@@ -58,8 +55,14 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 		external
 		pre_post_initialize
 	{
+		ErrorsLib.revertIf(_archetype == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.initialize", "Archetype address must not be empty");
+		ErrorsLib.revertIf(!Archetype(_archetype).isActive(),
+			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreement.initialize", "Archetype must be active");
+		
+		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
+
 		archetype = _archetype;
-		name = _name;
 		creator = _creator;
 		privateParametersFileReference = _privateParametersFileReference;
 		privateFlag = _isPrivate;
@@ -71,7 +74,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,
-			_name,
 			_creator,
 			_isPrivate,
 			uint8(legalState),
@@ -80,12 +82,42 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			eventLogFileReference
 		);
 		for (uint i = 0; i < _parties.length; i++) {
-			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
+			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
-			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i], _name);
+			emit LogGoverningAgreementUpdate(EVENT_ID_GOVERNING_AGREEMENT, address(this), _governingAgreements[i]);
 		}
 	}
+
+	/**
+	 * @dev Validates the provided governing agreements against the given governing archetypes by checking that each
+	 * governing agreement's archetype corresponds to one of the governing archetypes.
+	 * This function makes sure that all governing agreements that are required were passed.
+	 */
+	function validateGoverningAgreements(address[] memory _governingAgreements, address[] _governingArchetypes) internal view {
+	
+		// _governingAgreements length must match governingArchetypes length. This is a shortcut verification to avoid expensive looping
+		ErrorsLib.revertIf(_governingAgreements.length != _governingArchetypes.length,
+			ErrorsLib.INVALID_INPUT(), "DefaultActiveAgreement.validateGoverningAgreements", "The number of provided governing agreements does not match the required number of governing archetypes");
+
+		uint verifiedArchetypesCount = 0;
+		// each of _governingAgreement's archetypes should have a match in governingArchetypes array
+		for (uint i = 0; i < _governingAgreements.length; i++) {
+			for (uint j=0; j < _governingArchetypes.length; j++) {
+				if (_governingArchetypes[j] == address(0))
+					continue;
+				else if (_governingArchetypes[j] == ActiveAgreement(_governingAgreements[i]).getArchetype()) {
+					delete _governingArchetypes[j]; // marking as found by deleting the entry
+					verifiedArchetypesCount++;
+					break;
+				}
+			}
+		}
+
+		ErrorsLib.revertIf(_governingArchetypes.length > 0 && verifiedArchetypesCount != _governingArchetypes.length,
+			ErrorsLib.INVALID_INPUT(), "DefaultActiveAgreement.validateGoverningAgreements", 
+				"The provided governing agreements do not match all of the governing archetypes required by the archetype of this agreement");
+ 	}
 
 	/**
 	 * @dev Returns the number governing agreements for this agreement
@@ -102,23 +134,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 */
 	function getGoverningAgreementAtIndex(uint _index) external view returns (address agreementAddress) {
 		return governingAgreements[_index];
-	}
-
-	/**
-	 * @dev Returns information about the governing agreement with the specified address
-	 * @param _agreement the governing agreement address
-	 * @return the name of the governing agreement
-	 */
-	function getGoverningAgreementData(address _agreement) external view returns (string agreementName) {
-		return ActiveAgreement(_agreement).getName();
-	}
-
-	/**
-	 * @dev Gets name
-	 * @return name name
-	 */
-	function getName() public view returns (string) {
-		return name;
 	}
 
 	/**
@@ -192,7 +207,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Returns the creator
 	 * @return the creator address
 	 */
-	function getCreator() external view returns (address){
+	function getCreator() external view returns (address) {
 		return creator;
 	}
 
@@ -200,7 +215,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @dev Returns the private flag
 	 * @return the private flag 
 	 */
-	function isPrivate() external view returns (bool){
+	function isPrivate() external view returns (bool) {
 		return privateFlag;
 	}
 
@@ -224,7 +239,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 		if (signatures[party].timestamp == 0) {
 			signatures[party].signee = signee;
 			signatures[party].timestamp = block.timestamp;
-			emit LogActiveAgreementToPartyUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
+			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
 			if (ActiveAgreement(this).isFullyExecuted()) {
 				legalState = Agreements.LegalState.EXECUTED;
 				emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
@@ -342,6 +357,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			legalState == Agreements.LegalState.FORMULATED) {
 			// unilateral cancellation is allowed before execution phase
 			legalState = Agreements.LegalState.CANCELED;
+			emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 			emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
 			emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
 		}
@@ -350,6 +366,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			if (cancellations[party].timestamp == 0) {
 				cancellations[party].signee = actor;
 				cancellations[party].timestamp = block.timestamp;
+			  emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 				for (uint i=0; i<parties.length; i++) {
 					if (cancellations[parties[i]].timestamp == 0) {
 						break;

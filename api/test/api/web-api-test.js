@@ -6,8 +6,6 @@ const rid = require('random-id')
 const path = require('path')
 const fs = require('fs')
 const _ = require('lodash')
-const hexToString = require('@monax/burrow').utils.hexToAscii;
-const stringToHex = require('@monax/burrow').utils.asciiToHex;
 const crypto = require('crypto');
 
 const app = require('../../app')();
@@ -27,8 +25,8 @@ const should = chai.should();
 const expect = chai.expect;
 const assert = chai.assert;
 
-var hoardRef = { address: null, secretKey: null }
-var hoardRef2 = { address: null, secretKey: null }
+var hoardGrant;
+var hoardGrant2;
 
 // wait for the app to be fully bootstrapped
 before(function (done) {
@@ -68,8 +66,8 @@ describe('hex to string conversions', () => {
     const in_oddLeftPaddedHex = '00041737369676e6565';
     const in_oddRightPaddedHex = '41737369676e6565000';
     const in_nullHex = '000000000000';
-    const in_noPadMultiByteHex = '6964656e7469666963616369f36e';
-    const in_paddedMultiByteHex = '62e47200000000';
+    const in_noPadMultiByteHex = '6964656e7469666963616369c3b36e';
+    const in_paddedMultiByteHex = '62c3a472000000';
     const out_str_assignee = 'Assignee';
     const out_str_identification = 'identificación';
     const out_str_bear = 'bär';
@@ -81,34 +79,34 @@ describe('hex to string conversions', () => {
     expect(conv_text1).to.equal(text1)
 
     // expect null hex to match empty string
-    expect(hexToString(in_nullHex)).to.equal(emptyString);
+    expect(global.hexToString(in_nullHex)).to.equal(emptyString);
     
     // expect empty string to match empty hex 
-    expect(stringToHex(emptyString)).to.equal('');
+    expect(global.stringToHex(emptyString)).to.equal('');
     
     // expect spaces roundtrip to spaces to pass
-    expect(hexToString(stringToHex(spaces))).to.equal(spaces);
+    expect(global.hexToString(global.stringToHex(spaces))).to.equal(spaces);
 
     // expect no padded hex to match no padded string
-    expect(hexToString(in_noPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_noPaddedHex)).to.equal(out_str_assignee);
 
     // expect even left padded hex to match string
-    expect(hexToString(in_evenLeftPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_evenLeftPaddedHex)).to.equal(out_str_assignee);
 
     // expect even right padded hex to match string
-    expect(hexToString(in_evenRightPaddedHex)).to.equal(out_str_assignee);
+    expect(global.hexToString(in_evenRightPaddedHex)).to.equal(out_str_assignee);
 
     // expect odd left padded hex to NOT match string
-    expect(hexToString(in_oddLeftPaddedHex)).to.not.equal(out_str_assignee);
+    expect(global.hexToString(in_oddLeftPaddedHex)).to.not.equal(out_str_assignee);
 
     // expect odd right padded hex to match string
-    expect(hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
+    expect(global.hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
 
     // expect multibyte hex to match string 
-    expect(hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
+    expect(global.hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
 
     // expect padded multibyte hex to match string
-    expect(hexToString(in_paddedMultiByteHex)).to.equal(out_str_bear);
+    expect(global.hexToString(in_paddedMultiByteHex)).to.equal(out_str_bear);
 
     done();
   });
@@ -285,8 +283,7 @@ describe('Hoard', () => {
       .expect(200)
       .end((err, res) => {
         if (err) return done(err)
-        hoardRef.address = res.body.address.toUpperCase()
-        hoardRef.secretKey = res.body.secretKey.toUpperCase()
+        hoardGrant = res.body.grant;
         done()
       })
   })
@@ -299,8 +296,7 @@ describe('Hoard', () => {
       .expect(200)
       .end((err, res) => {
         if (err) return done(err)
-        hoardRef2.address = res.body.address.toUpperCase()
-        hoardRef2.secretKey = res.body.secretKey.toUpperCase()
+        hoardGrant2 = res.body.grant;
         done()
       })
   })
@@ -316,7 +312,6 @@ describe('Organizations', () => {
     name: 'ACME Corp',
   };
   const accounting = {
-    id: 'accounting',
     name: 'Accounting Department',
   };
   const approver = {
@@ -382,7 +377,7 @@ describe('Organizations', () => {
             resAcme.should.exist;
             done();
           });
-        }, 2000);
+        }, 3000);
       });
   }).timeout(10000);
 
@@ -504,6 +499,7 @@ describe('Organizations', () => {
         .send(accounting)
         .end((err, res) => {
           if (err) return done(err);
+          accounting.id = res.body.id;
           res.should.have.status(200);
           setTimeout(function () {
             // verify departments on this organization
@@ -518,10 +514,8 @@ describe('Organizations', () => {
                 res.body.departments.should.be.a('array');
                 // Length should be 2 now because the default department should have been created upon organization creation
                 res.body.departments.should.have.length(2);
-                const acctDep = res.body.departments[1];
+                const acctDep = res.body.departments.find(({ id }) => id === accounting.id);
                 acctDep.should.be.a('object');
-                acctDep.id.should.exist;
-                acctDep.id.should.equal(accounting.id);
                 acctDep.name.should.exist;
                 acctDep.name.should.equal(accounting.name);
                 acctDep.users.should.be.a('array');
@@ -555,7 +549,8 @@ describe('Organizations', () => {
           .end((err, res) => {
             if (err) return done(err);
             res.should.have.status(200);
-            res.body.departments[1].users[0].should.equal(accountant.address);
+            const acctDep = res.body.departments.find(({ id }) => id === accounting.id);
+            acctDep.users[0].should.equal(accountant.address);
             done();
           });
       }, 2000);
@@ -649,8 +644,7 @@ describe(':: External Users ::', () => {
     ],
     documents: [{
       name: 'doc1.md',
-      address: '0x0',
-      secretKey: '0x0',
+      grant: '',
     }],
     jurisdictions: [],
     executionProcessDefinition: '',
@@ -712,8 +706,7 @@ describe(':: External Users ::', () => {
     // CREATE ARCHETYPE
     setTimeout(async () => {
       try {
-        archetype.documents[0].address = hoardRef.address;
-        archetype.documents[0].secretKey = hoardRef.secretKey;
+        archetype.documents[0].grant = hoardGrant;
         Object.assign(archetype, await api.createArchetype(archetype, registeredUser.token));
         expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         agreement.archetype = archetype.address;

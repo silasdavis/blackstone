@@ -21,7 +21,6 @@ contract ActiveAgreementTest {
 	uint maxNumberOfEvents = 5;
 	bytes32 DATA_FIELD_AGREEMENT_PARTIES = "AGREEMENT_PARTIES";
 
-	string agreementName = "active agreement name";
 	bytes32 bogusId = "bogus";
 	UserAccount signer1;
 	UserAccount signer2;
@@ -49,12 +48,11 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setDataValueAsAddressArray(bogusId, bogusArray);
 
-		if (bytes(agreement.getName()).length != bytes(agreementName).length) return "Name not set correctly";
 		if (agreement.getNumberOfParties() != parties.length) return "Number of parties not returning expected size";
 
 		result = agreement.getPartyAtIndex(1);
@@ -90,16 +88,16 @@ contract ActiveAgreementTest {
 		// Signer 2 is signing on behalf of an organization (default department)
 		address[] memory emptyAddressArray;
 		Organization org1 = new DefaultOrganization();
-		org1.initialize(emptyAddressArray, EMPTY_STRING);
+		org1.initialize(emptyAddressArray, EMPTY);
 		if (!org1.addUserToDepartment(signer2, EMPTY)) return "Unable to add user account to organization";
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(org1));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, agreementName, this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test signing
 		address signee;
@@ -112,8 +110,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED";
 
 		// Signing with Signer1 as party
-		(success, ) = signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing the agreement via signer1 should be successful";
+		signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer1";
 		(signee, timestamp) = agreement.getSignatureDetails(signer1);
 		if (signee != address(signer1)) return "Signee for signer1 should be signer1";
@@ -122,8 +119,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED after signer1";
 
 		// Signing with Signer2 via the organization
-		(success, ) = signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing the agreement via signer2 should be successful";
+		signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer2";
 		if (agreement.isSignedBy(org1)) return "Agreement should NOT be signed by org1";
 		(signee, timestamp) = agreement.getSignatureDetails(org1);
@@ -155,11 +151,11 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, "archetype name", falseAddress, "description", falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement1 = new DefaultActiveAgreement();
-		agreement1.initialize(archetype, "Agreement1", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement1.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement2 = new DefaultActiveAgreement();
-		agreement2.initialize(archetype, "Agreement2", this, dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement2.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
 		if (address(agreement1).call(bytes4(keccak256(abi.encodePacked("cancel()")))))
@@ -168,21 +164,16 @@ contract ActiveAgreementTest {
 		if (agreement2.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should NOT be CANCELED";
 
 		// Agreement1 is canceled during formation
-		(success, ) = signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement1 via signer2 should be successful";
+		signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
 		if (agreement1.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should be CANCELED after unilateral cancellation in formation";
 
 		// Agreement2 is canceled during execution
-		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing agreement2 via signer1 should be successful";
-		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
-		if (!success) return "Signing agreement2 via signer2 should be successful";
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreemen2 legal state should be EXECUTED after parties signed";
-		(success, ) = signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement2 via signer1 should be successful";
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement2 legal state should still be EXECUTED after unilateral cancellation";
-		(success, ) = signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
-		if (!success) return "Canceling agreement2 via signer2 should be successful";
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should be CANCELED after bilateral cancellation";
 
 		return SUCCESS;

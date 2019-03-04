@@ -3,8 +3,8 @@ pragma solidity ^0.4.25;
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
 import "commons-base/Owned.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
 import "commons-management/AbstractDelegateTarget.sol";
 
@@ -19,8 +19,8 @@ import "bpm-model/ProcessModel.sol";
  */
 contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Owned, ProcessDefinition {
 
-	using ArrayUtilsAPI for bytes32[];
-	using TypeUtilsAPI for bytes32;
+	using ArrayUtilsLib for bytes32[];
+	using TypeUtilsLib for bytes32;
 	using BpmModelLib for BpmModel.TransitionCondition;
 
 	BpmModel.ModelElementMap graphElements;
@@ -156,7 +156,6 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 		graphElements.rows[_id].exists = true;
 		emit LogActivityDefinitionCreation(
 			EVENT_ID_ACTIVITY_DEFINITIONS,
-			address(model),
 			address(this),
 			_id,
 			uint8(_activityType),

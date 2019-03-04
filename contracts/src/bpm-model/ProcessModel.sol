@@ -1,7 +1,7 @@
 pragma solidity ^0.4.25;
 
 import "commons-base/Versioned.sol";
-import "commons-base/NamedElement.sol";
+import "commons-base/Bytes32Identifiable.sol";
 import "commons-management/VersionedArtifact.sol";
 
 import "bpm-model/BpmModel.sol";
@@ -10,13 +10,12 @@ import "bpm-model/BpmModel.sol";
  * @title ProcessModel Interface
  * @dev Versionized container providing a namespace for a set of business process definitions and their artifacts. 
  */
-contract ProcessModel is VersionedArtifact, Versioned, NamedElement {
+contract ProcessModel is VersionedArtifact, Versioned, Bytes32Identifiable {
 
 	event LogProcessModelCreation(
 		bytes32 indexed eventId,
 		address modelAddress,
 		bytes32 id,
-		string name,
 		uint versionMajor,
 		uint versionMinor,
 		uint versionPatch,
@@ -44,13 +43,12 @@ contract ProcessModel is VersionedArtifact, Versioned, NamedElement {
 	 * @dev Initializes this DefaultOrganization with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _id the model ID
-	 * @param _name the model name
 	 * @param _version the model version
 	 * @param _author the model author
 	 * @param _isPrivate indicates if model is visible only to creator
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function initialize(bytes32 _id, string _name, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external;
+	function initialize(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external;
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel
@@ -137,15 +135,6 @@ contract ProcessModel is VersionedArtifact, Versioned, NamedElement {
 	 * @return the address of the ProcessDefinition, if it exists
 	 */
 	function getProcessDefinitionAtIndex(uint _idx) external view returns (address);
-
-	/**
-	 * @dev Returns information about the ProcessDefinition at the given address
-	 * @param _processDefinition the address
-	 * @return id the process ID
-	 * @return interfaceId the first process interface the process definition supports
-	 * @return modelId the id of the model to which this process definition belongs
-	 */
-	function getProcessDefinitionData(address _processDefinition) external view returns (bytes32 id, bytes32 interfaceId, bytes32 modelId);
 
 	/**
 	 * @dev Returns the number of participants defined in this ProcessModel

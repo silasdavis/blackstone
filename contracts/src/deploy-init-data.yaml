@@ -18,19 +18,19 @@ jobs:
     function: lookup
     data: [ErrorsLib]
 
-- name: TypeUtils
+- name: TypeUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [TypeUtils]
+    data: [TypeUtilsLib]
 
-- name: ArrayUtils
+- name: ArrayUtilsLib
   query-contract:
     destination: $DOUG
     bin: DOUG
     function: lookup
-    data: [ArrayUtils]
+    data: [ArrayUtilsLib]
 
 - name: MappingsLib
   query-contract:
@@ -69,7 +69,7 @@ jobs:
 - name: AgreementSignatureCheck
   deploy:
     contract: AgreementSignatureCheck.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtils, TypeUtilsAPI:$TypeUtils, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils
 
 - name: registerApplicationAgreementSignatureCheck
   call:

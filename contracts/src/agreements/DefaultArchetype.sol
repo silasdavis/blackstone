@@ -2,8 +2,8 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-utils/DataTypes.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
@@ -19,8 +19,9 @@ import "agreements/Archetype.sol";
  */
 contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Archetype {
 
-	using ArrayUtilsAPI for bytes32[];
-	using TypeUtilsAPI for string;
+	using ArrayUtilsLib for bytes32[];
+	using ArrayUtilsLib for address[];
+	using TypeUtilsLib for string;
 	using MappingsLib for Mappings.Bytes32AddressMap;
 	using MappingsLib for Mappings.Bytes32UintMap;
 
@@ -31,9 +32,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		bytes32 region;
 	}
 
-	string name;
-	string description;
-	uint32 price;
+	uint price;
 	address author;
 	bool active;
 	bool privateFlag;
@@ -55,9 +54,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
-	 * @param _name name
 	 * @param _author author
-	 * @param _description description
 	 * @param _isPrivate determines if this archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
@@ -65,21 +62,20 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 * @param _governingArchetypes array of governing archetype addresses (optional)
 	 */
 	function initialize(
-		uint32 _price,
+		uint _price,
 		bool _isPrivate,
 		bool _active,
-		string _name,
 		address _author,
-		string _description,
 		address _formationProcess,
 		address _executionProcess,
 		address[] _governingArchetypes)
 		external
 		pre_post_initialize
 	{
-		name = _name;
+		ErrorsLib.revertIf(_governingArchetypes.hasDuplicates(),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.initialize", "Governing archetypes must not contain duplicates");
+
 		author = _author;
-		description = _description;
 		price = _price;
 		privateFlag = _isPrivate;
 		active = _active;
@@ -90,12 +86,10 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		emit LogArchetypeCreation(
 			EVENT_ID_ARCHETYPES,
 			address(this),
-			_name,
-			_description,
-			price,
-			author,
-			active,
-			privateFlag,
+			_price,
+			_author,
+			_active,
+			_isPrivate,
 			successor,
 			formationProcessDefinition,
 			executionProcessDefinition
@@ -104,8 +98,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 			emit LogGoverningArchetypeUpdate(
 				EVENT_ID_GOVERNING_ARCHETYPES, 
 				address(this), 
-				_governingArchetypes[i],
-				Archetype(_governingArchetypes[i]).getName()
+				_governingArchetypes[i]
 			);
 		}
 	}
@@ -231,26 +224,10 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	}
 
 	/**
-	 * @dev Returns the archetype name
-	 * @return the name
-	 */
-	function getName() public view returns (string) {
-		return name;
-	}
-
-	/**
-	 * @dev Gets description
-	 * @return description
-	 */
-	function getDescription() external view returns (string) {
-		return description;
-	}
-
-	/**
 	 * @dev Gets price
 	 * @return price
 	 */
-	function getPrice() external view returns (uint32) {
+	function getPrice() external view returns (uint) {
 		return price;
 	}
 
@@ -258,7 +235,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 * @dev Sets price
 	 * @param _price price of archetype
 	 */
-	function setPrice(uint32 _price) external {
+	function setPrice(uint _price) external {
 		price = _price;
 		emit LogArchetypePriceUpdate(EVENT_ID_ARCHETYPES, address(this), _price);
 	}
@@ -395,15 +372,6 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 */
 	function getGoverningArchetypeAtIndex(uint _index) external view returns (address archetypeAddress) {
 		return governingArchetypes[_index];
-	}
-
-	/**
-	 * @dev Returns information about the governing archetype with the specified address
-	 * @param _archetype the governing archetype address
-	 * @return the name of the governing archetype
-	 */
-	function getGoverningArchetypeData(address _archetype) external view returns (string archetypeName) {
-		return Archetype(_archetype).getName();
 	}
 
 	/**

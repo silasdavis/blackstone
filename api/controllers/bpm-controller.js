@@ -12,7 +12,7 @@ const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements.bpm');
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const {
-  hoard,
+  hoardPut,
   getModelFromHoard,
 } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
@@ -23,7 +23,7 @@ const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
   const activities = await pgCache.populateTaskNames(data);
-  return res.status(200).json(activities.map(activity => format('Task', activity)));
+  return res.status(200).json(activities);
 });
 
 const _validateDataMappings = (dataMappings) => {
@@ -96,7 +96,9 @@ const addDataTypes = dataMappings => dataMappings.map(dm => ({
 
 const getActivityInstance = asyncMiddleware(async (req, res) => {
   let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
-  if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found or user not authorized`);
+  if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found`);
+  if (activityInstanceResult.state !== 4) return res.status(200).json({ activityInstanceId: req.params.id, state: activityInstanceResult.state });
+  if (!activityInstanceResult.assignedToUser) throw boom.forbidden(`User is not an authorized performer for activity instance ${req.params.id}`);
   activityInstanceResult = (await pgCache.populateTaskNames([activityInstanceResult]))[0];
   activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
   activityInstanceResult.data = addDataTypes(activityInstanceResult.data);
@@ -105,7 +107,7 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
   } catch (err) {
     throw boom.badImplementation(`Failed to get values for IN data mappings for activity instance id ${req.params.id}: ${err}`);
   }
-  return res.status(200).json(format('Task', activityInstanceResult));
+  return res.status(200).json(activityInstanceResult);
 });
 
 const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId } }, res) => {
@@ -144,7 +146,7 @@ const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res) => {
   if (!address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getTasksByUserAddress(address);
   const tasks = await pgCache.populateTaskNames(data);
-  return res.status(200).json(tasks.map(task => format('Task', task)));
+  return res.status(200).json(tasks);
 });
 
 const getModels = asyncMiddleware(async (req, res) => {
@@ -285,7 +287,7 @@ const getModelDiagram = asyncMiddleware(async (req, res) => {
     !profileData.find(({ organization }) => organization === model.author)) {
     throw boom.forbidden('You are not authorized to view this private model');
   }
-  const diagram = await getModelFromHoard(JSON.parse(model.modelFileReference));
+  const diagram = await getModelFromHoard(model.modelFileReference);
   const data = splitMeta(diagram);
   if (req.headers.accept.includes('application/xml')) {
     res.attachment(data.meta.name);
@@ -303,20 +305,14 @@ const getModelDiagram = asyncMiddleware(async (req, res) => {
  ************************************************************************ */
 
 const pushModelXmlToHoard = async (rawXml) => {
-  let hoardRef;
+  let hoardGrant;
   try {
-    const plaintext = {
-      data: addMeta({
-        mime: 'application/xml',
-        name: 'bpmn_xml',
-      }, rawXml),
-      salt: Buffer.from(process.env.HOARD_SALT),
+    const meta = {
+      name: 'bpmn_xml',
+      mime: 'application/xml',
     };
-    hoardRef = await hoard.put(plaintext);
-    return JSON.stringify({
-      address: hoardRef.address.toString('hex'),
-      secretKey: hoardRef.secretKey.toString('hex'),
-    });
+    hoardGrant = await hoardPut(meta, Buffer.from(rawXml));
+    return hoardGrant;
   } catch (err) {
     throw boom.badImplementation(`Failed to upload data to hoard: ${err}`);
   }
@@ -503,8 +499,8 @@ const createModelFromBpmn = asyncMiddleware(async (req, res) => {
   const { model, processes } = parsedResponse;
   model.author = req.user.address;
   response.model.id = model.id;
-  const hoardRef = await pushModelXmlToHoard(rawXml);
-  response.model.address = await contracts.createProcessModel(model.id, model.name, model.version, model.author, model.private, hoardRef);
+  const hoardGrant = await pushModelXmlToHoard(rawXml);
+  response.model.address = await contracts.createProcessModel(model.id, model.version, model.author, model.private, hoardGrant);
   response.model.dataStoreFields = await addDataDefinitionsToModel(response.model.address, model.dataStoreFields);
   response.processes = await addProcessesToModel(response.model.address, processes);
   response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));

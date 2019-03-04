@@ -3,7 +3,7 @@ pragma solidity ^0.4.25;
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
 import "commons-utils/DataTypes.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-collections/DataStorage.sol";
 import "commons-collections/Mappings.sol";
@@ -163,7 +163,7 @@ library DataStorageUtils {
     DataElement memory elem = _map.rows[_key];
     
     bytes32 swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-    if (TypeUtilsAPI.contentLength(swapKey) > 0) {
+    if (TypeUtilsLib.contentLength(swapKey) > 0) {
       _map.rows[swapKey].keyIdx = elem.keyIdx;
     }
     
@@ -349,7 +349,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsString(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsString(_dataPath);
     }
@@ -380,7 +380,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsBytes32(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsBytes32(_dataPath);
     }
@@ -411,7 +411,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsAddress(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsAddress(_dataPath);
     }
@@ -441,7 +441,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsUint(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsUint(_dataPath);
     }
@@ -479,7 +479,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsInt(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsInt(_dataPath);
     }
@@ -518,7 +518,7 @@ library DataStorageUtils {
       target = _dataStorage.getDataValueAsBool(_dataPath);
     } else {
       address subDataStorage = _dataStorage.getDataValueAsAddress(_dataId);
-      ErrorsLib.revertIf(subDataStorage == 0x0,
+      ErrorsLib.revertIf(subDataStorage == address(0),
         ErrorsLib.INVALID_STATE(), "DataStorageUtils.resolveExpression", "Unable to locate DataStorage based on dataId parameter");
       target = DataStorage(subDataStorage).getDataValueAsBool(_dataPath);
     }

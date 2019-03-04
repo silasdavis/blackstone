@@ -163,7 +163,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
    ******************************/
 
   it('Should create a process model', async () => {
-    model.address = await contracts.createProcessModel(model.id, model.name, model.version, buyer.address, false, '', '')
+    model.address = await contracts.createProcessModel(model.id, model.version, buyer.address, false, '', '')
     expect(model.address).to.match(/[0-9A-Fa-f]{40}/)
   }).timeout(10000)
 

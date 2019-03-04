@@ -1,18 +1,20 @@
 pragma solidity ^0.4.25;
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-auth/UserAccount.sol";
 import "commons-auth/DefaultUserAccount.sol";
 
 contract UserAccountTest {
 
-	using TypeUtilsAPI for bytes;
+	using TypeUtilsLib for bytes;
 
 	string constant SUCCESS = "success";
-	string longString = "longString";
+	string constant functionSigForwardCall = "forwardCall(address,bytes)";
+	string constant functionSigServiceInvocation = "serviceInvocation(address,uint256,bytes32)";
 
-	string testServiceFunctionSig = "serviceInvocation(address,uint256,bytes32)";
+	string longString = "longString";
+    bytes1[] tempByteArray;
 
 	/**
 	 * @dev Tests the UserAccount call forwarding logic
@@ -22,30 +24,32 @@ contract UserAccountTest {
 		uint testState = 42;
 		bytes32 testKey = "myKey";
 		TestService testService = new TestService();
-		bool success;
 
 		UserAccount account = new DefaultUserAccount();
 		account.initialize(this, 0x0);
 		UserAccount externalAccount = new DefaultUserAccount();
 		externalAccount.initialize(msg.sender, 0x0);
 
-		bytes memory payload = abi.encodeWithSignature(testServiceFunctionSig, address(this), testState, testKey);
+		bytes memory payload;
+		payload = abi.encodeWithSignature("fakeFunction(bytes32)", testState);
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "Forwarding a call to a non-existent function should revert";
+
+		payload = abi.encodeWithSignature(functionSigServiceInvocation, address(this), testState, testKey);
+		// first test that the correct signature is working
+		if (!address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "Forwarding a call to the valid function signature should not revert";
+
 		// test failures
-		// *IMPORTANT*: the use of the abi.encode function for this call is extremely important since sending the parameters individually via call(bytes4, args...)
-		// has known problems encoding the dynamic-size parameters correctly, see https://github.com/ethereum/solidity/issues/2884
-		if (address(account).call(bytes4(keccak256("forwardCall(address,bytes)")), abi.encode(address(0), payload))) 
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(0), payload)))
 			return "Forwarding a call to an empty address should revert";
-		(success, ) = account.forwardCall(address(testService), abi.encodeWithSignature("fakeFunction(bytes32)", testState));
-		if (success)
-			return "Forwarding a call to a non-existent function should return false";
 		// unauthorized accounts (not owner)
-		if (address(externalAccount).call(bytes4(keccak256(abi.encodePacked("forwardCall(address,bytes)"))), abi.encode(address(testService), payload)))
+		if (address(externalAccount).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
 			return "Forwarding a call from an unauthorized address should fail";
 
 		// test successful invocation
 		bytes memory returnData;
-		(success, returnData) = account.forwardCall(address(testService), payload);
-		if (!success) return "Forwarding a call from an authorized address with correct payload should return true";
+		returnData = account.forwardCall(address(testService), payload);
 		if (testService.currentEntity() != address(this)) return "The testService should show this address as the current entity";
 		if (testService.currentState() != testState) return "The testService should have the testState set";
 		if (testService.currentKey() != testKey) return "The testService should have the testKey set";
@@ -57,9 +61,51 @@ contract UserAccountTest {
 
 		// test different input/return data
 		payload = abi.encodeWithSignature("isStringLonger5(string)", longString);
-		(success, returnData) = account.forwardCall(address(testService), payload);
-		if (!success) return "isStringLonger5 invocation should succeed";
+		returnData = account.forwardCall(address(testService), payload);
 		if (returnData[31] != 1) return "isStringLonger5 should return true for longString"; // boolean is left-padded, so the value is at the end of the bytes
+
+		// test revert reason return
+		payload = abi.encodeWithSignature("invokeRevert()");
+		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+			return "A revert from a forwarded function call should propagate as revert";
+
+        bool success;
+        uint returnSize;
+		address target = address(account);
+		bytes memory data = abi.encodeWithSignature(functionSigForwardCall, address(testService), payload);
+        assembly {
+            let freeMemSlot := mload(0x40)
+            success := call(gas, target, 0, add(data, 0x20), mload(data), freeMemSlot, 0)
+            returnSize := returndatasize
+        }
+        returnData = new bytes(returnSize);
+        assembly {
+            returndatacopy(add(returnData, 0x20), 0, returnSize)
+        }
+
+        if (returnData.length < 32) return "The data returned from invoking the revert function should be at least 32 bytes long";
+        bytes memory expectedReason = "UserAccountTest::error";
+        delete tempByteArray;
+
+        // There currently is no elegant way to decode the returned bytes of a revert. The bytes being received have the following structure:
+        // 0x08c379a0                                                         // Function selector for Error(string)
+        // 0x0000000000000000000000000000000000000000000000000000000000000020 // Data offset
+        // 0x000000000000000000000000000000000000000000000000000000000000001a // String length
+        // 0x4e6f7420656e6f7567682045746865722070726f76696465642e000000000000 // String data
+
+        // Since we know that the expected revert reason fits into 32 bytes, we can simply grab those last 32 bytes
+        for (uint i=returnData.length-32; i<returnData.length; i++) {
+            if (uint(returnData[i]) != 0) {
+                tempByteArray.push(returnData[i]);
+            }
+        }
+        bytes memory trimmedBytes = new bytes(tempByteArray.length);
+        for (i=0; i<tempByteArray.length; i++) {
+            trimmedBytes[i] = tempByteArray[i];
+        }
+
+        if (keccak256(abi.encodePacked(trimmedBytes)) != keccak256(abi.encodePacked(expectedReason)))
+            return "The return data from invoking the revert function via forwardCall should contain the error reason from the TestService";
 
 		return SUCCESS;
 	}
@@ -94,5 +140,9 @@ contract TestService {
 
 	function getSuccessMessage() public pure returns (bytes32) {
 		return "congrats";	
+	}
+
+	function invokeRevert() public pure {
+		revert("UserAccountTest::error");
 	}
 }

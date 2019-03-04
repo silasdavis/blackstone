@@ -2,7 +2,7 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/TypeUtilsLib.sol";
 
 import "commons-management/ArtifactsRegistry.sol";
 import "commons-management/DefaultArtifactsRegistry.sol";

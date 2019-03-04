@@ -7,23 +7,23 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsImpl
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsImpl
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsImpl, ArrayUtilsAPI:$ArrayUtilsImpl
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 - name: DataStorageUtils
   deploy:
     contract: commons-collections/DataStorageUtils.sol
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
 
 - name: BpmModelLib
   deploy:
@@ -36,7 +36,7 @@ jobs:
 - name: BpmModelLibTest
   deploy:
     contract: bpm-model/test/BpmModelLibTest.sol
-    libraries: ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+    libraries: ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
 
 - name: testConditionalDataFunctions
   call:
@@ -54,13 +54,13 @@ jobs:
   deploy:
     contract: DefaultProcessModelRepository.bin
     instance: DefaultProcessModelRepository
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
 
 - name: ProcessModelRepositoryDb
   deploy:
     contract: ProcessModelRepositoryDb.bin
     instance: ProcessModelRepositoryDb
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeRepositoryDbOwnership
   call:
@@ -92,7 +92,7 @@ jobs:
   deploy:
     contract: ProcessModelRepositoryTest.bin
     instance: ProcessModelRepositoryTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
 
 - name: testProcessModelRepository
   call:
@@ -110,7 +110,7 @@ jobs:
   deploy:
     contract: ProcessModelTest.bin
     instance: ProcessModelTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib
 
 - name: testProcessModel
   call:
@@ -128,7 +128,7 @@ jobs:
   deploy:
     contract: ProcessDefinitionTest.bin
     instance: ProcessDefinitionTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsAPI:$ArrayUtilsImpl, TypeUtilsAPI:$TypeUtilsImpl, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, BpmModelLib:$BpmModelLib, DataStorageUtils:$DataStorageUtils
 
 - name: testProcessDefinition
   call:

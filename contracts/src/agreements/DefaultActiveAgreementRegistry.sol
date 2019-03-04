@@ -10,7 +10,7 @@ import "commons-management/ArtifactsFinderEnabled.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/AbstractObjectFactory.sol";
 import "commons-management/ObjectProxy.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 import "bpm-runtime/BpmRuntime.sol";
 import "bpm-runtime/BpmService.sol";
 import "bpm-runtime/ProcessInstance.sol";
@@ -29,10 +29,16 @@ import "agreements/ArchetypeRegistry.sol";
  */
 contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
 
-	using ArrayUtilsAPI for address[];
+	using ArrayUtilsLib for address[];
 
-	// Temporary mapping to detect duplicates in address[] _governingAgreements
-	mapping(address => uint) duplicateMap;
+	/**
+	 * verifies that the msg.sender is an agreement known to this registry
+	 */
+	modifier pre_OnlyByRegisteredAgreements() {
+		ErrorsLib.revertIf(!ActiveAgreementRegistryDb(database).isAgreementRegistered(msg.sender),
+			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreementRegistry.pre_OnlyByRegisteredAgreements", "The msg.sender must be a registered ActiveAgreement");
+		_;
+	}
 
 	string serviceIdArchetypeRegistry;
 	string serviceIdBpmService;
@@ -54,17 +60,8 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	}
 
 	/**
-	 * verifies that the msg.sender is an agreement known to this registry
-	 */
-	modifier pre_OnlyByRegisteredAgreements() {
-		if (ActiveAgreementRegistryDb(database).agreementIsRegistered(msg.sender))
-			_;
-	}
-
-	/**
 	 * @dev Creates an Active Agreement with the given parameters
 	 * @param _archetype archetype
-	 * @param _name name
 	 * @param _creator address
 	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
@@ -73,116 +70,31 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 * @return activeAgreement - the new ActiveAgreement's address, if successfully created, 0x0 otherwise
 	 * Reverts if:
-	 * 	Agreement name or archetype address is empty
+	 * 	Archetype address is empty
 	 * 	Duplicate governing agreements are passed
 	 * 	Agreement address is already registered
 	 * 	Given collectionId does not exist
 	 */
 	function createAgreement(
 		address _archetype,
-		string _name, 
 		address _creator, 
 		string _privateParametersFileReference,
 		bool _isPrivate, 
 		address[] _parties, 
 		bytes32 _collectionId, 
 		address[] _governingAgreements) 
-		external returns (address activeAgreement)
+		external returns (address agreementAddress)
 	{
-		validateAgreementRequirements(_archetype, _name, _governingAgreements);
-        activeAgreement = new ObjectProxy(artifactsFinder, OBJECT_CLASS_AGREEMENT);
-        ActiveAgreement(activeAgreement).initialize(_archetype, _name, _creator, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
-		register(activeAgreement, _name);
-		if (_collectionId != "") {
-			addAgreementToCollection(_collectionId, activeAgreement);
-		}
-	}
-
-	/**
-	 * @dev Validates agreement creation requirements
-	 */
-	function validateAgreementRequirements(address _archetype, string _name, address[] _governingAgreements)	internal {
-		ErrorsLib.revertIf(bytes(_name).length == 0 || _archetype == 0x0,
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.createAgreement", "Agreement name and Archetype address are required");
-		validateGoverningAgreements(_archetype, _governingAgreements);
-		ErrorsLib.revertIf(!Archetype(_archetype).isActive(),
-			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreementRegistry.createAgreement", "Archetype must be active");
-	}
-
-	/**
-	 * @dev Validates governing agreements
-	 */
-	function validateGoverningAgreements(address _archetype, address[] _governingAgreements) internal {
-		address derivedGoverningArchetype;
-		verifyNoDuplicates(_governingAgreements);
-		
-		// predefined governing archetypes of this agreement's archetype
-		address[] memory governingArchetypes = Archetype(_archetype).getGoverningArchetypes();
-		
-		// _governingAgreements length must match governingArchetypes length
-		if (governingArchetypes.length != _governingAgreements.length) {
-			revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-				"DefaultActiveAgreement.verifyGoverningAgreements", 
-				"Number of provided governing agreements do not match the number of predefined governing archetypes"));
-		}
-
-		// each of _governingAgreement's archetypes should be in governingArchetypes array
-		for (uint i = 0; i < _governingAgreements.length; i++) {
-			derivedGoverningArchetype = ActiveAgreement(_governingAgreements[i]).getArchetype();
-			if (!governingArchetypes.contains(derivedGoverningArchetype)) {
-				revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-					"DefaultActiveAgreement.verifyGoverningAgreements", 
-					"Provided governing agreement's archetype does not match any predefined governing archetype"));
-			}
-		}
- 	}
-
-	/**
-	 * @dev Detects if governing agreements array has duplicates and reverts accordingly
-	 * TODO - Consider moving this util function to MappingsLib and creating a AddressUintMap data structure for checking dupes
-	 * @param _agreements the address[] array of governing agreements
-	 */
-	function verifyNoDuplicates(address[] _agreements) internal {
-		if (_agreements.length > 0) {
-			for (uint i = 0; i < _agreements.length; i++) {
-				if (duplicateMap[_agreements[i]] != 0) {
-					duplicateMap[_agreements[i]]++;
-				} else {
-					duplicateMap[_agreements[i]] = 1;
-				}
-				if (duplicateMap[_agreements[i]] > 1) {
-					clearDuplicateMap(_agreements);
-					revert(ErrorsLib.format(ErrorsLib.INVALID_INPUT(), 
-						"DefaultActiveAgreementRegistry.verifyNoDuplicates", 
-						"Governing agreements has duplicates"));
-				}
-			}
-			clearDuplicateMap(_agreements);
-		}
-	}
-
-	/**
-	 * @dev Clears the temporary mapping that is used to check for duplicate governing agreements
-	 * @param _agreements the address[] array of governing agreements
-	 */
-	function clearDuplicateMap (address[] _agreements) internal {
-		for (uint i = 0; i < _agreements.length; i++) {
-			delete duplicateMap[_agreements[i]];
-		}
-	}
-
-	/**
-	 * @dev Registers the provided ActiveAgreement and adds event listeners
-	 * @param _activeAgreement the Active Agreement
-	 * @param _name the agreement name
-	 * @return a return code indicating success or failure
-	 */
-	function register(address _activeAgreement, string _name) internal {
-		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(_activeAgreement, _name);
+    agreementAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_AGREEMENT);
+		ActiveAgreement agreement = ActiveAgreement(agreementAddress);
+    agreement.initialize(_archetype, _creator, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
+		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(agreementAddress);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
-			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.register", "Active Agreement already exists");
-		ActiveAgreement agreement = ActiveAgreement(_activeAgreement);
+			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.createAgreement", "Active Agreement already exists");
 		agreement.addEventListener(agreement.EVENT_ID_STATE_CHANGED());
+		if (_collectionId != "") {
+			addAgreementToCollection(_collectionId, agreementAddress);
+		}
 	}
 
 	/**
@@ -210,7 +122,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		ErrorsLib.revertIf(registryAddress == address(0),
 			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultActiveAgreementsRegistry.addAgreementToCollection", "ArchetypeRegistry dependency not found in ArtifactsFinder");
 		address archetype = ActiveAgreement(_agreement).getArchetype();
-		( , , , packageId) = ActiveAgreementRegistryDb(database).getCollectionData(_collectionId);
+		( , , packageId) = ActiveAgreementRegistryDb(database).getCollectionData(_collectionId);
 		ErrorsLib.revertIf(packageId == "",
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.addAgreementToCollection", "No packageId found for given collection");
 		ErrorsLib.revertIf(!ArchetypeRegistry(registryAddress).packageHasArchetype(packageId, archetype),
@@ -219,11 +131,9 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.addAgreementToCollection", "Collection not found");
 		emit LogAgreementToCollectionUpdate(
-			EVENT_ID_AGREEMENT_COLLECTION_MAP, 
+			EVENT_ID_AGREEMENT_COLLECTION_MAP,
 			_collectionId,
-			_agreement,
-			ActiveAgreement(_agreement).getName(),
-			ActiveAgreement(_agreement).getArchetype()
+			_agreement
 		);
 	}
 
@@ -430,10 +340,9 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
     }
 
     /**
-     * @dev Returns data about the ActiveAgreement at the specified address
+     * @dev Returns data about the ActiveAgreement at the specified address, if it is an agreement known to this registry.
 	 * @param _activeAgreement Active Agreement
 	 * @return archetype - the agreement's archetype adress
-	 * @return name - the name of the agreement
 	 * @return creator - the creator of the agreement
 	 * @return privateParametersFileReference - the file reference to the private agreement parameters (only used when agreement is private)
 	 * @return eventLogFileReference - the file reference to the agreement's event log
@@ -445,7 +354,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	 */
 	function getActiveAgreementData(address _activeAgreement) external view returns (
 		address archetype,
-		string name,
 		address creator,
 		string privateParametersFileReference,
 		string eventLogFileReference,
@@ -453,11 +361,9 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		bool isPrivate,
 		uint8 legalState,
 		address formationProcessInstance,
-		address executionProcessInstance
-	) {
-		name = ActiveAgreementRegistryDb(database).getActiveAgreementName(_activeAgreement);
-
-		if (bytes(name).length != 0) {
+		address executionProcessInstance)
+	{
+		if (ActiveAgreementRegistryDb(database).isAgreementRegistered(_activeAgreement)) {
 			archetype = ActiveAgreement(_activeAgreement).getArchetype();
 			creator = ActiveAgreement(_activeAgreement).getCreator();
 			privateParametersFileReference = ActiveAgreement(_activeAgreement).getPrivateParametersReference();
@@ -529,22 +435,22 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 
 	/**
 	 * @dev Creates a new agreement collection
-	 * @param _name name
-	 * @param _author address of author
+	 * @param _author address of the author
+	 * @param _collectionType the Agreements.CollectionType
+	 * @param _packageId the ID of an archetype package
 	 * @return error BaseErrors.NO_ERROR(), BaseErrors.NULL_PARAM_NOT_ALLOWED(), BaseErrors.RESOURCE_ALREADY_EXISTS()
 	 * @return id bytes32 id of package
 	 */
-	function createAgreementCollection(string _name, address _author, uint8 _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id) {
+	function createAgreementCollection(address _author, Agreements.CollectionType _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id) {
 		if (_author == 0x0 || _packageId == "") return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
-		id = keccak256(abi.encodePacked(abi.encodePacked(_name, _author, block.timestamp)));
-		error = ActiveAgreementRegistryDb(database).createCollection(id, _name, _author, _collectionType, _packageId);
+		id = keccak256(abi.encodePacked(abi.encodePacked(ActiveAgreementRegistryDb(database).getNumberOfCollections(), _packageId, block.timestamp)));
+		error = ActiveAgreementRegistryDb(database).createCollection(id, _author, _collectionType, _packageId);
 		if (error == BaseErrors.NO_ERROR()) {
 			emit LogAgreementCollectionCreation(
 				EVENT_ID_AGREEMENT_COLLECTIONS,
 				id,
-				_name,
 				_author,
-				_collectionType,
+				uint8(_collectionType),
 				_packageId
 			);
 		}
@@ -570,13 +476,12 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	/**
 	 * @dev Gets collection data by id
 	 * @param _id bytes32 collection id
-	 * @return name string
 	 * @return author address
 	 * @return collectionType type of collection
 	 * @return packageId id of the archetype package
 	 */
-	function getAgreementCollectionData(bytes32 _id) external view returns (string name, address author, uint8 collectionType, bytes32 packageId) {
-		(name, author, collectionType, packageId) = ActiveAgreementRegistryDb(database).getCollectionData(_id);
+	function getAgreementCollectionData(bytes32 _id) external view returns (address author, uint8 collectionType, bytes32 packageId) {
+		(author, collectionType, packageId) = ActiveAgreementRegistryDb(database).getCollectionData(_id);
 	}
 
 	/**
@@ -599,19 +504,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	}
 
 	/**
-	 * @dev Get agreement data by collection id and agreement address
-	 * Currently unused parameters were unnamed to avoid compiler warnings:
-	 * param _id id of the collection
-	 * @param _agreement address of agreement
-	 * @return agreementName name of agreement
-	 * @return archetype address of archetype
-	 */
-	function getAgreementDataInCollection(bytes32 /*_id*/, address _agreement) external view returns (string agreementName, address archetype) {
-		agreementName = DefaultActiveAgreement(_agreement).getName();
-		archetype = DefaultActiveAgreement(_agreement).getArchetype();
-	}
-
-	/**
 	 * @dev Returns the number governing agreements for given agreement
 	 * @return the number of governing agreements
 	 */
@@ -627,16 +519,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	 */
 	function getGoverningAgreementAtIndex(address _agreement, uint _index) external view returns (address governingAgreement) {
 		return ActiveAgreement(_agreement).getGoverningAgreementAtIndex(_index);
-	}
-
-	/**
-	 * @dev Returns information about the governing agreement with the specified address
-	 * @param _agreement the agreement address
-	 * @param _governingAgreement the governing agreement address
-	 * @return the name of the governing agreement
-	 */
-	function getGoverningAgreementData(address _agreement, address _governingAgreement) external view returns (string name) {
-		return ActiveAgreement(_agreement).getGoverningAgreementData(_governingAgreement);
 	}
 
 	/**
@@ -666,7 +548,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 		if (_processInstance.getState() == uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) {
 			address agreementAddress = _processInstance.getDataValueAsAddress(DATA_ID_AGREEMENT);
 			// check if this is an agreement managed in this registry
-			if (!ActiveAgreementRegistryDb(database).agreementIsRegistered(agreementAddress)) {
+			if (!ActiveAgreementRegistryDb(database).isAgreementRegistered(agreementAddress)) {
 				return;
 			}
 			ActiveAgreement agreement = ActiveAgreement(agreementAddress);

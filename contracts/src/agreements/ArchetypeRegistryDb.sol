@@ -4,24 +4,24 @@ import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
 
 import "agreements/Agreements.sol";
 
 contract ArchetypeRegistryDb is SystemOwned {
 
-  using MappingsLib for Mappings.AddressStringMap;
-  using ArrayUtilsAPI for address[];
+  using MappingsLib for Mappings.AddressBoolMap;
+  using ArrayUtilsLib for address[];
 
-  Mappings.AddressStringMap archetypes;
+  Mappings.AddressBoolMap archetypes;
   Agreements.ArchetypePackageMap packages;
 
   constructor() public {
     systemOwner = msg.sender;
   }
 
-  function addArchetype(address _archetype, string _name) external pre_onlyBySystemOwner returns (uint error) {
-    error = archetypes.insert(_archetype, _name);
+  function addArchetype(address _archetype) external pre_onlyBySystemOwner returns (uint error) {
+    error = archetypes.insert(_archetype, true);
   }
 
   function archetypeExists(address _archetype) external view returns (bool) {
@@ -36,16 +36,10 @@ contract ArchetypeRegistryDb is SystemOwned {
     (error, archetype) = archetypes.keyAtIndex(_index);
   }
 
-  function getArchetypeName(address _archetype) external view returns (string name) {
-    return archetypes.get(_archetype);
-  }
-
-  function createPackage(bytes32 _id, string _name, string _description, address _author, bool _isPrivate, bool _active) external pre_onlyBySystemOwner returns (uint) {
+  function createPackage(bytes32 _id, address _author, bool _isPrivate, bool _active) external pre_onlyBySystemOwner returns (uint) {
     if (packages.rows[_id].exists) return BaseErrors.RESOURCE_ALREADY_EXISTS();
     packages.rows[_id].keyIdx = packages.keys.push(_id);
     packages.rows[_id].value.id = _id;
-    packages.rows[_id].value.name = _name;
-    packages.rows[_id].value.description = _description;
     packages.rows[_id].value.author = _author;
     packages.rows[_id].value.isPrivate = _isPrivate;
     packages.rows[_id].value.active = _active;
@@ -72,9 +66,7 @@ contract ArchetypeRegistryDb is SystemOwned {
     return packages.keys[_index];
   }
 
-  function getPackageData(bytes32 _id) external view returns (string name, string description, address author, bool isPrivate, bool active) {
-    name = packages.rows[_id].value.name;
-    description = packages.rows[_id].value.description;
+  function getPackageData(bytes32 _id) external view returns (address author, bool isPrivate, bool active) {
     author = packages.rows[_id].value.author;
     isPrivate = packages.rows[_id].value.isPrivate;
     active = packages.rows[_id].value.active;

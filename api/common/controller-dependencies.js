@@ -22,7 +22,7 @@ const trimBufferPadding = (buf) => {
   return buf.slice(lo, hi);
 };
 const hexToString = (hex = '') => trimBufferPadding(Buffer.from(hex, 'hex')).toString('utf8');
-const stringToHex = (str = '') => Buffer.from(str).toString('hex');
+const stringToHex = (str = '') => Buffer.from(str, 'utf8').toString('hex');
 
 const dependencies = {
   rightPad: (hex, len) => {
@@ -68,7 +68,6 @@ const dependencies = {
         break;
       case 'Agreement':
         element.isPrivate = Boolean(element.isPrivate);
-        element.eventLogFileReference = element.eventLogFileReference ? JSON.parse(element.eventLogFileReference) : null;
         break;
       case 'Application':
         element.id = hexToString(element.id);
@@ -91,9 +90,6 @@ const dependencies = {
         if (element.dataPath) element.dataPath = hexToString(element.dataPath);
         if (element.dataStorageId) element.dataStorageId = hexToString(element.dataStorageId);
         break;
-      case 'Department':
-        element.id = hexToString(element.id);
-        break;
       case 'Parameter':
         element.name = hexToString(element.name);
         element.label = hexToString(element.label);
@@ -105,7 +101,6 @@ const dependencies = {
       case 'Model':
         if ('active' in element) element.active = element.active === 1;
         element.isPrivate = Boolean(element.isPrivate);
-        element.modelFileReference = JSON.parse(element.modelFileReference);
         break;
       case 'Region':
         element.country = hexToString(element.country);
@@ -118,12 +113,6 @@ const dependencies = {
         if (element.interfaceId != null) element.interfaceId = hexToString(element.interfaceId);
         if (element.modelId != null) element.modelId = hexToString(element.modelId);
         element.isPrivate = Boolean(element.isPrivate);
-        break;
-      case 'Task':
-        if (element.scope && element.scope !== element.organizationKey) {
-          // organizationKey was originally entered in bytes32 and doesn't need to be converted to string
-          element.scope = hexToString(element.scope || '');
-        }
         break;
       case 'ParameterType':
         element.label = hexToString(element.label || '');

@@ -21,7 +21,7 @@ note- parameters are handled separately
 
 const agreementSchema = Joi.object().keys({
   name: Joi.string()
-    .required(),
+    .required().max(255, 'utf8'),
   archetype: Joi.string()
     .hex()
     .required(),

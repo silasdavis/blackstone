@@ -2,8 +2,8 @@ pragma solidity ^0.4.25;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
-import "commons-utils/ArrayUtilsAPI.sol";
-import "commons-utils/TypeUtilsAPI.sol";
+import "commons-utils/ArrayUtilsLib.sol";
+import "commons-utils/TypeUtilsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
 import "commons-management/AbstractDbUpgradeable.sol";
 import "commons-management/DefaultArtifactsRegistry.sol";
@@ -28,9 +28,9 @@ import "bpm-runtime/TransitionConditionResolver.sol";
 
 contract BpmServiceTest {
 
-	using TypeUtilsAPI for bytes32;
-	using TypeUtilsAPI for bytes;
-	using ArrayUtilsAPI for bytes32[];
+	using TypeUtilsLib for bytes32;
+	using TypeUtilsLib for bytes;
+	using ArrayUtilsLib for bytes32[];
 	using BpmRuntimeLib for BpmRuntime.ProcessGraph;
 	using BpmRuntimeLib for BpmRuntime.ActivityNode;
 	using BpmRuntimeLib for BpmRuntime.Transition;
@@ -632,7 +632,7 @@ contract BpmServiceTest {
 
 		bytes32 bytes32Value;
 
-		(error, addr) = processModelRepository.createProcessModel("testModel2", "Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModel2", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -714,7 +714,7 @@ contract BpmServiceTest {
 	 */
 	function testInternalProcessExecution() external returns (string) {
 
-		(error, addr) = processModelRepository.createProcessModel("testModel3", "Test Model 3", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModel3", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -779,7 +779,7 @@ contract BpmServiceTest {
 		bytes32 activityId;
 		uint8 state;
 
-		(error, addr) = processModelRepository.createProcessModel("routingModel", "Routing Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("routingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -867,7 +867,7 @@ contract BpmServiceTest {
 		bytes32 activityId;
 		uint8 state;
 
-		(error, addr) = processModelRepository.createProcessModel("loopingModel", "Looping Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("loopingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -987,7 +987,7 @@ contract BpmServiceTest {
 		// re-usable variables for return values
 		bytes32 activityId;
 
-		(error, addr) = processModelRepository.createProcessModel("twoGatewayModel", "2 Gateway Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("twoGatewayModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1113,7 +1113,7 @@ contract BpmServiceTest {
 		EventApplication eventApp = new EventApplication(service);
 		FailureServiceApplication serviceApp = new FailureServiceApplication();
 
-		(error, addr) = processModelRepository.createProcessModel("serviceApplicationsModel", "Service Applications", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("serviceApplicationsModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1212,7 +1212,7 @@ contract BpmServiceTest {
 		bytes32 dataStorageId = "agreement";
 		bytes32 dataPathOnProcess = "customAssignee";
 	
-		(error, addr) = processModelRepository.createProcessModel("conditionalPerformerModel", "Test Model CP", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("conditionalPerformerModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1278,14 +1278,14 @@ contract BpmServiceTest {
 		UserAccount organizationUser = new DefaultUserAccount();
 		organizationUser.initialize(this, 0x0);
 		DefaultOrganization org1 = new DefaultOrganization();
-		org1.initialize(emptyAddressArray, EMPTY_STRING);
+		org1.initialize(emptyAddressArray, EMPTY);
 		if (!org1.addUserToDepartment(organizationUser, EMPTY)) return "Unable to add user account to organization default department";
 
 		// Register a typical WEB application with only a webform
 		error = applicationRegistry.addApplication("Webform1", BpmModel.ApplicationType.WEB, 0x0, bytes4(EMPTY), "MyCustomWebform");
 		if (error != BaseErrors.NO_ERROR()) return "Error registering WEB application for user task";
 
-		(error, addr) = processModelRepository.createProcessModel("testModelUserTasks", "UserTask Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModelUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1345,17 +1345,14 @@ contract BpmServiceTest {
 		// test data mappings via user-assigned task
 		if (address(pi).call(bytes4(keccak256(abi.encodePacked("getActivityInDataAsBytes32(bytes32,bytes32)"))), pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")))
 			 return "It should not be possible to access IN data mappings from a non-performer address";
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
-		if(!success) return "Retrieving IN data mapping Name should be successful";
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
 		if (returnData.toBytes32() != "Smith") return "IN data mapping Name should return correctly via user1";
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
-		if (!success) return "Unable to set OUT data boolean approvedAccessPoint";
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsBool(bytes32,bytes32,bool)", pi.getActivityInstanceAtIndex(0), bytes32("approvedAccessPoint"), true));
 
 		// complete user task 1 and check outcome
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity1 by organizationUser should fail";
-		(success, ) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
-		if (!success) return "Unexpected error attempting to complete activity1 user task via assigned user1 in activity1";
+		user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1 should be completed";
 		if (addr != address(user1)) return "Activity1 should be completedBy user1";
@@ -1368,23 +1365,19 @@ contract BpmServiceTest {
 		if (addr != address(org1)) return "Activity2 should be assigned to the organization org1";
 
 		// test data mappings via organization-assigned task
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
-		if (success) return "It should not be possible to access IN data mappings from a user account that is not the performer";
-
-
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		if (address(user1).call(abi.encodeWithSignature("forwardCall(address,bytes)", address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")))))
+			return "Accessing IN data mappings from a user account that is not the performer should revert";
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
 		if (returnData.length != 32) return "should have length 32";
 		if (uint(returnData[31]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
-		(success, ) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
-		if (!success) return "Unable to set OUT data uint ageAccessPoint";
+		organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
 
 		// complete user task 2 and check outcome
-		(success, returnData) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
+		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity2 by user1 should fail";
 
 		// complete the activity here using an OUT data mapping to set the Age
-		(success, returnData) = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
-		if (!success) return "Unexpected error attempting to complete activity2 user task via organizationUser";
+		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("completeActivityWithUintData(bytes32,address,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), address(service), bytes32("Age"), uint(21)));
 		if (returnData.toUint() != BaseErrors.NO_ERROR()) return "Attempt to complete activity2 by organizationUser should be successful";
 		( , , , , addr, state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity2 should be completed";
@@ -1413,7 +1406,7 @@ contract BpmServiceTest {
 		UserAccount user1 = new DefaultUserAccount();
 		user1.initialize(this, 0x0);
 	
-		(error, addr) = processModelRepository.createProcessModel("testModelAbort", "Abort Test Model", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("testModelAbort", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1499,7 +1492,7 @@ contract BpmServiceTest {
 		signatories[1] = address(user2);
 		dataStorage.setDataValueAsAddressArray("SIGNATORIES", signatories);
 
-		(error, addr) = processModelRepository.createProcessModel("multiInstanceUserTasks", "Multi Instance User Tasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("multiInstanceUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
@@ -1542,8 +1535,7 @@ contract BpmServiceTest {
 		if (addr != address(user2)) return "Activity1.2 should be assigned to user2";
 
 		// complete first user task
-		(success, ) = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
-		if (!success) return "Unexpected error attempting to complete activity1.1 user task via user1";
+		user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), service));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1.1 should be completed";
 
@@ -1554,8 +1546,7 @@ contract BpmServiceTest {
 		if (service.getNumberOfActivityInstances(pi) != 2) return "There should still be 2 AIs after completing only 1 instance";
 
 		// complete remaining user task
-		(success, ) = user2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
-		if (!success) return "Unexpected error attempting to complete activity1.2 user task via user2";
+		user2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1.2 should be completed";
 
@@ -1584,12 +1575,12 @@ contract BpmServiceTest {
 		TestBpmService service = createNewTestBpmService();
 
 		// Two process models
-		(error, addr) = processModelRepository.createProcessModel("ModelA", "Model A", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("ModelA", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create ProcessModel A";
 		ProcessModel pmA = ProcessModel(addr);
 		pmA.addParticipant(participantId1, address(this), EMPTY, EMPTY, 0x0);
 
-		(error, addr) = processModelRepository.createProcessModel("ModelB", "Model B", [1,0,0], modelAuthor, false, dummyModelFileReference);
+		(error, addr) = processModelRepository.createProcessModel("ModelB", [1,0,0], modelAuthor, false, dummyModelFileReference);
 		if (addr == 0x0) return "Unable to create ProcessModel B";
 		ProcessModel pmB = ProcessModel(addr);
 

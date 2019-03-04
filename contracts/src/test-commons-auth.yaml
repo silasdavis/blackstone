@@ -5,18 +5,18 @@ jobs:
   deploy:
     contract: ErrorsLib.bin
 
-- name: TypeUtilsAPI
+- name: TypeUtilsLib
   deploy:
-    contract: TypeUtilsImpl.bin
+    contract: TypeUtilsLib.bin
 
-- name: ArrayUtilsAPI
+- name: ArrayUtilsLib
   deploy:
-    contract: ArrayUtilsImpl.bin
+    contract: ArrayUtilsLib.bin
 
 - name: MappingsLib
   deploy:
     contract: MappingsLib.bin
-    libraries: TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI
+    libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
 
 ##########
@@ -135,7 +135,7 @@ jobs:
   deploy:
     contract: UserAccountTest.bin
     instance: UserAccountTest
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
 
 - name: testCallForwarding
   call:
@@ -157,7 +157,7 @@ jobs:
   deploy:
     contract: ParticipantsManagerTest.bin
     instance: ParticipantsManagerTest
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsAPI:$TypeUtilsAPI, ArrayUtilsAPI:$ArrayUtilsAPI, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: testUserAccountSecurity
   call:

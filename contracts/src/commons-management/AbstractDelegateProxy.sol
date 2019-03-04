@@ -21,17 +21,17 @@ contract AbstractDelegateProxy {
 
     /**
      * @dev Fallback function that dispatches any invocation of this contract via delegatecall to a proxied contract.
-     * @return This function will return whatever the implementation call returns
+     * @return This function will return whatever the implementation call returns and re-throw any revert reasons
      */
     function () public {
         address target = getDelegate();
         ErrorsLib.revertIf(target == address(0),
-            ErrorsLib.INVALID_STATE(), "AbstractDelegateProxy", "Proxied target address must not be empty");
+            ErrorsLib.INVALID_STATE(), "AbstractDelegateProxy", "Delegate target address must not be empty");
 
         assembly {
             let freeMemSlot := mload(0x40)
             calldatacopy(freeMemSlot, 0, calldatasize)
-            let result := delegatecall(gas, target, freeMemSlot, calldatasize, 0, 0)
+            let result := delegatecall(gas, target, freeMemSlot, calldatasize, freeMemSlot, 0)
             let size := returndatasize
             returndatacopy(freeMemSlot, 0, size)
 
