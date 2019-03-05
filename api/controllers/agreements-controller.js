@@ -123,14 +123,7 @@ const createArchetype = asyncMiddleware(async (req, res) => {
     await contracts.addArchetypeParameters(archetypeAddress, type.parameters);
   }
   if (type.documents) {
-    const docs = [];
-    type.documents.forEach((_obj) => {
-      // Set document name to hoard address
-      const obj = Object.assign({}, _obj);
-      obj.name = obj.name || `document_${Date.now()}`;
-      docs.push(obj);
-    });
-    await contracts.addArchetypeDocuments(archetypeAddress, docs);
+    await contracts.addArchetypeDocuments(archetypeAddress, type.documents);
   }
   if (type.jurisdictions) {
     await contracts.addJurisdictions(archetypeAddress, type.jurisdictions);

@@ -8,11 +8,6 @@ library Documents {
 
 	// enum State {DRAFT, FINAL, EFFECTIVE, CANCELED}
 
-	struct DocumentReference {
-		string reference;
-		bool exists;
-	}
-
 	struct DocumentVersion {
 			string hash;
 			uint created;

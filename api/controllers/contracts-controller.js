@@ -368,25 +368,23 @@ const addArchetypeParameters = (address, parameters) => new Promise((resolve, re
     });
 });
 
-const addArchetypeDocument = (address, name, fileReference) => new Promise((resolve, reject) => {
+const addArchetypeDocument = (address, fileReference) => new Promise((resolve, reject) => {
+  log.debug('Adding document to archetype %s', address);
   appManager
     .contracts['ArchetypeRegistry']
-    .factory.addDocument(address, name, fileReference, (error, data) => {
-      if (error || !data.raw) {
+    .factory.addDocument(address, fileReference, (error, data) => {
+      if (error) {
         return reject(boom.badImplementation(`Failed to add document to archetype at ${address}: ${error}`));
       }
-      if (parseInt(data.raw[0], 10) !== 1) {
-        return reject(boom.badImplementation(`Error code adding document to archetype at ${address}: ${data.raw[0]}`));
-      }
-      log.info(`Added document to archetype ${address}`);
+      log.info('Added document to archetype %s', address);
       return resolve();
     });
 });
 
 const addArchetypeDocuments = async (archetypeAddress, documents) => {
   log.trace(`Adding archetype documents to archetype at ${archetypeAddress}: ${JSON.stringify(documents.map(doc => doc.name))}`);
-  const resolvedDocs = await Promise.all(documents.map(async ({ name, grant }) => {
-    const result = await addArchetypeDocument(archetypeAddress, name, grant);
+  const resolvedDocs = await Promise.all(documents.map(async ({ grant }) => {
+    const result = await addArchetypeDocument(archetypeAddress, grant);
     return result;
   }));
   return resolvedDocs;
