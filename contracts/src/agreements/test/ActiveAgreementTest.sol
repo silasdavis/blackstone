@@ -135,7 +135,6 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementCancellation() external returns (string) {
 
-		bool success;
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
 		Archetype archetype;

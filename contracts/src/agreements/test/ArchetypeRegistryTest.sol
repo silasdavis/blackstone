@@ -77,6 +77,7 @@ contract ArchetypeRegistryTest {
 
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
 		address archetype;
+		uint error;
 
 		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype,
 			0, false, true, address(0), address(0), address(0), EMPTY, addrArrayWithDupes)))
@@ -125,41 +126,41 @@ contract ArchetypeRegistryTest {
 		returnedFileRef = Archetype(archetype).getDocument(Archetype(archetype).getDocumentKeyAtIndex(0));
 		if (keccak256(abi.encodePacked(returnedFileRef)) != keccak256(abi.encodePacked(fileReference))) return "Archetype's 1st document reference should match";
 
-		// // Jurisdictions
-		// bytes32 region = keccak256(abi.encodePacked("CA", "QC"));
-		// error = registry.addJurisdiction(falseAddress, "CA", region);
-		// if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Adding jurisdiction to non-existent archetype should have failed with RESOURCE_NOT_FOUND";
-		// // test a country/region combination
-		// error = registry.addJurisdiction(archetype, "CA", region);
-		// if (error != BaseErrors.NO_ERROR()) return "Adding CAN_QC jurisdiction to archetype failed unexpectedly";
-		// if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 1) return "Jurisdictions on archetype exptected to be 1";
-		// if (registry.getJurisdictionAtIndexForArchetype(archetype, 0) != region) return "jurisdiction key at index 0 not returned correctly";
-		// bytes2 country;
-		// bytes32 retRegion;
-		// (country, retRegion) = registry.getJurisdictionDataForArchetype(archetype, region);
-		// if (country != "CA") return "jurisdiction country not returned correctly for CAN_QC";
-		// if (retRegion != region) return "jurisdiction region not returned correctly for CAN_QC";
-		// // test a country-ONLY jurisdiction
-		// error = registry.addJurisdiction(archetype, "US", EMPTY);
-		// if (error != BaseErrors.NO_ERROR()) return "Adding USA jurisdiction to archetype failed unexpectedly";
-		// if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 2) return "Jurisdictions on archetype exptected to be 2";
-		// if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("US"))) return "jurisdiction key at index 1 not returned correctly";
-		// (country, retRegion) = registry.getJurisdictionDataForArchetype(archetype, keccak256(abi.encodePacked("US")));
-		// if (country != "US") return "jurisdiction country not returned correctly for USA";
-		// if (retRegion != "") return "jurisdiction region not returned correctly for USA";
-		// // test adding another region for existing country
-		// region = keccak256(abi.encodePacked("CA", "ON"));
-		// error = registry.addJurisdiction(archetype, "CA", region);
-		// if (error != BaseErrors.NO_ERROR()) return "Adding CAN_ON jurisdiction to archetype failed unexpectedly";
-		// if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 3) return "Jurisdictions on archetype exptected to be 3";
-		// if (registry.getJurisdictionAtIndexForArchetype(archetype, 2) != region) return "jurisdiction key at index 2 not returned correctly";		
-		// // test overwriting (cleaning) a country/region with country-ONLY jurisdiction
-		// error = registry.addJurisdiction(archetype, "CA", EMPTY);
-		// if (error != BaseErrors.NO_ERROR()) return "Adding CAN jurisdiction country overwrite to archetype failed unexpectedly";
+		// Jurisdictions
+		bytes32 region = keccak256(abi.encodePacked("CA", "QC"));
+		error = registry.addJurisdiction(falseAddress, "CA", region);
+		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Adding jurisdiction to non-existent archetype should have failed with RESOURCE_NOT_FOUND";
+		// test a country/region combination
+		error = registry.addJurisdiction(archetype, "CA", region);
+		if (error != BaseErrors.NO_ERROR()) return "Adding CAN_QC jurisdiction to archetype failed unexpectedly";
+		if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 1) return "Jurisdictions on archetype exptected to be 1";
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 0) != region) return "jurisdiction key at index 0 not returned correctly";
+		bytes2 country;
+		bytes32 retRegion;
+		(country, retRegion) = registry.getJurisdictionDataForArchetype(archetype, region);
+		if (country != "CA") return "jurisdiction country not returned correctly for CAN_QC";
+		if (retRegion != region) return "jurisdiction region not returned correctly for CAN_QC";
+		// test a country-ONLY jurisdiction
+		error = registry.addJurisdiction(archetype, "US", EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return "Adding USA jurisdiction to archetype failed unexpectedly";
+		if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 2) return "Jurisdictions on archetype exptected to be 2";
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("US"))) return "jurisdiction key at index 1 not returned correctly";
+		(country, retRegion) = registry.getJurisdictionDataForArchetype(archetype, keccak256(abi.encodePacked("US")));
+		if (country != "US") return "jurisdiction country not returned correctly for USA";
+		if (retRegion != "") return "jurisdiction region not returned correctly for USA";
+		// test adding another region for existing country
+		region = keccak256(abi.encodePacked("CA", "ON"));
+		error = registry.addJurisdiction(archetype, "CA", region);
+		if (error != BaseErrors.NO_ERROR()) return "Adding CAN_ON jurisdiction to archetype failed unexpectedly";
+		if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 3) return "Jurisdictions on archetype exptected to be 3";
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 2) != region) return "jurisdiction key at index 2 not returned correctly";		
+		// test overwriting (cleaning) a country/region with country-ONLY jurisdiction
+		error = registry.addJurisdiction(archetype, "CA", EMPTY);
+		if (error != BaseErrors.NO_ERROR()) return "Adding CAN jurisdiction country overwrite to archetype failed unexpectedly";
 
-		// if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 2) return "Jurisdictions on archetype exptected to be 2 after country overwrite";
-		// if (registry.getJurisdictionAtIndexForArchetype(archetype, 2) != "") return "jurisdiction key at index 2 should return empty after country overwrite";		
-		// if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("CA"))) return "jurisdiction key at index 1 should return country hash after country overwrite";		
+		if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 2) return "Jurisdictions on archetype exptected to be 2 after country overwrite";
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 2) != "") return "jurisdiction key at index 2 should return empty after country overwrite";		
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("CA"))) return "jurisdiction key at index 1 should return country hash after country overwrite";		
 
 		return SUCCESS;
 	}
