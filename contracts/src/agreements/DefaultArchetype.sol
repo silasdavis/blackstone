@@ -22,7 +22,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	using ArrayUtilsLib for bytes32[];
 	using ArrayUtilsLib for address[];
 	using TypeUtilsLib for string;
-	using MappingsLib for Mappings.Bytes32AddressMap;
+	using MappingsLib for Mappings.Bytes32StringMap;
 	using MappingsLib for Mappings.Bytes32UintMap;
 
 	struct Jurisdiction {
@@ -41,9 +41,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	address executionProcessDefinition;
 
 	Mappings.Bytes32UintMap parameterTypes;
-
-	mapping(string => Documents.DocumentReference) documents;
-	string[] documentNames;
+	Mappings.Bytes32StringMap documents;
 
 	mapping(bytes32 => Jurisdiction) jurisdictions;
 	bytes32[] jurisdictionKeys;
@@ -106,29 +104,22 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	/**
 	 * @dev Adds the document specified by the external reference to the archetype under the given name
 	 * REVERTS if:
-	 * - the name is empty
-	 * @param _name name
+	 * - a document with the same file reference already exists
 	 * @param _fileReference the external reference to the document
-	 * @return error BaseErrors.NO_ERROR() if successful
-	 * @return BaseErrors.RESOURCE_ALREADY_EXISTS() if _name already exists in documentNames
 	 */
 	// TODO: determine access (presumably only author should be able to add documents)
-	function addDocument(string _name, string _fileReference) external returns (uint error) {
-		ErrorsLib.revertIf(bytes(_name).length == 0,
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.addDocument", "The name must not be empty");
-		if (documents[_name].exists)
-			return BaseErrors.RESOURCE_ALREADY_EXISTS();
+	function addDocument(string _fileReference) external {
+		bytes32 docKey = keccak256(abi.encodePacked(_fileReference));
+		ErrorsLib.revertIf(documents.exists(docKey),
+			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultArchetype.addDocument", "A document with the same file reference already exists");
 
-		documentNames.push(_name);
-		documents[_name].reference = _fileReference;
-		documents[_name].exists = true;
+		documents.insert(docKey, _fileReference);
 		emit LogArchetypeDocumentUpdate(
 			EVENT_ID_ARCHETYPE_DOCUMENTS,
 			address(this),
-			_name,
+			docKey,
 			_fileReference
 		);
-		error = BaseErrors.NO_ERROR();
 	}
 
 	/**
@@ -249,18 +240,16 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	}
 
 	/**
-	 * @dev Gets document reference with given name
-	 * @param _name document name
-	 * @return error BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_NOT_FOUND() if documentNames does not contain _name
+	 * @dev Gets document reference with given key
+	 * REVERTS if:
+	 * - a document with the provided key does not exist
+	 * @param _key the document key
 	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(string _name) external view returns (uint error, string fileReference) {
-		error = BaseErrors.NO_ERROR();
-		if (!documents[_name].exists)
-			error = BaseErrors.RESOURCE_NOT_FOUND();
-		else {
-			fileReference = documents[_name].reference;
-		}
+	function getDocument(bytes32 _key) external view returns (string fileReference) {
+		ErrorsLib.revertIf(!documents.exists(_key),
+			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetype.getDocument", "A document reference for the given key does not exist");
+		fileReference = documents.get(_key);
 	}
 
 	/**
@@ -300,21 +289,20 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 * @return size number of documents
 	 */
 	function getNumberOfDocuments() external view returns (uint size) {
-		return documentNames.length;
+		return documents.keys.length;
 	}
 
 	/**
-	 * @dev Gets document name at index
+	 * @dev Returns the document key at the given index
+	 * REVERTS if:
+	 * - the given index is out of bounds
 	 * @param _index index
-	 * @return error BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS() if index is out of bounds
-	 * @return name
+	 * @return key - the document key
 	 */
-	function getDocumentAtIndex(uint _index) external view returns (uint error, string documentName) {
-		error = BaseErrors.NO_ERROR();
-		if (_index >= documentNames.length)
-			error = BaseErrors.INDEX_OUT_OF_BOUNDS();
-		else
-			documentName = documentNames[_index];
+	function getDocumentKeyAtIndex(uint _index) external view returns (bytes32 key) {
+		ErrorsLib.revertIf(_index >= documents.keys.length,
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.getDocumentKeyAtIndex", "The specified index is out of bounds");
+		( , key) = documents.keyAtIndex(_index);
 	}
 
 	/**

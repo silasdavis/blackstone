@@ -20,12 +20,12 @@ contract ArchetypeRegistryTest {
 	string constant functionRegistryAddArchetypeToPackage = "addArchetypeToPackage(bytes32,address)";
 	string constant functionRegistryCreateArchetype = "createArchetype(uint,bool,bool,address,address,address,bytes32,address[])";
 	string constant functionRegistryCreateArchetypePackage = "createArchetypePackage(address,bool,bool)";
+	string constant functionRegistryAddDocument = "addDocument(address,string)";
 
 	IsoCountries100 isoCountries;
 
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
 
-	string documentName = "documentName";
 	string fileReference = "{json grant}";
 	bytes32 parameter = "parameter";
 	DataTypes.ParameterType parameterType = DataTypes.ParameterType.BOOLEAN;
@@ -76,9 +76,8 @@ contract ArchetypeRegistryTest {
 	function testArchetypeCreation() external returns (string) {
 
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
-
-		uint error;
 		address archetype;
+		uint error;
 
 		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype,
 			0, false, true, address(0), address(0), address(0), EMPTY, addrArrayWithDupes)))
@@ -110,16 +109,22 @@ contract ArchetypeRegistryTest {
 
 		// Document Attachments
 
-		error = registry.addDocument(falseAddress, documentName, fileReference);
-		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Adding document to non-existent archetype should have failed with RESOURCE_NOT_FOUND";
-		error = registry.addDocument(archetype, documentName, fileReference);
-		if (error != BaseErrors.NO_ERROR()) return "Adding document to archetype failed unexpectedly";
-		if (registry.getDocumentsByArchetypeSize(archetype) != 1) return "Documents on archetype exptected to be 1";
-		if (keccak256(abi.encodePacked(registry.getDocumentByArchetypeAtIndex(archetype, 0))) != keccak256(abi.encodePacked(documentName))) return "documentName at index 0 not returned correctly";
+		// First verify that the function signature works
+		if (!address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference))) {
+			return "Using the addDocument function signature to add a document to a valid archetype should not fail";
+		}
+		if (address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference))) {
+			return "Adding a document with the same file reference twice should fail";
+		}
+		if (address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, falseAddress, fileReference))) {
+			return "Adding a document to non-existent archetype should fail";
+		}
+		if (Archetype(archetype).getNumberOfDocuments() != 1) return "Documents on archetype exptected to be 1";
+		if (Archetype(archetype).getDocumentKeyAtIndex(0) != keccak256(abi.encodePacked(fileReference))) return "Archetype's document key at index 0 should match the hash of the file reference";
 
 		string memory returnedFileRef;
-		returnedFileRef = registry.getDocumentByArchetypeData(archetype, documentName);
-		if (keccak256(abi.encodePacked(returnedFileRef)) != keccak256(abi.encodePacked(fileReference))) return "document reference for documentName does not match";
+		returnedFileRef = Archetype(archetype).getDocument(Archetype(archetype).getDocumentKeyAtIndex(0));
+		if (keccak256(abi.encodePacked(returnedFileRef)) != keccak256(abi.encodePacked(fileReference))) return "Archetype's 1st document reference should match";
 
 		// Jurisdictions
 		bytes32 region = keccak256(abi.encodePacked("CA", "QC"));

@@ -75,7 +75,6 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementSigning() external returns (string) {
 
-		bool success;
 	  	ActiveAgreement agreement;
 		Archetype archetype;
 		signer1 = new DefaultUserAccount();
@@ -136,7 +135,6 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementCancellation() external returns (string) {
 
-		bool success;
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
 		Archetype archetype;

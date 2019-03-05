@@ -242,15 +242,15 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 
 	/**
 	 * @dev Adds a file reference to the given Archetype
+	 * REVERTS if:
+	 * - the given archetype is not registered in this ArchetypeRegistry
 	 * @param _archetype archetype
-	 * @param _name name
 	 * @param _fileReference the external reference to the document
-	 * @return error BaseErrors.NO_ERROR(), BaseErrors.RESOURCE_NOT_FOUND() _archetype does not exist, or see DefaultArchetype
 	 */
-	function addDocument(address _archetype, string _name, string _fileReference) external returns (uint error) {
-		if (!ArchetypeRegistryDb(database).archetypeExists(_archetype))
-			return BaseErrors.RESOURCE_NOT_FOUND();
-		error = Archetype(_archetype).addDocument(_name, _fileReference);
+	function addDocument(address _archetype, string _fileReference) external {
+		ErrorsLib.revertIf(!ArchetypeRegistryDb(database).archetypeExists(_archetype),
+			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetypeRegistry.addDocument", "The specified archetype address is not known to this ArchetypeRegistry");
+		Archetype(_archetype).addDocument(_fileReference);
 	}
 
 	/**
@@ -374,37 +374,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 				break;
 			}
 		}
-	}
-
-	/**
-	 * @dev Gets documents size for given Archetype
-	 * @param _archetype archetype
-	 * @return size size
-	 */
-	function getDocumentsByArchetypeSize(address _archetype) external view returns (uint size) {
-		return Archetype(_archetype).getNumberOfDocuments();
-	}
-
-    /**
-     * @dev Gets document name by Archetype At index
-     * @param _archetype archetype
-     * @param _index index
-     * @return name name
-     */
-	function getDocumentByArchetypeAtIndex(address _archetype, uint _index) external view returns (string name) {
-		uint error;
-		(error, name) = Archetype(_archetype).getDocumentAtIndex(_index);
-	}
-
-    /**
-     * @dev Returns data about the document at the specified address
-	 * @param _archetype archetype
-	 * @param _name the document name
-	 * @return fileReference - the document reference
-	 */
-	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string fileReference) {
-		uint error;
-		(error, fileReference) = Archetype(_archetype).getDocument(_name);
 	}
 
     /**
