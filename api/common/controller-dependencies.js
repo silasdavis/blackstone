@@ -217,6 +217,7 @@ const dependencies = {
       - query values containing commas will be split to perform a WHERE IN query
       - query values will be numbered starting at $1, so if additional queries should be added AFTER these ones
       - if no query is given, returns 'TRUE' so it can be inserted into a query without any issues
+      - query keys in camelCase will be converted to snake_case in returned query string to match db table column name format
     */
     let queryString = '';
     const queryVals = [];
@@ -228,7 +229,7 @@ const dependencies = {
       }
       if (queryString) queryString = queryString.concat(' AND ');
       const isArray = Array.isArray(formatted);
-      queryString = queryString.concat(`${key}::text ${isArray ? 'IN ' : '= '}`);
+      queryString = queryString.concat(`${_.snakeCase(key)}::text ${isArray ? 'IN ' : '= '}`);
       queryString = queryString.concat(`${isArray ? ` (${formatted.map((__, i) => `$${queryVals.length + i + 1}`)})` : `$${queryVals.length + 1}`}`);
       if (isArray) {
         queryVals.push(...formatted);
