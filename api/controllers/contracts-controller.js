@@ -374,7 +374,7 @@ const addArchetypeDocument = (address, fileReference) => new Promise((resolve, r
     .contracts['ArchetypeRegistry']
     .factory.addDocument(address, fileReference, (error, data) => {
       if (error) {
-        return reject(boom.badImplementation(`Failed to add document to archetype at ${address}: ${error}`));
+        return reject(boomify(error, `Failed to add document to archetype ${address}`));
       }
       log.info('Added document to archetype %s', address);
       return resolve();
