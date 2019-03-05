@@ -170,11 +170,9 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	/**
 	 * @dev Adds a file reference to the given Archetype
 	 * @param _archetype archetype
-	 * @param _name name
 	 * @param _fileReference the external reference to the document
-	 * @return error BaseErrors.NO_ERROR(), BaseErrors.RESOURCE_NOT_FOUND() _archetype does not exist, or see DefaultArchetype
 	 */
-	function addDocument(address _archetype, string _name, string _fileReference) external returns (uint error);
+	function addDocument(address _archetype, string _fileReference) external;
 
 	/**
 	 * @dev Sets price of given archetype
@@ -253,74 +251,51 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	function packageHasArchetype(bytes32 _packageId, address _archetype) external view returns (bool hasArchetype);
 
 	/**
-		* @dev Gets documents size for given Archetype
-		* @param _archetype archetype
-		* @return size size
-		*/
-	function getDocumentsByArchetypeSize(address _archetype) external view returns (uint size);
-
-	/**
-		* @dev Gets document name by Archetype At index
-		* @param _archetype archetype
-		* @param _index index
-		* @return name name
-		*/
-	function getDocumentByArchetypeAtIndex(address _archetype, uint _index) external view returns (string name);
-
-	/**
-		* @dev Returns data about the document given the specified name
-		* @param _archetype archetype
-		* @param _name the document name
-		* @return fileReference - the document reference
-		*/
-	function getDocumentByArchetypeData(address _archetype, string _name) external view returns (string fileReference);
-
-	/**
-		* @dev Gets parameters size for given Archetype
-		* @param _archetype archetype
-		* @return size size
-		*/
+	 * @dev Gets parameters size for given Archetype
+	 * @param _archetype archetype
+	 * @return size size
+	 */
 	function getParametersByArchetypeSize(address _archetype) external view returns (uint size);
 
 	/**
-		* @dev Gets parameter name by Archetype At index
-		* @param _archetype archetype
-		* @param _index index
-		* @return name name
-		*/
+	 * @dev Gets parameter name by Archetype At index
+	 * @param _archetype archetype
+	 * @param _index index
+	 * @return name name
+	 */
 	function getParameterByArchetypeAtIndex(address _archetype, uint _index) external view returns (bytes32 name);
 
 	/**
-		* @dev Returns data about the parameter at with the specified name
-		* @param _archetype archetype
-		* @param _name name
-		* @return position index of parameter
-		* @return parameterType parameter type
-		*/
+	 * @dev Returns data about the parameter at with the specified name
+	 * @param _archetype archetype
+	 * @param _name name
+	 * @return position index of parameter
+	 * @return parameterType parameter type
+	 */
 	function getParameterByArchetypeData(address _archetype, bytes32 _name) external view returns (uint position, DataTypes.ParameterType parameterType);
 
 	/**
-		* @dev Returns the number of jurisdictions for the given Archetype
-		* @param _archetype archetype address
-		* @return the number of jurisdictions
-		*/
+	 * @dev Returns the number of jurisdictions for the given Archetype
+	 * @param _archetype archetype address
+	 * @return the number of jurisdictions
+	 */
 	function getNumberOfJurisdictionsForArchetype(address _archetype) external view returns (uint size);
 
 	/**
-		* @dev Returns the jurisdiction key at the specified index for the given archetype
-		* @param _archetype archetype address
-		* @param _index the index of the jurisdiction
-		* @return the jurisdiction primary key
-		*/
+	 * @dev Returns the jurisdiction key at the specified index for the given archetype
+	 * @param _archetype archetype address
+	 * @param _index the index of the jurisdiction
+	 * @return the jurisdiction primary key
+	 */
 	function getJurisdictionAtIndexForArchetype(address _archetype, uint _index) external view returns (bytes32 key);
 
 	/**
-		* @dev Returns data about the jurisdiction with the specified key in the given archetype
-		* @param _archetype archetype address
-		* @param _key the jurisdiction key
-		* @return country the jurisdiction's country
-		* @return region the jurisdiction's region
-		*/
+	 * @dev Returns data about the jurisdiction with the specified key in the given archetype
+	 * @param _archetype archetype address
+	 * @param _key the jurisdiction key
+	 * @return country the jurisdiction's country
+	 * @return region the jurisdiction's region
+	 */
 	function getJurisdictionDataForArchetype(address _archetype, bytes32 _key) external view returns (bytes2 country, bytes32 region);
 
 	/**

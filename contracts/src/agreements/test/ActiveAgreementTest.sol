@@ -75,7 +75,6 @@ contract ActiveAgreementTest {
 	 */
 	function testActiveAgreementSigning() external returns (string) {
 
-		bool success;
 	  	ActiveAgreement agreement;
 		Archetype archetype;
 		signer1 = new DefaultUserAccount();

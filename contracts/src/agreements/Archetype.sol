@@ -57,7 +57,7 @@ contract Archetype is VersionedArtifact {
 	event LogArchetypeDocumentUpdate(
 		bytes32 indexed eventId,
 		address archetypeAddress,
-		string documentKey,
+		bytes32 documentKey,
 		string documentReference
 	);
 
@@ -95,12 +95,10 @@ contract Archetype is VersionedArtifact {
 		external;
 
 	/**
-	 * @dev Adds the document specified by the external reference to the archetype under the given name
-	 * @param _name name
+	 * @dev Adds the document specified by the external reference to this Archetype
 	 * @param _fileReference the external reference to the document
-	 * @return error code indicating success or failure
 	 */
-	function addDocument(string _name, string _fileReference) external returns (uint error);
+	function addDocument(string _fileReference) external;
 
 	/**
 	 * @dev Adds a parameter to this Archetype
@@ -140,12 +138,11 @@ contract Archetype is VersionedArtifact {
 	function getAuthor() external view returns (address author);
 
 	/**
-	 * @dev Gets document reference with given name
-	 * @param _name document name
-	 * @return error - an error code
+	 * @dev Gets document reference with given key
+	 * @param _key document key
 	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(string _name) external view returns (uint error, string fileReference);
+	function getDocument(bytes32 _key) external view returns (string fileReference);
 
 	/**
 	 * @dev Gets number of parameters
@@ -176,12 +173,11 @@ contract Archetype is VersionedArtifact {
 	function getNumberOfDocuments() external view returns (uint size);
 
 	/**
-	 * @dev Gets document name at index
+	 * @dev Returns the document key at the given index
 	 * @param _index index
-	 * @return error BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS() if index is out of bounds
-	 * @return name
+	 * @return key - the document key
 	 */
-	function getDocumentAtIndex(uint _index) external view returns (uint error, string name);
+	function getDocumentKeyAtIndex(uint _index) external view returns (bytes32 key);
 
 	/**
 	 * @dev Returns the number jurisdictions for this archetype

@@ -376,7 +376,7 @@
       {
         "Field": "documentKey",
         "ColumnName": "document_key",
-        "Type": "string",
+        "Type": "bytes32",
         "Primary": true
       },
       {
