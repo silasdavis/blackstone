@@ -20,7 +20,7 @@ const dataStorage = require(path.join(`${global.__controllers}/data-storage-cont
 const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
 const getActivityInstances = asyncMiddleware(async (req, res) => {
-  const data = await sqlCache.getActivityInstances(req.query);
+  const data = await sqlCache.getActivityInstances(req.user.address, req.query);
   const activities = await pgCache.populateTaskNames(data);
   return res.status(200).json(activities);
 });

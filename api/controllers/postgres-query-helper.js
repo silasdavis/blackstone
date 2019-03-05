@@ -490,7 +490,9 @@ const getAgreementCollectionData = (collectionId) => {
     });
 };
 
-const getActivityInstances = ({ processAddress, agreementAddress }) => {
+const getActivityInstances = (userAccount, queryParams) => {
+  const query = where(queryParams);
+  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
   const queryString = `SELECT 
     DISTINCT(UPPER(encode(ai.activity_instance_id::bytea, 'hex'))) as "activityInstanceId",
     ai.process_instance_address AS "processAddress",
@@ -509,7 +511,30 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     ds.address_value as "agreementAddress",
     agr.name as "agreementName",
     ad.task_type as "taskType",
-    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName"
+    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName",
+    (
+      ai.performer = $${query.queryVals.length + 1} OR (
+        ai.performer IN (
+          select organization_address FROM organization_users ou WHERE ou.user_address = $${query.queryVals.length + 1}
+        ) AND (
+          (
+            scopes.fixed_scope IS NULL AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = ai.performer
+            )
+          ) OR scopes.fixed_scope IN (
+            select department_id FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = ai.performer
+          ) OR scopes.fixed_scope = (
+            select organization_id FROM organization_accounts o WHERE o.organization_address = ai.performer
+          ) OR (
+            scopes.fixed_scope IS NOT NULL AND scopes.fixed_scope NOT IN (
+              select department_id FROM organization_departments od WHERE od.organization_address = ai.performer
+            ) AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = performer
+            )
+          )
+        )
+      )
+    ) AS "assignedToUser"
     FROM activity_instances ai  
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address 
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address 
@@ -521,10 +546,14 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
       UNION
       SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
     ) accounts ON ai.completed_by = accounts.address
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = ds.storage_address 
+      AND scopes.scope_address = ai.performer 
+      AND scopes.scope_context = ai.activity_id
+    )
     WHERE ds.data_id = 'agreement'
-    ${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}
-    ${(agreementAddress ? ` AND ds.address_value = '${agreementAddress}';` : ';')}`;
-  return runChainDbQuery(queryString)
+    AND ${query.queryString}`;
+  return runChainDbQuery(queryString, [...query.queryVals, userAccount])
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
 
