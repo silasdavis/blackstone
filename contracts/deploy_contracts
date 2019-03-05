@@ -28,6 +28,7 @@ main() {
  --chain-url="$CHAIN_URL_GRPC" \
  --mempool-signing="true" \
  --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
+ --timeout=15 \
  --file="$deploy_file"
 
     exit 0
