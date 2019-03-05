@@ -35,6 +35,20 @@ const getOrganizations = (queryParams) => {
     .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
 };
 
+const userIsOrganizationApprover = (orgAddress, userAccount) => {
+  const queryString = `SELECT (
+    $1 IN (
+      SELECT approver_address
+      FROM organization_approvers oa
+      WHERE oa.organization_address = $2
+    )
+  ) AS "isApprover"
+  FROM organization_approvers;`;
+  return runChainDbQuery(queryString, [userAccount, orgAddress])
+    .then(rows => rows[0].isApprover)
+    .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
+};
+
 const getOrganization = (orgAddress) => {
   const queryString = `SELECT o.organization_address AS address, UPPER(encode(o.organization_id::bytea, 'hex')) AS "organizationKey",
     od.name, oa.approver_address AS approver, approver_details.username AS "approverName",
@@ -813,6 +827,7 @@ const removeDepartmentDetails = ({ organizationAddress, id }) => {
 module.exports = {
   getOrganizations,
   getOrganization,
+  userIsOrganizationApprover,
   getUsers,
   getProfile,
   getCountries,

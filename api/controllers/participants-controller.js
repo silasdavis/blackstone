@@ -122,8 +122,8 @@ const createOrganization = asyncMiddleware(async (req, res) => {
 });
 
 const createOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': req.params.address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
+  const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
+  if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
   await contracts.addUserToOrganization(req.params.userAddress, req.params.address, req.user.address);
@@ -131,8 +131,8 @@ const createOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
 });
 
 const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': req.params.address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
+  const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
+  if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address, req.user.address);
@@ -147,9 +147,9 @@ const createDepartment = asyncMiddleware(async (req, res) => {
   } else if (name.length > 255) {
     throw boom.badRequest('Name length cannot exceed 255 characters');
   }
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
-    throw boom.forbidden('User is not an approver of the organization and not authorized to create departments');
+  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  if (!authorized) {
+    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   const id = getSHA256Hash(`${req.user.address}${name}${Date.now()}`).toUpperCase();
   await contracts.createDepartment(address, id, req.user.address);
@@ -166,9 +166,9 @@ const createDepartment = asyncMiddleware(async (req, res) => {
 
 const removeDepartment = asyncMiddleware(async (req, res) => {
   const { address, id } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
-    throw boom.forbidden('User is not an approver of the organization and not authorized to remove departments');
+  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  if (!authorized) {
+    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeDepartment(address, id, req.user.address);
   await sqlCache.removeDepartmentDetails({ organizationAddress: address, id });
@@ -177,9 +177,9 @@ const removeDepartment = asyncMiddleware(async (req, res) => {
 
 const addDepartmentUsers = asyncMiddleware(async (req, res) => {
   const { address, id } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
-    throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
+  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  if (!authorized) {
+    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   const { users } = req.body;
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
@@ -193,9 +193,9 @@ const addDepartmentUsers = asyncMiddleware(async (req, res) => {
 
 const removeDepartmentUser = asyncMiddleware(async (req, res) => {
   const { address, id, userAddress } = req.params;
-  const orgData = await sqlCache.getOrganizations({ 'o.organization_address': address });
-  if (!orgData.find(({ approver }) => approver === req.user.address)) {
-    throw boom.forbidden('User is not an approver of the organization and not authorized to add users to departments');
+  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  if (!authorized) {
+    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeDepartmentUser(address, id, userAddress, req.user.address);
   res.status(200).send();
