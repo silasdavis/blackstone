@@ -158,13 +158,16 @@ const getArchetypeData = (queryParams, userAccount) => {
   const query = where(queryParams);
   const queryString = `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate",
     (SELECT cast(count(ad.archetype_address) as integer) FROM archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments",
-    (SELECT cast(count(af.archetype_address) as integer) FROM archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters"
+    (SELECT cast(count(af.archetype_address) as integer) FROM archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters",
+    array_remove(array_agg(aj.country), NULL) AS countries
     FROM archetypes a
     JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address
+    LEFT JOIN archetype_jurisdictions aj ON aj.archetype_address = a.archetype_address
     WHERE
     ${query.queryString} AND (
       (a.is_private = FALSE AND a.active = TRUE) OR a.author = $${query.queryVals.length + 1}
-    );`;
+    )
+    GROUP BY a.archetype_address, ad.name, ad.description;`;
   return runChainDbQuery(queryString, [...query.queryVals, userAccount])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
 };

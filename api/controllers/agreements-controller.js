@@ -138,13 +138,8 @@ const _checkModelsForRequiredParameters = async (archetypeAddress) => {
 const getArchetypes = asyncMiddleware(async (req, res) => {
   const retData = [];
   const archData = await sqlCache.getArchetypeData(req.query, req.user.address);
-  const jurisData = await sqlCache.getArchetypeJurisdictionsAll();
   archData.forEach((_archetype) => {
-    const archetype = Object.assign(_archetype, { countries: [] });
-    jurisData.forEach((juris) => {
-      if (juris.address === archetype.address) archetype.countries.push(juris.country);
-    });
-    retData.push(format('Archetype', archetype));
+    retData.push(format('Archetype', _archetype));
   });
   res.json(retData);
 });
