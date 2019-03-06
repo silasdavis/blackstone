@@ -154,7 +154,7 @@ const getParameterTypes = () => {
     .catch((err) => { throw boom.badImplementation(`Failed to get parameter types: ${err}`); });
 };
 
-const getArchetypeData = (queryParams, userAccount) => {
+const getArchetypes = (queryParams, userAccount) => {
   const query = where(queryParams);
   const queryString = `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate",
     (SELECT cast(count(ad.archetype_address) as integer) FROM archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments",
@@ -169,6 +169,20 @@ const getArchetypeData = (queryParams, userAccount) => {
     )
     GROUP BY a.archetype_address, ad.name, ad.description;`;
   return runChainDbQuery(queryString, [...query.queryVals, userAccount])
+    .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
+};
+
+const getArchetypeData = (archetypeAddress, userAccount) => {
+  const queryString = `SELECT a.archetype_address as address, ad.name, a.author,
+    ad.description, a.price, a.active, a.is_private as "isPrivate"
+    FROM archetypes a
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address
+    WHERE
+    a.archetype_address = $1 AND (
+      (a.is_private = FALSE AND a.active = TRUE) OR a.author = $2
+    );`;
+  return runChainDbQuery(queryString, [archetypeAddress, userAccount])
+    .then(rows => rows[0])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
 };
 
@@ -872,6 +886,7 @@ module.exports = {
   getCurrencyByAlpha3Code,
   getParameterType,
   getParameterTypes,
+  getArchetypes,
   getArchetypeData,
   getArchetypeJurisdictionsAll,
   getArchetypeDataWithProcessDefinitions,

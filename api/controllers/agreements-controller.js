@@ -137,7 +137,7 @@ const _checkModelsForRequiredParameters = async (archetypeAddress) => {
 
 const getArchetypes = asyncMiddleware(async (req, res) => {
   const retData = [];
-  const archData = await sqlCache.getArchetypeData(req.query, req.user.address);
+  const archData = await sqlCache.getArchetypes(req.query, req.user.address);
   archData.forEach((_archetype) => {
     retData.push(format('Archetype', _archetype));
   });
@@ -347,9 +347,9 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   const { packageId, archetypeAddress } = req.params;
   if (!packageId || !archetypeAddress) throw boom.badRequest('Package id and archetype address are required');
   const packageData = (await sqlCache.getArchetypePackage(packageId, req.user.address));
-  const archetypeData = (await sqlCache.getArchetypeData({ archetype_address: archetypeAddress }, req.user.address))[0];
+  const archetypeData = await sqlCache.getArchetypeData(archetypeAddress, req.user.address);
   if (!archetypeData) {
-    throw boom.forbidden(`User at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
+    throw boom.forbidden(`Archetype at ${archetypeAddress} not found or user at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
       `and thus not allowed to add it to the package with id ${packageId}`);
   }
   if (req.user.address !== packageData.author) throw boom.forbidden(`Package with id ${packageId} is not modifiable by user at address ${req.user.address}`);
