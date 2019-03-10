@@ -15,7 +15,7 @@ const createCustomersSchema = async () => {
     await client.end();
     console.log(`Created schema [ ${process.env.POSTGRES_DB_SCHEMA} ] if not found`);
   } catch (err) {
-    console.error(`Failed to connect to Db and/or create schema ${process.end.POSTGRES_DB_SCHEMA}: ${err.stack}`);
+    console.error(`Failed to connect to Db and/or create schema ${process.env.POSTGRES_DB_SCHEMA}: ${err.stack}`);
   }
 };
 

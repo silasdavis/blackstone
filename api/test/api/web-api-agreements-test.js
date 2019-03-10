@@ -23,6 +23,10 @@ const should = chai.should();
 const expect = chai.expect;
 const assert = chai.assert;
 
+// Timeouts
+const ventCatchUpMS = 100;
+const testTimeoutMS = 60000;
+
 // wait for the app to be fully bootstrapped
 before(function(done) {
   this.timeout(99999999);
@@ -60,11 +64,11 @@ describe(':: HOARD ::', () => {
               expect(err).to.not.exist;
               hoardGrant = res.body.grant;
             });
-        }, 3000);
+        }, ventCatchUpMS);
       } catch (err) {
         throw err;
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 });
 
@@ -93,7 +97,7 @@ describe('Archetypes', () => {
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Execution'
-  }  
+  }
 
   let testArchetype = {
     name: 'TestType Complex',
@@ -144,7 +148,7 @@ describe('Archetypes', () => {
     Object.assign(execution.process, executionDeploy.processes[0]);
     testArchetype.executionProcessDefinition = execution.process.address;
     expect(String(testArchetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(testTimeoutMS);
 
   it('GET all archetypes', (done) => {
     chai
@@ -227,7 +231,7 @@ describe('Archetypes', () => {
           expect(res.body.jurisdictions[0].regions.length).to.equal(2)
           done()
         })
-    }, 5000)
+    },ventCatchUpMS )
   }).timeout(10000)
 
   it('should set archetype successor', async () => {
@@ -244,7 +248,7 @@ describe('Archetypes', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('should fail to activate archetype that has a successor', async () => {
@@ -363,7 +367,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
   it('Should login users', (done) => {
     // LOGIN USERS
-    setTimeout(async () => { 
+    setTimeout(async () => {
       try {
         await api.activateUser(user1);
         let loginResult1 = await api.loginUser(user1);
@@ -377,7 +381,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy model', async () => {
@@ -393,7 +397,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     publicArchetype1.executionProcessDefinition = process2.address;
     privateArchetype1.formationProcessDefinition = process1.address;
     privateArchetype1.executionProcessDefinition = process2.address;
-  }).timeout(30000);
+  }).timeout(testTimeoutMS);
 
   it('Should create a publicPackage1 by user1', async () => {
     // CREATE ARCHETYPE PACKAGE
@@ -420,7 +424,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should fail to deactivate publicPackage1 by user2', async () => {
@@ -442,7 +446,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create privatePackage1 by user1', async () => {
@@ -470,7 +474,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     setTimeout(async () => {
       await assert.isRejected(api.deactivateArchetype(publicArchetype1.address, user2.token));
       done();
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deactivate publicArchetype1 by user1', done => {
@@ -481,7 +485,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should not create an agreement from inactive archetype', done => {
@@ -500,7 +504,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   });
 
   it('Should not get deactivated archetype by user2', async () => {
@@ -517,7 +521,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should get active archetypes by user2', done => {
@@ -530,7 +534,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should fail to add publicArchetype1 created by user1 to publicPackage2 created by user2', async () => {
@@ -579,7 +583,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 5000);
+    }, ventCatchUpMS);
   }).timeout(20000);
 
   it('Should validate agreement1 is in collection1', async () => {
@@ -685,7 +689,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 5000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy model', done => {
@@ -707,8 +711,8 @@ describe(':: Governing Archetypes and Agreements ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
-  }).timeout(30000);
+    }, ventCatchUpMS);
+  }).timeout(testTimeoutMS);
 
   it('Should create employment and nda archetypes', async () => {
     let data = await api.createArchetype(employmentArchetype, user1.token);
@@ -811,7 +815,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -832,7 +836,7 @@ describe(':: External Users ::', () => {
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(testTimeoutMS);
 
   it('Should create an archetype', done => {
     // CREATE ARCHETYPE
@@ -846,7 +850,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement with emails in the user/org/signatory parameters', done => {
@@ -871,7 +875,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create new users when an unknown email is given', done => {
@@ -890,7 +894,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should not create multiple users for the same email address (case insensitive)', done => {
@@ -902,7 +906,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   let parameters;
@@ -917,7 +921,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should use the addresses of new users for unknown email addresses', done => {
@@ -932,7 +936,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should allow external user to register', async () => {
@@ -1024,7 +1028,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -1040,7 +1044,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     expect(deployed).to.exist;
     archetype.executionProcessDefinition = deployed.processes[0].address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(testTimeoutMS);
 
   it('Should create an archetype', done => {
     // CREATE ARCHETYPE
@@ -1054,7 +1058,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement', done => {
@@ -1067,7 +1071,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 });
 
@@ -1146,7 +1150,7 @@ describe(':: Agreement Attachments (External References) ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -1162,7 +1166,7 @@ describe(':: Agreement Attachments (External References) ::', () => {
     expect(deployed).to.exist;
     archetype.executionProcessDefinition = deployed.processes[0].address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(testTimeoutMS);
 
   it('Should create an archetype', done => {
     // CREATE ARCHETYPE
@@ -1175,7 +1179,7 @@ describe(':: Agreement Attachments (External References) ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement', done => {
@@ -1188,7 +1192,7 @@ describe(':: Agreement Attachments (External References) ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should return an empty string for the attachments reference if not attachments have been added', done => {
@@ -1201,7 +1205,7 @@ describe(':: Agreement Attachments (External References) ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, ventCatchUpMS);
   }).timeout(10000);
 
   it('Should not allow user 2 to upload an attachment to the agreement', async () => {

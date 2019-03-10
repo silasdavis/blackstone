@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+export API_ABI_DIRECTORY_LOCAL="./api/public-abi"
+export CONTRACTS_DIRECTORY="./contracts/src"
+
+echo
+echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
+set +e
+mkdir -p $API_ABI_DIRECTORY_LOCAL
+while read -r abi; do
+    cmd="cp $CONTRACTS_DIRECTORY/bin/$abi.bin $API_ABI_DIRECTORY_LOCAL/$abi.bin"
+    echo "### $cmd"
+    ${cmd}
+done < ./contracts/abi.csv
+set -e

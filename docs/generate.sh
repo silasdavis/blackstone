@@ -10,9 +10,9 @@ curl -L https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/
 chmod +x /usr/local/bin/solc
 npm config set unsafe-perm true # https://github.com/npm/uid-number/issues/3
 npm install -g apidoc apidocjs-markdown
-cd $CI_PROJECT_DIR/docs/generator
+cd ./docs/generator
 npm install
-cd $CI_PROJECT_DIR
+cd .
 
 # Setup Git
 echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > $HOME/.ssh/config
@@ -21,14 +21,14 @@ git config --global user.email "billings@monax.io"
 git clone git@github.com:agreements-network/docs ../docs.agreements.network
 cd ../docs.agreements.network
 git checkout staging
-cd $CI_PROJECT_DIR
+cd .
 
 # Create Blackstone Contracts Docs
 mkdir docs/docdev
 mkdir contracts/src/bin #TMP - needed because of bug in burrow/deploy
 cd contracts/src
 burrow deploy --file=generate-devdocs.yaml
-cd $CI_PROJECT_DIR
+cd .
 # node docs/generator/docgen-contract.js docs/docdev > ../docs.agreements.network/content/smart_contracts.md
 node docs/generator/docgen-contract.js contracts/src/bin > ../docs.agreements.network/content/smart_contracts.md # TMP - needed because of bug in burrow deploy
 
