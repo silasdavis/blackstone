@@ -445,6 +445,17 @@ module.exports = (server) => {
       let xml = fs.readFileSync(path.resolve(modelPath), 'utf8');
       xml = _.replace(xml, new RegExp('###MODEL_ID###', 'g'), modelId);
       return xml;
-    }
+    },
+
+    getFromHoard: (fileRefString) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get(`/hoard?grant=${encodeURIComponent(fileRefString)}`)
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get from hoard NOT OK'));
+        return resolve(res.text);
+      });
+    }),
   }
 }

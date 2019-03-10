@@ -56,20 +56,10 @@ const hoardGetApiHandler = asyncMiddleware(async (req, res) => {
   }
 });
 
-const getModelFromHoard = grant => new Promise(async (resolve, reject) => {
-  try {
-    const data = await hoardGet(grant);
-    return resolve(data);
-  } catch (err) {
-    return reject(err);
-  }
-});
-
 module.exports = {
   hoard,
   hoardPut,
   hoardPutApiHandler,
   hoardGet,
   hoardGetApiHandler,
-  getModelFromHoard,
 };

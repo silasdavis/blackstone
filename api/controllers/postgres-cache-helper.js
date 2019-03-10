@@ -2,7 +2,7 @@ const path = require('path');
 const boom = require('boom');
 const { splitMeta } = require(`${global.__common}/controller-dependencies`);
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
-const { getModelFromHoard } = require(`${global.__controllers}/hoard-controller`);
+const { hoardGet } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
@@ -23,7 +23,7 @@ const parseBpmnModel = async (rawXml) => {
 const getActivityDetailsFromBpmn = async (pmAddress, processId, activityId) => {
   try {
     const model = (await sqlCache.getProcessModelData(pmAddress))[0];
-    const diagram = await getModelFromHoard(model.modelFileReference);
+    const diagram = await hoardGet(model.modelFileReference);
     const data = splitMeta(diagram);
     const { processes } = await parseBpmnModel(data.data.toString());
     const targetProcess = processes.filter(p => p.id === processId)[0];
@@ -75,7 +75,7 @@ const populateTaskNames = tasks => new Promise((resolve, reject) => {
 const getProcessNameFromBpmn = async (pmAddress, processId) => {
   try {
     const model = (await sqlCache.getProcessModelData(pmAddress))[0];
-    const diagram = await getModelFromHoard(model.modelFileReference);
+    const diagram = await hoardGet(model.modelFileReference);
     const data = splitMeta(diagram);
     const { processes } = await parseBpmnModel(data.data.toString());
     const targetProcess = processes.filter(p => p.id === processId)[0];

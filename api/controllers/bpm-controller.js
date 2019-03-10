@@ -3,7 +3,6 @@ const boom = require('boom');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 const {
   format,
-  addMeta,
   splitMeta,
   asyncMiddleware,
   byteLength,
@@ -13,12 +12,12 @@ const log = logger.getLogger('agreements.bpm');
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const {
   hoardPut,
-  getModelFromHoard,
+  hoardGet,
 } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
-const { createOrFindAccountsWithEmails } = require(path.join(`${global.__controllers}/agreements-controller`));
+const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.query);
@@ -287,7 +286,7 @@ const getModelDiagram = asyncMiddleware(async (req, res) => {
     !profileData.find(({ organization }) => organization === model.author)) {
     throw boom.forbidden('You are not authorized to view this private model');
   }
-  const diagram = await getModelFromHoard(model.modelFileReference);
+  const diagram = await hoardGet(model.modelFileReference);
   const data = splitMeta(diagram);
   if (req.headers.accept.includes('application/xml')) {
     res.attachment(data.meta.name);

@@ -910,9 +910,13 @@ describe(':: GATEWAY TEST ::', () => {
         Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         setTimeout(async () => {
-          tenantTasks = await api.getTasksForUser(tenant.token);
-          expect(tenantTasks.length).to.equal(numberOfTasksBefore + 1);
-          done();  
+          try {
+            tenantTasks = await api.getTasksForUser(tenant.token);
+            expect(tenantTasks.length).to.equal(numberOfTasksBefore + 1);
+            done();  
+          } catch (err) {
+            done(err);
+          }
         }, 5000);
       } catch (err) {
         done(err);
@@ -932,9 +936,13 @@ describe(':: GATEWAY TEST ::', () => {
         Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
         expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
         setTimeout(async () => {
-          tenantTasks = await api.getTasksForUser(tenant.token);
-          expect(tenantTasks.length).to.equal(numberOfTasksBefore);
-          done();  
+          try {
+            tenantTasks = await api.getTasksForUser(tenant.token);
+            expect(tenantTasks.length).to.equal(numberOfTasksBefore);
+            done();  
+          } catch (err) {
+            done(err);
+          }
         }, 5000);
       } catch (err) {
         done(err);
