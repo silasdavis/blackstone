@@ -57,7 +57,7 @@ module.exports = (app, customMiddleware) => {
  * @apiSuccess {String} address Archetype's address
  * @apiSuccess {String} name Human readable name of the Archetype
  * @apiSuccess {String} author Controller contract of the user or organization
- * that created the Archetype
+ * that created the Archetyp
  * @apiSuccess {String} description description of the Archetype
  * @apiSuccess {Boolean} active Whether the Archetype can be used to create
  * new Active Agreements or not

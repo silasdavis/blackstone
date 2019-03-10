@@ -14,7 +14,7 @@ module.exports = (server) => {
         log.error(`Failed to activate user ${JSON.stringify(user)}: ${err.stack}`);
         throw err;
       }),
-    
+
     registerUser: (user) => {
       return new Promise((resolve, reject) => {
         chai
@@ -29,7 +29,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     loginUser: (user) => {
       return new Promise((resolve, reject) => {
         chai
@@ -38,6 +38,7 @@ module.exports = (server) => {
           .send(user)
           .end((err, res) => {
             if (err) return reject(err);
+            if (res.statusCode !== 200) return reject(res.body)
             let cookie = res.headers['set-cookie'][0];
             let token = cookie.split('access_token=')[1].split(';')[0];
             return resolve({
@@ -47,7 +48,7 @@ module.exports = (server) => {
           });
       })
     },
-  
+
     createAndDeployModel: (xml, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -64,7 +65,7 @@ module.exports = (server) => {
       });
     },
 
-    getDiagram: (modelAddress, accept) => {
+    getDiagram: (modelAddress, accept, token) => {
       return new Promise((resolve, reject) => {
         chai.request(server)
         .get(`/bpm/process-models/${modelAddress}/diagram`)
@@ -163,7 +164,7 @@ module.exports = (server) => {
 
       })
     },
-  
+
     createArchetype: (archetype, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -280,7 +281,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     createAgreement: (agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -310,7 +311,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     getTasksForUser: (token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -397,7 +398,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     completeTaskForUser: (activityInstanceId, data, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -412,7 +413,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     completeAndSignTaskForUser: (activityInstanceId, agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -426,7 +427,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     cancelAgreement: (agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -440,7 +441,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     uploadAttachmentFile: (agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -455,7 +456,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     uploadAttachmentObject: (agreement, attachment, token) => {
       return new Promise((resolve, reject) => {
         chai
