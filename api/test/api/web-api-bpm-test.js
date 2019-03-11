@@ -139,7 +139,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 
@@ -356,7 +356,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let buyerTask;
@@ -589,7 +589,7 @@ describe(':: DATA MAPPING TEST ::', () => {
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 
@@ -835,7 +835,7 @@ describe(':: GATEWAY TEST ::', () => {
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 

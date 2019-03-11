@@ -142,7 +142,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       value: ''
     }
     ],
-    maxNumberOfEvents: 0
+    maxNumberOfAttachments: 0
   }
 
   it('Should create a buyer and a seller', async () => {
@@ -240,7 +240,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       archetype: agreement.archetype,
       name: agreement.name,
       creator: agreement.creator,
-      maxNumberOfEvents: 0,
+      maxNumberOfAttachments: 0,
       isPrivate: agreement.isPrivate,
       parties: [buyer.address],
       governingAgreements: []

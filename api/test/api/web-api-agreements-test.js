@@ -299,7 +299,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let publicPackage1 = {
@@ -493,7 +493,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
           isPrivate: false,
           parties: [],
           parameters: [],
-          maxNumberOfEvents: 5,
+          maxNumberOfAttachments: 5,
         }
         await assert.isRejected(api.createAgreement(agr, user1.token));
         done();
@@ -649,7 +649,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let ndaAgreement = {
@@ -658,7 +658,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   const process1 = {};
@@ -788,7 +788,7 @@ describe(':: External Users ::', () => {
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 
@@ -956,20 +956,19 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     email: `${rid(10, 'aA0')}@test.com`,
   };
 
-  let formation = {
+  const formation = {
     filePath: 'test/data/inc-formation.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Formation'
-  }
-  let execution = {
+  };
+  const execution = {
     filePath: 'test/data/inc-execution.bpmn',
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Execution'
-  }
-
-  let archetype = {
+  };
+  const archetype = {
     name: 'Incorporation Archetype',
     description: 'Incorporation Archetype',
     price: 10,
@@ -990,8 +989,8 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     executionProcessDefinition: '',
     formationProcessDefinition: '',
     governingArchetypes: []
-  }
-  let agreement = {
+  };
+  const agreement = {
     name: 'Pub/Priv Parameters',
     archetype: '',
     isPrivate: false,
@@ -1004,7 +1003,7 @@ describe(':: Public/Private Agreement Parameters ::', () => {
     ],
     maxNumberOfEvents: 0,
     governingAgreements: []
-  }
+  };
 
   it('Should register user', async () => {
     // REGISTER USER
@@ -1070,21 +1069,200 @@ describe(':: Public/Private Agreement Parameters ::', () => {
       }
     }, 3000);
   }).timeout(10000);
+});
 
-  it('Should have stored any parameters not used in the process models in hoard', done => {
-    // CHECK AGREEMENT PARAMETERS
+describe(':: Agreement Attachments (External References) ::', () => {
+  const user1 = {
+    username: `registeredUser${rid(5, 'aA0')}`,
+    password: 'registeredUser',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+  const user2 = {
+    username: `registeredUser${rid(5, 'aA0')}`,
+    password: 'registeredUser',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+
+  const formation = {
+    filePath: 'test/data/inc-formation.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Formation'
+  }
+  const execution = {
+    filePath: 'test/data/inc-execution.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Execution'
+  }
+
+  const archetype = {
+    name: 'Incorporation Archetype',
+    description: 'Incorporation Archetype',
+    price: 10,
+    isPrivate: 1,
+    active: 1,
+    parameters: [
+      { type: 8, name: 'Party' },
+    ],
+    documents: [],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  }
+  const agreement = {
+    name: 'Attachments Agreement',
+    archetype: '',
+    isPrivate: false,
+    parameters: [],
+    maxNumberOfAttachments: 2,
+    governingAgreements: []
+  }
+
+  it('Should register users', async () => {
+    // REGISTER USERS
+    let registerResult = await api.registerUser(user1);
+    user1.address = registerResult.address;
+    expect(user1.address).to.exist
+    registerResult = await api.registerUser(user2);
+    user2.address = registerResult.address;
+    expect(user2.address).to.exist
+  }).timeout(5000);
+
+  it('Should login users', (done) => {
+    // LOGIN USERS
     setTimeout(async () => {
       try {
-        const { privateParametersFileReference } = await api.getAgreement(agreement.address, user.token);
-        let privateParameters = await api.getFromHoard(privateParametersFileReference);
-        privateParameters = JSON.parse(privateParameters);
-        expect(privateParameters.length).to.equal(2);
-        expect(privateParameters).to.deep.include(agreement.parameters[3]);
-        expect(privateParameters).to.deep.include(agreement.parameters[4]);
+        await api.activateUser(user1);
+        let loginResult = await api.loginUser(user1);
+        expect(loginResult.token).to.exist;
+        user1.token = loginResult.token;
+        await api.activateUser(user2);
+        loginResult = await api.loginUser(user2);
+        expect(loginResult.token).to.exist;
+        user2.token = loginResult.token;
         done();
       } catch (err) {
         done(err);
       }
     }, 3000);
   }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let xml = api.generateModelXml(formation.id, formation.filePath);
+    let deployed = await api.createAndDeployModel(xml, user1.token);
+    expect(deployed).to.exist;
+    archetype.formationProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    xml = api.generateModelXml(execution.id, execution.filePath);
+    deployed = await api.createAndDeployModel(xml, user1.token);
+    expect(deployed).to.exist;
+    archetype.executionProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(30000);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        Object.assign(archetype, await api.createArchetype(archetype, user1.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should create an agreement', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        Object.assign(agreement, await api.createAgreement(agreement, user1.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should return an empty string for the attachments reference if not attachments have been added', done => {
+    // INITIAL ATTACHMENTS FILE REFERENCE
+    setTimeout(async () => {
+      try {
+        const { attachmentsFileReference } = await api.getAgreement(agreement.address, user1.token);
+        expect(attachmentsFileReference).to.equal('');
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, 3000);
+  }).timeout(10000);
+
+  it('Should not allow user 2 to upload an attachment to the agreement', async () => {
+    // CHECK AUTHORIZATION
+    await assert.isRejected(api.uploadAttachmentFile(agreement.address, user2.token));
+  }).timeout(10000);
+
+  let attachmentsFileReference;
+  let attachments;
+
+  it('Should allow user 1 to upload a file as an attachment to the agreement', async () => {
+    // ATTACHMENT FILE UPLOAD
+    ({ attachmentsFileReference, attachments } = await api.uploadAttachmentFile(agreement.address, user1.token));
+    expect(attachmentsFileReference).to.be.a('string');
+    expect(attachmentsFileReference).not.to.equal('');
+    expect(attachments).to.be.a('array');
+    expect(attachments.length).to.equal(1);
+    const attachment = attachments[0];
+    expect(attachment).to.be.a('object');
+    expect(attachment.name).to.equal('web-api-test.js');
+    expect(attachment.content).to.be.a('string');
+    expect(attachment.submitter).to.equal(user1.address);
+    expect(attachment.contentType).to.equal('fileReference');
+  }).timeout(10000);
+
+  it('Should allow user 1 to upload an object as an attachment to the agreement', async () => {
+    // ATTACHMENT OBJECT UPLOAD
+    const res = await api.uploadAttachmentObject(agreement.address, {
+      name: 'attachment title', content: 'attachment body',
+    }, user1.token);
+    expect(res.attachmentsFileReference).to.be.a('string');
+    expect(res.attachmentsFileReference).not.to.equal('');
+    expect(res.attachmentsFileReference).not.to.equal(attachmentsFileReference);
+    expect(res.attachments).to.be.a('array');
+    expect(res.attachments.length).to.equal(2);
+    const attachment = res.attachments[1];
+    expect(attachment).to.be.a('object');
+    expect(attachment.name).to.equal('attachment title');
+    expect(attachment.content).to.be.a('string');
+    expect(attachment.content).to.equal('attachment body');
+    expect(attachment.submitter).to.equal(user1.address);
+    expect(attachment.contentType).to.equal('plaintext');
+    attachmentsFileReference = res.attachmentsFileReference;
+  }).timeout(10000);
+
+  it("Should not allow user 1 to upload more attachments than the agreement's maxNumberOfAttachments", async () => {
+    // CHECK MAX ATTACHMENTS
+    await assert.isRejected(api.uploadAttachmentFile(agreement.address, user1.token));
+  }).timeout(10000);
+
+  it('Should allow user 1 to get attachments file from hoard', async () => {
+    // GET ATTACHMENTS
+    const contentDisposition = await api.getHoard(attachmentsFileReference);
+    console.log('****contentDisposition, ', contentDisposition);
+    expect(contentDisposition).to.equal('attachment; filename=\"agreement_attachments.json\"'); // This is the default name of the attachments file given by the API
+  }).timeout(10000);
+
+  it('Should allow user 1 to get attachment from hoard', async () => {
+    // GET ATTACHMENTS
+    const contentDisposition = await api.getHoard(attachments[0].content);
+    expect(contentDisposition).to.equal('attachment; filename=\"web-api-test.js\"'); // This is the file we are using as the attachment (see uploadAttachmentFile in api-helper)
+  }).timeout(10000);
+
 });

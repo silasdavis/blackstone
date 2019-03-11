@@ -378,7 +378,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should update the event log hoard reference of an agreement', async () => {
-    await assert.isFulfilled(contracts.updateAgreementEventLog(agrAddress, 'hoard-grant'))
+    await assert.isFulfilled(contracts.updateAgreementAttachments(agrAddress, 'hoard-grant'))
   }).timeout(10000)
 
   // it('Should get activity definitions from cache', done => {

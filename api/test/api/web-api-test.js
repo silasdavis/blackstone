@@ -16,17 +16,12 @@ const log = logger.getLogger('agreements.tests');
 const api = require('./api-helper')(server)
 const { rightPad } = require(__common + '/controller-dependencies')
 
-const contracts = require(`${global.__controllers}/contracts-controller`);
-
 // configure chai
 chai.use(chaiHttp);
 chai.use(chaiAsPromised);
 const should = chai.should();
 const expect = chai.expect;
 const assert = chai.assert;
-
-var hoardGrant;
-var hoardGrant2;
 
 // wait for the app to be fully bootstrapped
 before(function (done) {
@@ -269,38 +264,6 @@ describe('User Profile', () => {
     }, 3000);
   });
 });
-
-/**
- * ######## HOARD #########################################################################################
- */
-
-describe('Hoard', () => {
-  it('Should upload a real file to hoard', (done) => {
-    request(server)
-      .post('/hoard')
-      .set('Cookie', [`access_token=${token}`])
-      .attach('myfile.js', __dirname + '/web-api-test.js')
-      .expect(200)
-      .end((err, res) => {
-        if (err) return done(err)
-        hoardGrant = res.body.grant;
-        done()
-      })
-  })
-
-  it('Should upload a second real file to hoard', (done) => {
-    request(server)
-      .post('/hoard')
-      .set('Cookie', [`access_token=${token}`])
-      .attach('myfile.js', __dirname + '/../../app.js')
-      .expect(200)
-      .end((err, res) => {
-        if (err) return done(err)
-        hoardGrant2 = res.body.grant;
-        done()
-      })
-  })
-})
 
 /**
  * ######## ORGANIZATIONS #########################################################################################

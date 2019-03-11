@@ -441,6 +441,49 @@ module.exports = (server) => {
       });
     },
   
+    uploadAttachmentFile: (agreement, token) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .post(`/agreements/${agreement}/attachments`)
+          .set('Cookie', [`access_token=${token}`])
+          .attach('attachment', __dirname + '/web-api-test.js')
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('upload attachment NOT OK'));
+            return resolve(res.body);
+          });
+      });
+    },
+  
+    uploadAttachmentObject: (agreement, attachment, token) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .post(`/agreements/${agreement}/attachments`)
+          .set('Cookie', [`access_token=${token}`])
+          .send(attachment)
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('upload attachment NOT OK'));
+            return resolve(res.body);
+          });
+      });
+    },
+
+    getHoard: (grant) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .get(`/hoard?grant=${encodeURIComponent(grant)}`)
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('hoard get NOT OK'));
+            return resolve(res.header['content-disposition']);
+          });
+      });
+    },
+
     generateModelXml: (modelId, modelPath) => {
       let xml = fs.readFileSync(path.resolve(modelPath), 'utf8');
       xml = _.replace(xml, new RegExp('###MODEL_ID###', 'g'), modelId);

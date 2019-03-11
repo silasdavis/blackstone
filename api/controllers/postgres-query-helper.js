@@ -288,45 +288,125 @@ const getArchetypesInPackage = (packageId) => {
     .catch((err) => { throw boom.badImplementation(`Failed to get archetypes in package ${packageId}: ${err}`); });
 };
 
-const currentUserAgreements = userAccount => `(
-    a.creator = '${userAccount}' OR (
-      ap.party = '${userAccount}'
-    ) OR (
-      a.creator IN (SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}')
-    ) OR (
-      ap.party IN (SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}')
+const checkParties = (userAccount) => {
+  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
+  return `(a.agreement_address IN (
+    SELECT a.agreement_address
+    FROM agreements a
+    LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = a.agreement_address 
+      AND scopes.scope_address = ap.party 
+      AND scopes.scope_context = 'AGREEMENT_PARTIES'
     )
-  ) `;
+    WHERE (
+      ap.party = '${userAccount}' OR (
+        ap.party IN (
+          select organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}'
+        ) AND (
+          (
+            scopes.fixed_scope IS NULL AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ap.party
+            )
+          ) OR scopes.fixed_scope IN (
+            select department_id FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ap.party
+          ) OR scopes.fixed_scope = (
+            select organization_id FROM organization_accounts o WHERE o.organization_address = ap.party
+          ) OR (
+            scopes.fixed_scope IS NOT NULL AND scopes.fixed_scope NOT IN (
+              select department_id FROM organization_departments od WHERE od.organization_address = ap.party
+            ) AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ap.party
+            )
+          )
+        )
+      )
+    )
+  ))`;
+};
+const checkCreator = userAccount => `(a.creator = '${userAccount}' OR a.creator IN (
+  SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}'
+))`;
+const checkAgreementTasks = (userAccount) => {
+  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
+  return `(a.agreement_address IN (
+    SELECT a.agreement_address
+    FROM agreements a
+    LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
+    LEFT JOIN data_storage ds ON ds.address_value = a.agreement_address
+    LEFT JOIN activity_instances ai ON ai.process_instance_address = ds.storage_address
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = a.agreement_address 
+      AND scopes.scope_address = ap.party 
+      AND scopes.scope_context = ai.activity_id
+    )
+    WHERE (
+      ai.state = 4 AND (
+        ai.performer = '${userAccount}' OR (
+          ai.performer IN (
+            select organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}'
+          ) AND (
+            (
+              scopes.fixed_scope IS NULL AND UPPER('${defDepId}') IN (
+                SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ai.performer
+              )
+            ) OR scopes.fixed_scope IN (
+              select department_id FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ai.performer
+            ) OR scopes.fixed_scope = (
+              select organization_id FROM organization_accounts o WHERE o.organization_address = ai.performer
+            ) OR (
+              scopes.fixed_scope IS NOT NULL AND scopes.fixed_scope NOT IN (
+                select department_id FROM organization_departments od WHERE od.organization_address = ai.performer
+              ) AND UPPER('${defDepId}') IN (
+                SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = '${userAccount}' AND du.organization_address = ai.performer
+              )
+            )
+          )
+        )
+      )
+    )
+  ))`;
+};
+
 const getAgreements = (queryParams, forCurrentUser, userAccount) => {
-  const queryString = 'SELECT DISTINCT(a.agreement_address) as address, a.archetype_address as archetype, ad.name, a.creator, ' +
-    'a.event_log_file_reference AS "eventLogFileReference", ' +
-    'a.max_event_count::integer as "maxNumberOfEvents", a.is_private as "isPrivate", a.legal_state as "legalState", ' +
-    'a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance", ' +
-    '(SELECT count(ap.agreement_address) FROM agreement_to_party ap WHERE a.agreement_address = ap.agreement_address)::integer AS "numberOfParties" ' +
-    'FROM agreements a ' +
-    'LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address ' +
-    `JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address ` +
-    `WHERE ${forCurrentUser ? currentUserAgreements(userAccount) : 'a.is_private = $1 '} ` +
-    `${queryParams ? where(queryParams, true) : ''};`;
-  const values = !forCurrentUser ? [false] : [];
-  return runChainDbQuery(queryString, values)
+  const queryString = `SELECT DISTINCT(a.agreement_address) as address, a.archetype_address as archetype, ad.name, a.creator,
+    a.event_log_file_reference AS "attachmentsFileReference",
+    a.max_event_count::integer as "maxNumberOfAttachments", a.is_private as "isPrivate", a.legal_state as "legalState",
+    a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance",
+    (SELECT count(ap.agreement_address) FROM agreement_to_party ap WHERE a.agreement_address = ap.agreement_address)::integer AS "numberOfParties"
+    FROM agreements a
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address
+    LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
+    WHERE ${forCurrentUser ? `${checkParties(userAccount)} OR
+    ${checkCreator(userAccount)} OR
+    ${checkAgreementTasks(userAccount)} ` : 'a.is_private = FALSE '}
+    ${queryParams ? where(queryParams, true) : ''};`;
+  return runChainDbQuery(queryString, [])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement(s): ${err}`); });
 };
 
-const getAgreementData = (agreementAddress, userAccount) => {
-  const queryString = 'SELECT a.agreement_address as address, a.archetype_address as archetype, ad.name, a.creator, ' +
-    'a.event_log_file_reference as "eventLogFileReference", ' +
-    'a.max_event_count::integer as "maxNumberOfEvents", a.is_private as "isPrivate", a.legal_state as "legalState", ' +
-    'a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance", ' +
-    'a.private_parameters_file_reference AS "privateParametersFileReference", ' +
-    'UPPER(encode(ac.collection_id::bytea, \'hex\')) as "collectionId", arch.formation_process_definition as "formationProcessDefinition", arch.execution_process_definition as "executionProcessDefinition" ' +
-    'FROM agreements a ' +
-    'LEFT JOIN agreement_to_collection ac ON a.agreement_address = ac.agreement_address ' +
-    'LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address ' +
-    `JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address ` +
-    'JOIN archetypes arch ON a.archetype_address = arch.archetype_address ' +
-    `WHERE a.agreement_address = $1 AND (a.is_private = $2 OR ${currentUserAgreements(userAccount)})`;
-  return runChainDbQuery(queryString, [agreementAddress, false])
+const getAgreementData = (agreementAddress, userAccount, includePublic = true) => {
+  const queryString = `SELECT a.agreement_address as address, a.archetype_address as archetype, ad.name, a.creator,
+    a.event_log_file_reference as "attachmentsFileReference", a.private_parameters_file_reference AS "privateParametersFileReference",
+    a.max_event_count::integer as "maxNumberOfAttachments", a.is_private as "isPrivate", a.legal_state as "legalState",
+    a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance",
+    UPPER(encode(ac.collection_id::bytea, 'hex')) as "collectionId",
+    arch.formation_process_definition as "formationProcessDefinition", arch.execution_process_definition as "executionProcessDefinition",
+    ${checkParties(userAccount)} AS "isParty",
+    ${checkCreator(userAccount)} AS "isCreator",
+    ${checkAgreementTasks(userAccount)} AS "isAssignedTask"
+    FROM agreements a
+    LEFT JOIN agreement_to_collection ac ON a.agreement_address = ac.agreement_address
+    LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address
+    JOIN archetypes arch ON a.archetype_address = arch.archetype_address
+    WHERE a.agreement_address = $1 AND (
+      ${includePublic ? 'a.is_private = FALSE OR ' : ''}
+      ${checkCreator(userAccount)} OR
+      ${checkParties(userAccount)} OR
+      ${checkAgreementTasks(userAccount)}
+    );`;
+  return runChainDbQuery(queryString, [agreementAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement data: ${err}`); });
 };
 
@@ -355,18 +435,6 @@ const getGoverningAgreements = (agreementAddress) => {
     WHERE agreement_address = $1;`;
   return runChainDbQuery(queryString, [agreementAddress])
     .catch((err) => { throw boom.badImplementation(`Failed to get governing agreements: ${err}`); });
-};
-
-const getAgreementEventLogDetails = (agreementAddress) => {
-  const queryString = 'SELECT ' +
-    'a.event_log_file_reference as "eventLogFileReference", ' +
-    'a.max_event_count::integer as "maxNumberOfEvents" FROM agreements a WHERE agreement_address = $1;';
-  return runChainDbQuery(queryString, [agreementAddress])
-    .then((data) => {
-      if (!data.length) throw boom.notFound(`Agreement at address ${agreementAddress} not found`);
-      return data[0];
-    })
-    .catch((err) => { throw boom.badImplementation(`Failed to get event log details of agreement: ${err}`); });
 };
 
 const getAgreementCollections = (userAccount) => {
@@ -444,9 +512,10 @@ const getActivityInstanceData = (id, userAddress) => {
     ai.created, ai.performer, ai.completed, ad.task_type as "taskType", ad.application as application,
     pd.model_address as "modelAddress", pm.id as "modelId", pd.id as "processDefinitionId",
     pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
-    ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agr.name as "agreementName",
+    ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agrd.name as "agreementName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope, UPPER(encode(o.organization_id::bytea, 'hex')) as "organizationKey",
     COALESCE(accounts.id, accounts.name) AS "performerDisplayName", dd.name AS "scopeDisplayName",
+    agr.event_log_file_reference AS "attachmentsFileReference", agr.max_event_count::integer as "maxNumberOfAttachments",
     (
       ai.performer = $2 OR (
         ai.performer IN (
@@ -476,7 +545,8 @@ const getActivityInstanceData = (id, userAddress) => {
     JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address
     JOIN process_models pm ON pm.model_address = pd.model_address
     LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address
-    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agrd ON agrd.address = ds.address_value 
+    LEFT JOIN agreements agr ON agr.agreement_address = ds.address_value
     LEFT JOIN applications app ON app.application_id = ad.application
     LEFT JOIN organization_accounts o ON o.organization_address = ai.performer 
     LEFT JOIN entities_address_scopes scopes ON (
@@ -756,9 +826,11 @@ module.exports = {
   getArchetypesInPackage,
   getAgreements,
   getAgreementData,
+  checkParties,
+  checkCreator,
+  checkAgreementTasks,
   getAgreementParties,
   getGoverningAgreements,
-  getAgreementEventLogDetails,
   getAgreementCollections,
   getAgreementCollectionData,
   getActivityInstances,
