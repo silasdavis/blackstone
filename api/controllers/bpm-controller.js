@@ -251,15 +251,7 @@ const getDefinitions = asyncMiddleware(async (req, res) => {
 });
 
 const getDefinition = asyncMiddleware(async (req, res) => {
-  const processDefn = (await sqlCache.getProcessDefinitionData(req.params.address))[0];
-  const profileData = (await sqlCache.getProfile(req.user.address))[0];
-  if (!processDefn) throw boom.notFound(`Data for process definition ${req.params.address} not found`);
-  if (processDefn.isPrivate &&
-    processDefn.author !== req.user.address &&
-    !profileData.find(({ organization }) => organization === processDefn.author)) {
-    throw boom.forbidden('You are not authorized to view process details from this private model');
-  }
-  // retData = format('Definition', processDefn);
+  const processDefn = await sqlCache.getProcessDefinitionData(req.params.address, req.user.address);
   const data = await pgCache.populateProcessNames([processDefn]);
   return res.status(200).json(data[0]);
 });
@@ -278,15 +270,8 @@ const parseBpmnModel = async (rawXml) => {
 };
 
 const getModelDiagram = asyncMiddleware(async (req, res) => {
-  const model = (await sqlCache.getProcessModelData(req.params.address))[0];
-  if (!model) throw boom.notFound(`Data for process model ${req.params.address} not found`);
-  const profileData = (await sqlCache.getProfile(req.user.address))[0];
-  if (model.isPrivate &&
-    model.author !== req.user.address &&
-    !profileData.find(({ organization }) => organization === model.author)) {
-    throw boom.forbidden('You are not authorized to view this private model');
-  }
-  const diagram = await hoardGet(model.modelFileReference);
+  const modelFileReference = await sqlCache.getProcessModelFileReference(req.params.address, req.user.address);
+  const diagram = await hoardGet(modelFileReference);
   const data = splitMeta(diagram);
   if (req.headers.accept.includes('application/xml')) {
     res.attachment(data.meta.name);
