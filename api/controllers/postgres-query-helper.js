@@ -24,13 +24,28 @@ const runAppDbQuery = (queryString, values = []) => runQuery(app_db_pool, queryS
 const runChainDbQuery = (queryString, values = []) => runQuery(chain_db_pool, queryString, values);
 
 const getOrganizations = (queryParams) => {
+  const query = where(queryParams);
   const queryString = `SELECT o.organization_address AS address, UPPER(encode(o.organization_id::bytea, 'hex')) AS "organizationKey",
     oa.approver_address AS approver, od.name
     FROM organization_accounts o
     JOIN ${process.env.POSTGRES_DB_SCHEMA}.organizations od ON od.address = o.organization_address
     JOIN organization_approvers oa ON (o.organization_address = oa.organization_address)
-    ${where(queryParams)}`;
-  return runChainDbQuery(queryString)
+    WHERE ${query.queryString};`;
+  return runChainDbQuery(queryString, query.queryVals)
+    .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
+};
+
+const userIsOrganizationApprover = (orgAddress, userAccount) => {
+  const queryString = `SELECT (
+    $1 IN (
+      SELECT approver_address
+      FROM organization_approvers oa
+      WHERE oa.organization_address = $2
+    )
+  ) AS "isApprover"
+  FROM organization_approvers;`;
+  return runChainDbQuery(queryString, [userAccount, orgAddress])
+    .then(rows => rows[0].isApprover)
     .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
 };
 
@@ -53,14 +68,12 @@ const getOrganization = (orgAddress) => {
 };
 
 const getUsers = (queryParams) => {
-  const _queryParams = Object.assign({}, queryParams);
-  if (_queryParams.id) _queryParams.id = `\\x${queryParams.id}`;
+  const query = where(queryParams);
   const queryString = `SELECT user_account_address AS address, users.username AS id
   FROM user_accounts
   JOIN ${process.env.POSTGRES_DB_SCHEMA}.users users ON users.address = user_accounts.user_account_address
-  WHERE external_user = FALSE
-  ${queryParams ? where(_queryParams, true) : ''};`;
-  return runChainDbQuery(queryString)
+  WHERE ${query.queryString} AND external_user = FALSE;`;
+  return runChainDbQuery(queryString, query.queryVals)
     .then(data => data)
     .catch((err) => { throw boom.badImplementation(`Failed to get users: ${err.stack}`); });
 };
@@ -141,15 +154,35 @@ const getParameterTypes = () => {
     .catch((err) => { throw boom.badImplementation(`Failed to get parameter types: ${err}`); });
 };
 
-const getArchetypeData = (queryParams, userAccount) => {
-  const queryString = 'SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate", ' +
-    '(SELECT cast(count(ad.archetype_address) as integer) FROM archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments", ' +
-    '(SELECT cast(count(af.archetype_address) as integer) FROM archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters" ' +
-    'FROM archetypes a ' +
-    `JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address ` +
-    `WHERE (a.is_private = $1 AND a.active = $2 ${(queryParams ? `${where(queryParams, true)})` : ')')}` +
-    `OR (a.author = $3 ${(queryParams ? `${where(queryParams, true)})` : ')')}`;
-  return runChainDbQuery(queryString, [false, true, userAccount])
+const getArchetypes = (queryParams, userAccount) => {
+  const query = where(queryParams);
+  const queryString = `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate",
+    (SELECT cast(count(ad.archetype_address) as integer) FROM archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments",
+    (SELECT cast(count(af.archetype_address) as integer) FROM archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters",
+    array_remove(array_agg(aj.country), NULL) AS countries
+    FROM archetypes a
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address
+    LEFT JOIN archetype_jurisdictions aj ON aj.archetype_address = a.archetype_address
+    WHERE
+    ${query.queryString} AND (
+      (a.is_private = FALSE AND a.active = TRUE) OR a.author = $${query.queryVals.length + 1}
+    )
+    GROUP BY a.archetype_address, ad.name, ad.description;`;
+  return runChainDbQuery(queryString, [...query.queryVals, userAccount])
+    .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
+};
+
+const getArchetypeData = (archetypeAddress, userAccount) => {
+  const queryString = `SELECT a.archetype_address as address, ad.name, a.author,
+    ad.description, a.price, a.active, a.is_private as "isPrivate"
+    FROM archetypes a
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address
+    WHERE
+    a.archetype_address = $1 AND (
+      (a.is_private = FALSE AND a.active = TRUE) OR a.author = $2
+    );`;
+  return runChainDbQuery(queryString, [archetypeAddress, userAccount])
+    .then(rows => rows[0])
     .catch((err) => { throw boom.badImplementation(`Failed to get archetype data: ${err}`); });
 };
 
@@ -247,12 +280,16 @@ const getGoverningArchetypes = (archetypeAddress) => {
 };
 
 const getArchetypePackages = (queryParams, userAccount) => {
-  const queryString = 'SELECT UPPER(encode(package_id::bytea, \'hex\')) AS id, pd.name, pd.description, p.author, p.is_private as "isPrivate", p.active ' +
-    'FROM ARCHETYPE_PACKAGES p ' +
-    `JOIN ${process.env.POSTGRES_DB_SCHEMA}.package_details pd ON UPPER(pd.id) = UPPER(encode(package_id::bytea, 'hex')) ` +
-    `WHERE (is_private = $1 AND active = $2 ${(queryParams ? `${where(queryParams, true)})` : ')')}` +
-    `OR (author = $3 ${(queryParams ? `${where(queryParams, true)})` : ')')}`;
-  return runChainDbQuery(queryString, [false, true, userAccount])
+  const query = where(queryParams);
+  const queryString = `SELECT UPPER(encode(package_id::bytea, 'hex')) AS id, pd.name, pd.description,
+    p.author, p.is_private as "isPrivate", p.active
+    FROM ARCHETYPE_PACKAGES p
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.package_details pd ON UPPER(pd.id) = UPPER(encode(package_id::bytea, 'hex'))
+    WHERE
+    ${query.queryString} AND (
+      (is_private = FALSE AND active = TRUE) OR author = $${query.queryVals.length + 1}
+    );`;
+  return runChainDbQuery(queryString, [...query.queryVals, userAccount])
     .then(data => data)
     .catch((err) => {
       if (err.isBoom) throw err;
@@ -369,6 +406,7 @@ const checkAgreementTasks = (userAccount) => {
 };
 
 const getAgreements = (queryParams, forCurrentUser, userAccount) => {
+  const query = where(queryParams);
   const queryString = `SELECT DISTINCT(a.agreement_address) as address, a.archetype_address as archetype, ad.name, a.creator,
     a.event_log_file_reference AS "attachmentsFileReference",
     a.max_event_count::integer as "maxNumberOfAttachments", a.is_private as "isPrivate", a.legal_state as "legalState",
@@ -377,11 +415,13 @@ const getAgreements = (queryParams, forCurrentUser, userAccount) => {
     FROM agreements a
     JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address
     LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
-    WHERE ${forCurrentUser ? `${checkParties(userAccount)} OR
-    ${checkCreator(userAccount)} OR
-    ${checkAgreementTasks(userAccount)} ` : 'a.is_private = FALSE '}
-    ${queryParams ? where(queryParams, true) : ''};`;
-  return runChainDbQuery(queryString, [])
+    WHERE
+    ${query.queryString} AND (
+      ${forCurrentUser ? `${checkParties(userAccount)} OR
+      ${checkCreator(userAccount)} OR
+      ${checkAgreementTasks(userAccount)} ` : 'a.is_private = FALSE'}
+    );`;
+  return runChainDbQuery(queryString, query.queryVals)
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement(s): ${err}`); });
 };
 
@@ -467,7 +507,9 @@ const getAgreementCollectionData = (collectionId) => {
     });
 };
 
-const getActivityInstances = ({ processAddress, agreementAddress }) => {
+const getActivityInstances = (userAccount, queryParams) => {
+  const query = where(queryParams);
+  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
   const queryString = `SELECT 
     DISTINCT(UPPER(encode(ai.activity_instance_id::bytea, 'hex'))) as "activityInstanceId",
     ai.process_instance_address AS "processAddress",
@@ -486,7 +528,30 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
     ds.address_value as "agreementAddress",
     agr.name as "agreementName",
     ad.task_type as "taskType",
-    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName"
+    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName",
+    (
+      ai.performer = $${query.queryVals.length + 1} OR (
+        ai.performer IN (
+          select organization_address FROM organization_users ou WHERE ou.user_address = $${query.queryVals.length + 1}
+        ) AND (
+          (
+            scopes.fixed_scope IS NULL AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = ai.performer
+            )
+          ) OR scopes.fixed_scope IN (
+            select department_id FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = ai.performer
+          ) OR scopes.fixed_scope = (
+            select organization_id FROM organization_accounts o WHERE o.organization_address = ai.performer
+          ) OR (
+            scopes.fixed_scope IS NOT NULL AND scopes.fixed_scope NOT IN (
+              select department_id FROM organization_departments od WHERE od.organization_address = ai.performer
+            ) AND UPPER('${defDepId}') IN (
+              SELECT UPPER(encode(department_id::bytea, 'hex')) FROM department_users du WHERE du.user_address = $${query.queryVals.length + 1} AND du.organization_address = performer
+            )
+          )
+        )
+      )
+    ) AS "assignedToUser"
     FROM activity_instances ai  
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address 
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address 
@@ -498,10 +563,14 @@ const getActivityInstances = ({ processAddress, agreementAddress }) => {
       UNION
       SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
     ) accounts ON ai.completed_by = accounts.address
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = ds.storage_address 
+      AND scopes.scope_address = ai.performer 
+      AND scopes.scope_context = ai.activity_id
+    )
     WHERE ds.data_id = 'agreement'
-    ${(processAddress ? ` AND ai.process_instance_address = '${processAddress}'` : '')}
-    ${(agreementAddress ? ` AND ds.address_value = '${agreementAddress}';` : ';')}`;
-  return runChainDbQuery(queryString)
+    AND ${query.queryString}`;
+  return runChainDbQuery(queryString, [...query.queryVals, userAccount])
     .catch((err) => { throw boom.badImplementation(`Failed to get activities: ${err}`); });
 };
 
@@ -675,13 +744,16 @@ const getDataMappingsForActivity = (activityInstanceId, dataMappingId) => {
 };
 
 const getProcessDefinitions = (author, { interfaceId, processDefinitionId, modelId }) => {
-  const queryString = 'SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address, pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId", pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author ' +
-    'FROM process_definitions pd JOIN process_models pm ' +
-    'ON pd.model_address = pm.model_address ' +
-    'WHERE (pm.is_private = $1 OR pm.author = $2) ' +
-    `${(interfaceId ? `AND pd.interface_id = '${interfaceId}'` : '')} ` +
-    `${(processDefinitionId ? `AND pd.id = '${processDefinitionId}'` : '')} ` +
-    `${(modelId ? `AND pm.id = '${modelId}'` : '')};`;
+  const queryString = `SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address,
+    pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId",
+    pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author,
+    (SELECT username FROM ${process.env.POSTGRES_DB_SCHEMA}.users WHERE address = $2) AS "authorDisplayName"
+    FROM process_definitions pd JOIN process_models pm
+    ON pd.model_address = pm.model_address
+    WHERE (pm.is_private = $1 OR pm.author = $2)
+    ${(interfaceId ? `AND pd.interface_id = '${interfaceId}'` : '')}
+    ${(processDefinitionId ? `AND pd.id = '${processDefinitionId}'` : '')}
+    ${(modelId ? `AND pm.id = '${modelId}'` : '')};`;
   const params = [false, author];
   return runChainDbQuery(queryString, params)
     .catch((err) => { throw boom.badImplementation(`Failed to get process definitions: ${err}`); });
@@ -804,6 +876,7 @@ const removeDepartmentDetails = ({ organizationAddress, id }) => {
 module.exports = {
   getOrganizations,
   getOrganization,
+  userIsOrganizationApprover,
   getUsers,
   getProfile,
   getCountries,
@@ -813,6 +886,7 @@ module.exports = {
   getCurrencyByAlpha3Code,
   getParameterType,
   getParameterTypes,
+  getArchetypes,
   getArchetypeData,
   getArchetypeJurisdictionsAll,
   getArchetypeDataWithProcessDefinitions,
