@@ -7,14 +7,14 @@ contract PermissionedTest {
 	
 	string constant SUCCESS = "success";
 
-	string constant permission1 = "test.permission1";
-	string constant permission2 = "test.permission2";
-	string constant permission3 = "test.permission3";
+	bytes32 constant permission1 = "test.permission1";
+	bytes32 constant permission2 = "test.permission2";
+	bytes32 constant permission3 = "test.permission3";
 
-	string constant functionSigCreatePermission = "createPermission(string,bool,bool,bool)";
-	string constant functionSigGrantPermission = "grantPermission(string,address)";
-	string constant functionSigRevokePermission = "revokePermission(string,address)";
-	string constant functionSigTransferPermission = "transferPermission(string,address)";
+	string constant functionSigCreatePermission = "createPermission(bytes32,bool,bool,bool)";
+	string constant functionSigGrantPermission = "grantPermission(bytes32,address)";
+	string constant functionSigRevokePermission = "revokePermission(bytes32,address)";
+	string constant functionSigTransferPermission = "transferPermission(bytes32,address)";
 
 	/**
 	 * @dev Tests the functions of a Permissioned contract

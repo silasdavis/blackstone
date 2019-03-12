@@ -12,7 +12,7 @@ contract AbstractPermissioned is Permissioned {
 
     using ArrayUtilsLib for address[];
 
-    string public constant ROLE_ID_PERMISSION_ADMIN = "permission.admin";
+    bytes32 public constant ROLE_ID_PERMISSION_ADMIN = keccak256(abi.encodePacked("permission.admin"));
 
     struct Permission {
         address[] holders;
@@ -22,9 +22,9 @@ contract AbstractPermissioned is Permissioned {
         bool exists;
     }
 
-    mapping(string => Permission) permissions;
+    mapping(bytes32 => Permission) permissions;
 
-    modifier pre_requiresPermission(string _permission) {
+    modifier pre_requiresPermission(bytes32 _permission) {
         ErrorsLib.revertIf(!hasPermission(_permission, msg.sender),
             ErrorsLib.UNAUTHORIZED(), "AbstractPermissioned.pre_requiresPermission", "The msg.sender does not have the required permission");
         _;
@@ -39,7 +39,7 @@ contract AbstractPermissioned is Permissioned {
         permissions[ROLE_ID_PERMISSION_ADMIN].exists = true;
     }
 
-    function grantPermission(string _permission, address _newHolder)
+    function grantPermission(bytes32 _permission, address _newHolder)
         external
         pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
     {
@@ -70,7 +70,7 @@ contract AbstractPermissioned is Permissioned {
         }
     }
 
-    function createPermission(string _permission, bool _multiHolder, bool _revocable, bool _transferable)
+    function createPermission(bytes32 _permission, bool _multiHolder, bool _revocable, bool _transferable)
         external
         pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
     {
@@ -82,7 +82,7 @@ contract AbstractPermissioned is Permissioned {
         permissions[_permission].exists = true;
     }
 
-    function transferPermission(string _permission, address _newHolder)
+    function transferPermission(bytes32 _permission, address _newHolder)
         external
     {
 		// TODO, if perm is multiholder, then transferPermission needs to check if the new holder is already a holder!
@@ -102,7 +102,7 @@ contract AbstractPermissioned is Permissioned {
         revert(ErrorsLib.format(ErrorsLib.UNAUTHORIZED(), "AbstractPermissioned.transferPermission", "The msg.sender does not hold the specified permission"));
     }
 
-    function revokePermission(string _permission, address _holder)
+    function revokePermission(bytes32 _permission, address _holder)
         external
         pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
     {
@@ -124,7 +124,7 @@ contract AbstractPermissioned is Permissioned {
         // for multiholder ??? leave slot empty and fill it on the next grantPermission? or shift all array entries?
     }
 
-    function hasPermission(string _permission, address _holder) public view returns (bool result) {
+    function hasPermission(bytes32 _permission, address _holder) public view returns (bool result) {
         if (permissions[_permission].exists) {
             result = permissions[_permission].multiHolder ?
                 permissions[_permission].holders.contains(_holder) :
