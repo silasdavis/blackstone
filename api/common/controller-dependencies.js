@@ -68,6 +68,8 @@ const dependencies = {
         break;
       case 'Agreement':
         element.isPrivate = Boolean(element.isPrivate);
+        if (Number(element.formationProcessDefinition) === 0) element.formationProcessDefinition = null;
+        if (Number(element.executionProcessDefinition) === 0) element.executionProcessDefinition = null;
         break;
       case 'Application':
         element.id = hexToString(element.id);
