@@ -499,28 +499,31 @@ const getAgreements = asyncMiddleware(async (req, res) => {
   return res.json(retData);
 });
 
-const getAgreement = asyncMiddleware(async (req, res) => {
-  if (!req.params.address) throw boom.badRequest('Agreement address is required');
-  const addr = req.params.address;
-  let data = (await sqlCache.getAgreementData(addr, req.user.address))[0];
-  if (!data) throw boom.notFound(`Agreement at ${addr} not found or user has insufficient privileges`);
-  data.parties = await sqlCache.getAgreementParties(addr);
-  const parameters = await getAgreementParameters(addr, data.privateParametersFileReference);
-  data = format('Agreement', data);
+const getAgreement = async (agrAddress, userAddress) => {
+  let data = await sqlCache.getAgreementData(agrAddress, userAddress);
+  if (!data) throw boom.notFound(`Agreement at ${agrAddress} not found or user has insufficient privileges`);
+  data.parties = await sqlCache.getAgreementParties(agrAddress);
   data.documents = await sqlCache.getArchetypeDocuments(data.archetype);
+  const parameters = await getAgreementParameters(agrAddress, data.privateParametersFileReference);
   const withNames = await getParticipantNames(parameters, false, 'value');
   const withNamesObj = {};
   withNames.forEach(({ value, id, name }) => {
     if (id || name) withNamesObj[value] = { value, displayValue: id || name };
   });
   data.parameters = parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
-  data.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
-  return res.status(200).json(data);
+  data.governingAgreements = await sqlCache.getGoverningAgreements(agrAddress);
+  data = format('Agreement', data);
+  return data;
+};
+
+const getAgreementHandler = asyncMiddleware(async (req, res) => {
+  const agreement = await getAgreement(req.params.address, req.user.address);
+  return res.status(200).json(agreement);
 });
 
 const updateAgreementAttachments = asyncMiddleware(async (req, res) => {
   const { address } = req.params;
-  const data = (await sqlCache.getAgreementData(address, req.user.address, false))[0];
+  const data = await sqlCache.getAgreementData(address, req.user.address, false);
   if (!data) throw boom.notFound(`Agreement at ${address} not found or user has insufficient privileges`);
   let name;
   let content;
@@ -663,6 +666,7 @@ module.exports = {
   getAgreementParameters,
   getAgreements,
   getAgreement,
+  getAgreementHandler,
   updateAgreementAttachments,
   signAgreement,
   cancelAgreement,

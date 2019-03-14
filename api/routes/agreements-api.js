@@ -16,7 +16,7 @@ const {
   deactivateArchetypePackage,
   createAgreement,
   getAgreements,
-  getAgreement,
+  getAgreementHandler,
   updateAgreementAttachments,
   signAgreement,
   cancelAgreement,
@@ -630,7 +630,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/agreements/:address', middleware, getAgreement);
+  app.get('/agreements/:address', middleware, getAgreementHandler);
 
   /**
  * @api {post} /agreements Create an Agreement

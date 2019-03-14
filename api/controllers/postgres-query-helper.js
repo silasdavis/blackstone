@@ -447,16 +447,16 @@ const getAgreementData = (agreementAddress, userAccount, includePublic = true) =
       ${checkAgreementTasks(userAccount)}
     );`;
   return runChainDbQuery(queryString, [agreementAddress])
+    .then(rows => rows[0])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement data: ${err}`); });
 };
 
 const getAgreementParties = (agreementAddress) => {
   const queryString = `SELECT parties.party AS address, parties.signature_timestamp::integer AS "signatureTimestamp",
-    parties.signed_by AS "signedBy", user_accounts.user_account_address, COALESCE(party.username, party.name) AS "partyDisplayName",
+    parties.signed_by AS "signedBy", COALESCE(party.username, party.name) AS "partyDisplayName",
     signer.username AS "signedByDisplayName", canceler.username AS "canceledByDisplayName",
     parties.cancelation_timestamp::integer AS "cancelationTimestamp", parties.canceled_by AS "canceledBy"
     FROM agreement_to_party parties
-    LEFT JOIN user_accounts ON parties.party = user_accounts.user_account_address
     LEFT JOIN (SELECT username, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
       SELECT NULL AS username, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
