@@ -536,7 +536,7 @@ const getActivityInstances = (userAccount, queryParams) => {
     agr.name as "agreementName",
     ad.task_type as "taskType",
     completers.username AS "completedByDisplayName",
-    COALESCE(completers.id, completers.name) AS "performerDisplayName",
+    COALESCE(performers.username, performers.name) AS "performerDisplayName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope,
     dd.name AS "scopeDisplayName",
     (
@@ -570,9 +570,9 @@ const getActivityInstances = (userAccount, queryParams) => {
     LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address 
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users completers ON ai.completed_by = completers.address
-    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
+    LEFT JOIN (SELECT username, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
-      SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
+      SELECT NULL AS username, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
     ) performers ON ai.performer = performers.address
     LEFT JOIN entities_address_scopes scopes ON (
       scopes.entity_address = ds.storage_address 
