@@ -535,7 +535,10 @@ const getActivityInstances = (userAccount, queryParams) => {
     ds.address_value as "agreementAddress",
     agr.name as "agreementName",
     ad.task_type as "taskType",
-    COALESCE(accounts.id, accounts.name) AS "completedByDisplayName",
+    completers.username AS "completedByDisplayName",
+    COALESCE(completers.id, completers.name) AS "performerDisplayName",
+    UPPER(encode(scopes.fixed_scope, 'hex')) AS scope,
+    dd.name AS "scopeDisplayName",
     (
       ai.performer = $${query.queryVals.length + 1} OR (
         ai.performer IN (
@@ -566,15 +569,17 @@ const getActivityInstances = (userAccount, queryParams) => {
     JOIN process_models pm ON pm.model_address = pd.model_address 
     LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address 
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users completers ON ai.completed_by = completers.address
     LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
       SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
-    ) accounts ON ai.completed_by = accounts.address
+    ) performers ON ai.performer = performers.address
     LEFT JOIN entities_address_scopes scopes ON (
       scopes.entity_address = ds.storage_address 
       AND scopes.scope_address = ai.performer 
       AND scopes.scope_context = ai.activity_id
     )
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON ai.performer = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
     WHERE ds.data_id = 'agreement'
     AND ${query.queryString}`;
   return runChainDbQuery(queryString, [...query.queryVals, userAccount])
