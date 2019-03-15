@@ -517,4 +517,5 @@ module.exports = {
   parseBpmnModel,
   pushModelXmlToHoard,
   addProcessesToModel,
+  addDataDefinitionsToModel,
 };
