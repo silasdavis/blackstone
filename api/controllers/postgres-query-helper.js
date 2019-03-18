@@ -3,7 +3,7 @@ const {
   where,
   getSHA256Hash,
 } = require(`${global.__common}/controller-dependencies`);
-const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
+const { DEFAULT_DEPARTMENT_ID, AGREEMENT_PARTIES } = global.__monax_constants;
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
 const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
@@ -462,7 +462,10 @@ const getAgreementParties = (agreementAddress) => {
   const queryString = `SELECT parties.party AS address, parties.signature_timestamp::integer AS "signatureTimestamp",
     parties.signed_by AS "signedBy", COALESCE(party.username, party.name) AS "partyDisplayName",
     signer.username AS "signedByDisplayName", canceler.username AS "canceledByDisplayName",
-    parties.cancelation_timestamp::integer AS "cancelationTimestamp", parties.canceled_by AS "canceledBy"
+    parties.cancelation_timestamp::integer AS "cancelationTimestamp", parties.canceled_by AS "canceledBy",
+    UPPER(encode(scopes.fixed_scope, 'hex')) AS scope, 
+    UPPER(encode(o.organization_id::bytea, 'hex')) AS "organizationKey",
+    dd.name AS "scopeDisplayName"
     FROM agreement_to_party parties
     LEFT JOIN (SELECT username, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
@@ -470,8 +473,15 @@ const getAgreementParties = (agreementAddress) => {
     ) party ON parties.party = party.address
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users signer ON parties.signed_by = signer.address
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.users canceler ON parties.canceled_by = canceler.address
+    LEFT JOIN entities_address_scopes scopes ON (
+      scopes.entity_address = parties.agreement_address 
+      AND scopes.scope_address = parties.party 
+      AND scopes.scope_context = $2
+    )
+    LEFT JOIN organization_accounts o ON o.organization_address = parties.party 
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON dd.organization_address = o.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
     WHERE parties.agreement_address = $1;`;
-  return runChainDbQuery(queryString, [agreementAddress])
+  return runChainDbQuery(queryString, [agreementAddress, AGREEMENT_PARTIES])
     .catch((err) => { throw boom.badImplementation(`Failed to get agreement parties: ${err}`); });
 };
 
@@ -539,6 +549,7 @@ const getActivityInstances = (userAccount, queryParams) => {
     COALESCE(performers.username, performers.name) AS "performerDisplayName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope,
     dd.name AS "scopeDisplayName",
+    UPPER(encode(o.organization_id::bytea, 'hex')) AS "organizationKey",
     (
       ai.performer = $${query.queryVals.length + 1} OR (
         ai.performer IN (
@@ -579,7 +590,8 @@ const getActivityInstances = (userAccount, queryParams) => {
       AND scopes.scope_address = ai.performer 
       AND scopes.scope_context = ai.activity_id
     )
-    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON ai.performer = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
+    LEFT JOIN organization_accounts o ON o.organization_address = ai.performer 
+    LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON o.organization_address = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
     WHERE ds.data_id = 'agreement'
     AND ${query.queryString}`;
   return runChainDbQuery(queryString, [...query.queryVals, userAccount])
