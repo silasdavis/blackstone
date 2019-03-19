@@ -159,7 +159,7 @@ const getArchetypes = (queryParams, userAccount) => {
   const queryString = `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate",
     (SELECT cast(count(ad.archetype_address) as integer) FROM archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments",
     (SELECT cast(count(af.archetype_address) as integer) FROM archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters",
-    array_remove(array_agg(aj.country), NULL) AS countries
+    array_remove(array_agg(DISTINCT(aj.country)), NULL) AS countries
     FROM archetypes a
     JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details ad ON a.archetype_address = ad.address
     LEFT JOIN archetype_jurisdictions aj ON aj.archetype_address = a.archetype_address
