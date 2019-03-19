@@ -407,13 +407,15 @@ const checkAgreementTasks = (userAccount) => {
 
 const getAgreements = (queryParams, forCurrentUser, userAccount) => {
   const query = where(queryParams);
-  const queryString = `SELECT DISTINCT(a.agreement_address) as address, a.archetype_address as archetype, ad.name, a.creator,
+  const queryString = `SELECT DISTINCT(a.agreement_address) as address, ad.name, a.creator,
+    a.archetype_address as archetype, archd.name AS "archetypeName",
     a.event_log_file_reference AS "attachmentsFileReference",
     a.max_event_count::integer as "maxNumberOfAttachments", a.is_private as "isPrivate", a.legal_state as "legalState",
     a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance",
     (SELECT count(ap.agreement_address) FROM agreement_to_party ap WHERE a.agreement_address = ap.agreement_address)::integer AS "numberOfParties"
     FROM agreements a
     JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details ad ON a.agreement_address = ad.address
+    JOIN ${process.env.POSTGRES_DB_SCHEMA}.archetype_details archd ON a.archetype_address = archd.address
     LEFT JOIN agreement_to_party ap ON a.agreement_address = ap.agreement_address
     WHERE
     ${query.queryString} AND (
