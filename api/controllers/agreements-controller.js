@@ -73,7 +73,7 @@ const _checkTasksForParamUse = (tasks, parametersLength, paramsRequired, paramsR
 const _checkProcessForParamUse = async (process, paramsRequired, parametersLength, paramsRequiredCount = 0) => {
   let newCount = paramsRequiredCount;
   newCount = _checkObjectsForParamUse(process.participants, parametersLength, paramsRequired, newCount);
-  ['tasks', 'userTasks', 'sendTasks'].forEach((taskType) => {
+  ['tasks', 'userTasks', 'sendTasks', 'serviceTasks'].forEach((taskType) => {
     newCount = _checkTasksForParamUse(process[taskType], parametersLength, paramsRequired, newCount);
   });
   newCount = _checkObjectsForParamUse(
