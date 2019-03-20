@@ -50,6 +50,8 @@ services:
     - /app/api/sqlsol
     - --abi
     - /app/contracts/src/bin
+    volumes:
+      - contracts-bin:/app/contracts/src/bin
     depends_on:
     - postgres
     - chain
@@ -61,9 +63,19 @@ services:
     - "3080:3080"
     - "9222:9222"
     working_dir: /app
+    # We don't have a nice way of mixing working within container and locally without mounting project directory.
+    # The lack of easy compiling of solc 0.4.25 for mac is our current issue - totally resolvable but we may just prefer
+    # to upgrade
+    volumes:
+      - contracts-bin:/app/contracts/src/bin
+      - public-abi:/app/api/public-abi
     depends_on:
     - postgres
     - hoard
     - vent
     - chain
     command: "npm --prefix api run-script start:dev"
+volumes:
+  # Allows us to share between vent and API
+  contracts-bin:
+  public-abi:

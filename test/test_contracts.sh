@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 echo "Hello! I'm the marmot that tests the contracts."
 
-CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"./contracts/src"}
-cd "$CONTRACTS_DIRECTORY"
+CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"./contracts"}
+cd "$CONTRACTS_DIRECTORY/src"
 
 contracts_log="./test-contracts.log"
 jobs_log="./test-contracts-jobs.log"

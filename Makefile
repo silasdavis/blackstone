@@ -11,17 +11,14 @@
 ### Contracts
 
 .PHONY: build_contracts
-build_contracts: export CONTRACTS_DIRECTORY=./contracts/src
 build_contracts:
 	contracts/build_contracts $(tgt)
 
 .PHONY: deploy_contracts
-deploy_contracts: export CONTRACTS_DIRECTORY=./contracts/src
 deploy_contracts:
 	contracts/deploy_contracts $(tgt)
 
 .PHONY: test_contracts
-test_contracts: export CONTRACTS_DIRECTORY=./contracts/src
 test_contracts:
 	test/test_contracts.sh $(tgt)
 
@@ -32,17 +29,17 @@ copy_abis:
 ### Node API
 
 .PHONY: install_api
-install_api: copy_abis
+install_api:
 	cd api && npm install
 
 .PHONY: test_api
-test_api:
+test_api: copy_abis
 	cd api && npm test
 
 ### Run and test
 
 .PHONY: all
-all: | build_contracts deploy_contracts install_api
+all: | build_contracts deploy_contracts copy_abis install_api
 
 # Full test (run by CI)
 .PHONY: test
@@ -58,7 +55,6 @@ clean_all:
 	test/clean.sh all
 
 ### Docker Compose
-
 # Build the container (copying in working dir)
 .PHONY: docker_build
 docker_build:
@@ -73,7 +69,7 @@ docker_rebuild: clean
 # To catch DCB args above so we build with CI user
 .PHONY: docker_test
 docker_test: docker_run_deps
-	docker-compose logs -f > test/chain/burrow.log &
+	docker-compose logs -f chain > test/chain/burrow.log &
 	docker-compose run api make test
 
 # Just run the dependency services in docker compose (you can build and deploy contracts and the run the API locally)
@@ -88,6 +84,11 @@ docker_run_all: docker_build
 	docker-compose up -d
 	docker-compose logs --follow api &
 
+# Build, deploy, and test contracts from within container (using packaged verison of solc - useful on mac)
+.PHONY: docker_contracts
+docker_contracts:
+	docker-compose run api make build_contracts deploy_contracts test_contracts
+
 # Just run the API and its dependencies
 .PHONY: docker_run
 docker_run: docker_build
@@ -99,4 +100,3 @@ docker_down:
 	pkill docker-compose || true
 	docker-compose down
 	docker-compose rm --force --stop
-
