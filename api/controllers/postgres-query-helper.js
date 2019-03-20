@@ -747,7 +747,7 @@ const getProcessDefinitions = (author, { interfaceId, processDefinitionId, model
   const queryString = `SELECT pd.id as "processDefinitionId", pd.process_definition_address AS address,
     pd.model_address as "modelAddress", pd.interface_id as "interfaceId", pm.id as "modelId",
     pm.model_file_reference as "modelFileReference", pm.is_private as "isPrivate", pm.author,
-    (SELECT username FROM ${process.env.POSTGRES_DB_SCHEMA}.users WHERE address = $2) AS "authorDisplayName"
+    (SELECT username FROM ${process.env.POSTGRES_DB_SCHEMA}.users WHERE address = pm.author) AS "authorDisplayName"
     FROM process_definitions pd JOIN process_models pm
     ON pd.model_address = pm.model_address
     WHERE (pm.is_private = $1 OR pm.author = $2)
