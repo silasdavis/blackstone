@@ -131,7 +131,7 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
     dataMappings = body;
     if (!Array.isArray(dataMappings)) throw boom.badRequest('Expected array of data mapping objects');
   }
-  dataMappings = await createOrFindAccountsWithEmails(dataMappings, 'parameterType');
+  ({ parameters: dataMappings } = await createOrFindAccountsWithEmails(dataMappings, 'parameterType'));
   _validateDataMappings(dataMappings);
   const setValuePromises = dataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
   await Promise.all(setValuePromises)
@@ -204,7 +204,7 @@ const completeActivity = asyncMiddleware(async (req, res) => {
   let { data } = req.body;
   if (!activityInstanceId) throw boom.badRequest('Activity instance Id required');
   if (data) {
-    data = await createOrFindAccountsWithEmails(data, 'parameterType');
+    ({ parameters: data } = await createOrFindAccountsWithEmails(data, 'parameterType'));
     _validateDataMappings(data);
     if (data.length === 1) {
       // if only one data mapping then writing data and completing activity
