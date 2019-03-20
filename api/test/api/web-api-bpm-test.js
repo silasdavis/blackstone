@@ -598,7 +598,7 @@ describe(':: DATA MAPPING TEST ::', function () {
 
   let managerTask, adminTask;
 
-  before('Should register users', async () => {
+  it('Should register users', async () => {
     // REGISTER USERS
     let registerResult = await api.registerUser(manager);
     manager.address = registerResult.address;
@@ -608,7 +608,7 @@ describe(':: DATA MAPPING TEST ::', function () {
     expect(admin.address).to.exist
   })
 
-  before('Should login users', function (done) {
+  it('Should login users', function (done) {
     // LOGIN USERS
     setTimeout(async () => {
       try {
@@ -627,7 +627,7 @@ describe(':: DATA MAPPING TEST ::', function () {
     }, ventCatchUpMS);
   });
 
-  before('Should deploy formation and execution models', async () => {
+  it('Should deploy formation and execution models', async () => {
     // DEPLOY FORMATION MODEL
     let formXml = api.generateModelXml(formation.id, formation.filePath);
     let formationDeploy = await api.createAndDeployModel(formXml, manager.token);
