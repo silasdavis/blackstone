@@ -2,7 +2,7 @@
 echo "Hello! I'm the marmot that tests the contracts."
 
 CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"./contracts/src"}
-cd $CONTRACTS_DIRECTORY
+cd "$CONTRACTS_DIRECTORY"
 
 contracts_log="./test-contracts.log"
 jobs_log="./test-contracts-jobs.log"

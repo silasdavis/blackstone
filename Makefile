@@ -11,20 +11,23 @@
 ### Contracts
 
 .PHONY: build_contracts
+build_contracts: export CONTRACTS_DIRECTORY=./contracts/src
 build_contracts:
 	contracts/build_contracts $(tgt)
 
 .PHONY: deploy_contracts
+deploy_contracts: export CONTRACTS_DIRECTORY=./contracts/src
 deploy_contracts:
 	contracts/deploy_contracts $(tgt)
+
+.PHONY: test_contracts
+test_contracts: export CONTRACTS_DIRECTORY=./contracts/src
+test_contracts:
+	test/test_contracts.sh $(tgt)
 
 .PHONY: copy_abis
 copy_abis:
 	contracts/copy_abis
-
-.PHONY: test_contracts
-test_contracts:
-	test/test_contracts.sh $(tgt)
 
 ### Node API
 
@@ -87,12 +90,10 @@ down:
 	docker-compose down
 	docker-compose rm --force --stop
 
-
 .PHONY: restart_api
 restart_api:
 	pkill docker-compose || true
 	docker-compose exec api test/restart_api.sh
-
 
 .PHONY: build_docker
 build_docker:
