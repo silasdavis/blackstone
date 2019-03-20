@@ -11,7 +11,7 @@ jobs:
           fingerprints:
             - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - checkout
-      - run: make test_ci
+      - run: make docker_test
       - persist_to_workspace:
           root: ./contracts/src/
           paths:

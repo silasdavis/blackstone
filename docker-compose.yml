@@ -25,13 +25,10 @@ services:
     - "10997:10997"
     # HTTP status/information port
     - "26658:26658"
-    volumes:
-    - ./test/chain:/chain
-    working_dir: /chain
+    working_dir: /app/test/chain
     command:
-    - /bin/sh
-    - -c
-    - burrow start &> burrow.log
+    - burrow
+    - start
   vent:
     build: .
     restart: always
@@ -53,8 +50,6 @@ services:
     - /app/api/sqlsol
     - --abi
     - /app/contracts/src/bin
-    volumes:
-    - .:/app
     depends_on:
     - postgres
     - chain
@@ -62,8 +57,6 @@ services:
     build: .
     env_file:
       - dev.env
-    volumes:
-    - .:/app
     ports:
     - "3080:3080"
     - "9222:9222"

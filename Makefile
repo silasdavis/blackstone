@@ -59,48 +59,43 @@ clean_all:
 
 ### Docker Compose
 
-DCB_ARGS := --build-arg UID=$(shell id -u) --build-arg GID=$(shell id -g)
+# Build the container (copying in working dir)
+.PHONY: docker_build
+docker_build:
+	docker-compose build
+
+# Make sure we have fresh service images
+.PHONY: docker_rebuild
+docker_rebuild: clean
+	docker-compose pull
+	docker-compose build --no-cache
 
 # To catch DCB args above so we build with CI user
-.PHONY: test_ci
-test_ci: build_docker
+.PHONY: docker_test
+docker_test: docker_build
 	docker-compose run api make test
 
 # Just run the dependency services in docker compose (you can build and deploy contracts and the run the API locally)
-.PHONY: run_deps
-run_deps:
+.PHONY: docker_run_deps
+docker_run_deps:
 	docker-compose up -d chain vent postgres hoard
 
 # Build all the contracts and run the API its dependencies
-.PHONY: run_all
-run_all:
+.PHONY: docker_run_all
+docker_run_all: docker_build
 	docker-compose run api make all
 	docker-compose up -d
 	docker-compose logs --follow api &
 
 # Just run the API and its dependencies
-.PHONY: run
-run:
+.PHONY: docker_run
+docker_run: docker_build
 	docker-compose up -d
 	docker-compose logs --follow api &
 
-.PHONY: down
-down:
+.PHONY: docker_down
+docker_down:
 	pkill docker-compose || true
 	docker-compose down
 	docker-compose rm --force --stop
 
-.PHONY: restart_api
-restart_api:
-	pkill docker-compose || true
-	docker-compose exec api test/restart_api.sh
-
-.PHONY: build_docker
-build_docker:
-	docker-compose build ${DCB_ARGS}
-
-# Make sure we have fresh service images
-.PHONY: rebuild_docker
-rebuild_docker: clean
-	docker-compose pull
-	docker-compose build ${DCB_ARGS} --no-cache
