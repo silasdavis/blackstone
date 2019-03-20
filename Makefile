@@ -72,7 +72,8 @@ docker_rebuild: clean
 
 # To catch DCB args above so we build with CI user
 .PHONY: docker_test
-docker_test: docker_build
+docker_test: docker_run_deps
+	docker-compose logs -f > test/chain/burrow.log &
 	docker-compose run api make test
 
 # Just run the dependency services in docker compose (you can build and deploy contracts and the run the API locally)
