@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-export API_ABI_DIRECTORY_LOCAL="./api/public-abi"
-export CONTRACTS_DIRECTORY="./contracts/src"
+API_ABI_DIRECTORY_LOCAL="./api/public-abi"
+CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$(dirname "${BASH_SOURCE[0]}")/src"}
+cd "$CONTRACTS_DIRECTORY"
 
 echo
 echo "#### Copying public ABIs to $API_ABI_DIRECTORY_LOCAL"
