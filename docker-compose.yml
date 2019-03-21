@@ -51,7 +51,7 @@ services:
     - --abi
     - /app/contracts/src/bin
     volumes:
-      - contracts-bin:/app/contracts/src/bin
+      - .:/app
     depends_on:
     - postgres
     - chain
@@ -67,15 +67,10 @@ services:
     # The lack of easy compiling of solc 0.4.25 for mac is our current issue - totally resolvable but we may just prefer
     # to upgrade
     volumes:
-      - contracts-bin:/app/contracts/src/bin
-      - public-abi:/app/api/public-abi
+      - .:/app
     depends_on:
     - postgres
     - hoard
     - vent
     - chain
     command: "npm --prefix api run-script start:dev"
-volumes:
-  # Allows us to share between vent and API
-  contracts-bin:
-  public-abi:

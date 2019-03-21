@@ -8,15 +8,18 @@ CONTRACTS_DEPLOYMENT_ADDRESS=${CONTRACTS_DEPLOYMENT_ADDRESS:-F390C8CA854874472CA
 echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
 echo -e "Using chain url: $CHAIN_URL_GRPC"
 
-deploy_file="deploy.yaml"
-[[ -z "$1" ]] || deploy_file="deploy-$1.yaml"
+test_files="test-*.yaml"
+[[ -z "$1" ]] || test_files="test-$1.yaml"
 
 CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$(dirname "${BASH_SOURCE[0]}")"}
 cd "$CONTRACTS_DIRECTORY/src"
 
-echo "Deploying contract suite from $deploy_file"
-
-burrow deploy \
- --chain-url="$CHAIN_URL_GRPC" \
- --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
- --file="$deploy_file"
+echo "Running contract tests in $test_files"
+testBundles=( $(ls $test_files) )
+for test_file in ${test_files}; do
+    echo "Running $test_file..."
+    burrow deploy \
+     --chain-url="$CHAIN_URL_GRPC" \
+     --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
+     --file="$test_file"
+done
