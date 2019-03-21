@@ -8,9 +8,9 @@ contract Permissioned {
 
     //TODO events?
 
-    function grantPermission(bytes32 _permission, address _holder) external;
-
     function createPermission(bytes32 _permission, bool _multiHolder, bool _revocable, bool _transferable) external;
+
+    function grantPermission(bytes32 _permission, address _holder) external;
 
     function transferPermission(bytes32 _permission, address _newHolder) external;
 
