@@ -306,6 +306,27 @@ Defaults values for the environments can be found in the `local.env` and `dev.en
 
 Blackstone also depends on a cluster of dependency services, namely: Burrow, Postgres, and Vent. It is convenient to run these using docker-compose.yml, but the developer test loop is improved by running the contract test and deployment and API locally, since they are the systems actively under development.
 
+### Prerequisites
+
+#### Install Burrow
+
+https://github.com/hyperledger/burrow/blob/master/docs/INSTALL.md
+
+#### Install Solc
+
+On MacOS:
+```
+brew install boost@1.60
+brew install https://raw.githubusercontent.com/ethereum/homebrew-ethereum/f26f126820e5f47c3ed7ec6d5e6e046707443d87/solidity.r
+```
+
+If you already had `boost` installed in a higher version, you need to downgrade to the 1.60 version by running the following:
+
+```
+brew unlink boost
+brew link --force boost@1.60
+```
+
 ### Running locally
 To run locally you will need to have [`burrow`](https://github.com/hyperledger/burrow/releases) (for `burrow deploy`) and [`solc`](https://github.com/ethereum/solidity/releases/tag/v0.4.25) installed, from the project root:
 
@@ -403,3 +424,4 @@ Run a yaml script, e.g. a manual upgrade.
 cd contracts/src
 burrow deploy --chain-url=chain:10997 --mempool-signing --address <deployment-address> --file ../upgrades/NewServiceUpgrade-1.2.7.yaml
 ```
+
