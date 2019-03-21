@@ -20,7 +20,7 @@ deploy_contracts:
 
 .PHONY: test_contracts
 test_contracts:
-	test/test_contracts.sh $(tgt)
+	contracts/test_contracts $(tgt)
 
 .PHONY: copy_abis
 copy_abis:
