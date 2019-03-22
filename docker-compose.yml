@@ -63,9 +63,6 @@ services:
     - "3080:3080"
     - "9222:9222"
     working_dir: /app
-    # We don't have a nice way of mixing working within container and locally without mounting project directory.
-    # The lack of easy compiling of solc 0.4.25 for mac is our current issue - totally resolvable but we may just prefer
-    # to upgrade
     volumes:
       - .:/app
     depends_on:

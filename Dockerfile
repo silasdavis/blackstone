@@ -8,7 +8,7 @@ FROM ethereum/solc:$SOLC_VERSION as solc-builder
 FROM hyperledger/burrow:$BURROW_VERSION as burrow-builder
 #FROM quay.io/monax/burrow:0.24.1-dev-2019-02-28-0b9bc4e9 as burrow-builder
 # Testing image
-FROM alpine:3.8
+FROM alpine:3.9
 
 RUN apk --update --no-cache add \
   bash \
@@ -32,5 +32,7 @@ ARG INSTALL_BASE=/usr/local/bin
 
 COPY --from=burrow-builder /usr/local/bin/burrow $INSTALL_BASE/
 COPY --from=solc-builder /usr/bin/solc $INSTALL_BASE/
-
-COPY . /app
+# For doc pushing
+COPY ssh_config /root/.ssh/config
+# test chain config
+COPY ./test/chain /app/test/chain

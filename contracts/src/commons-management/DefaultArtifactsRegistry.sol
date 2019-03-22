@@ -17,7 +17,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     string[] artifactIds;
 
 	/**
-	 * @dev Initializes this DefaultArtifactsFactory by setting the systemOwner to the msg.sender
+	 * @dev Initializes this DefaultArtifactsRegistry by setting the systemOwner to the msg.sender
      * This function replaces the constructor as a means to set storage variables.
 	 * REVERTS if:
 	 * - the contract had already been initialized before
