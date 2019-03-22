@@ -66,16 +66,6 @@ push_docs: docs
 	docs/push.sh
 
 ### Docker Compose
-# Build the container (copying in working dir)
-.PHONY: docker_build
-docker_build:
-	docker-compose build
-
-# Make sure we have fresh service images
-.PHONY: docker_rebuild
-docker_rebuild: clean
-	docker-compose pull
-	docker-compose build --no-cache
 
 # To catch DCB args above so we build with CI user
 .PHONY: docker_test
@@ -90,27 +80,16 @@ docker_run_deps:
 
 # Build all the contracts and run the API its dependencies
 .PHONY: docker_run_all
-docker_run_all: docker_build
+docker_run_all:
 	docker-compose run api make all
 	docker-compose up -d
 	docker-compose logs --follow api &
 
-# Build, deploy, and test contracts from within container (using packaged verison of solc - useful on mac)
-.PHONY: docker_contracts
-docker_contracts:
-	docker-compose run api make build_contracts deploy_contracts test_contracts
-
 # Just run the API and its dependencies
 .PHONY: docker_run
-docker_run: docker_build
+docker_run:
 	docker-compose up -d
 	docker-compose logs --follow api &
-
-.PHONY: docker_down
-docker_down:
-	pkill docker-compose || true
-	docker-compose down
-	docker-compose rm --force --stop
 
 # API image for CI use outside of compose
 
