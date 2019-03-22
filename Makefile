@@ -8,6 +8,8 @@
 # |_______/ |__/ \_______/ \_______/|__/  \__/|_______/    \___/   \______/ |__/  |__/ \_______/
 #
 
+CI_IMAGE="quay.io/monax/blackstone:ci"
+
 ### Contracts
 
 .PHONY: build_contracts
@@ -44,7 +46,7 @@ all: | build_contracts deploy_contracts copy_abis install_api
 # Full test (run by CI)
 .PHONY: test
 # Ordered execution
-test: | all test_contracts test_api
+test: | all test_contracts test_api docs
 
 .PHONY: clean
 clean:
@@ -53,6 +55,15 @@ clean:
 .PHONY: clean_all
 clean_all:
 	test/clean.sh all
+
+### Documentation
+.PHONY: docs
+docs:
+	docs/generate.sh
+
+.PHONY: push_docs
+push_docs: docs
+	docs/push.sh
 
 ### Docker Compose
 # Build the container (copying in working dir)
@@ -69,7 +80,7 @@ docker_rebuild: clean
 # To catch DCB args above so we build with CI user
 .PHONY: docker_test
 docker_test: docker_run_deps
-	docker-compose logs -f chain > test/chain/burrow.log &
+	docker-compose logs -f > test/docker-compose.log &
 	docker-compose run api make test
 
 # Just run the dependency services in docker compose (you can build and deploy contracts and the run the API locally)
@@ -100,3 +111,13 @@ docker_down:
 	pkill docker-compose || true
 	docker-compose down
 	docker-compose rm --force --stop
+
+# API image for CI use outside of compose
+
+.PHONY: build_ci_image
+build_ci_image:
+	docker build -t ${CI_IMAGE} .
+
+.PHONY: push_ci_image
+push_ci_image: build_ci_image
+	docker push ${CI_IMAGE}

@@ -12,25 +12,17 @@ jobs:
             - "5e:f3:47:75:34:c7:83:93:51:48:31:6a:3a:1a:de:85"
       - checkout
       - run: make docker_test
-      - persist_to_workspace:
-          root: ./contracts/src/
-          paths:
-            - bin
       - store_artifacts:
-          path: ./test/chain/burrow.log
-      - store_artifacts:
-          path: ./test-contracts-jobs.log
-      - store_artifacts:
-          path: ./test-contracts.log
+          path: ./test/docker-compose.log
 
   deploy_docs:
     docker:
-    - image: node:11-alpine
+    - image: quay.io/monax/blackstone:ci
     steps:
       - <<: *add_ssh_key
-      - run: apk add --upgrade --no-cache bash curl git openssh
       - checkout
-      - run: ./docs/generate.sh
+      - run: make build_contracts
+      - run: make push_docs
 
 workflows:
   version: 2
