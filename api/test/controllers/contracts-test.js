@@ -1,3 +1,4 @@
+require('../constants');
 const events = require('events')
 const toml = require('toml')
 const fs = require('fs')
@@ -28,7 +29,6 @@ const logger = require(__common + '/monax-logger')
 const eventEmitter = new events.EventEmitter()
 const eventsConsts = { STARTED: 'started' }
 const log = logger.getLogger('Test.Harness')
-const ventCatchUpMS = 100;
 
 const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
 global.__settings = (() => {
@@ -64,7 +64,7 @@ before(function (done) {
   })
 })
 
-// beforeEach((done) => { sleep.msleep(ventCatchUpMS); done(); });
+// beforeEach((done) => { sleep.msleep(global.ventCatchUpMS); done(); });
 
 describe('CONTRACTS', () => {
   let pmAddress, pdFormAddress, pdExecAddress, packageId, archAddress, agrAddress, piAddress, aiId
@@ -325,7 +325,7 @@ describe('CONTRACTS', () => {
       } catch (err) {
         done(err)
       }
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
@@ -357,7 +357,7 @@ describe('CONTRACTS', () => {
   //       expect(global.hexToString(execProc.interfaceId)).to.equal(executionInterface);
   //       done();
   //     });
-  //   }, ventCatchUpMS);
+  //   }, global.ventCatchUpMS);
   // }).timeout(10000);
 
   it('Should create an agreement', async () => {

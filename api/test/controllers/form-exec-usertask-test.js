@@ -1,3 +1,4 @@
+require('../constants');
 const toml = require('toml')
 const fs = require('fs')
 const path = require('path')
@@ -25,7 +26,6 @@ global.__schemas = path.resolve(__appDir, 'schemas')
 
 const logger = require(__common + '/monax-logger')
 const log = logger.getLogger('Test.Harness')
-const ventCatchUpMS = 100;
 
 const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
 global.__settings = (() => {
@@ -253,7 +253,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       await agreementsController.setAgreementParameters(
         agreement.address, agreement.archetype, agreement.parameters)
       done()
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should validate agreement parameters', async () => {
@@ -276,7 +276,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       piAddress = await contracts.startProcessFromAgreement(agreement.address)
       expect(piAddress).to.match(/[0-9A-Fa-f]{40}/)
       done()
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm pending user task for buyer', done => {
@@ -293,7 +293,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       } catch (err) {
         done(err)
       }
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should sign agreement by buyer', async () => {
@@ -309,7 +309,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       let tasks = await sqlCache.getTasksByUserAddress(buyer.address)
       expect(tasks.length).to.equal(0)
       done()
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm active agreement state EXECUTED', async () => {
@@ -335,7 +335,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       let tasks = await sqlCache.getTasksByUserAddress(seller.address)
       expect(tasks.length).to.equal(0)
       done()
-    }, ventCatchUpMS)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm active agreement state FULFILLED', async () => {

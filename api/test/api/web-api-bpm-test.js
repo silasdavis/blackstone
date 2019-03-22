@@ -1,3 +1,4 @@
+require('../constants');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const chaiAsPromised = require('chai-as-promised');
@@ -16,8 +17,6 @@ const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);
-const ventCatchUpMS = 100;
-const testTimeoutMS = 30000;
 
 // configure chai
 chai.use(chaiHttp);
@@ -63,11 +62,11 @@ describe(':: HOARD ::', () => {
               expect(err).to.not.exist;
               hoardGrant = res.body.grant;
             });
-        }, ventCatchUpMS);
+        }, global.ventCatchUpMS);
       } catch (err) {
         throw err;
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 });
 
@@ -178,7 +177,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -199,13 +198,13 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(testTimeoutMS*10);
+  }).timeout(global.testTimeoutMS*10);
 
   it('Should get a bpm diagram in the requested format', async () => {
     // GET DIAGRAM
     const diagram = await (api.getDiagram(formation.process.modelAddress, 'application/json', signer.token));
     expect(diagram).to.be.an('object');
-  }).timeout(testTimeoutMS);
+  }).timeout(global.testTimeoutMS);
 
   it('Should populate process names in cache', async () => {
     const formationProcess = await api.getProcessDefinition(formation.process.address, signer.token);
@@ -236,7 +235,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement and start formation process', done => {
@@ -252,7 +251,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should sign and complete incorporation task by incorporator', done => {
@@ -267,7 +266,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should sign and complete receive signature task by receiver', done => {
@@ -282,7 +281,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should verify agreement is EXECUTED', done => {
@@ -294,7 +293,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should sign and complete confirmation task by confirmer', done => {
@@ -309,7 +308,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should verify agreement is FULFILLED', done => {
@@ -321,7 +320,7 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
 });
@@ -400,7 +399,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       expect(loginResult.token).to.exist;
       user2.token = loginResult.token;
       done();
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy model', async () => {
@@ -421,7 +420,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     // merely checks the number of created data definitions in the table
     expect(modelDataResults.rows.length).to.equal(3);
 
-  }).timeout(testTimeoutMS);
+  }).timeout(global.testTimeoutMS);
 
   it('Should create an archetype', async () => {
     // CREATE ARCHETYPE
@@ -447,7 +446,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(20000);
 
   it('Should verify only ONE pending user task for buyer and complete it', done => {
@@ -465,7 +464,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(15000);
 
   it('Should verify NO pending user task for buyer', done => {
@@ -478,7 +477,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should verify only ONE pending user task for seller and complete it', done => {
@@ -496,7 +495,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should verify NO pending user task for seller', done => {
@@ -509,7 +508,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should cancel an agreement by an agreement party member', done => {
@@ -521,7 +520,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
 });
@@ -624,7 +623,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   });
 
   it('Should deploy formation and execution models', async () => {
@@ -666,7 +665,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement and start formation process', done => {
@@ -681,7 +680,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should be able to set data as suspended task\'s assigned user', done => {
@@ -709,7 +708,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should be able to get activity instance details including data mappings', async ()  => {
@@ -741,7 +740,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should sign the agreement', done => {
@@ -756,7 +755,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should be able to read agreement data from data mappings by administrator', done => {
@@ -773,7 +772,7 @@ describe(':: DATA MAPPING TEST ::', function () {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
 });
@@ -849,7 +848,7 @@ describe(':: GATEWAY TEST ::', () => {
     let registerResult = await api.registerUser(tenant);
     tenant.address = registerResult.address;
     expect(tenant.address).to.exist
-  }).timeout(testTimeoutMS);
+  }).timeout(global.testTimeoutMS);
 
   it('Should login users', (done) => {
     // LOGIN USERS
@@ -863,7 +862,7 @@ describe(':: GATEWAY TEST ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -884,7 +883,7 @@ describe(':: GATEWAY TEST ::', () => {
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(testTimeoutMS);
+  }).timeout(global.testTimeoutMS);
 
   it('Should create an archetype', done => {
     // CREATE ARCHETYPE
@@ -898,7 +897,7 @@ describe(':: GATEWAY TEST ::', () => {
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement and start formation process leading to user task', done => {
@@ -920,11 +919,11 @@ describe(':: GATEWAY TEST ::', () => {
           } catch (err) {
             done(err);
           }
-        }, ventCatchUpMS);
+        }, global.ventCatchUpMS);
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(20000);
 
   it('Should create an agreement and start formation process with staight-through processing (no user task)', done => {
@@ -946,11 +945,11 @@ describe(':: GATEWAY TEST ::', () => {
           } catch (err) {
             done(err);
           }
-        }, ventCatchUpMS);
+        }, global.ventCatchUpMS);
       } catch (err) {
         done(err);
       }
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   }).timeout(20000);
 
 });

@@ -55,6 +55,7 @@ services:
     depends_on:
     - postgres
     - chain
+
   api:
     build: .
     env_file:
@@ -65,9 +66,13 @@ services:
     working_dir: /app
     volumes:
       - .:/app
+      - node_modules:/app/node_modules
     depends_on:
     - postgres
     - hoard
     - vent
     - chain
     command: "npm --prefix api run-script start:dev"
+
+volumes:
+  node_modules:

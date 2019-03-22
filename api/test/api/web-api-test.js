@@ -1,3 +1,4 @@
+require('../constants');
 const chai = require('chai')
 const chaiHttp = require('chai-http')
 const chaiAsPromised = require('chai-as-promised');
@@ -16,7 +17,6 @@ const log = logger.getLogger('agreements.tests');
 const api = require('./api-helper')(server)
 const { rightPad } = require(__common + '/controller-dependencies')
 
-const ventCatchUpMS = 100;
 // configure chai
 chai.use(chaiHttp);
 chai.use(chaiAsPromised);
@@ -123,7 +123,7 @@ describe('Registration/ Login', () => {
         res.should.have.status(200)
         setTimeout(function () {
           done()
-        }, ventCatchUpMS)
+        }, global.ventCatchUpMS)
       })
   })
 
@@ -262,7 +262,7 @@ describe('User Profile', () => {
           res.body.createdAt.should.exist
           done();
         });
-    }, ventCatchUpMS);
+    }, global.ventCatchUpMS);
   });
 });
 
@@ -341,7 +341,7 @@ describe('Organizations', () => {
             resAcme.should.exist;
             done();
           });
-        }, ventCatchUpMS);
+        }, global.ventCatchUpMS);
       });
   }).timeout(10000);
 
@@ -377,7 +377,7 @@ describe('Organizations', () => {
                 res.body.users[0].id.should.equal(approver.username);
                 done();
               });
-          }, ventCatchUpMS);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -403,7 +403,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, ventCatchUpMS);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -427,7 +427,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(3);
                 done();
               });
-          }, ventCatchUpMS);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -451,7 +451,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, ventCatchUpMS);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -485,7 +485,7 @@ describe('Organizations', () => {
                 acctDep.users.should.be.a('array');
                 done();
               });
-          }, ventCatchUpMS);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -501,7 +501,7 @@ describe('Organizations', () => {
           res.should.have.status(200);
           done();
         });
-      }, ventCatchUpMS);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('should include users in each department in GET organization', (done) => {
@@ -517,7 +517,7 @@ describe('Organizations', () => {
             acctDep.users[0].should.equal(accountant.address);
             done();
           });
-      }, ventCatchUpMS);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('DELETE user from accounting department in organization', (done) => {
@@ -531,7 +531,7 @@ describe('Organizations', () => {
           res.should.have.status(200);
           done();
         });
-      }, ventCatchUpMS);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('Should login a non-member of the organization', async () => {
