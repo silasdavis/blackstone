@@ -1,3 +1,4 @@
+require('../constants');
 const chai = require('chai')
 const chaiHttp = require('chai-http')
 const chaiAsPromised = require('chai-as-promised');
@@ -66,7 +67,7 @@ describe('hex to string conversions', () => {
     const out_str_assignee = 'Assignee';
     const out_str_identification = 'identificación';
     const out_str_bear = 'bär';
-    
+
     // plain old string to hex
     let hex_text1 = global.stringToHex(text1)
     hex_text1 = rightPad(hex_text1, 32)
@@ -75,10 +76,10 @@ describe('hex to string conversions', () => {
 
     // expect null hex to match empty string
     expect(global.hexToString(in_nullHex)).to.equal(emptyString);
-    
-    // expect empty string to match empty hex 
+
+    // expect empty string to match empty hex
     expect(global.stringToHex(emptyString)).to.equal('');
-    
+
     // expect spaces roundtrip to spaces to pass
     expect(global.hexToString(global.stringToHex(spaces))).to.equal(spaces);
 
@@ -97,7 +98,7 @@ describe('hex to string conversions', () => {
     // expect odd right padded hex to match string
     expect(global.hexToString(in_oddRightPaddedHex)).to.equal(out_str_assignee)
 
-    // expect multibyte hex to match string 
+    // expect multibyte hex to match string
     expect(global.hexToString(in_noPadMultiByteHex)).to.equal(out_str_identification);
 
     // expect padded multibyte hex to match string
@@ -122,7 +123,7 @@ describe('Registration/ Login', () => {
         res.should.have.status(200)
         setTimeout(function () {
           done()
-        }, 3000)
+        }, global.ventCatchUpMS)
       })
   })
 
@@ -261,7 +262,7 @@ describe('User Profile', () => {
           res.body.createdAt.should.exist
           done();
         });
-    }, 3000);
+    }, global.ventCatchUpMS);
   });
 });
 
@@ -340,7 +341,7 @@ describe('Organizations', () => {
             resAcme.should.exist;
             done();
           });
-        }, 3000);
+        }, global.ventCatchUpMS);
       });
   }).timeout(10000);
 
@@ -376,10 +377,10 @@ describe('Organizations', () => {
                 res.body.users[0].id.should.equal(approver.username);
                 done();
               });
-          }, 2000);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
-  
+
     it('PUT user Accountant to organization', (done) => {
       chai
         .request(server)
@@ -402,7 +403,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, 2000);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -426,7 +427,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(3);
                 done();
               });
-          }, 2000);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -450,7 +451,7 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, 2000);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -484,7 +485,7 @@ describe('Organizations', () => {
                 acctDep.users.should.be.a('array');
                 done();
               });
-          }, 2000);
+          }, global.ventCatchUpMS);
         });
     }).timeout(10000);
 
@@ -500,7 +501,7 @@ describe('Organizations', () => {
           res.should.have.status(200);
           done();
         });
-      }, 2000);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('should include users in each department in GET organization', (done) => {
@@ -516,7 +517,7 @@ describe('Organizations', () => {
             acctDep.users[0].should.equal(accountant.address);
             done();
           });
-      }, 2000);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('DELETE user from accounting department in organization', (done) => {
@@ -530,7 +531,7 @@ describe('Organizations', () => {
           res.should.have.status(200);
           done();
         });
-      }, 2000);
+      }, global.ventCatchUpMS);
     }).timeout(10000);
 
     it('Should login a non-member of the organization', async () => {

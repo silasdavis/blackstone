@@ -300,15 +300,67 @@ Build a web app to interact with your archetypes and active agreements.
 
 The following sections provide an overview over commands helpful for developing and testing Blackstone smart contracts and API functions.
 
-### Test All
+Blackstone has two main components - the Node.js API in api/ and the Solidity contracts in contracts/. Testing is scripted in the Makefile. To handle different environments the build/test/deploy scripts for contracts and the API reads values from the environment.
 
-To run the **entire** test suite run the following. **N.B.** -- this will take forever.
+Defaults values for the environments can be found in the `local.env` and `dev.env` environment files. The former is designed to be used where working locally, to you use it run `source local.env` from a terminal which will export all the variables for use by targets you subsequently call. `dev.env` is used by the docker-compose 'API' container which is used to test in CI (and can be used locally).
+
+Blackstone also depends on a cluster of dependency services, namely: Burrow, Postgres, and Vent. It is convenient to run these using docker-compose.yml, but the developer test loop is improved by running the contract test and deployment and API locally, since they are the systems actively under development.
+
+### Prerequisites
+
+#### Install Burrow
+
+https://github.com/hyperledger/burrow/blob/master/docs/INSTALL.md
+
+#### Install Solc
+
+On MacOS:
+```
+brew install boost@1.60
+brew install https://raw.githubusercontent.com/ethereum/homebrew-ethereum/f26f126820e5f47c3ed7ec6d5e6e046707443d87/solidity.r
+```
+
+If you already had `boost` installed in a higher version, you need to downgrade to the 1.60 version by running the following:
+
+```
+brew unlink boost
+brew link --force boost@1.60
+```
+
+### Running locally
+To run locally you will need to have [`burrow`](https://github.com/hyperledger/burrow/releases) (for `burrow deploy`) and [`solc`](https://github.com/ethereum/solidity/releases/tag/v0.4.25) installed, from the project root:
+
+```bash
+# Set up environment
+source local.env
+# Run dependency services (these remain running - you can take them down with make down)
+make docker_run_deps
+# Build contracts and run all tests
+make test
+
+```
+
+### Running in docker-compose
+
+```bash
+# The same as test but everything is run in docker-compose (included NPM and burrow deploy)
+make docker_test
+# To run other make targets within a reproducible docker container (that don't explicitly call docker-compose themselves) run:
+docker-compose run api make $TARGET
+```
+
+### Running elsewhere
+Just ensure that the environment variables listed in `dev.env` are configured in the environment you are using.
+
+#### Test All
+
+To run the **entire** test suite run the following.
 
 ```bash
 make test
 ```
 
-### Test Bundles
+#### Test Bundles
 
 To run the test step for a single bundle of contracts run the following. **N.B.** in the following command no spaces are entered between the target bundles. To only run one bundle do not enter a comma.
 
@@ -336,13 +388,11 @@ To run the API test suite (without installing NPM or the bundles) run the follow
 make test_api
 ```
 
-To restart the API but leave the chain running follow this sequence:
+To start the API:
 
-1. `make run` -> this operation is non-blocking and will return you to your terminal. It will background processes that will follow the logs.
-2. To turn everything off (including the chain) from here run `make clean`.
-3. To only reboot the API but leave the chain running from here run `make restart_api`. This is a *blocking* call and will not return you to your terminal.
-4. To reboot the API (again): `ctrl+c` then `make restart_api`. Rinse and repeat as needed.
-5. To turn everything off or reset the chain or whatever: `ctrl+c` then `make clean`.
+```bash
+npm --prefix api run-script start:dev
+```
 
 ### Cleanup
 
@@ -358,44 +408,20 @@ To clean the **entire** system (including node_modules and bundle_cache) run the
 make clean_all
 ```
 
-### Work Inside the Containers
+### Development command examples
 
-Finally, if you'd like to run commands inside the containers, e.g. to execute additional .yaml scripts manually, you can go into the bash of the docker container with the following commands:
-
-Start up the docker containers and the system:
-
-```bash
-make run_all
-docker ps
-```
-
-From the docker output find out the container ID for the `blackstone_api` container
-
-```bash
-docker exec -it <blackstone-api-container-ID> bash
-```
-
-#### Examples of commands that can be run inside the container
-
-Run pending migrations
+#### Run pending migrations
 
 ```bash
 cd api
 npm run db:migrate:up
 ```
 
-You can also run the tests, e.g.
-
-```bash
-cd api
-ps -ef | grep node
-kill -9 <pid>
-npm run test
-```
-
+#### Run manual upgrade of contracts
 Run a yaml script, e.g. a manual upgrade.
 
 ```bash
 cd contracts/src
 burrow deploy --chain-url=chain:10997 --mempool-signing --address <deployment-address> --file ../upgrades/NewServiceUpgrade-1.2.7.yaml
 ```
+

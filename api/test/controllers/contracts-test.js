@@ -1,3 +1,4 @@
+require('../constants');
 const events = require('events')
 const toml = require('toml')
 const fs = require('fs')
@@ -34,8 +35,7 @@ global.__settings = (() => {
   let settings = toml.parse(fs.readFileSync(configFilePath))
   if (process.env.MONAX_HOARD) _.set(settings, 'monax.hoard', process.env.MONAX_HOARD)
   if (process.env.MONAX_ANALYTICS_ID) _.set(settings, 'monax.analyticsID', process.env.MONAX_ANALYTICS_ID)
-  if (process.env.MONAX_CHAIN_HOST) _.set(settings, 'monax.chain.host', process.env.MONAX_CHAIN_HOST)
-  if (process.env.MONAX_CHAIN_PORT) _.set(settings, 'monax.chain.port', process.env.MONAX_CHAIN_PORT)
+  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
   if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
   if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
   if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
@@ -64,7 +64,7 @@ before(function (done) {
   })
 })
 
-// beforeEach((done) => { sleep.msleep(3000); done(); });
+// beforeEach((done) => { sleep.msleep(global.ventCatchUpMS); done(); });
 
 describe('CONTRACTS', () => {
   let pmAddress, pdFormAddress, pdExecAddress, packageId, archAddress, agrAddress, piAddress, aiId
@@ -325,7 +325,7 @@ describe('CONTRACTS', () => {
       } catch (err) {
         done(err)
       }
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
@@ -357,7 +357,7 @@ describe('CONTRACTS', () => {
   //       expect(global.hexToString(execProc.interfaceId)).to.equal(executionInterface);
   //       done();
   //     });
-  //   }, 3000);
+  //   }, global.ventCatchUpMS);
   // }).timeout(10000);
 
   it('Should create an agreement', async () => {

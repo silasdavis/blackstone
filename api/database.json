@@ -5,7 +5,7 @@
     "driver": "pg",
     "user": "blackstone_development",
     "password": "blackstone_development",
-    "host": "postgres",
+    "host": {"ENV": "POSTGRES_DB_HOST"},
     "port": "5432",
     "database": "blackstone_development",
     "schema": {"ENV": "POSTGRES_DB_SCHEMA"}

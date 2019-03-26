@@ -2,36 +2,21 @@
 
 set -e
 
-# Preflight checks
-if [[ -z "$CHAIN_URL_GRPC" ]]; then
-    echo "Please set \$CHAIN_URL_GRPC and then rerun me. Exiting."
-    exit 1
-fi
-if [[ -z "$CONTRACTS_DEPLOYMENT_ADDRESS" ]]; then
-    echo "Please set \$CONTRACTS_DEPLOYMENT_ADDRESS and then rerun me. Exiting."
-    exit 1
-fi
+CHAIN_URL_GRPC=${CHAIN_URL_GRPC:-localhost:10997}
+CONTRACTS_DEPLOYMENT_ADDRESS=${CONTRACTS_DEPLOYMENT_ADDRESS:-F390C8CA854874472CAD38C0135F78097BCB632D}
 
-main() {
-    sleep 3
-    echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
-    echo -e "Using chain url: $CHAIN_URL_GRPC"
+echo -e "Deploying contract suite using Deployment Address: $CONTRACTS_DEPLOYMENT_ADDRESS"
+echo -e "Using chain url: $CHAIN_URL_GRPC"
 
-    cd "$(dirname "${BASH_SOURCE[0]}")/src"
+deploy_file="deploy.yaml"
+[[ -z "$1" ]] || deploy_file="deploy-$1.yaml"
 
-    deploy_file="deploy.yaml"
-    [[ -z "$1" ]] || deploy_file="deploy-$1.yaml"
+CONTRACTS_DIRECTORY=${CONTRACTS_DIRECTORY:-"$(dirname "${BASH_SOURCE[0]}")"}
+cd "$CONTRACTS_DIRECTORY/src"
 
-    echo "Deploying contract suite from $(readlink -f "$deploy_file")"
+echo "Deploying contract suite from $deploy_file"
 
-    burrow deploy \
+burrow deploy \
  --chain-url="$CHAIN_URL_GRPC" \
- --mempool-signing="true" \
  --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
- --timeout=15 \
  --file="$deploy_file"
-
-    exit 0
-}
-
-main $@
