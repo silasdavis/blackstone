@@ -1295,6 +1295,7 @@ module.exports = {
   db,
   boomify,
   registerEcosystem,
+  setToNameRegistry,
   getFromNameRegistry,
   getContract,
   getBpmService,
