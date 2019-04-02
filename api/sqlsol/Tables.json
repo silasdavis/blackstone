@@ -91,6 +91,11 @@
         "Field": "eventLogFileReference",
         "ColumnName": "event_log_file_reference",
         "Type": "string"
+      },
+      {
+        "Field": "signatureLogFileReference",
+        "ColumnName": "signature_log_file_reference",
+        "Type": "string"
       }
     ]
   },
