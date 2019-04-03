@@ -1,4 +1,4 @@
 // Timeouts
-global.ventCatchUpMS = 10;
+global.ventCatchUpMS = 100;
 global.testTimeoutMS = 60000;
 

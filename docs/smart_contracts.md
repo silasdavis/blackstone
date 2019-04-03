@@ -1457,6 +1457,27 @@ the address of the signee (if the party authorized a signee other than itself)th
 
 ---
 
+#### getSignatureLogReference()
+
+
+**getSignatureLogReference()**
+
+
+Returns the reference for the signature log of this ActiveAgreement
+
+```endpoint
+CALL getSignatureLogReference()
+```
+
+#### Return
+
+```json
+the reference to an external document containing the signature log
+```
+
+
+---
+
 #### getSignatureTimestamp(address)
 
 
@@ -2013,6 +2034,28 @@ Sets the max number of events for this agreement
 
 ```endpoint
 CALL setMaxNumberOfEvents(uint32)
+```
+
+
+---
+
+#### setSignatureLogReference(string)
+
+
+**setSignatureLogReference(string)**
+
+
+Updates the file reference for the signature log of this agreement
+
+```endpoint
+CALL setSignatureLogReference(string)
+```
+
+#### Parameters
+
+```solidity
+_signatureLogFileReference // the file reference to the signature log
+
 ```
 
 
@@ -9253,6 +9296,27 @@ the address of the signee (if the party authorized a signee other than itself)th
 
 ---
 
+#### getSignatureLogReference()
+
+
+**getSignatureLogReference()**
+
+
+Returns the reference for the signature log of this ActiveAgreement
+
+```endpoint
+CALL getSignatureLogReference()
+```
+
+#### Return
+
+```json
+the reference to an external document containing the signature log
+```
+
+
+---
+
 #### getSignatureTimestamp(address)
 
 
@@ -9556,6 +9620,28 @@ Sets the max number of events for this agreement
 
 ```endpoint
 CALL setMaxNumberOfEvents(uint32)
+```
+
+
+---
+
+#### setSignatureLogReference(string)
+
+
+**setSignatureLogReference(string)**
+
+
+Updates the file reference for the signature log of this agreement
+
+```endpoint
+CALL setSignatureLogReference(string)
+```
+
+#### Parameters
+
+```solidity
+_signatureLogFileReference // the file reference to the signature log
+
 ```
 
 
