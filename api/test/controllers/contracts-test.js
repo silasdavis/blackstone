@@ -151,8 +151,8 @@ describe('CONTRACTS', () => {
   }
 
   it('Should create a user', async () => {
-    let user = { id: rid(16, 'aA0') }
-    let res = await contracts.createUser({id: crypto.createHash('sha256').update(user.id).digest('hex')})
+    let user = { username: rid(16, 'aA0') }
+    let res = await contracts.createUser({username: crypto.createHash('sha256').update(user.username).digest('hex')})
     res.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     pAccount.address = res
     arch.author = pAccount.address

@@ -22,7 +22,7 @@ const login = (req, res, next) => {
     }
     const userData = {
       address: user.address,
-      id: user.username,
+      username: user.username,
       createdAt: user.createdAt,
     };
     log.info(`${user.username} logged in successfully`);

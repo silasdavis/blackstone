@@ -879,8 +879,8 @@ describe(':: External Users ::', () => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        const user1 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toLowerCase()).digest('hex'));
-        const user2 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser2.email.toLowerCase()).digest('hex'));
+        const user1 = await contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser1.email.toLowerCase()).digest('hex'));
+        const user2 = await contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser2.email.toLowerCase()).digest('hex'));
         expect(user1).to.be.a('object');
         expect(user2).to.be.a('object');
         expect(/[0-9A-Fa-f]{40}/.test(user1.address)).to.be.true;
@@ -898,7 +898,7 @@ describe(':: External Users ::', () => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        await assert.isRejected(contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toUpperCase()).digest('hex')));
+        await assert.isRejected(contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser1.email.toUpperCase()).digest('hex')));
         done();
       } catch (err) {
         done(err);

@@ -82,7 +82,7 @@ Response:
 ```json
 {
     "address": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
-    "id": "john.smith"
+    "username": "john.smith"
 }
 ```
 

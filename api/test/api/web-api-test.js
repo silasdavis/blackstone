@@ -248,7 +248,7 @@ describe('User Profile', () => {
           if (err) return done(err)
           res.body.should.be.a('object')
           res.body.address.toUpperCase().should.equal(userData.address)
-          res.body.id.should.equal(credentials.username)
+          res.body.username.should.equal(credentials.username)
           res.body.email.should.equal(credentials.email)
           res.body.firstName.should.equal(newProfileInfo.firstName)
           res.body.lastName.should.equal(newProfileInfo.lastName)
@@ -373,8 +373,8 @@ describe('Organizations', () => {
                 res.body.users[0].should.be.a('object');
                 res.body.users[0].address.should.exist;
                 res.body.users[0].address.should.equal(approver.address);
-                res.body.users[0].id.should.exist;
-                res.body.users[0].id.should.equal(approver.username);
+                res.body.users[0].username.should.exist;
+                res.body.users[0].username.should.equal(approver.username);
                 done();
               });
           }, global.ventCatchUpMS);
