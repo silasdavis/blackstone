@@ -216,15 +216,17 @@ const _userExistsOnChain = async (username) => {
 const upgradeExternalUser = async (client, {
   username,
   email,
+  firstName,
+  lastName,
   passwordDigest,
   isProducer,
 }) => {
   try {
     const queryString = `UPDATE users
-    SET external_user = false, username = $1, password_digest = $2, is_producer = $3
-    WHERE email = $4
+    SET external_user = false, username = $1, first_name = $2, last_name = $3, password_digest = $4, is_producer = $5
+    WHERE email = $6
     RETURNING id, address;`;
-    const { rows } = await client.query({ text: queryString, values: [username, passwordDigest, isProducer, email] });
+    const { rows } = await client.query({ text: queryString, values: [username, firstName, lastName, passwordDigest, isProducer, email] });
     await contracts.addUserToEcosystem(getSHA256Hash(username), rows[0].address);
     return rows[0];
   } catch (err) {
@@ -243,7 +245,7 @@ const registerUser = async (userData) => {
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
-    username, email, password, isProducer,
+    username, email, firstName, lastName, password, isProducer,
   } = value;
   // check if email or username already registered in pg
   try {
@@ -292,6 +294,8 @@ const registerUser = async (userData) => {
     ({ id: userId, address } = await upgradeExternalUser(client, {
       username,
       email: existingEmail,
+      firstName,
+      lastName,
       passwordDigest:
       hash,
       isProducer,
@@ -300,11 +304,11 @@ const registerUser = async (userData) => {
     // insert in user db
     try {
       const queryString = `INSERT INTO users(
-        address, username, email, password_digest, is_producer
+        address, username, first_name, last_name, email, password_digest, is_producer
         ) VALUES(
           $1, $2, $3, $4, $5
         ) RETURNING id;`;
-      const { rows } = await client.query({ text: queryString, values: [address, username, email, hash, isProducer] });
+      const { rows } = await client.query({ text: queryString, values: [address, username, firstName, lastName, email, hash, isProducer] });
       userId = rows[0].id;
     } catch (err) {
       client.release();
