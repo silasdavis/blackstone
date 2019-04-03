@@ -69,7 +69,7 @@ const getOrganization = (orgAddress) => {
 
 const getUsers = (queryParams) => {
   const query = where(queryParams);
-  const queryString = `SELECT user_account_address AS address, users.username AS id
+  const queryString = `SELECT user_account_address AS address, users.username, users.id
   FROM user_accounts
   JOIN ${process.env.POSTGRES_DB_SCHEMA}.users users ON users.address = user_accounts.user_account_address
   WHERE ${query.queryString} AND external_user = FALSE;`;
@@ -609,7 +609,7 @@ const getActivityInstanceData = (id, userAddress) => {
     pd.process_definition_address as "processDefinitionAddress", app.web_form as "webForm", app.application_type as "applicationType",
     ds.address_value as "agreementAddress", pm.author as "modelAuthor", pm.is_private AS "isModelPrivate", agrd.name as "agreementName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope, UPPER(encode(o.organization_id::bytea, 'hex')) as "organizationKey",
-    COALESCE(accounts.id, accounts.name) AS "performerDisplayName", dd.name AS "scopeDisplayName",
+    COALESCE(accounts.username, accounts.name) AS "performerDisplayName", dd.name AS "scopeDisplayName",
     agr.event_log_file_reference AS "attachmentsFileReference", agr.max_event_count::integer as "maxNumberOfAttachments",
     (
       ai.performer = $2 OR (
@@ -649,9 +649,9 @@ const getActivityInstanceData = (id, userAddress) => {
       AND scopes.scope_address = ai.performer 
       AND scopes.scope_context = ai.activity_id
     )
-    LEFT JOIN (SELECT username AS id, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
+    LEFT JOIN (SELECT username, NULL AS name, address, external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.users
       UNION
-      SELECT NULL AS id, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
+      SELECT NULL AS username, name, address, FALSE AS external_user FROM ${process.env.POSTGRES_DB_SCHEMA}.organizations
     ) accounts ON ai.performer = accounts.address
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.department_details dd ON ai.performer = dd.organization_address AND UPPER(encode(scopes.fixed_scope, 'hex')) = UPPER(dd.id)
     WHERE ai.activity_instance_id = $1

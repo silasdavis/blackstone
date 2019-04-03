@@ -63,10 +63,10 @@ const getOrganization = asyncMiddleware(async (req, res) => {
       approver, approverName, user, userName, department, departmentName, departmentUser,
     }) => {
       if (approver && !approvers[approver]) {
-        approvers[approver] = { address: approver, id: approverName };
+        approvers[approver] = { address: approver, username: approverName };
       }
       if (user && !users[user]) {
-        users[user] = { address: user, id: userName, departments: [] };
+        users[user] = { address: user, username: userName, departments: [] };
       }
       if (department && !departments[department]) {
         departments[department] = { id: department, name: departmentName, users: [] };
@@ -201,9 +201,9 @@ const removeDepartmentUser = asyncMiddleware(async (req, res) => {
   res.status(200).send();
 });
 
-const _userExistsOnChain = async (id) => {
+const _userExistsOnChain = async (username) => {
   try {
-    await contracts.getUserById(getSHA256Hash(id));
+    await contracts.getUserByUsername(getSHA256Hash(username));
     return true;
   } catch (err) {
     if (err.output.statusCode === 404) {
@@ -279,7 +279,7 @@ const registerUser = async (userData) => {
 
     // create user on chain
     try {
-      address = await contracts.createUser({ id: getSHA256Hash(username) });
+      address = await contracts.createUser({ username: getSHA256Hash(username) });
     } catch (err) {
       client.release();
       throw boom.badImplementation(`Failed to create user on chain: ${err.stack}`);
@@ -415,7 +415,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
   delete user.organization;
   try {
     const { rows } = await app_db_pool.query({
-      text: 'SELECT username AS id, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding ' +
+      text: 'SELECT id, username, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding ' +
         'FROM users WHERE address = $1',
       values: [userAddress],
     });
@@ -430,7 +430,7 @@ const editProfile = asyncMiddleware(async (req, res) => {
   const userAddress = req.user.address;
   const { error } = Joi.validate(req.body, userProfileSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
-  if (req.body.email || req.body.id) throw boom.notAcceptable('Email and username cannot be changed');
+  if (req.body.email || req.body.username) throw boom.notAcceptable('Email and username cannot be changed');
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
   let client;
   try {
@@ -509,7 +509,7 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
       });
       const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
         // Create user on chain
-        const address = await contracts.createUser({ id: getSHA256Hash(email) });
+        const address = await contracts.createUser({ username: getSHA256Hash(email) });
         const password = crypto.randomBytes(32).toString('hex');
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);

@@ -231,7 +231,6 @@ const createOrganization = org => new Promise((resolve, reject) => {
   log.trace(`Creating organization with: ${JSON.stringify(org)}`);
   appManager.contracts['ParticipantsManager'].factory.createOrganization(org.approvers ? org.approvers : [], org.defaultDepartmentId, (error, data) => {
     if (error || !data.raw) return reject(boom.badImplementation(`Failed to create organization ${org.name}: ${error}`));
-    if (parseInt(data.raw[0], 10) === 1002) return reject(boom.badRequest('Organization id must be unique'));
     if (parseInt(data.raw[0], 10) !== 1) {
       return reject(boom.badImplementation(`Error code creating new organization: ${data.raw[0]}`));
     }
@@ -598,45 +597,45 @@ const addAgreementToCollection = (collectionId, agreement) => new Promise((resol
 });
 
 const createUserInEcosystem = (user, ecosystemAddress) => new Promise((resolve, reject) => {
-  log.trace(`Creating a new user with ID: ${user.id} in ecosystem at ${ecosystemAddress}`);
+  log.trace(`Creating a new user with ID: ${user.username} in ecosystem at ${ecosystemAddress}`);
   appManager
     .contracts['ParticipantsManager']
-    .factory.createUserAccount(user.id, '0x0', ecosystemAddress, (error, data) => {
+    .factory.createUserAccount(user.username, '0x0', ecosystemAddress, (error, data) => {
     if (error || !data.raw) {
-      return reject(boom.badImplementation(`Failed to create user ${user.id}: ${error}`));
+      return reject(boom.badImplementation(`Failed to create user ${user.username}: ${error}`));
     }
-    log.info(`Created new user ${user.id} at address ${data.raw[0]}`);
+    log.info(`Created new user ${user.username} at address ${data.raw[0]}`);
     return resolve(data.raw[0]);
   });
 });
 
 const createUser = user => createUserInEcosystem(user, appManager.ecosystemAddress);
 
-const getUserByIdAndEcosystem = (userId, ecosystemAddress) => new Promise((resolve, reject) => {
-  log.trace(`Getting user by Id: ${userId} in ecosystem at ${ecosystemAddress}`);
+const getUserByUsernameAndEcosystem = (username, ecosystemAddress) => new Promise((resolve, reject) => {
+  log.trace(`Getting user by username: ${username} in ecosystem at ${ecosystemAddress}`);
   const ecosystem = getEcosystem(ecosystemAddress);
   ecosystem
-    .getUserAccount(userId)
+    .getUserAccount(username)
     .then((data) => {
-      if (!data.raw) throw boom.badImplementation(`Failed to get address for user with id ${userId}`);
+      if (!data.raw) throw boom.badImplementation(`Failed to get address for user with username ${username}`);
       return resolve({
         address: data.raw[0],
       });
     })
     .catch((err) => {
       if (err.isBoom) return reject(err);
-      return reject(boomify(err, `Failed to get address for user with id ${userId}`));
+      return reject(boomify(err, `Failed to get address for user with username ${username}`));
     });
 });
 
-const getUserById = userId => getUserByIdAndEcosystem(userId, appManager.ecosystemAddress);
+const getUserByUsername = username => getUserByUsernameAndEcosystem(username, appManager.ecosystemAddress);
 
-const addUserToEcosystem = (userId, address) => new Promise((resolve, reject) => {
+const addUserToEcosystem = (username, address) => new Promise((resolve, reject) => {
   const ecosystem = getEcosystem(appManager.ecosystemAddress);
   ecosystem
-    .addUserAccount(userId, address)
+    .addUserAccount(username, address)
     .then(() => resolve())
-    .catch(err => reject(boomify(err, `Failed to add user with id ${userId} and address ${address} to ecosystem`)));
+    .catch(err => reject(boomify(err, `Failed to add user with username ${username} and address ${address} to ecosystem`)));
 });
 
 const addUserToOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
@@ -1325,8 +1324,8 @@ module.exports = {
   addAgreementToCollection,
   createUserInEcosystem,
   createUser,
-  getUserByIdAndEcosystem,
-  getUserById,
+  getUserByUsernameAndEcosystem,
+  getUserByUsername,
   addUserToEcosystem,
   addUserToOrganization,
   removeUserFromOrganization,

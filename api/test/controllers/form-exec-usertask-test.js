@@ -69,11 +69,11 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   const INTERFACE_FORMATION = 'Agreement Formation'
   const INTERFACE_EXECUTION = 'Agreement Execution'
   let buyer = {
-    id: `buyer${rid(5, 'aA0')}`,
+    username: `buyer${rid(5, 'aA0')}`,
     address: ''
   }
   let seller = {
-    id: `seller${rid(5, 'aA0')}`,
+    username: `seller${rid(5, 'aA0')}`,
     address: ''
   }
   let buyProcess = {
@@ -116,7 +116,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
     activityType: 0,
     taskType: 1,
     behavior: 1,
-    assignee: buyer.id,
+    assignee: buyer.username,
     multiInstance: false
   }
 
@@ -125,7 +125,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
     activityType: 0,
     taskType: 1,
     behavior: 1,
-    assignee: seller.id,
+    assignee: seller.username,
     multiInstance: false
   }
   let agreement = {
@@ -146,8 +146,8 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }
 
   it('Should create a buyer and a seller', async () => {
-    let resBuyer = await contracts.createUser({ id: crypto.createHash('sha256').update(buyer.id).digest('hex') });
-    let resSeller = await contracts.createUser({ id: crypto.createHash('sha256').update(seller.id).digest('hex') });
+    let resBuyer = await contracts.createUser({ username: crypto.createHash('sha256').update(buyer.username).digest('hex') });
+    let resSeller = await contracts.createUser({ username: crypto.createHash('sha256').update(seller.username).digest('hex') });
     resBuyer.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     resSeller.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     buyer.address = resBuyer
@@ -173,8 +173,8 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should add participants', async () => {
-    await assert.isFulfilled(contracts.addParticipant(model.address, buyer.id, '', 'Buyer', 'agreement'))
-    await assert.isFulfilled(contracts.addParticipant(model.address, seller.id, '', 'Seller', 'agreement'))
+    await assert.isFulfilled(contracts.addParticipant(model.address, buyer.username, '', 'Buyer', 'agreement'))
+    await assert.isFulfilled(contracts.addParticipant(model.address, seller.username, '', 'Seller', 'agreement'))
   }).timeout(10000)
 
   it('Should add formation process', async () => {

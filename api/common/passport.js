@@ -10,9 +10,9 @@ const sqlCache = require(`${global.__controllers}/postgres-query-helper`);
 const { getSHA256Hash } = require(`${global.__common}/controller-dependencies`);
 
 module.exports = (passport) => {
-  const isValidUser = async (id) => {
+  const isValidUser = async (username) => {
     try {
-      await contracts.getUserById(getSHA256Hash(id));
+      await contracts.getUserByUsername(getSHA256Hash(username));
       return true;
     } catch (err) {
       if (err.output.statusCode === 404) {
@@ -78,7 +78,7 @@ module.exports = (passport) => {
         values: [usernameOrEmail],
       });
       if (!rows[0]) {
-        return done(null, false, { message: `Invalid login credentials - no user found in customers.users with id [ ${usernameOrEmail} ]` });
+        return done(null, false, { message: `Invalid login credentials - no user found in customers.users with ${idType} [ ${usernameOrEmail} ]` });
       }
       if (!rows[0].activated) {
         return done(null, false, { message: 'User account not yet activated' });
@@ -93,7 +93,7 @@ module.exports = (passport) => {
       // USERS table in the customers DB. This makes sure that we're using the correct UserAccount
       // for this user!
       const hashedId = getSHA256Hash(username);
-      const { address: addressFromChain } = await contracts.getUserById(hashedId);
+      const { address: addressFromChain } = await contracts.getUserByUsername(hashedId);
       const data = (await sqlCache.getUsers({ user_account_address: addressFromChain }))[0];
       if (!data) return done(null, false, { message: `Invalid login credentials - no user found in data.user_accounts with address ${addressFromChain}` });
       const isPassword = await bcrypt.compare(password, pwDigest);
@@ -102,7 +102,7 @@ module.exports = (passport) => {
           const token = jwt.sign(
             {
               address: addressFromChain,
-              id: username,
+              username,
             },
             global.__settings.monax.jwt.secret,
             {
@@ -117,7 +117,7 @@ module.exports = (passport) => {
         }
         return done(null, false, { message: 'Failed to login - User account address mismatch' });
       }
-      return done(null, false, { message: `Invalid login credentials - password mismatch for user with id ${usernameOrEmail} and address ${addressFromChain}` });
+      return done(null, false, { message: `Invalid login credentials - password mismatch for user with ${idType} ${usernameOrEmail} and address ${addressFromChain}` });
     } catch (err) {
       if (err.output && (err.output.statusCode === 401 || err.output.statusCode === 404)) {
         return done(null, false, { message: `Invalid login credentials - Error ${JSON.stringify(err)}` });
@@ -135,11 +135,11 @@ module.exports = (passport) => {
 
   const jwtStrategy = new JwtStrategy(jwtOpts, async (req, jwtPayload, done) => {
     try {
-      const userIsValid = await isValidUser(jwtPayload.id);
+      const userIsValid = await isValidUser(jwtPayload.username);
       if (userIsValid) {
         const user = {
           address: jwtPayload.address,
-          id: jwtPayload.id,
+          username: jwtPayload.username,
         };
         return done(null, user, { message: 'User authentication successful' });
       }
