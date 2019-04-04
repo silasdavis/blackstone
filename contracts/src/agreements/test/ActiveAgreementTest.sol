@@ -17,6 +17,7 @@ contract ActiveAgreementTest {
 	bytes32 constant EMPTY = "";
 
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
+	string dummyFileRef = "{find me}";
 	string dummyPrivateParametersFileRef = "{json grant}";
 	uint maxNumberOfEvents = 5;
 	bytes32 DATA_FIELD_AGREEMENT_PARTIES = "AGREEMENT_PARTIES";
@@ -51,6 +52,13 @@ contract ActiveAgreementTest {
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
 		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.setEventLogReference(dummyFileRef);
+		if (keccak256(abi.encodePacked(agreement.getEventLogReference())) != keccak256(abi.encodePacked(dummyFileRef)))
+			return "The EventLog file reference was not set/retrieved correctly";
+		agreement.setSignatureLogReference(dummyFileRef);
+		if (keccak256(abi.encodePacked(agreement.getSignatureLogReference())) != keccak256(abi.encodePacked(dummyFileRef)))
+			return "The SignatureLog file reference was not set/retrieved correctly";
+
 		agreement.setDataValueAsAddressArray(bogusId, bogusArray);
 
 		if (agreement.getNumberOfParties() != parties.length) return "Number of parties not returning expected size";

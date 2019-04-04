@@ -92,7 +92,7 @@ ValidatorAddress = "0201EF325305ABD75E1FB8A8F539730F71547484"
   AuthorizedPeers = ""
   CreateEmptyBlocks = true
   CreateEmptyBlocksInterval = 0
-  TimeoutFactor = 0.001
+  TimeoutFactor = 0.005
 
 [Execution]
   CallStackMaxDepth = 0

@@ -16,23 +16,27 @@ import "agreements/AgreementsAPI.sol";
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement.sol";
 
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
 	using ArrayUtilsLib for address[];
 	using TypeUtilsLib for bytes32;
 	using AgreementsAPI for ActiveAgreement;
-	using MappingsLib for Mappings.Bytes32Bytes32Map;
+	using MappingsLib for Mappings.Bytes32StringMap;
+
+	bytes32 constant fileKeyPrivateParameters = keccak256(abi.encodePacked("fileKey.privateParameters"));
+	bytes32 constant fileKeyEventLog = keccak256(abi.encodePacked("fileKey.eventLog"));
+	bytes32 constant fileKeySignatureLog = keccak256(abi.encodePacked("fileKey.signatureLog"));
 
 	address archetype;
 	address creator;
-	string privateParametersFileReference;
-	string eventLogFileReference;
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
-	address[] parties;
 	Agreements.LegalState legalState;
+
+	Mappings.Bytes32StringMap fileReferences;
 	mapping(address => Agreements.Signature) signatures;
 	mapping(address => Agreements.Signature) cancellations;
+	address[] parties;
 	address[] governingAgreements;
 
 	/**
@@ -64,7 +68,9 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 
 		archetype = _archetype;
 		creator = _creator;
-		privateParametersFileReference = _privateParametersFileReference;
+		if (bytes(_privateParametersFileReference).length > 0) {
+			fileReferences.insertOrUpdate(fileKeyPrivateParameters, _privateParametersFileReference);
+		}
 		privateFlag = _isPrivate;
 		parties = _parties;
 		governingAgreements = _governingAgreements;
@@ -78,8 +84,8 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 			_isPrivate,
 			uint8(legalState),
 			maxNumberOfEvents,
-			privateParametersFileReference,
-			eventLogFileReference
+			_privateParametersFileReference,
+			""
 		);
 		for (uint i = 0; i < _parties.length; i++) {
 			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
@@ -167,7 +173,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the reference to an external document containing private parameters
 	 */
 	function getPrivateParametersReference() external view returns (string){
-		return privateParametersFileReference;
+		return fileReferences.get(fileKeyPrivateParameters);
 	}
 
 	/**
@@ -183,7 +189,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @param _eventLogFileReference the file reference to the event log
 	 */
 	function setEventLogReference(string _eventLogFileReference) external {
-		eventLogFileReference = _eventLogFileReference;
+		fileReferences.insertOrUpdate(fileKeyEventLog, _eventLogFileReference);
 		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, address(this), _eventLogFileReference);
 	}
 
@@ -192,7 +198,24 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the reference to an external document containing the event log
 	 */
 	function getEventLogReference() external view returns (string) {
-		return eventLogFileReference;
+		return fileReferences.get(fileKeyEventLog);
+	}
+
+	/**
+	 * @dev Updates the file reference for the signature log of this agreement
+	 * @param _signatureLogFileReference the file reference to the signature log
+	 */
+	function setSignatureLogReference(string _signatureLogFileReference) external {
+		fileReferences.insertOrUpdate(fileKeySignatureLog, _signatureLogFileReference);
+		emit LogAgreementSignatureLogReference(EVENT_ID_AGREEMENTS, address(this), _signatureLogFileReference);
+	}
+
+	/**
+	 * @dev Returns the reference for the signature log of this ActiveAgreement
+	 * @return the reference to an external document containing the signature log
+	 */
+	function getSignatureLogReference() external view returns (string) {
+		return fileReferences.get(fileKeySignatureLog);
 	}
 
 	/**
