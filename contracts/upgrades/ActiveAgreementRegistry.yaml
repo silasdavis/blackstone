@@ -1,0 +1,119 @@
+jobs:
+
+#####
+# Retrieve DOUG
+#####
+- name: DOUG
+  query-name:
+      name: DOUG
+      field: data
+
+#####
+# Retrieve Library Addresses
+#####
+- name: ErrorsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ErrorsLib]
+
+- name: TypeUtilsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [TypeUtilsLib]
+
+- name: ArrayUtilsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ArrayUtilsLib]
+
+- name: MappingsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [MappingsLib]
+
+- name: DataStorageUtils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [DataStorageUtils]
+
+- name: ERC165Utils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ERC165Utils]
+
+- name: BpmRuntimeLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [BpmRuntimeLib]
+
+- name: AgreementsAPI
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [AgreementsAPI]
+
+#####
+# ActiveAgreementRegistry Upgrade
+#####
+
+- name: OldActiveAgreementRegistry
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ActiveAgreementRegistry]
+
+- name: NewActiveAgreementRegistry
+  deploy:
+    contract: DefaultActiveAgreementRegistry.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, BpmRuntimeLib:$BpmRuntimeLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils, AgreementsAPI:$AgreementsAPI
+    data: ["ArchetypeRegistry", "BpmService"]
+
+- name: ChangeUpgradeOwnership
+  call:
+    destination: $NewActiveAgreementRegistry
+    bin: UpgradeOwned
+    function: transferUpgradeOwnership
+    data: [$DOUG]
+
+- name: DeployNewActiveAgreementRegistry
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: deploy
+    data: ["ActiveAgreementRegistry", $NewActiveAgreementRegistry]
+
+- name: AssertActiveAgreementRegistry
+  assert:
+    key: $DeployNewActiveAgreementRegistry
+    relation: eq
+    val: "true"
+
+# Retrieve the updated repository via DOUG
+- name: UpdatedActiveAgreementRegistry
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ActiveAgreementRegistry]
+
+- name: AssertUpdatedActiveAgreementRegistry
+  assert:
+    key: $UpdatedActiveAgreementRegistry
+    relation: eq
+    val: $NewActiveAgreementRegistry

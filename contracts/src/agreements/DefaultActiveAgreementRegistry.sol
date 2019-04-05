@@ -27,7 +27,7 @@ import "agreements/ArchetypeRegistry.sol";
  * @title DefaultActiveAgreementRegistry Interface
  * @dev A contract interface to create and manage Active Agreements.
  */
-contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
+contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,1), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
 
 	using ArrayUtilsLib for address[];
 
@@ -591,11 +591,20 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	}
 
 	/**
+	 * @dev Updates the file reference for the signature log of the specified agreement
+	 * @param _activeAgreement the address of active agreement
+	 * @param _signatureLogFileReference the file reference of the signature log of this agreement
+	 */
+	function setSignatureLogReference(address _activeAgreement, string _signatureLogFileReference) external {
+		ActiveAgreement(_activeAgreement).setSignatureLogReference(_signatureLogFileReference);
+	}
+
+	/**
 	 * @dev Returns the BpmService address
 	 * @return address the BpmService
 	 */
 	function getBpmService() external returns (address location) {
-        (location, ) = artifactsFinder.getArtifact(serviceIdBpmService);
+    (location, ) = artifactsFinder.getArtifact(serviceIdBpmService);
 	}
 
 	/**
@@ -603,7 +612,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,0), Abs
 	 * @return address the ArchetypeRegistry
 	 */
 	function getArchetypeRegistry() external returns (address location) {
-        (location, ) = artifactsFinder.getArtifact(serviceIdArchetypeRegistry);
+    (location, ) = artifactsFinder.getArtifact(serviceIdArchetypeRegistry);
 	}
 
 }
