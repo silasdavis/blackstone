@@ -20,7 +20,7 @@ const stream = require('stream');
   /**
      * Constructor for a Wrapper instance to talk to a specific chain
      */
-  function MonaxDB(host, port, account) {
+  function MonaxDB(chainURL, account) {
     if (!account) {
       log.error('No account specified for MonaxDB!');
     }
@@ -28,7 +28,7 @@ const stream = require('stream');
     const observer = asyncIterable => R.pipe(I.map(event => `${JSON.stringify(event, null, 2)}\n\n`), I.to(stream.Readable))(asyncIterable).pipe(process.stderr);
 
     const self = this;
-    self.chainURL = `${host}:${port}`;
+    self.chainURL = chainURL;
     self.burrow = monax.createInstance(self.chainURL, account, { objectReturn: true });
     // self.contractManager = monax.newContractManagerDev(self.chainURL, account, {signbyaddress: true, observer: process.env.DEBUG ? observer : I.sink});
     self.listen = new ChainEvents();

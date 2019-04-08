@@ -37,10 +37,12 @@ bundle_cache
 **/.burrow
 burrow.log
 keys.log
+docker-compose.log
 
 # docs stuff
 docdev
 apidoc
+docs.agreements.network/
 
 # Build artifacts
 assembly

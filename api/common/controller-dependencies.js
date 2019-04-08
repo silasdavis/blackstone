@@ -4,7 +4,7 @@ const boom = require('boom');
 
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('monax.controllers');
-const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
+const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
@@ -68,6 +68,8 @@ const dependencies = {
         break;
       case 'Agreement':
         element.isPrivate = Boolean(element.isPrivate);
+        if (Number(element.formationProcessDefinition) === 0) element.formationProcessDefinition = null;
+        if (Number(element.executionProcessDefinition) === 0) element.executionProcessDefinition = null;
         break;
       case 'Application':
         element.id = hexToString(element.id);
@@ -211,52 +213,33 @@ const dependencies = {
     return retdata;
   },
 
-  where: (criteria, skipWhere) => {
-    // log.debug("whereing")
-    // log.debug(criteria)
-    if (criteria === undefined) return '';
-
-    let where = skipWhere ? 'AND ' : 'WHERE ';
-    const conds = [];
-
-    Object.keys(criteria).forEach((key, i) => {
-      // skip 'token' query param
-      if (key === 'token') return;
-
-      if (/^null$/i.exec(criteria[key]) != null) {
-        conds.push(`${key} IS NULL`);
-      } else if (/^notnull$/i.exec(criteria[key]) != null) {
-        conds.push(`${key} IS NOT NULL`);
-      } else if (/^true$/i.exec(criteria[key]) != null) {
-        conds.push(`${key}=1`);
-      } else if (/^false$/i.exec(criteria[key]) != null) {
-        conds.push(`${key}=0`);
+  where: (queryParams) => {
+    /* Notes:
+      - all values in `req.query` come in as strings, so column type is cast to string for query
+      - query values containing commas will be split to perform a WHERE IN query
+      - query values will be numbered starting at $1, so if additional queries should be added AFTER these ones
+      - if no query is given, returns 'TRUE' so it can be inserted into a query without any issues
+      - query keys in camelCase will be converted to snake_case in returned query string to match db table column name format
+    */
+    let queryString = '';
+    const queryVals = [];
+    if (!queryParams || !Object.keys(queryParams).length) return { queryString: 'TRUE', queryVals };
+    Object.keys(queryParams).forEach((key) => {
+      let formatted = queryParams[key];
+      if (typeof formatted === 'string' && formatted.includes(',')) {
+        formatted = queryParams[key].split(',');
+      }
+      if (queryString) queryString = queryString.concat(' AND ');
+      const isArray = Array.isArray(formatted);
+      queryString = queryString.concat(`${_.snakeCase(key)}::text ${isArray ? 'IN ' : '= '}`);
+      queryString = queryString.concat(`${isArray ? ` (${formatted.map((__, i) => `$${queryVals.length + i + 1}`)})` : `$${queryVals.length + 1}`}`);
+      if (isArray) {
+        queryVals.push(...formatted);
       } else {
-        conds.push(`${key} = ${dependencies.formatItem(criteria[key])}`);
+        queryVals.push(formatted);
       }
     });
-
-    if (conds.length === 0) return '';
-
-    for (let i = 0; i < conds.length; i += 1) {
-      if (i !== 0) {
-        where += ' AND ';
-      }
-      where += conds[i];
-    }
-
-    return where;
-  },
-
-  pgWhere: (obj) => {
-    let columns = Object.keys(obj);
-    const values = columns.map(col => obj[col]);
-    columns = columns.map(col => _.snakeCase(col));
-    const text = `WHERE ${columns.map((col, i) => `${col} = $${i + 1}`).join(' AND ')}`;
-    return {
-      text,
-      values,
-    };
+    return { queryString, queryVals };
   },
 
   pgUpdate: (tableName, obj) => {
@@ -270,26 +253,24 @@ const dependencies = {
     };
   },
 
-  getParticipantNames: async (participants, registeredUsersOnly, addressKey = 'address') => {
-    const text = `SELECT username AS id, NULL AS name, address, external_user FROM users
-    UNION
-    SELECT NULL AS id, name, address, FALSE AS external_user FROM organizations
-    WHERE address = ANY($1)
-    ${registeredUsersOnly ? ' AND external_user = false;' : ';'}`;
+  getParticipantNames: async (participants, addressKey = 'address') => {
+    const text = `SELECT address, COALESCE(username, name) AS "displayName"
+    FROM (
+      SELECT username, NULL AS name, address FROM users
+      UNION
+      SELECT NULL AS username, name, address FROM organizations
+    ) accounts
+    WHERE address = ANY($1);`;
     try {
       const { rows: withNames } = await app_db_pool.query({
         text,
         values: [participants.map(({ [addressKey]: address }) => address)],
       });
       const names = {};
-      withNames.forEach(({ address, id, name }) => {
-        names[address] = {};
-        if (id) names[address].id = id;
-        if (name) names[address].name = name;
+      withNames.forEach(({ address, displayName }) => {
+        names[address] = { displayName };
       });
-      const returnData = participants.map(account => Object.assign({}, account, names[account[addressKey]]));
-      if (registeredUsersOnly) return returnData.filter(({ id, name }) => id || name);
-      return returnData;
+      return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
     } catch (err) {
       throw boom.badImplementation(err);
     }

@@ -2,41 +2,144 @@ const path = require('path');
 const boom = require('boom');
 const Joi = require('joi');
 const _ = require('lodash');
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
 const pgCache = require('./postgres-cache-helper');
 
 const {
-  encrypt,
   format,
   splitMeta,
-  addMeta,
   asyncMiddleware,
   getBooleanFromString,
-  getSHA256Hash,
   getParticipantNames,
 } = require(`${global.__common}/controller-dependencies`);
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
 const archetypeSchema = require(`${global.__schemas}/archetype`);
 const agreementSchema = require(`${global.__schemas}/agreement`);
 const { hoardGet, hoardPut } = require(`${global.__controllers}/hoard-controller`);
+const { parseBpmnModel } = require(`${global.__controllers}/bpm-controller`);
+const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const logger = require(`${global.__common}/monax-logger`);
 const log = logger.getLogger('agreements');
 const sqlCache = require('./postgres-query-helper');
-const { PARAMETER_TYPES: PARAM_TYPE, AGREEMENT_PARTIES } = global.__monax_constants;
+const { PARAMETER_TYPES: PARAM_TYPE, AGREEMENT_PARTIES, AGREEMENT_ATTACHMENT_CONTENT_TYPES } = global.__monax_constants;
+
+const AGREEMENT_DATA_ID = 'agreement';
+
+const _createPrivatePublicArrays = (parameters, paramsRequired) => {
+  const privateParams = [];
+  const publicParams = [];
+  parameters.forEach((param) => {
+    if (paramsRequired[param.name]) {
+      publicParams.push(param);
+    } else {
+      privateParams.push(param);
+    }
+  });
+  return { privateParams, publicParams };
+};
+
+const _increment = (paramsRequired, param, count) => {
+  /*  eslint-disable no-param-reassign */
+  paramsRequired[param] = true;
+  /*  eslint-enable no-param-reassign */
+  return count + 1;
+};
+
+const _checkObjectsForParamUse = (
+  objArray,
+  parametersLength,
+  paramsRequired,
+  paramsRequiredCount,
+  dataStorageIdFieldName = 'dataStorageId',
+  dataPathFieldName = 'dataPath',
+) => {
+  if (!objArray || !objArray.length || parametersLength === paramsRequiredCount) return paramsRequiredCount;
+  const { [dataStorageIdFieldName]: dataStorageId, [dataPathFieldName]: dataPath } = objArray.pop();
+  let newCount = paramsRequiredCount;
+  if (dataStorageId === AGREEMENT_DATA_ID && dataPath !== AGREEMENT_PARTIES && !paramsRequired[dataPath]) {
+    newCount = _increment(paramsRequired, dataPath, paramsRequiredCount);
+  }
+  return _checkObjectsForParamUse(objArray, parametersLength, paramsRequired, newCount, dataStorageIdFieldName, dataPathFieldName);
+};
+
+const _checkTasksForParamUse = (tasks, parametersLength, paramsRequired, paramsRequiredCount) => {
+  if (!tasks.length || parametersLength === paramsRequiredCount) return paramsRequiredCount;
+  let newCount = paramsRequiredCount;
+  const { dataMappings } = tasks.pop();
+  newCount = _checkObjectsForParamUse(dataMappings, parametersLength, paramsRequired, newCount);
+  return _checkTasksForParamUse(tasks, parametersLength, paramsRequired, newCount);
+};
+
+const _checkProcessForParamUse = async (process, paramsRequired, parametersLength, paramsRequiredCount = 0) => {
+  let newCount = paramsRequiredCount;
+  newCount = _checkObjectsForParamUse(process.participants, parametersLength, paramsRequired, newCount);
+  ['tasks', 'userTasks', 'sendTasks', 'serviceTasks'].forEach((taskType) => {
+    newCount = _checkTasksForParamUse(process[taskType], parametersLength, paramsRequired, newCount);
+  });
+  newCount = _checkObjectsForParamUse(
+    process.transitions
+      .filter(({ condition }) => condition)
+      .map(({ condition }) => condition),
+    parametersLength,
+    paramsRequired,
+    newCount,
+    'lhDataStorageId',
+    'lhDataPath',
+  );
+  return newCount;
+};
+
+const _getParsedModel = async (modelFileRef) => {
+  let xml = await hoardGet(modelFileRef);
+  xml = splitMeta(xml);
+  const { model: { dataStoreFields }, processes } = await parseBpmnModel(xml.data.toString());
+  return { dataStoreFields, processes };
+};
+
+const _checkModelsForRequiredParameters = async (archetypeAddress) => {
+  try {
+    const {
+      formationModelFileReference, executionModelFileReference, formationProcessId, executionProcessId,
+    } = (await sqlCache.getArchetypeModelFileReferences(archetypeAddress))[0];
+    const paramsRequired = {};
+    let dataStoreFields;
+    let processes;
+    let parametersLength;
+    let paramsRequiredCount;
+    if (formationModelFileReference) {
+      ({ dataStoreFields, processes } = await _getParsedModel(formationModelFileReference));
+      parametersLength = dataStoreFields.filter(({ dataStorageId }) => dataStorageId === AGREEMENT_DATA_ID).length;
+      // Each of the _check functions will update the `paramsRequired` obj and increment a `paramsRequiredCount`
+      // They will return early once `paramsRequiredCount` meets `parametersLength`, ie all parameters are required
+      paramsRequiredCount = await _checkProcessForParamUse(
+        processes.find(({ id }) => id === formationProcessId), paramsRequired, parametersLength,
+      );
+    }
+    if (!executionModelFileReference) return paramsRequired;
+    if (formationModelFileReference !== executionModelFileReference) {
+      // Only get model data and reset count if execution uses a different model
+      ({ dataStoreFields, processes } = await _getParsedModel(executionModelFileReference));
+      parametersLength = dataStoreFields.filter(({ dataStorageId }) => dataStorageId === AGREEMENT_DATA_ID).length;
+      paramsRequiredCount = 0;
+    } else if (paramsRequiredCount === parametersLength) {
+      // Models are the same and we've already found that all data store fields are required
+      return paramsRequired;
+    }
+    await _checkProcessForParamUse(
+      processes.find(({ id }) => id === executionProcessId), paramsRequired, parametersLength, paramsRequiredCount,
+    );
+    return paramsRequired;
+  } catch (err) {
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to get parameters required by models for archetype ${archetypeAddress}: ${JSON.stringify(err)}`);
+  }
+};
 
 const getArchetypes = asyncMiddleware(async (req, res) => {
   const retData = [];
-  const archData = await sqlCache.getArchetypeData(req.query, req.user.address);
-  const jurisData = await sqlCache.getArchetypeJurisdictionsAll();
+  const archData = await sqlCache.getArchetypes(req.query, req.user.address);
   archData.forEach((_archetype) => {
-    const archetype = Object.assign(_archetype, { countries: [] });
-    jurisData.forEach((juris) => {
-      if (juris.address === archetype.address) archetype.countries.push(juris.country);
-    });
-    retData.push(format('Archetype', archetype));
+    retData.push(format('Archetype', _archetype));
   });
   res.json(retData);
 });
@@ -129,7 +232,7 @@ const createArchetype = asyncMiddleware(async (req, res) => {
     await contracts.addJurisdictions(archetypeAddress, type.jurisdictions);
   }
   await sqlCache.insertArchetypeDetails({ address: archetypeAddress, name: req.body.name, description: _.escape(req.body.description) });
-
+  res.data = { archetypeAddress };
   return res
     .status(200)
     .set('content-type', 'application/json')
@@ -244,9 +347,9 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   const { packageId, archetypeAddress } = req.params;
   if (!packageId || !archetypeAddress) throw boom.badRequest('Package id and archetype address are required');
   const packageData = (await sqlCache.getArchetypePackage(packageId, req.user.address));
-  const archetypeData = (await sqlCache.getArchetypeData({ archetype_address: archetypeAddress }, req.user.address))[0];
+  const archetypeData = await sqlCache.getArchetypeData(archetypeAddress, req.user.address);
   if (!archetypeData) {
-    throw boom.forbidden(`User at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
+    throw boom.forbidden(`Archetype at ${archetypeAddress} not found or user at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
       `and thus not allowed to add it to the package with id ${packageId}`);
   }
   if (req.user.address !== packageData.author) throw boom.forbidden(`Package with id ${packageId} is not modifiable by user at address ${req.user.address}`);
@@ -254,80 +357,6 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res) => {
   await contracts.addArchetypeToPackage(packageId, archetypeAddress);
   res.sendStatus(200);
 });
-
-const createOrFindAccountsWithEmails = async (params, typeKey) => {
-  const newParams = {
-    notAccountOrEmail: [],
-    withEmail: [],
-    forExistingUser: [],
-    forNewUser: [],
-  };
-  params.forEach((param) => {
-    if (param[typeKey] !== PARAM_TYPE.USER_ORGANIZATION && param[typeKey] !== PARAM_TYPE.SIGNING_PARTY) {
-      // Ignore non-account parameters
-      newParams.notAccountOrEmail.push({ ...param });
-    } else if (/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)) {
-      // Select parameters with email values
-      newParams.withEmail.push({ ...param });
-    } else {
-      // Ignore parameters with non-email values
-      newParams.notAccountOrEmail.push({ ...param });
-    }
-  });
-  const client = await app_db_pool.connect();
-  try {
-    if (newParams.withEmail.length) {
-      const { rows } = await client.query({
-        text: `SELECT LOWER(email) AS email, address FROM users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
-        values: newParams.withEmail.map(({ value }) => value),
-      });
-      newParams.forNewUser = {};
-      newParams.withEmail.forEach((param) => {
-        const emailAddr = param.value.toLowerCase();
-        const existingUser = rows.find(({ email }) => emailAddr === email);
-        if (existingUser) {
-          // Use existing accounts info if email already registered
-          newParams.forExistingUser.push({ ...param, value: existingUser.address });
-        } else if (newParams.forNewUser[emailAddr]) {
-          // Consolidate users that need to be registered into obj in case the same email was entered for multiple parameters
-          // Also save the parameters that each email was used for
-          newParams.forNewUser[emailAddr].push(param);
-        } else {
-          newParams.forNewUser[emailAddr] = [param];
-        }
-      });
-      const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
-        // Create user on chain
-        const address = await contracts.createUser({ id: getSHA256Hash(email) });
-        const password = crypto.randomBytes(32).toString('hex');
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash(password, salt);
-        // Create user in db
-        const queryString = `INSERT INTO users(
-          address, username, email, password_digest, is_producer, external_user
-          ) VALUES(
-            $1, $2, $3, $4, $5, $6
-            );`;
-        await client.query({ text: queryString, values: [address, email, email, hash, false, true] });
-        return { email, address };
-      });
-      const newUsers = await Promise.all(createNewUserPromises);
-      newParams.forNewUser = Object.keys(newParams.forNewUser).reduce((acc, emailAddr) => {
-        const { address } = newUsers.find(({ email }) => email === emailAddr);
-        const newUserParams = newParams.forNewUser[emailAddr].map(param => ({ ...param, value: address }));
-        return acc.concat(newUserParams);
-      }, []);
-    }
-    // Release client
-    client.release();
-    // Return all parameters
-    return newParams.notAccountOrEmail.concat(newParams.forExistingUser).concat(newParams.forNewUser);
-  } catch (err) {
-    client.release();
-    if (boom.isBoom(err)) throw err;
-    throw boom.badImplementation(err);
-  }
-};
 
 const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agreementParams) => {
   const promises = [];
@@ -369,8 +398,8 @@ const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
 };
 
 const createAgreement = asyncMiddleware(async (req, res) => {
-  let parameters = req.body.parameters || [];
-  parameters = await createOrFindAccountsWithEmails(parameters, 'type');
+  const _parameters = req.body.parameters || [];
+  const { parameters, newUsers } = await createOrFindAccountsWithEmails(_parameters, 'type');
   const parties = req.body.parties || [];
   parameters.forEach((param) => {
     if (parseInt(param.type, 10) === PARAM_TYPE.SIGNING_PARTY) parties.push(param.value);
@@ -381,7 +410,6 @@ const createAgreement = asyncMiddleware(async (req, res) => {
     creator: req.user.address,
     isPrivate: req.body.isPrivate,
     parties,
-    privateParametersFileReference: JSON.stringify(''), // see TODO below- once we're saving private params to hoard, the returned ref should be passed here
     collectionId: req.body.collectionId,
     governingAgreements: req.body.governingAgreements || [],
   };
@@ -393,22 +421,13 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   if (!contracts.isActiveArchetype(agreement.archetype)) {
     throw boom.badRequest(`Cannot instantiate inactive archetype at ${agreement.archetype} for agreement ${agreement.name}`);
   }
-  // TODO: Hoard stuff- implement later for saving private field values. Currently saving all values to chain.
-  // plaintextIn = {
-  //   data: new Buffer(JSON.stringify(req.body.values)),
-  // };
-  // hoard
-  //   .put(plaintextIn)
-  //   .then((ref) => {
-  //     ref.address = ref.address.toString('hex');
-  //     ref.secretKey = encrypt(ref.secretKey, password).toString('hex');
-
-  //     agreement.hoardAddress = ref.address;
-  //     agreement.hoardSecret = ref.secretKey;
+  const paramsRequired = await _checkModelsForRequiredParameters(agreement.archetype);
+  const { privateParams, publicParams } = _createPrivatePublicArrays(parameters, paramsRequired);
+  agreement.privateParametersFileReference = await hoardPut({ name: 'privateParameters.json' }, JSON.stringify(privateParams));
   delete agreement.name; // Don't store name on chain
   const agreementAddress = await contracts.createAgreement(agreement);
-  await contracts.setMaxNumberOfEvents(agreementAddress, parseInt(req.body.maxNumberOfEvents, 10));
-  await setAgreementParameters(agreementAddress, req.body.archetype, parameters);
+  await contracts.setMaxNumberOfAttachments(agreementAddress, parseInt(req.body.maxNumberOfAttachments, 10));
+  await setAgreementParameters(agreementAddress, req.body.archetype, publicParams);
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters
     .filter(({ scope, value: paramVal }) => scope && parties.includes(paramVal))
@@ -420,108 +439,136 @@ const createAgreement = asyncMiddleware(async (req, res) => {
   await sqlCache.insertAgreementDetails({ address: agreementAddress, name: req.body.name });
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
   log.debug(`Process Instance Address: ${piAddress}`);
+  res.data = { agreementAddress, archetypeAddress: agreement.archetype, newUsers };
   res
     .status(200)
     .set('content-type', 'application/json')
     .json({ address: agreementAddress });
 });
 
-const _generateParamGetterPromises = (agreementAddr, agreementParams, reqParams) => {
+const _generateParamGetterPromises = (agreementAddr, agreementParams) => {
   const promises = [];
   const invalidParams = [];
-  reqParams.forEach(({ name }) => {
-    const matchingParam = agreementParams.filter(item => name === item.name)[0];
-    if (matchingParam) {
-      const getterFunction = dataStorage.agreementDataGetters[`${matchingParam.parameterType}`];
-      if (getterFunction) {
-        log.debug(`Getting value of parameter: ${matchingParam.name} in agremeement at address ${agreementAddr}`);
-        promises.push(getterFunction(agreementAddr, matchingParam.name));
-      } else {
-        log.error(`No getter function found for parameter name ${matchingParam.name} with parameter type ${matchingParam.parameterType}`);
-      }
+  agreementParams.forEach((param) => {
+    const getterFunction = dataStorage.agreementDataGetters[`${param.parameterType}`];
+    if (getterFunction) {
+      log.debug(`Getting value of parameter: ${param.name} in agremeement at address ${agreementAddr}`);
+      promises.push(getterFunction(agreementAddr, param.name));
     } else {
-      invalidParams.push(name);
+      log.error(`No getter function found for parameter name ${param.name} with parameter type ${param.parameterType}`);
     }
   });
   return { promises, invalidParams };
 };
 
-const getAgreementParameters = async (agreementAddr, reqParams) => {
-  const agreementParams = await dataStorage.getAgreementValidParameters(agreementAddr);
-  return new Promise((resolve, reject) => {
-    const params = reqParams || [];
-    if (params.length === 0) {
-      agreementParams.forEach((param) => {
-        params.push(param);
-      });
-    }
-    const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams, params);
+const _getPrivateAgreementParameters = async (fileRef) => {
+  const parameters = await hoardGet(fileRef);
+  return JSON.parse(splitMeta(parameters).data.toString());
+};
+
+const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
+  try {
+    const agreementParams = await dataStorage.getAgreementValidParameters(agreementAddr);
+    const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams);
     if (invalidParams.length > 0) {
-      return reject(boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`));
+      throw boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`);
     }
-    return Promise.all(promises)
-      .then(results => resolve(results.map(({ name, value }, i) => ({ name, value, type: params[i].parameterType }))))
-      .catch(err => reject(boom.badImplementation(`Failed to get agreement parameters: ${err}`)));
-  });
+    const paramsFromChain = await Promise.all(promises);
+    const parameters = {};
+    paramsFromChain.forEach(({ name, value }, i) => {
+      parameters[name] = { name, value, type: agreementParams[i].parameterType };
+    });
+    const privateParams = await _getPrivateAgreementParameters(parametersFileRef);
+    // paramsFromChain includes all parameters from archetype, so "private" ones will also be included with empty values
+    // these empty values must be filled in with the private values retrieved from hoard
+    privateParams.forEach(({ name, value, type }) => {
+      parameters[name] = { name, value, type };
+    });
+    return Object.values(parameters);
+  } catch (err) {
+    if (err.isBoom) throw err;
+    throw boom.badImplementation(`Failed to get agreement parameters: ${err}`);
+  }
 };
 
 const getAgreements = asyncMiddleware(async (req, res) => {
   const retData = [];
   const forCurrentUser = req.query.forCurrentUser === 'true';
   delete req.query.forCurrentUser;
-  const queryParams = Object.keys(req.query).length ? req.query : null;
-  const data = await sqlCache.getAgreements(queryParams, forCurrentUser, req.user.address);
+  const data = await sqlCache.getAgreements(req.query, forCurrentUser, req.user.address);
   data.forEach((elem) => { retData.push(format('Agreement', elem)); });
   return res.json(retData);
 });
 
-const getAgreement = asyncMiddleware(async (req, res) => {
-  if (!req.params.address) throw boom.badRequest('Agreement address is required');
-  const addr = req.params.address;
-  let data = (await sqlCache.getAgreementData(addr, req.user.address))[0];
-  if (!data) throw boom.notFound(`Agreement at ${addr} not found or user has insufficient privileges`);
-  const parameters = await getAgreementParameters(addr, null);
-  data.parties = await sqlCache.getAgreementParties(addr);
-  data = format('Agreement', data);
+const getAgreement = async (agrAddress, userAddress) => {
+  let data = await sqlCache.getAgreementData(agrAddress, userAddress);
+  if (!data) throw boom.notFound(`Agreement at ${agrAddress} not found or user has insufficient privileges`);
+  data.parties = await sqlCache.getAgreementParties(agrAddress);
   data.documents = await sqlCache.getArchetypeDocuments(data.archetype);
-  const withNames = await getParticipantNames(parameters, false, 'value');
+  const parameters = await getAgreementParameters(agrAddress, data.privateParametersFileReference);
+  const withNames = await getParticipantNames(parameters, 'value');
   const withNamesObj = {};
-  withNames.forEach(({ value, id, name }) => {
-    if (id || name) withNamesObj[value] = { value, displayValue: id || name };
+  withNames.forEach(({ value, displayName }) => {
+    if (displayName) withNamesObj[value] = { displayValue: displayName };
   });
   data.parameters = parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
-  data.governingAgreements = await sqlCache.getGoverningAgreements(req.params.address);
-  return res.status(200).json(data);
+  data.governingAgreements = await sqlCache.getGoverningAgreements(agrAddress);
+  data = format('Agreement', data);
+  return data;
+};
+
+const getAgreementHandler = asyncMiddleware(async (req, res) => {
+  const agreement = await getAgreement(req.params.address, req.user.address);
+  return res.status(200).json(agreement);
 });
 
-const updateAgreementEventLog = asyncMiddleware(async ({ params: { address }, body: { eventName, content }, user }, res) => {
-  if (!address) throw boom.badRequest('Agreement address is required');
-  if (!eventName) throw boom.badRequest('eventName is required');
-  const data = await sqlCache.getAgreementEventLogDetails(address);
-  const newEvent = {
-    name: eventName,
-    submitter: user.address,
-    timestamp: Date.now(),
-    content: content || '',
-  };
-  let eventLog;
-  if (!data.eventLogFileReference) {
-    // No reference stored- start new event log
-    eventLog = { data: [] };
+const updateAgreementAttachments = asyncMiddleware(async (req, res) => {
+  const { address } = req.params;
+  const data = await sqlCache.getAgreementData(address, req.user.address, false);
+  if (!data) throw boom.notFound(`Agreement at ${address} not found or user has insufficient privileges`);
+  let name;
+  let content;
+  let contentType;
+  if (req.headers['content-type'].startsWith('multipart/form-data')) {
+    // Receiving file - upload to hoard and get grant
+    if (!req.files) throw boom.badRequest('No file received for attachment');
+    const file = req.files[0];
+    name = file.originalname;
+    const meta = {
+      name,
+      mime: file.mimetype,
+    };
+    content = await hoardPut(meta, file.buffer);
+    contentType = AGREEMENT_ATTACHMENT_CONTENT_TYPES.fileReference;
+  } else {
+    ({ name, content } = req.body);
+    if (!name || !content) throw boom.badRequest('Name and content are required fields');
+    contentType = AGREEMENT_ATTACHMENT_CONTENT_TYPES.plaintext;
+  }
+  let attachments;
+  if (!data.attachmentsFileReference) {
+    // No reference stored- start new attachments
+    attachments = [];
   } else {
     // Get existing data with reference
-    eventLog = await hoardGet(data.eventLogFileReference);
-    eventLog = splitMeta(eventLog);
-    eventLog.data = JSON.parse(eventLog.data);
+    attachments = await hoardGet(data.attachmentsFileReference);
+    attachments = splitMeta(attachments);
+    attachments = JSON.parse(attachments.data);
   }
-  if (eventLog.data.length < data.maxNumberOfEvents) {
-    eventLog.data.push(newEvent);
+  if (attachments.length < data.maxNumberOfAttachments) {
+    attachments.push({
+      name,
+      submitter: req.user.address,
+      timestamp: Date.now(),
+      content,
+      contentType,
+    });
     // Store new data in hoard
-    const hoardGrant = await hoardPut({ agreement: address }, JSON.stringify(eventLog.data));
-    await contracts.updateAgreementEventLog(address, hoardGrant);
-    return res.status(200).json({ grant: hoardGrant });
+    const hoardGrant = await hoardPut({ agreement: address, name: 'agreement_attachments.json' }, JSON.stringify(attachments));
+    await contracts.updateAgreementAttachments(address, hoardGrant);
+    return res.status(200).json({ attachmentsFileReference: hoardGrant, attachments });
   }
-  throw boom.badRequest(`Cannot log event. Max number of events (${data.maxNumberOfEvents}) has been reached.`);
+  throw boom.badRequest(`Cannot add attachment. Max number of attachments (${data.maxNumberOfAttachments}) has been reached.`);
 });
 
 const signAgreement = asyncMiddleware(async (req, res) => {
@@ -620,7 +667,8 @@ module.exports = {
   getAgreementParameters,
   getAgreements,
   getAgreement,
-  updateAgreementEventLog,
+  getAgreementHandler,
+  updateAgreementAttachments,
   signAgreement,
   cancelAgreement,
 };

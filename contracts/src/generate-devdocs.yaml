@@ -114,12 +114,6 @@ jobs:
     binpath: ../../docs/docdev/commons-management
     instance: all
 
-- name: ContractChangeListener
-  build:
-    contract: commons-management/ContractChangeListener.sol
-    binpath: ../../docs/docdev/commons-management
-    instance: all
-
 - name: ArtifactsRegistry
   build:
     contract: commons-management/ArtifactsRegistry.sol
@@ -138,9 +132,9 @@ jobs:
     binpath: ../../docs/docdev/commons-management
     instance: all
 
-- name: DefaultArtifactsFactory
+- name: DefaultArtifactsRegistry
   build:
-    contract: commons-management/DefaultArtifactsFactory.sol
+    contract: commons-management/DefaultArtifactsRegistry.sol
     binpath: ../../docs/docdev/commons-management
     instance: all
 

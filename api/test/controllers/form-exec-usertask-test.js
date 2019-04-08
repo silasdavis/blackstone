@@ -1,3 +1,4 @@
+require('../constants');
 const toml = require('toml')
 const fs = require('fs')
 const path = require('path')
@@ -31,8 +32,7 @@ global.__settings = (() => {
   let settings = toml.parse(fs.readFileSync(configFilePath))
   if (process.env.MONAX_HOARD) _.set(settings, 'monax.hoard', process.env.MONAX_HOARD)
   if (process.env.MONAX_ANALYTICS_ID) _.set(settings, 'monax.analyticsID', process.env.MONAX_ANALYTICS_ID)
-  if (process.env.MONAX_CHAIN_HOST) _.set(settings, 'monax.chain.host', process.env.MONAX_CHAIN_HOST)
-  if (process.env.MONAX_CHAIN_PORT) _.set(settings, 'monax.chain.port', process.env.MONAX_CHAIN_PORT)
+  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
   if (process.env.MONAX_ACCOUNTS_SERVER) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER)
   if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
   if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
@@ -69,11 +69,11 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   const INTERFACE_FORMATION = 'Agreement Formation'
   const INTERFACE_EXECUTION = 'Agreement Execution'
   let buyer = {
-    id: `buyer${rid(5, 'aA0')}`,
+    username: `buyer${rid(5, 'aA0')}`,
     address: ''
   }
   let seller = {
-    id: `seller${rid(5, 'aA0')}`,
+    username: `seller${rid(5, 'aA0')}`,
     address: ''
   }
   let buyProcess = {
@@ -116,7 +116,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
     activityType: 0,
     taskType: 1,
     behavior: 1,
-    assignee: buyer.id,
+    assignee: buyer.username,
     multiInstance: false
   }
 
@@ -125,7 +125,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
     activityType: 0,
     taskType: 1,
     behavior: 1,
-    assignee: seller.id,
+    assignee: seller.username,
     multiInstance: false
   }
   let agreement = {
@@ -142,12 +142,12 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       value: ''
     }
     ],
-    maxNumberOfEvents: 0
+    maxNumberOfAttachments: 0
   }
 
   it('Should create a buyer and a seller', async () => {
-    let resBuyer = await contracts.createUser({ id: crypto.createHash('sha256').update(buyer.id).digest('hex') });
-    let resSeller = await contracts.createUser({ id: crypto.createHash('sha256').update(seller.id).digest('hex') });
+    let resBuyer = await contracts.createUser({ username: crypto.createHash('sha256').update(buyer.username).digest('hex') });
+    let resSeller = await contracts.createUser({ username: crypto.createHash('sha256').update(seller.username).digest('hex') });
     resBuyer.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     resSeller.should.match(/[0-9A-Fa-f]{40}/) // match for 20 byte hex
     buyer.address = resBuyer
@@ -173,8 +173,8 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
   }).timeout(10000)
 
   it('Should add participants', async () => {
-    await assert.isFulfilled(contracts.addParticipant(model.address, buyer.id, '', 'Buyer', 'agreement'))
-    await assert.isFulfilled(contracts.addParticipant(model.address, seller.id, '', 'Seller', 'agreement'))
+    await assert.isFulfilled(contracts.addParticipant(model.address, buyer.username, '', 'Buyer', 'agreement'))
+    await assert.isFulfilled(contracts.addParticipant(model.address, seller.username, '', 'Seller', 'agreement'))
   }).timeout(10000)
 
   it('Should add formation process', async () => {
@@ -240,7 +240,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       archetype: agreement.archetype,
       name: agreement.name,
       creator: agreement.creator,
-      maxNumberOfEvents: 0,
+      maxNumberOfAttachments: 0,
       isPrivate: agreement.isPrivate,
       parties: [buyer.address],
       governingAgreements: []
@@ -253,7 +253,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       await agreementsController.setAgreementParameters(
         agreement.address, agreement.archetype, agreement.parameters)
       done()
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should validate agreement parameters', async () => {
@@ -276,7 +276,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       piAddress = await contracts.startProcessFromAgreement(agreement.address)
       expect(piAddress).to.match(/[0-9A-Fa-f]{40}/)
       done()
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm pending user task for buyer', done => {
@@ -293,7 +293,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       } catch (err) {
         done(err)
       }
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should sign agreement by buyer', async () => {
@@ -309,7 +309,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       let tasks = await sqlCache.getTasksByUserAddress(buyer.address)
       expect(tasks.length).to.equal(0)
       done()
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm active agreement state EXECUTED', async () => {
@@ -335,7 +335,7 @@ describe('FORMATION - EXECUTION with 1 User Task each', () => {
       let tasks = await sqlCache.getTasksByUserAddress(seller.address)
       expect(tasks.length).to.equal(0)
       done()
-    }, 3000)
+    }, global.ventCatchUpMS)
   }).timeout(10000)
 
   it('Should confirm active agreement state FULFILLED', async () => {

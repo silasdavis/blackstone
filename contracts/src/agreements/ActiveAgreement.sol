@@ -44,6 +44,12 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 		string eventLogFileReference
 	);
 
+	event LogAgreementSignatureLogReference(
+		bytes32 indexed eventId,
+		address agreementAddress,
+		string signatureLogFileReference
+	);
+
 	event LogActiveAgreementToPartySignaturesUpdate(
 		bytes32 indexed eventId,
 		address agreementAddress,
@@ -148,6 +154,18 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 	 * @return the file reference for the event log of this agreement
 	 */
 	function getEventLogReference() external view returns (string);
+
+	/**
+	 * @dev Updates the file reference for the signature log of this agreement
+	 * @param _signatureLogFileReference the file reference to the signature log
+	 */
+	function setSignatureLogReference(string _signatureLogFileReference) external;
+
+	/**
+	 * @dev Returns the reference for the signature log of this ActiveAgreement
+	 * @return the reference to an external document containing the signature log
+	 */
+	function getSignatureLogReference() external view returns (string);
 
 	/**
 	 * @dev Returns the max number of events for the event log

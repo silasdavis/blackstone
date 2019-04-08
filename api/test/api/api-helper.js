@@ -14,7 +14,7 @@ module.exports = (server) => {
         log.error(`Failed to activate user ${JSON.stringify(user)}: ${err.stack}`);
         throw err;
       }),
-    
+
     registerUser: (user) => {
       return new Promise((resolve, reject) => {
         chai
@@ -29,7 +29,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     loginUser: (user) => {
       return new Promise((resolve, reject) => {
         chai
@@ -38,6 +38,7 @@ module.exports = (server) => {
           .send(user)
           .end((err, res) => {
             if (err) return reject(err);
+            if (res.statusCode !== 200) return reject(res.body)
             let cookie = res.headers['set-cookie'][0];
             let token = cookie.split('access_token=')[1].split(';')[0];
             return resolve({
@@ -47,7 +48,7 @@ module.exports = (server) => {
           });
       })
     },
-  
+
     createAndDeployModel: (xml, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -64,7 +65,7 @@ module.exports = (server) => {
       });
     },
 
-    getDiagram: (modelAddress, accept) => {
+    getDiagram: (modelAddress, accept, token) => {
       return new Promise((resolve, reject) => {
         chai.request(server)
         .get(`/bpm/process-models/${modelAddress}/diagram`)
@@ -163,7 +164,7 @@ module.exports = (server) => {
 
       })
     },
-  
+
     createArchetype: (archetype, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -280,7 +281,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     createAgreement: (agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -310,7 +311,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     getTasksForUser: (token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -397,7 +398,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     completeTaskForUser: (activityInstanceId, data, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -412,7 +413,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     completeAndSignTaskForUser: (activityInstanceId, agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -426,7 +427,7 @@ module.exports = (server) => {
           });
       });
     },
-  
+
     cancelAgreement: (agreement, token) => {
       return new Promise((resolve, reject) => {
         chai
@@ -440,11 +441,65 @@ module.exports = (server) => {
           });
       });
     },
-  
+
+    uploadAttachmentFile: (agreement, token) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .post(`/agreements/${agreement}/attachments`)
+          .set('Cookie', [`access_token=${token}`])
+          .attach('attachment', __dirname + '/web-api-test.js')
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('upload attachment NOT OK'));
+            return resolve(res.body);
+          });
+      });
+    },
+
+    uploadAttachmentObject: (agreement, attachment, token) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .post(`/agreements/${agreement}/attachments`)
+          .set('Cookie', [`access_token=${token}`])
+          .send(attachment)
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('upload attachment NOT OK'));
+            return resolve(res.body);
+          });
+      });
+    },
+
+    getHoard: (grant) => {
+      return new Promise((resolve, reject) => {
+        chai
+          .request(server)
+          .get(`/hoard?grant=${encodeURIComponent(grant)}`)
+          .end((err, res) => {
+            if (err) return reject(err);
+            if (res.status !== 200) return reject(new Error('hoard get NOT OK'));
+            return resolve(res.header['content-disposition']);
+          });
+      });
+    },
+
     generateModelXml: (modelId, modelPath) => {
       let xml = fs.readFileSync(path.resolve(modelPath), 'utf8');
       xml = _.replace(xml, new RegExp('###MODEL_ID###', 'g'), modelId);
       return xml;
-    }
+    },
+
+    getFromHoard: (fileRefString) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get(`/hoard?grant=${encodeURIComponent(fileRefString)}`)
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get from hoard NOT OK'));
+        return resolve(res.text);
+      });
+    }),
   }
 }

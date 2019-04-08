@@ -3,7 +3,6 @@ const boom = require('boom');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 const {
   format,
-  addMeta,
   splitMeta,
   asyncMiddleware,
   byteLength,
@@ -13,15 +12,15 @@ const log = logger.getLogger('agreements.bpm');
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const {
   hoardPut,
-  getModelFromHoard,
+  hoardGet,
 } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
-const { createOrFindAccountsWithEmails } = require(path.join(`${global.__controllers}/agreements-controller`));
+const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
 const getActivityInstances = asyncMiddleware(async (req, res) => {
-  const data = await sqlCache.getActivityInstances(req.query);
+  const data = await sqlCache.getActivityInstances(req.user.address, req.query);
   const activities = await pgCache.populateTaskNames(data);
   return res.status(200).json(activities);
 });
@@ -132,7 +131,7 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
     dataMappings = body;
     if (!Array.isArray(dataMappings)) throw boom.badRequest('Expected array of data mapping objects');
   }
-  dataMappings = await createOrFindAccountsWithEmails(dataMappings, 'parameterType');
+  ({ parameters: dataMappings } = await createOrFindAccountsWithEmails(dataMappings, 'parameterType'));
   _validateDataMappings(dataMappings);
   const setValuePromises = dataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
   await Promise.all(setValuePromises)
@@ -205,7 +204,7 @@ const completeActivity = asyncMiddleware(async (req, res) => {
   let { data } = req.body;
   if (!activityInstanceId) throw boom.badRequest('Activity instance Id required');
   if (data) {
-    data = await createOrFindAccountsWithEmails(data, 'parameterType');
+    ({ parameters: data } = await createOrFindAccountsWithEmails(data, 'parameterType'));
     _validateDataMappings(data);
     if (data.length === 1) {
       // if only one data mapping then writing data and completing activity
@@ -252,15 +251,7 @@ const getDefinitions = asyncMiddleware(async (req, res) => {
 });
 
 const getDefinition = asyncMiddleware(async (req, res) => {
-  const processDefn = (await sqlCache.getProcessDefinitionData(req.params.address))[0];
-  const profileData = (await sqlCache.getProfile(req.user.address))[0];
-  if (!processDefn) throw boom.notFound(`Data for process definition ${req.params.address} not found`);
-  if (processDefn.isPrivate &&
-    processDefn.author !== req.user.address &&
-    !profileData.find(({ organization }) => organization === processDefn.author)) {
-    throw boom.forbidden('You are not authorized to view process details from this private model');
-  }
-  // retData = format('Definition', processDefn);
+  const processDefn = await sqlCache.getProcessDefinitionData(req.params.address, req.user.address);
   const data = await pgCache.populateProcessNames([processDefn]);
   return res.status(200).json(data[0]);
 });
@@ -279,15 +270,8 @@ const parseBpmnModel = async (rawXml) => {
 };
 
 const getModelDiagram = asyncMiddleware(async (req, res) => {
-  const model = (await sqlCache.getProcessModelData(req.params.address))[0];
-  if (!model) throw boom.notFound(`Data for process model ${req.params.address} not found`);
-  const profileData = (await sqlCache.getProfile(req.user.address))[0];
-  if (model.isPrivate &&
-    model.author !== req.user.address &&
-    !profileData.find(({ organization }) => organization === model.author)) {
-    throw boom.forbidden('You are not authorized to view this private model');
-  }
-  const diagram = await getModelFromHoard(model.modelFileReference);
+  const modelFileReference = await sqlCache.getProcessModelFileReference(req.params.address, req.user.address);
+  const diagram = await hoardGet(modelFileReference);
   const data = splitMeta(diagram);
   if (req.headers.accept.includes('application/xml')) {
     res.attachment(data.meta.name);
@@ -533,4 +517,5 @@ module.exports = {
   parseBpmnModel,
   pushModelXmlToHoard,
   addProcessesToModel,
+  addDataDefinitionsToModel,
 };

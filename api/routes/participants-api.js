@@ -90,7 +90,6 @@ module.exports = (app, customMiddleware) => {
    *
    * @apiSuccess {String} address Organization's Controller Contract
    * @apiSuccess {String} organizationKey Hashed address (keccak256)
-   * @apiSuccess {String} id  Organization's machine readable ID
    * @apiSuccess {String} name  Organization's human readable name
    * @apiSuccessExample {json} Success Object
     {
@@ -99,34 +98,34 @@ module.exports = (app, customMiddleware) => {
       "name": "orgone",
       "approvers": [{
           "address": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
-          "id": "joesmith"
+          "username": "joesmith"
         },
         {
           "address": "F5C84B3CC6317023F1E9914BDC86FC0E339E8110",
-          "id": "sarasmith"
+          "username": "sarasmith"
         },
         {
           "address": "F9EAB43B627645C48F6FDB424F9AD3D760907C25",
-          "id": "ogsmith"
+          "username": "ogsmith"
         }
       ],
       "users": [{
           "address": "889A3EEBAC57E0F14D5BAB7AA87A4E69C432ECCD",
-          "id": "patmorgan"
+          "username": "patmorgan"
           "departments": [
             "acct"
           ],
         },
         {
           "address": "F5C84B3CC6317023F1E9914BDC86FC0E339E8110",
-          "id": "sarasmith"
+          "username": "sarasmith"
           "departments": [
             "acct"
           ],
         },
         {
           "address": "F9EAB43B627645C48F6FDB424F9AD3D760907C25",
-          "id": "ogsmith"
+          "username": "ogsmith"
           "departments": [
             "acct"
           ],
@@ -344,14 +343,14 @@ module.exports = (app, customMiddleware) => {
    *     curl -i /users
    *
    * @apiSuccess {String} address Users's Controller Contract
-   * @apiSuccess {String} id  Users's machine readable ID
+   * @apiSuccess {String} username  Users's machine readable ID
    * @apiSuccess {String} organization Organization's Controller Contract
    * @apiSuccess {String} organizationId Organization's machine readable ID
    * @apiSuccess {String} organizationName Organization's human readable name
    * @apiSuccessExample {json} Success Objects Array
    [{
      "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
-     "id": "j.smith",
+     "username": "j.smith",
      "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
      "organizationId": "acmecorp92",
      "organizationName": "ACME Corp"
@@ -373,7 +372,7 @@ module.exports = (app, customMiddleware) => {
    *     curl -i /users/profile
    *
    * @apiSuccess {String} address Users's Controller Contract
-   * @apiSuccess {String} id  Users's human readable ID
+   * @apiSuccess {String} username  Users's human readable ID
    * @apiSuccess {String} email  Users's email address
    * @apiSuccess {String} organization Organization's Controller Contract
    * @apiSuccess {String} organizationId Organization's machine readable ID
@@ -388,7 +387,7 @@ module.exports = (app, customMiddleware) => {
    * @apiSuccessExample {json} Success Object
    {
      "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
-     "id": "j.smith",
+     "username": "j.smith",
      "email": "jsmith@monax.io",
      "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
      "organizationId": "acmecorp92",
@@ -468,11 +467,11 @@ module.exports = (app, customMiddleware) => {
    * @apiExample {curl} Simple:
    *     curl -iX POST /users
    *
-   * @apiSuccess {Object} userData The "address" and "id" of the User
+   * @apiSuccess {Object} userData The "address" and "username" of the User
    * @apiSuccessExample {json} Success Object
      {
        "address": "605401BB8B9E597CC40C35D1F0185DE94DBCE533",
-       "id": "johnsmith"
+       "username": "johnsmith"
      }
    *
    * @apiUse NotLoggedIn
@@ -490,7 +489,7 @@ module.exports = (app, customMiddleware) => {
    * @apiBodyParameter {String} password The user's password
    * @apiBodyParameter {json} Param Object
     {
-      "username": "username/id",
+      "username": "username",
       "password": "superhardtoguess"
     }
    *
@@ -498,12 +497,12 @@ module.exports = (app, customMiddleware) => {
    *     curl -iX PUT /users/login
    *
    * @apiSuccess {String} address The address of the user
-   * @apiSuccess {String} id The id (username) of the user
+   * @apiSuccess {String} username The username of the user
    * @apiSuccess {String} A timestamp of the account creation
    * @apiSuccessExample {json} Success Object
     {
       "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
-      "id": "jsmith",
+      "username": "jsmith",
       "createdAt": "2018-06-25T13:44:26.925Z"
     }
    *
@@ -535,7 +534,7 @@ module.exports = (app, customMiddleware) => {
    * @apiSuccessExample {json} Success Object
     {
       "address": "41D6BC9143DF87A07F65FCAF642FB89E16D26548",
-      "id": "jsmith",
+      "username": "jsmith",
     }
    *
    * @apiUse NotLoggedIn

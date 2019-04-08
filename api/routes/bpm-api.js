@@ -450,6 +450,8 @@ module.exports = (app, customMiddleware) => {
       "modelAuthor": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
       "private": 0,
       "agreementName": "Drone Lease Agreement",
+      "attachmentsFileReference": "eyJTcG...iVmVyc2lvbiI6MH0=",
+      "maxNumberOfAttachments": 10,
       "data": [
         {
           "dataMappingId": "readName",

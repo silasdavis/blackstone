@@ -1,4 +1,5 @@
 // External dependencies
+/* eslint-disable */
 const fs = require('fs')
 const toml = require('toml')
 const path = require('path')
@@ -22,8 +23,7 @@ global.stringToHex = stringToHex;
   const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
   global.__settings = (() => {
     let settings = toml.parse(fs.readFileSync(configFilePath))
-    if (process.env.MONAX_CHAIN_HOST) _.set(settings, 'monax.chain.host', process.env.MONAX_CHAIN_HOST)
-    if (process.env.MONAX_CHAIN_PORT) _.set(settings, 'monax.chain.port', process.env.MONAX_CHAIN_PORT)
+    if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
     if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
     if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
     if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
@@ -67,7 +67,7 @@ global.stringToHex = stringToHex;
     log.info('Contracts loaded.')
 
     const { rows: usersInDB } = await client.query({
-      text: 'SELECT id, username FROM users'
+      text: 'SELECT username FROM users'
     })
     // Check if any users are in the database; exit if there are none
     if (!usersInDB.length) {
@@ -75,18 +75,18 @@ global.stringToHex = stringToHex;
       return
     }
     log.info('Creating new users on chain')
-    const promises = usersInDB.map(async ({ id, username }) => {
+    const promises = usersInDB.map(async ({ username }) => {
       try {
         // See if user already exists on chain first, and if they do, just return the existing address
         // This is in case this script is run after users have signed up on the new chain
-        const hashedId = crypto.createHash('sha256').update(username).digest('hex');
-        const { address } = await contracts.getUserById(hashedId)
+        const hashedUsername = crypto.createHash('sha256').update(username).digest('hex');
+        const { address } = await contracts.getUserByUsername(hashedUsername)
         log.info(`User ${username} already exists at address: ${address}`)
         return new Promise((resolve) => resolve({}))
       } catch (err) {
         // If not, create a new user on chain and return the new address; mark this as a new user
-        return contracts.createUser({ id: crypto.createHash('sha256').update(username).digest('hex') }).then((address) => {
-          return { id, address, newUser: true }
+        return contracts.createUser({ username: crypto.createHash('sha256').update(username).digest('hex') }).then((address) => {
+          return { username, address, newUser: true }
         })
       }
     })
@@ -96,16 +96,16 @@ global.stringToHex = stringToHex;
     // Set invalid addresses to the user's username (temporarily, this will be set to the new address later)
     // This is to prevent DB errors if we try updating with a duplicate address
     const newUsers = usersInChain.filter(({ newUser }) => newUser)
-    let text = `UPDATE users SET address = CONCAT('TEMP', username) WHERE id = ANY ($1)`
-    let values = [newUsers.map(({ id }) => id)]
+    let text = `UPDATE users SET address = CONCAT('TEMP', username) WHERE username = ANY ($1)`
+    let values = [newUsers.map(({ username }) => username)]
     await client.query({
       text,
       values
     })
 
     // Update the database with the new addresses
-    text = `UPDATE users SET address = CASE id ${newUsers.map((_, i) => `WHEN $${i + 1} THEN $${i + 1 + newUsers.length}`).join(' ')} END`
-    values = newUsers.map(({ id }) => id).concat(newUsers.map(({ address }) => `${address}`))
+    text = `UPDATE users SET address = CASE username ${newUsers.map((_, i) => `WHEN $${i + 1} THEN $${i + 1 + newUsers.length}`).join(' ')} END`
+    values = newUsers.map(({ username }) => username).concat(newUsers.map(({ address }) => `${address}`))
     await client.query({
       text,
       values

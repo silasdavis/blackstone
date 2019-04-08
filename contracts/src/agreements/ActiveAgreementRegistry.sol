@@ -197,6 +197,13 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 function setEventLogReference(address _activeAgreement, string _eventLogFileReference) external;
 
 	/**
+	 * @dev Updates the file reference for the signature log of the specified agreement
+	 * @param _activeAgreement the address of active agreement
+	 * @param _signatureLogFileReference the file reference of the signature log of this agreement
+	 */
+	 function setSignatureLogReference(address _activeAgreement, string _signatureLogFileReference) external;
+
+	/**
 	 * @dev Creates a new agreement collection
 	 * @param _author address of the author
 	 * @param _collectionType the Agreements.CollectionType

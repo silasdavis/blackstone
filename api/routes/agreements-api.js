@@ -1,3 +1,5 @@
+const multer = require('multer');
+const upload = multer();
 const {
   getArchetypes,
   getArchetype,
@@ -14,8 +16,8 @@ const {
   deactivateArchetypePackage,
   createAgreement,
   getAgreements,
-  getAgreement,
-  updateAgreementEventLog,
+  getAgreementHandler,
+  updateAgreementAttachments,
   signAgreement,
   cancelAgreement,
   createAgreementCollection,
@@ -512,7 +514,7 @@ module.exports = (app, customMiddleware) => {
  * @apiSuccess {String} name Human readable name of the Active Agreement
  * @apiSuccess {String} archetype Address of the parent Archetype of the Active Agreement
  * @apiSuccess {Boolean} isPrivate Whether the encryption framework of the Active Agreement
- * @apiSuccess {String} eventLogFileReference Hoard grant needed to access an existing event log if any
+ * @apiSuccess {String} attachmentsFileReference Hoard grant needed to access an existing event log if any
  * @apiSuccess {Number} numberOfParties The number of parties agreeing to the Active Agreement
  * @apiSuccessExample {json} Success Objects Array
        [{
@@ -520,8 +522,8 @@ module.exports = (app, customMiddleware) => {
          "archetype": "4EF5DAB8CE089AD7F2CE7A04A7CB5DB1C58DB707",
          "name": "Drone Lease",
          "creator": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
-         "eventLogFileReference": "eyJTcG...iVmVyc2lvbiI6MH0=",
-         "maxNumberOfEvents": 10,
+         "attachmentsFileReference": "eyJTcG...iVmVyc2lvbiI6MH0=",
+         "maxNumberOfAttachments": 10,
          "isPrivate": 1,
          "legalState": 1,
          "formationProcessInstance": "038725D6437A809D536B9417047EC74E7FF4D1C0",
@@ -559,7 +561,7 @@ module.exports = (app, customMiddleware) => {
  * @apiSuccess {String} archetype Address of the parent Archetype of the Active Agreement
  * @apiSuccess {Boolean} isPrivate Whether the encryption framework of the Active Agreement
  * is operational or not
- * @apiSuccess {Number} maxNumberOfEvents Max number of fulfillment events that can be stored in the event log
+ * @apiSuccess {Number} maxNumberOfAttachments Max number of attachments that can be stored in the attachments
  * @apiSuccess {Number} legalState Legal state of the agreement
  * @apiSuccess {Number} formationProcessInstance Address of the agreement's formation process instance
  * @apiSuccess {Number} executionProcessInstance Address of the agreement's execution process instance
@@ -574,13 +576,16 @@ module.exports = (app, customMiddleware) => {
     "name": "Agreement",
     "archetype": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
     "isPrivate": false,
-    "maxNumberOfEvents": 0,
+    "maxNumberOfAttachments": 0,
     "legalState": 1,
     "formationProcessInstance": "413AC7610E6A4E0ACEB29596FFC52D243A2E7CD7",
     "executionProcessInstance": "0000000000000000000000000000000000000000",
     "formationProcessDefinition": "65BF0FB03BA5C140B1584A290B157F8907B8FEBE",
     "executionProcessDefinition": "E6534E45E2B26AF4FBB64E42CE7FC66688696483",
     "collectionId": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
+    "isParty": true,
+    "isCreator": true,
+    "isAssignedTask": false,
     "parties": [
         {
           "address": "F8C300C2B7A3F69C90BCF97298215BA7792B2EEB",
@@ -625,7 +630,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/agreements/:address', middleware, getAgreement);
+  app.get('/agreements/:address', middleware, getAgreementHandler);
 
   /**
  * @api {post} /agreements Create an Agreement
@@ -641,7 +646,7 @@ module.exports = (app, customMiddleware) => {
  * is operational or not
  * @apiBodyParameter {String} password A secret string which is used to trigger the encryption
  * system for the Active Agreements's documents
- * @apiBodyParameter {Integer} maxNumberOfEvents The maximum number of fulfillment events to be logged on the Active Agreement
+ * @apiBodyParameter {Integer} maxNumberOfAttachments The maximum number of attachments to be logged on the Active Agreement
  * @apiBodyParameter {String[]} parties The addresses of the parties to the Active Agreement
  * @apiBodyParameter {Object[]} parameters The "custom-field-name" and values of the parameters.
  * Note- If a parameter with type 8 (Signing Party) is given, the corresponding value will be added to the agreement's parties.
@@ -654,7 +659,7 @@ module.exports = (app, customMiddleware) => {
       "archetype": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
       "isPrivate": false,
       "password": "secret password"
-      "maxNumberOfEvents": "10",
+      "maxNumberOfAttachments": "10",
       "parties": ["36ADA22D3A4B841EFB73414CD97C35C0A660C1C2"],
       "parameters": [{
           "name": "Buyer",
@@ -684,32 +689,46 @@ module.exports = (app, customMiddleware) => {
   app.post('/agreements', middleware, createAgreement);
 
   /**
- * @api {put} /agreements/:address/events Add a Fulfillment Event to an Agreement
- * @apiName updateAgreementEventLog
+ * @api {put} /agreements/:address/attachments Add an attachment to an Agreement
+ * @apiName updateAgreementAttachments
  * @apiGroup Agreements
+ * @apiDescription Adds an attachment to the specific agreement.
+ * When requested with `Content-Type: multipart/form-data`, the attached file will be uploaded to hoard.
+ * The attachment's content will be set to the hoard grant for the file, and the name will be set to the file's name.
+ * When requested with  `Content-Type: application/json`, the name and content from the request will be used as the attachment.
  *
  * @apiExample {curl} Simple:
- *     curl -iX POST /agreements/707791D3BBD4FDDE615D0EC4BB0EB3D909F66890/events -d '{"eventName":"eventName"}'
+ *     curl -iX POST /agreements/707791D3BBD4FDDE615D0EC4BB0EB3D909F66890/attachments -d '{"name":"name", "content":"content"}'
  *
  * @apiURLParameter address Agreement address
- * @apiBodyParameter eventName Human readable name of the fulfillment event
- * @apiBodyParameter {String} content Description of the fulfillment event
+ * @apiBodyParameter name Human readable name of the attachment
+ * @apiBodyParameter {String} content Description of the attachment
  * @apiBodyParameterExample {json} Success Object
   {
-    "eventName": "Name of Event",
-    "content": "A description about the event.",
+    "name": "Name of Attachment",
+    "content": "Content of attachment",
   }
 *
-* @apiSuccess {String} grant The hoard grant of the updated event log
+* @apiSuccess {String} attachmentsFileReference The hoard grant of the updated attachments
+* @apiSuccess {Object[]} attachments The updated array of attachments
 * @apiSuccessExample {json} Success Object
   {
-    "grant": "eyJTcG...iVmVyc2lvbiI6MH0=",
+    "attachmentsFileReference": "b9SMcG...iVmVyc2lvbiI6MH0=",
+    "attachments": [
+      {
+        "name": "Name of Attachment",
+        "submitter": "36ADA22D3A4B841EFB73414CD97C35C0A660C1C2",
+        "timestamp": 1551216868342,
+        "content": "Content of attachment",
+        "contentType": "plaintext"
+      }
+    ]
   }
 *
 * @apiUse NotLoggedIn
 * @apiUse AuthTokenRequired
 */
-  app.put('/agreements/:address/events', middleware, updateAgreementEventLog);
+  app.post('/agreements/:address/attachments', middleware, upload.any(), updateAgreementAttachments);
 
   /**
    * @api {put} /agreements Sign an Agreement

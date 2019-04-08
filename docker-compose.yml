@@ -3,7 +3,7 @@ services:
   hoard:
     image: quay.io/monax/hoard:3.0.0
     ports:
-      - "53431"
+      - "53431:53431"
     command:
     - /bin/sh
     - -c
@@ -11,7 +11,7 @@ services:
   postgres:
     image: postgres:9-alpine
     ports:
-    - "5432"
+    - "5432:5432"
     environment:
       POSTGRES_USER: blackstone_development
       POSTGRES_PASSWORD: blackstone_development
@@ -22,16 +22,13 @@ services:
     build: .
     ports:
     # GRPC port for most interaction
-    - "10997"
+    - "10997:10997"
     # HTTP status/information port
-    - "26658"
-    volumes:
-    - ./test/chain:/chain
-    working_dir: /chain
+    - "26658:26658"
+    working_dir: /app/test/chain
     command:
-    - /bin/sh
-    - -c
-    - burrow start &> burrow.log
+    - burrow
+    - start
   vent:
     build: .
     restart: always
@@ -54,38 +51,28 @@ services:
     - --abi
     - /app/contracts/src/bin
     volumes:
-    - .:/app
+      - .:/app
     depends_on:
     - postgres
     - chain
+
   api:
     build: .
-    environment:
-      CI_PROJECT_DIR: /app
-      API_DIRECTORY: /app/api
-      NODE_ENV: dev
-      HOARD_IP: hoard:53431
-      IDENTITY_PROVIDER: MONAX_PLATFORM
-      CONTRACTS_DEPLOYMENT_ADDRESS: F390C8CA854874472CAD38C0135F78097BCB632D
-      CHAIN_URL_GRPC: chain:10997
-      POSTGRES_DB_DATABASE: blackstone_development
-      POSTGRES_DB_USER: blackstone_development
-      POSTGRES_DB_PASSWORD: blackstone_development
-      POSTGRES_DB_HOST: postgres
-      POSTGRES_DB_PORT: 5432
-      POSTGRES_DB_SCHEMA: customers
-      POSTGRES_DB_SCHEMA_VENT: data
-      HOARD_SALT: hoard-salt
-      PUBLIC_ID: hoard-api-secret-1
-    volumes:
-    - .:/app
+    env_file:
+      - dev.env
     ports:
     - "3080:3080"
     - "9222:9222"
     working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
     depends_on:
     - postgres
     - hoard
     - vent
     - chain
-    command: "test/test_api.sh --runAPI"
+    command: "npm --prefix api run-script start:dev"
+
+volumes:
+  node_modules:

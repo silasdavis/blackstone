@@ -1,3 +1,4 @@
+require('../constants');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const chaiAsPromised = require('chai-as-promised');
@@ -60,11 +61,11 @@ describe(':: HOARD ::', () => {
               expect(err).to.not.exist;
               hoardGrant = res.body.grant;
             });
-        }, 3000);
+        }, global.ventCatchUpMS);
       } catch (err) {
         throw err;
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 });
 
@@ -93,7 +94,7 @@ describe('Archetypes', () => {
     process: {},
     id: rid(16, 'aA0'),
     name: 'Incorporation-Execution'
-  }  
+  }
 
   let testArchetype = {
     name: 'TestType Complex',
@@ -125,12 +126,6 @@ describe('Archetypes', () => {
     const loginResult = await api.loginUser(archUser);
     expect(loginResult.token).to.exist;
     token = loginResult.token;
-    // setTimeout(async () => {
-    //   await api.activateUser(archUser);
-    //   const loginResult = await api.loginUser(archUser);
-    //   expect(loginResult.token).to.exist;
-    //   token = loginResult.token;
-    // }, 2000);
   }).timeout(10000);
 
   it('Should create a model and process definitions', async () => {
@@ -150,8 +145,7 @@ describe('Archetypes', () => {
     Object.assign(execution.process, executionDeploy.processes[0]);
     testArchetype.executionProcessDefinition = execution.process.address;
     expect(String(testArchetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-    expect(String(testArchetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(global.testTimeoutMS);
 
   it('GET all archetypes', (done) => {
     chai
@@ -234,7 +228,7 @@ describe('Archetypes', () => {
           expect(res.body.jurisdictions[0].regions.length).to.equal(2)
           done()
         })
-    }, 5000)
+    },global.ventCatchUpMS )
   }).timeout(10000)
 
   it('should set archetype successor', async () => {
@@ -251,7 +245,7 @@ describe('Archetypes', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('should fail to activate archetype that has a successor', async () => {
@@ -306,7 +300,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let publicPackage1 = {
@@ -370,7 +364,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
 
   it('Should login users', (done) => {
     // LOGIN USERS
-    setTimeout(async () => { 
+    setTimeout(async () => {
       try {
         await api.activateUser(user1);
         let loginResult1 = await api.loginUser(user1);
@@ -384,7 +378,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy model', async () => {
@@ -400,7 +394,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     publicArchetype1.executionProcessDefinition = process2.address;
     privateArchetype1.formationProcessDefinition = process1.address;
     privateArchetype1.executionProcessDefinition = process2.address;
-  }).timeout(30000);
+  }).timeout(global.testTimeoutMS);
 
   it('Should create a publicPackage1 by user1', async () => {
     // CREATE ARCHETYPE PACKAGE
@@ -427,7 +421,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should fail to deactivate publicPackage1 by user2', async () => {
@@ -449,7 +443,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create privatePackage1 by user1', async () => {
@@ -477,7 +471,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
     setTimeout(async () => {
       await assert.isRejected(api.deactivateArchetype(publicArchetype1.address, user2.token));
       done();
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deactivate publicArchetype1 by user1', done => {
@@ -488,7 +482,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should not create an agreement from inactive archetype', done => {
@@ -500,14 +494,14 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
           isPrivate: false,
           parties: [],
           parameters: [],
-          maxNumberOfEvents: 5,
+          maxNumberOfAttachments: 5,
         }
         await assert.isRejected(api.createAgreement(agr, user1.token));
         done();
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   });
 
   it('Should not get deactivated archetype by user2', async () => {
@@ -524,7 +518,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should get active archetypes by user2', done => {
@@ -537,7 +531,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should fail to add publicArchetype1 created by user1 to publicPackage2 created by user2', async () => {
@@ -586,7 +580,7 @@ describe(':: Archetype Packages and Agreement Collections ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 5000);
+    }, global.ventCatchUpMS);
   }).timeout(20000);
 
   it('Should validate agreement1 is in collection1', async () => {
@@ -656,7 +650,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   let ndaAgreement = {
@@ -665,7 +659,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
     isPrivate: false,
     parties: [],
     parameters: [],
-    maxNumberOfEvents: 5,
+    maxNumberOfAttachments: 5,
     governingAgreements: []
   };
   const process1 = {};
@@ -692,7 +686,7 @@ describe(':: Governing Archetypes and Agreements ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 5000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy model', done => {
@@ -714,8 +708,8 @@ describe(':: Governing Archetypes and Agreements ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
-  }).timeout(30000);
+    }, global.ventCatchUpMS);
+  }).timeout(global.testTimeoutMS);
 
   it('Should create employment and nda archetypes', async () => {
     let data = await api.createArchetype(employmentArchetype, user1.token);
@@ -795,7 +789,7 @@ describe(':: External Users ::', () => {
     archetype: '',
     isPrivate: false,
     parameters: [],
-    maxNumberOfEvents: 0,
+    maxNumberOfAttachments: 0,
     governingAgreements: []
   }
 
@@ -818,7 +812,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -839,7 +833,7 @@ describe(':: External Users ::', () => {
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-  }).timeout(30000);
+  }).timeout(global.testTimeoutMS);
 
   it('Should create an archetype', done => {
     // CREATE ARCHETYPE
@@ -853,7 +847,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create an agreement with emails in the user/org/signatory parameters', done => {
@@ -878,15 +872,15 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should create new users when an unknown email is given', done => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        const user1 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toLowerCase()).digest('hex'));
-        const user2 = await contracts.getUserById(crypto.createHash('sha256').update(externalUser2.email.toLowerCase()).digest('hex'));
+        const user1 = await contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser1.email.toLowerCase()).digest('hex'));
+        const user2 = await contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser2.email.toLowerCase()).digest('hex'));
         expect(user1).to.be.a('object');
         expect(user2).to.be.a('object');
         expect(/[0-9A-Fa-f]{40}/.test(user1.address)).to.be.true;
@@ -897,19 +891,19 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should not create multiple users for the same email address (case insensitive)', done => {
     // CHECK USER CREATION
     setTimeout(async () => {
       try {
-        await assert.isRejected(contracts.getUserById(crypto.createHash('sha256').update(externalUser1.email.toUpperCase()).digest('hex')));
+        await assert.isRejected(contracts.getUserByUsername(crypto.createHash('sha256').update(externalUser1.email.toUpperCase()).digest('hex')));
         done();
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   let parameters;
@@ -918,13 +912,13 @@ describe(':: External Users ::', () => {
     // CHECK AGREEMENT PARAMETERS
     setTimeout(async () => {
       try {
-       ( { parameters } = await api.getAgreement(agreement.address, registeredUser.token));
+        ({ parameters } = await api.getAgreement(agreement.address, registeredUser.token));
         expect(parameters.find(({ name }) => name === 'RegisteredByEmail').value).to.equal(registeredUser.address);
         done();
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should use the addresses of new users for unknown email addresses', done => {
@@ -939,7 +933,7 @@ describe(':: External Users ::', () => {
       } catch (err) {
         done(err);
       }
-    }, 3000);
+    }, global.ventCatchUpMS);
   }).timeout(10000);
 
   it('Should allow external user to register', async () => {
@@ -953,5 +947,323 @@ describe(':: External Users ::', () => {
     });
     expect(registerResult.address).to.equal(externalUser1.address);
   }).timeout(5000);
+
+});
+
+describe(':: Public/Private Agreement Parameters ::', () => {
+  let user = {
+    username: `user${rid(5, 'aA0')}`,
+    password: 'password',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+
+  const formation = {
+    filePath: 'test/data/inc-formation.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Formation'
+  };
+  const execution = {
+    filePath: 'test/data/inc-execution.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Execution'
+  };
+  const archetype = {
+    name: 'Incorporation Archetype',
+    description: 'Incorporation Archetype',
+    price: 10,
+    isPrivate: 1,
+    active: 1,
+    parameters: [
+      { type: 0, name: 'Signed' },
+      { type: 8, name: 'Receiver' },
+      { type: 8, name: 'Confirmer' },
+      { type: 1, name: 'Unused String in Model' },
+      { type: 2, name: 'Extra Number Parameter' },
+    ],
+    documents: [{
+      name: 'doc1.md',
+      grant: hoardGrant,
+    }],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  };
+  const agreement = {
+    name: 'Pub/Priv Parameters',
+    archetype: '',
+    isPrivate: false,
+    parameters: [
+      { type: 0, name: 'Signed', value: false },
+      { type: 8, name: 'Receiver', value: '4D546B1481B5DC02BCB4EB8237234872DF9FF4C0' },
+      { type: 8, name: 'Confirmer', value: '4D546B1481B5DC02BCB4EB8237234872DF9FF4C0' },
+      { type: 1, name: 'Unused String in Model', value: 'Should be private' },
+      { type: 2, name: 'Extra Number Parameter', value: 9 }, // should also be private
+    ],
+    maxNumberOfEvents: 0,
+    governingAgreements: []
+  };
+
+  it('Should register user', async () => {
+    // REGISTER USER
+    const registerResult = await api.registerUser(user);
+    user.address = registerResult.address;
+    expect(user.address).to.exist
+  }).timeout(5000);
+
+  it('Should login user', (done) => {
+    // LOGIN USER
+    setTimeout(async () => {
+      try {
+        await api.activateUser(user);
+        const loginResult = await api.loginUser(user);
+        expect(loginResult.token).to.exist;
+        user.token = loginResult.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let xml = api.generateModelXml(formation.id, formation.filePath);
+    let deployed = await api.createAndDeployModel(xml, user.token);
+    expect(deployed).to.exist;
+    archetype.formationProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    xml = api.generateModelXml(execution.id, execution.filePath);
+    deployed = await api.createAndDeployModel(xml, user.token);
+    expect(deployed).to.exist;
+    archetype.executionProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(global.testTimeoutMS);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        archetype.documents[0].grant = hoardGrant;
+        Object.assign(archetype, await api.createArchetype(archetype, user.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should create an agreement', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        Object.assign(agreement, await api.createAgreement(agreement, user.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+});
+
+describe(':: Agreement Attachments (External References) ::', () => {
+  const user1 = {
+    username: `registeredUser${rid(5, 'aA0')}`,
+    password: 'registeredUser',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+  const user2 = {
+    username: `registeredUser${rid(5, 'aA0')}`,
+    password: 'registeredUser',
+    email: `${rid(10, 'aA0')}@test.com`,
+  };
+
+  const formation = {
+    filePath: 'test/data/inc-formation.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Formation'
+  }
+  const execution = {
+    filePath: 'test/data/inc-execution.bpmn',
+    process: {},
+    id: rid(16, 'aA0'),
+    name: 'Incorporation-Execution'
+  }
+
+  const archetype = {
+    name: 'Incorporation Archetype',
+    description: 'Incorporation Archetype',
+    price: 10,
+    isPrivate: 1,
+    active: 1,
+    parameters: [
+      { type: 8, name: 'Party' },
+    ],
+    documents: [],
+    jurisdictions: [],
+    executionProcessDefinition: '',
+    formationProcessDefinition: '',
+    governingArchetypes: []
+  }
+  const agreement = {
+    name: 'Attachments Agreement',
+    archetype: '',
+    isPrivate: false,
+    parameters: [],
+    maxNumberOfAttachments: 2,
+    governingAgreements: []
+  }
+
+  it('Should register users', async () => {
+    // REGISTER USERS
+    let registerResult = await api.registerUser(user1);
+    user1.address = registerResult.address;
+    expect(user1.address).to.exist
+    registerResult = await api.registerUser(user2);
+    user2.address = registerResult.address;
+    expect(user2.address).to.exist
+  }).timeout(5000);
+
+  it('Should login users', (done) => {
+    // LOGIN USERS
+    setTimeout(async () => {
+      try {
+        await api.activateUser(user1);
+        let loginResult = await api.loginUser(user1);
+        expect(loginResult.token).to.exist;
+        user1.token = loginResult.token;
+        await api.activateUser(user2);
+        loginResult = await api.loginUser(user2);
+        expect(loginResult.token).to.exist;
+        user2.token = loginResult.token;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should deploy formation and execution models', async () => {
+    // DEPLOY FORMATION MODEL
+    let xml = api.generateModelXml(formation.id, formation.filePath);
+    let deployed = await api.createAndDeployModel(xml, user1.token);
+    expect(deployed).to.exist;
+    archetype.formationProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    // DEPLOY EXECUTION MODEL
+    xml = api.generateModelXml(execution.id, execution.filePath);
+    deployed = await api.createAndDeployModel(xml, user1.token);
+    expect(deployed).to.exist;
+    archetype.executionProcessDefinition = deployed.processes[0].address;
+    expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
+  }).timeout(global.testTimeoutMS);
+
+  it('Should create an archetype', done => {
+    // CREATE ARCHETYPE
+    setTimeout(async () => {
+      try {
+        Object.assign(archetype, await api.createArchetype(archetype, user1.token));
+        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        agreement.archetype = archetype.address;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should create an agreement', done => {
+    // CREATE AGREEMENT
+    setTimeout(async () => {
+      try {
+        Object.assign(agreement, await api.createAgreement(agreement, user1.token));
+        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should return an empty string for the attachments reference if not attachments have been added', done => {
+    // INITIAL ATTACHMENTS FILE REFERENCE
+    setTimeout(async () => {
+      try {
+        const { attachmentsFileReference } = await api.getAgreement(agreement.address, user1.token);
+        expect(attachmentsFileReference).to.equal('');
+        done();
+      } catch (err) {
+        done(err);
+      }
+    }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should not allow user 2 to upload an attachment to the agreement', async () => {
+    // CHECK AUTHORIZATION
+    await assert.isRejected(api.uploadAttachmentFile(agreement.address, user2.token));
+  }).timeout(10000);
+
+  let attachmentsFileReference;
+  let attachments;
+
+  it('Should allow user 1 to upload a file as an attachment to the agreement', async () => {
+    // ATTACHMENT FILE UPLOAD
+    ({ attachmentsFileReference, attachments } = await api.uploadAttachmentFile(agreement.address, user1.token));
+    expect(attachmentsFileReference).to.be.a('string');
+    expect(attachmentsFileReference).not.to.equal('');
+    expect(attachments).to.be.a('array');
+    expect(attachments.length).to.equal(1);
+    const attachment = attachments[0];
+    expect(attachment).to.be.a('object');
+    expect(attachment.name).to.equal('web-api-test.js');
+    expect(attachment.content).to.be.a('string');
+    expect(attachment.submitter).to.equal(user1.address);
+    expect(attachment.contentType).to.equal('fileReference');
+  }).timeout(10000);
+
+  it('Should allow user 1 to upload an object as an attachment to the agreement', async () => {
+    // ATTACHMENT OBJECT UPLOAD
+    const res = await api.uploadAttachmentObject(agreement.address, {
+      name: 'attachment title', content: 'attachment body',
+    }, user1.token);
+    expect(res.attachmentsFileReference).to.be.a('string');
+    expect(res.attachmentsFileReference).not.to.equal('');
+    expect(res.attachmentsFileReference).not.to.equal(attachmentsFileReference);
+    expect(res.attachments).to.be.a('array');
+    expect(res.attachments.length).to.equal(2);
+    const attachment = res.attachments[1];
+    expect(attachment).to.be.a('object');
+    expect(attachment.name).to.equal('attachment title');
+    expect(attachment.content).to.be.a('string');
+    expect(attachment.content).to.equal('attachment body');
+    expect(attachment.submitter).to.equal(user1.address);
+    expect(attachment.contentType).to.equal('plaintext');
+    attachmentsFileReference = res.attachmentsFileReference;
+  }).timeout(10000);
+
+  it("Should not allow user 1 to upload more attachments than the agreement's maxNumberOfAttachments", async () => {
+    // CHECK MAX ATTACHMENTS
+    await assert.isRejected(api.uploadAttachmentFile(agreement.address, user1.token));
+  }).timeout(10000);
+
+  it('Should allow user 1 to get attachments file from hoard', async () => {
+    // GET ATTACHMENTS
+    const contentDisposition = await api.getHoard(attachmentsFileReference);
+    console.log('****contentDisposition, ', contentDisposition);
+    expect(contentDisposition).to.equal('attachment; filename=\"agreement_attachments.json\"'); // This is the default name of the attachments file given by the API
+  }).timeout(10000);
+
+  it('Should allow user 1 to get attachment from hoard', async () => {
+    // GET ATTACHMENTS
+    const contentDisposition = await api.getHoard(attachments[0].content);
+    expect(contentDisposition).to.equal('attachment; filename=\"web-api-test.js\"'); // This is the file we are using as the attachment (see uploadAttachmentFile in api-helper)
+  }).timeout(10000);
 
 });

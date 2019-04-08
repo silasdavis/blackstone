@@ -7,71 +7,96 @@
 # | $$$$$$$/| $$|  $$$$$$$|  $$$$$$$| $$ \  $$ /$$$$$$$/  |  $$$$/|  $$$$$$/| $$  | $$|  $$$$$$$
 # |_______/ |__/ \_______/ \_______/|__/  \__/|_______/    \___/   \______/ |__/  |__/ \_______/
 #
-DCB_ARGS := --build-arg UID=$(shell id -u) --build-arg GID=$(shell id -g)
+
+CI_IMAGE="quay.io/monax/blackstone:ci"
+
+### Contracts
 
 .PHONY: build_contracts
 build_contracts:
-	docker-compose run api contracts/build_contracts $(tgt)
-	docker-compose rm -f
+	contracts/build_contracts $(tgt)
 
 .PHONY: deploy_contracts
 deploy_contracts:
-	docker-compose run api contracts/deploy_contracts $(tgt)
+	contracts/deploy_contracts $(tgt)
 
 .PHONY: test_contracts
 test_contracts:
-	docker-compose run api test/test_contracts.sh $(tgt)
+	contracts/test_contracts $(tgt)
+
+.PHONY: copy_abis
+copy_abis:
+	contracts/copy_abis
+
+### Node API
 
 .PHONY: install_api
-install_api: build_docker
-	docker-compose run --workdir /app/api api npm install
+install_api:
+	cd api && npm install
 
 .PHONY: test_api
-test_api:
-	docker-compose run api test/test_api.sh
+test_api: copy_abis
+	cd api && npm test
 
-.PHONY: deploy_test_api
-deploy_test_api: | build_contracts deploy_contracts test_api
+### Run and test
 
-.PHONY: run
-run: | clean
-	docker-compose up -d
-	docker-compose logs --follow api &
-
-.PHONY: run_all
-run_all: | clean build_docker build_contracts deploy_contracts install_api run
-
-.PHONY: restart_api
-restart_api:
-	pkill docker-compose || true
-	docker-compose exec api test/restart_api.sh
+.PHONY: all
+all: | build_contracts deploy_contracts copy_abis install_api
 
 # Full test (run by CI)
 .PHONY: test
 # Ordered execution
-test: | build_docker install_api build_contracts deploy_contracts test_contracts deploy_test_api
-
-.PHONY: down
-down:
-	pkill docker-compose || true
-	docker-compose down
-	docker-compose rm --force --stop
+test: | all test_contracts test_api docs
 
 .PHONY: clean
-clean: down
-	docker-compose run --no-deps api test/clean
+clean:
+	test/clean.sh
 
 .PHONY: clean_all
-clean_all: down
-	docker-compose run --no-deps api test/clean all
+clean_all:
+	test/clean.sh all
 
+### Documentation
+.PHONY: docs
+docs:
+	docs/generate.sh
 
-.PHONY: build_docker
-build_docker:
-	docker-compose build ${DCB_ARGS}
+.PHONY: push_docs
+push_docs: docs
+	docs/push.sh
 
-# Make sure we have fresh service images
-.PHONY: rebuild_docker
-rebuild_docker: clean
-	docker-compose pull
-	docker-compose build ${DCB_ARGS} --no-cache
+### Docker Compose
+
+# To catch DCB args above so we build with CI user
+.PHONY: docker_test
+docker_test: docker_run_deps
+	docker-compose logs -f > test/docker-compose.log &
+	docker-compose run api make test
+
+# Just run the dependency services in docker compose (you can build and deploy contracts and the run the API locally)
+.PHONY: docker_run_deps
+docker_run_deps:
+	docker-compose up -d chain vent postgres hoard
+
+# Build all the contracts and run the API its dependencies
+.PHONY: docker_run_all
+docker_run_all:
+	docker-compose run api make all
+	docker-compose up -d
+	docker-compose logs --follow api &
+
+# Just run the API and its dependencies
+.PHONY: docker_run
+docker_run:
+	docker-compose up -d
+	docker-compose logs --follow api &
+
+# API image for CI use outside of compose
+
+.PHONY: build_ci_image
+build_ci_image:
+	docker build -t ${CI_IMAGE} .
+
+.PHONY: push_ci_image
+push_ci_image: build_ci_image
+	docker push ${CI_IMAGE}
