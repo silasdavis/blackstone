@@ -236,7 +236,7 @@ const saveSignature = async (req, agreementAddress) => {
   let signature = { ...req.body, userAddress: req.user.address, ip };
   let error = null;
   ({ value: signature, error } = joi.validate(signature, signatureSchema, { abortEarly: false }));
-  if (error) throw boom.badRequest(`Missing or misformatted data for signature: ${JSON.stringify(error)}`);
+  if (error) throw boom.badRequest(`Missing or misformatted data for signature: ${error.stack}`);
   const agreement = await sqlCache.getAgreementData(agreementAddress, req.user.address, false);
   if (!agreement) throw boom.notFound(`Agreement at ${agreementAddress} not found or user has insufficient privileges`);
   let signatures;
