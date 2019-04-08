@@ -35,6 +35,8 @@ before(function (done) {
 
 const credentials = {
   username: rid(10, 'aA0'),
+  firstName: 'firstname',
+  lastName: 'lastname',
   password: 'IREALLYLOVEBOATS',
   email: `${rid(10, 'aA0')}@test.com`
 }
