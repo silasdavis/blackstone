@@ -565,7 +565,7 @@ const updateAgreementAttachments = asyncMiddleware(async (req, res) => {
     });
     // Store new data in hoard
     const hoardGrant = await hoardPut({ agreement: address, name: 'agreement_attachments.json' }, JSON.stringify(attachments));
-    await contracts.updateAgreementAttachments(address, hoardGrant);
+    await contracts.updateAgreementFileReference('EventLog', address, hoardGrant);
     return res.status(200).json({ attachmentsFileReference: hoardGrant, attachments });
   }
   throw boom.badRequest(`Cannot add attachment. Max number of attachments (${data.maxNumberOfAttachments}) has been reached.`);
