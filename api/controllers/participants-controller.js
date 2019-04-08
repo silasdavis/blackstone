@@ -306,7 +306,7 @@ const registerUser = async (userData) => {
       const queryString = `INSERT INTO users(
         address, username, first_name, last_name, email, password_digest, is_producer
         ) VALUES(
-          $1, $2, $3, $4, $5
+          $1, $2, $3, $4, $5, $6, $7
         ) RETURNING id;`;
       const { rows } = await client.query({ text: queryString, values: [address, username, firstName, lastName, email, hash, isProducer] });
       userId = rows[0].id;

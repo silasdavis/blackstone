@@ -1,5 +1,6 @@
 const path = require('path');
 const boom = require('boom');
+const joi = require('joi');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 const {
   format,
@@ -19,6 +20,8 @@ const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
 const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
+const signatureSchema = require(`${global.__schemas}/signature`);
+
 const getActivityInstances = asyncMiddleware(async (req, res) => {
   const data = await sqlCache.getActivityInstances(req.user.address, req.query);
   const activities = await pgCache.populateTaskNames(data);
@@ -225,15 +228,39 @@ const completeActivity = asyncMiddleware(async (req, res) => {
   return res.sendStatus(200);
 });
 
+const saveSignature = async (req, agreementAddress) => {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',').pop() ||
+         req.connection.remoteAddress ||
+         req.socket.remoteAddress ||
+         req.connection.socket.remoteAddress;
+  let signature = { ...req.body, userAddress: req.user.address, ip };
+  let error = null;
+  ({ value: signature, error } = joi.validate(signature, signatureSchema, { abortEarly: false }));
+  if (error) throw boom.badRequest(`Missing or misformatted data for signature: ${JSON.stringify(error)}`);
+  const agreement = await sqlCache.getAgreementData(agreementAddress, req.user.address, false);
+  if (!agreement) throw boom.notFound(`Agreement at ${agreementAddress} not found or user has insufficient privileges`);
+  let signatures;
+  if (!agreement.signaturesFileReference) {
+    // No reference stored- start new signatures
+    signatures = [];
+  } else {
+    // Get existing data with reference
+    signatures = await hoardGet(agreement.signaturesFileReference);
+    signatures = splitMeta(signatures);
+    signatures = JSON.parse(signatures.data);
+  }
+  signatures.push(signature);
+  // Store new data in hoard
+  const hoardGrant = await hoardPut({ agreement: agreementAddress, name: 'agreement_signatures.json', mime: 'application/json' }, JSON.stringify(signatures));
+  await contracts.updateAgreementFileReference('SignatureLog', agreementAddress, hoardGrant);
+};
+
 const signAndCompleteActivity = asyncMiddleware(async (req, res) => {
-  if (!req.user.address) throw boom.badRequest('No logged in user found');
-  if (!req.params.activityInstanceId) throw boom.badRequest('Activity instance Id required');
-  if (!req.params.agreementAddress) throw boom.badRequest('agreemenrAddress is required');
-  const id = req.params.activityInstanceId;
-  const agreementAddr = req.params.agreementAddress;
+  const { activityInstanceId, agreementAddress } = req.params;
   const userAddr = req.user.address;
-  await contracts.signAgreement(userAddr, agreementAddr);
-  await contracts.completeActivity(userAddr, id);
+  await saveSignature(req, agreementAddress);
+  await contracts.signAgreement(userAddr, agreementAddress);
+  await contracts.completeActivity(userAddr, activityInstanceId);
   return res.sendStatus(200);
 });
 

@@ -1,3 +1,4 @@
+/* eslint-disable */
 require('../constants');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
@@ -287,8 +288,8 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
   it('Should verify agreement is EXECUTED', done => {
     setTimeout(async () => {
       try {
-        let agreementData = await api.getAgreement(agreement.address, signer.token);
-        expect(parseInt(agreementData.legalState, 10)).to.equal(2);
+        _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
+        expect(parseInt(agreement.legalState, 10)).to.equal(2);
         done();
       } catch (err) {
         done(err);
@@ -314,13 +315,17 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
   it('Should verify agreement is FULFILLED', done => {
     setTimeout(async () => {
       try {
-        let agreementData = await api.getAgreement(agreement.address, signer.token);
-        expect(parseInt(agreementData.legalState, 10)).to.equal(3);
+        _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
+        expect(parseInt(agreement.legalState, 10)).to.equal(3);
         done();
       } catch (err) {
         done(err);
       }
     }, global.ventCatchUpMS);
+  }).timeout(10000);
+
+  it('Should verify that signatures file reference has been set', () => {
+    expect(agreement.signaturesFileReference).not.to.equal('');
   }).timeout(10000);
 
 });

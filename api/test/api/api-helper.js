@@ -16,6 +16,8 @@ module.exports = (server) => {
       }),
 
     registerUser: (user) => {
+      user.firstName = 'firstname';
+      user.lastName = 'lastname';
       return new Promise((resolve, reject) => {
         chai
           .request(server)

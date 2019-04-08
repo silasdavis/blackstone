@@ -430,6 +430,7 @@ const getAgreements = (queryParams, forCurrentUser, userAccount) => {
 const getAgreementData = (agreementAddress, userAccount, includePublic = true) => {
   const queryString = `SELECT a.agreement_address as address, a.archetype_address as archetype, ad.name, a.creator,
     a.event_log_file_reference as "attachmentsFileReference", a.private_parameters_file_reference AS "privateParametersFileReference",
+    a.signature_log_file_reference as "signaturesFileReference",
     a.max_event_count::integer as "maxNumberOfAttachments", a.is_private as "isPrivate", a.legal_state as "legalState",
     a.formation_process_instance as "formationProcessInstance", a.execution_process_instance as "executionProcessInstance",
     UPPER(encode(ac.collection_id::bytea, 'hex')) as "collectionId",
@@ -540,6 +541,7 @@ const getActivityInstances = (userAccount, queryParams) => {
     ai.state::integer,
     ai._height AS "blockNumber",
     ai._txhash AS "transactionHash",
+    app.web_form as "webForm",
     pd.model_address as "modelAddress",
     pm.id as "modelId",
     pd.id as "processDefinitionId",
@@ -547,6 +549,7 @@ const getActivityInstances = (userAccount, queryParams) => {
     ds.address_value as "agreementAddress",
     agr.name as "agreementName",
     ad.task_type as "taskType",
+    ad.application as application,
     completers.username AS "completedByDisplayName",
     COALESCE(performers.username, performers.name) AS "performerDisplayName",
     UPPER(encode(scopes.fixed_scope, 'hex')) AS scope,
@@ -579,6 +582,7 @@ const getActivityInstances = (userAccount, queryParams) => {
     JOIN process_instances pi ON ai.process_instance_address = pi.process_instance_address 
     JOIN activity_definitions ad ON ai.activity_id = ad.activity_id AND pi.process_definition_address = ad.process_definition_address 
     JOIN process_definitions pd ON pd.process_definition_address = pi.process_definition_address 
+    LEFT JOIN applications app ON app.application_id = ad.application
     JOIN process_models pm ON pm.model_address = pd.model_address 
     LEFT JOIN data_storage ds ON ai.process_instance_address = ds.storage_address 
     LEFT JOIN ${process.env.POSTGRES_DB_SCHEMA}.agreement_details agr ON agr.address = ds.address_value 

@@ -553,17 +553,18 @@ const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) 
   }
 };
 
-const updateAgreementAttachments = (agreementAddress, hoardGrant) => new Promise((resolve, reject) => {
-  log.trace(`Updating attachments hoard reference for agreement at ${agreementAddress} with new hoard reference ${hoardGrant}`);
-  appManager
-    .contracts['ActiveAgreementRegistry']
-    .factory.setEventLogReference(agreementAddress, hoardGrant, (error) => {
+const updateAgreementFileReference = (fileKey, agreementAddress, hoardGrant) => new Promise((resolve, reject) => {
+  log.trace(`Updating reference for  ${fileKey} for agreement at ${agreementAddress} with new reference ${hoardGrant}`);
+  const handleResult = (error) => {
     if (error) {
-      return reject(boom.badImplementation(`Failed to update attachments for agreement at ${agreementAddress}: ${error}`));
+      return reject(boom.badImplementation(`Failed to set new reference ${hoardGrant} for ${fileKey} for agreement at ${agreementAddress}: ${error}`));
     }
-    log.info(`Attachments hoard reference updated for agreement at ${agreementAddress}`);
+    log.info(`File reference for ${fileKey} updated for agreement at ${agreementAddress}`);
     return resolve();
-  });
+  };
+  if (fileKey === 'EventLog') return appManager.contracts['ActiveAgreementRegistry'].factory.setEventLogReference(agreementAddress, hoardGrant, handleResult);
+  if (fileKey === 'SignatureLog') return appManager.contracts['ActiveAgreementRegistry'].factory.setSignatureLogReference(agreementAddress, hoardGrant, handleResult);
+  return reject(boom.badImplementation(`Did not recognize agreement file key: ${fileKey}`));
 });
 
 const createAgreementCollection = (author, collectionType, packageId) => new Promise((resolve, reject) => {
@@ -1318,7 +1319,7 @@ module.exports = {
   createAgreement,
   setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,
-  updateAgreementAttachments,
+  updateAgreementFileReference,
   cancelAgreement,
   createAgreementCollection,
   addAgreementToCollection,
