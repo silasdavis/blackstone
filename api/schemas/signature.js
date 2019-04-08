@@ -6,7 +6,7 @@ sample signature:
   firstName: 'Joe',
   lastName: 'Smith',
   company: 'Joe Smith and Sons and Daughters',
-  title: 'CEO,
+  title: 'CEO',
   email: 'joe@smithandsonsanddaughters.com',
   address: '10 Company St. New York, NY 10018',
   date: 1554326702120,
