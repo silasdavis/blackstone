@@ -10,6 +10,6 @@ cd "$CONTRACTS_DIRECTORY/src"
 
 echo "Building contract suite from $build_file"
 
-burrow deploy --file="$build_file"
+burrow deploy "$build_file"
 
 cp ../abi.csv ./bin/.
