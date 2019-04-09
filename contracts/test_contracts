@@ -20,12 +20,12 @@ for test_file in ${test_files}; do
     build_test_file="build-$test_file"
     echo "Building $build_test_file..."
     burrow deploy \
-     --chain-url="$CHAIN_URL_GRPC" \
+     --chain="$CHAIN_URL_GRPC" \
      --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
-     --file="$build_test_file"
+     "$build_test_file"
     echo "Running $test_file..."
     burrow deploy \
-     --chain-url="$CHAIN_URL_GRPC" \
+     --chain="$CHAIN_URL_GRPC" \
      --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
-     --file="$test_file"
+     "$test_file"
 done

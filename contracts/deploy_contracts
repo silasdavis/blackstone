@@ -17,6 +17,6 @@ cd "$CONTRACTS_DIRECTORY/src"
 echo "Deploying contract suite from $deploy_file"
 
 burrow deploy \
- --chain-url="$CHAIN_URL_GRPC" \
+ --chain="$CHAIN_URL_GRPC" \
  --address="$CONTRACTS_DEPLOYMENT_ADDRESS" \
- --file="$deploy_file"
+ "$deploy_file"
