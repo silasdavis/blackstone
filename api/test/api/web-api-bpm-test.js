@@ -48,26 +48,22 @@ describe(':: HOARD ::', () => {
       email: `${rid(10, 'aA0')}@test.com`
     };
     await api.registerUser(hoardUser);
-    setTimeout(async () => {
-      try {
-        await api.activateUser(hoardUser);
-        let loginResult = await api.loginUser(hoardUser);
-        token = loginResult.token;
-        setTimeout(() => {
-          request(server)
-            .post('/hoard')
-            .set('Cookie', [`access_token=${token}`])
-            .attach('myfile.js', __dirname + '/web-api-test.js')
-            .expect(200)
-            .end((err, res) => {
-              expect(err).to.not.exist;
-              hoardGrant = res.body.grant;
-            });
-        }, global.ventCatchUpMS);
-      } catch (err) {
-        throw err;
-      }
-    }, global.ventCatchUpMS);
+    try {
+      await api.activateUser(hoardUser);
+      let loginResult = await api.loginUser(hoardUser);
+      token = loginResult.token;
+      request(server)
+        .post('/hoard')
+        .set('Cookie', [`access_token=${token}`])
+        .attach('myfile.js', __dirname + '/web-api-test.js')
+        .expect(200)
+        .end((err, res) => {
+          expect(err).to.not.exist;
+          hoardGrant = res.body.grant;
+        });
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 });
 
@@ -158,27 +154,24 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     expect(confirmer.address).to.exist
   }).timeout(5000);
 
-  it('Should login users', (done) => {
+  it('Should login users', async () => {
     // LOGIN USERS
-    setTimeout(async () => {
-      try {
-        await api.activateUser(signer);
-        let loginResult = await api.loginUser(signer);
-        expect(loginResult.token).to.exist;
-        signer.token = loginResult.token;
-        await api.activateUser(receiver);
-        loginResult = await api.loginUser(receiver);
-        expect(loginResult.token).to.exist;
-        receiver.token = loginResult.token;
-        await api.activateUser(confirmer);
-        loginResult = await api.loginUser(confirmer);
-        expect(loginResult.token).to.exist;
-        confirmer.token = loginResult.token;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      await api.activateUser(signer);
+      let loginResult = await api.loginUser(signer);
+      expect(loginResult.token).to.exist;
+      signer.token = loginResult.token;
+      await api.activateUser(receiver);
+      loginResult = await api.loginUser(receiver);
+      expect(loginResult.token).to.exist;
+      receiver.token = loginResult.token;
+      await api.activateUser(confirmer);
+      loginResult = await api.loginUser(confirmer);
+      expect(loginResult.token).to.exist;
+      confirmer.token = loginResult.token;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -224,104 +217,83 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     expect(execCacheReponse.rows[0].process_name).to.equal(execution.process.processName);
   });
 
-  it('Should create an archetype', done => {
+  it('Should create an archetype', async () => {
     // CREATE ARCHETYPE
-    setTimeout(async () => {
-      try {
-        archetype.documents[0].grant = hoardGrant;
-        Object.assign(archetype, await api.createArchetype(archetype, signer.token));
-        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        agreement.archetype = archetype.address;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      archetype.documents[0].grant = hoardGrant;
+      Object.assign(archetype, await api.createArchetype(archetype, signer.token));
+      expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+      agreement.archetype = archetype.address;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should create an agreement and start formation process', done => {
+  it('Should create an agreement and start formation process', async () => {
     // CREATE AGREEMENT
-    setTimeout(async () => {
-      try {
-        agreement.parameters.push({ name: 'Incorporator', type: 8, value: signer.address });
-        agreement.parameters.push({ name: 'Receiver', type: 6, value: receiver.address });
-        agreement.parameters.push({ name: 'Confirmer', type: 6, value: confirmer.address });
-        Object.assign(agreement, await api.createAgreement(agreement, signer.token));
-        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      agreement.parameters.push({ name: 'Incorporator', type: 8, value: signer.address });
+      agreement.parameters.push({ name: 'Receiver', type: 6, value: receiver.address });
+      agreement.parameters.push({ name: 'Confirmer', type: 6, value: confirmer.address });
+      Object.assign(agreement, await api.createAgreement(agreement, signer.token));
+      expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should sign and complete incorporation task by incorporator', done => {
-    setTimeout(async () => {
-      try {
-        let signerTasks = await api.getTasksForUser(signer.token);
-        expect(signerTasks.length).to.be.greaterThan(0);
-        expect(signerTasks[0].activityId).to.equal('signTask_abc123');
-        expect(signerTasks[0].name).to.equal('Sign For Incorporation');
-        await api.completeAndSignTaskForUser(signerTasks[0].activityInstanceId, agreement.address, signer.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should sign and complete incorporation task by incorporator', async () => {
+    try {
+      let signerTasks = await api.getTasksForUser(signer.token);
+      expect(signerTasks.length).to.be.greaterThan(0);
+      expect(signerTasks[0].activityId).to.equal('signTask_abc123');
+      expect(signerTasks[0].name).to.equal('Sign For Incorporation');
+      await api.completeAndSignTaskForUser(signerTasks[0].activityInstanceId, agreement.address, signer.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should sign and complete receive signature task by receiver', done => {
-    setTimeout(async () => {
-      try {
-        let receiverTasks = await api.getTasksForUser(receiver.token);
-        expect(receiverTasks.length).to.be.greaterThan(0);
-        expect(receiverTasks[0].activityId).to.equal('recTask_123fkjg');
-        expect(receiverTasks[0].name).to.equal('Receive Signature');
-        await api.completeTaskForUser(receiverTasks[0].activityInstanceId, null, receiver.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should sign and complete receive signature task by receiver', async () => {
+    try {
+      let receiverTasks = await api.getTasksForUser(receiver.token);
+      expect(receiverTasks.length).to.be.greaterThan(0);
+      expect(receiverTasks[0].activityId).to.equal('recTask_123fkjg');
+      expect(receiverTasks[0].name).to.equal('Receive Signature');
+      await api.completeTaskForUser(receiverTasks[0].activityInstanceId, null, receiver.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should verify agreement is EXECUTED', done => {
-    setTimeout(async () => {
-      try {
-        _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
-        expect(parseInt(agreement.legalState, 10)).to.equal(2);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should verify agreement is EXECUTED', async () => {
+    try {
+      _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
+      expect(parseInt(agreement.legalState, 10)).to.equal(2);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should sign and complete confirmation task by confirmer', done => {
-    setTimeout(async () => {
-      try {
-        let confirmTasks = await api.getTasksForUser(confirmer.token);
-        expect(confirmTasks.length).to.be.greaterThan(0);
-        expect(confirmTasks[0].activityId).to.equal('confirmTask_kah254');
-        expect(confirmTasks[0].name).to.equal('Confirm Incorporation');
-        await api.completeTaskForUser(confirmTasks[0].activityInstanceId, null, confirmer.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should sign and complete confirmation task by confirmer', async () => {
+    try {
+      let confirmTasks = await api.getTasksForUser(confirmer.token);
+      expect(confirmTasks.length).to.be.greaterThan(0);
+      expect(confirmTasks[0].activityId).to.equal('confirmTask_kah254');
+      expect(confirmTasks[0].name).to.equal('Confirm Incorporation');
+      await api.completeTaskForUser(confirmTasks[0].activityInstanceId, null, confirmer.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should verify agreement is FULFILLED', done => {
-    setTimeout(async () => {
-      try {
-        _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
-        expect(parseInt(agreement.legalState, 10)).to.equal(3);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should verify agreement is FULFILLED', async () => {
+    try {
+      _.merge(agreement, await api.getAgreement(agreement.address, signer.token));
+      expect(parseInt(agreement.legalState, 10)).to.equal(3);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
   it('Should verify that signatures file reference has been set', () => {
@@ -392,19 +364,16 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     expect(user2.address).to.exist
   }).timeout(5000);
 
-  it('Should login users', (done) => {
+  it('Should login users', async () => {
     // LOGIN USERS
-    setTimeout(async () => {
-      await api.activateUser(user1);
-      let loginResult = await api.loginUser(user1);
-      expect(loginResult.token).to.exist;
-      user1.token = loginResult.token;
-      await api.activateUser(user2);
-      loginResult = await api.loginUser(user2);
-      expect(loginResult.token).to.exist;
-      user2.token = loginResult.token;
-      done();
-    }, global.ventCatchUpMS);
+    await api.activateUser(user1);
+    let loginResult = await api.loginUser(user1);
+    expect(loginResult.token).to.exist;
+    user1.token = loginResult.token;
+    await api.activateUser(user2);
+    loginResult = await api.loginUser(user2);
+    expect(loginResult.token).to.exist;
+    user2.token = loginResult.token;
   }).timeout(10000);
 
   it('Should deploy model', async () => {
@@ -424,7 +393,6 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     });
     // merely checks the number of created data definitions in the table
     expect(modelDataResults.rows.length).to.equal(3);
-
   }).timeout(global.testTimeoutMS);
 
   it('Should create an archetype', async () => {
@@ -434,7 +402,7 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     expect(String(archetype1.address).match(/[0-9A-Fa-f]{40}/)).to.exist;
   }).timeout(15000);
 
-  it('Should create an agreement', done => {
+  it('Should create an agreement', async () => {
     // CREATE AGREEMENT AND START PROCESS
     agreement1.archetype = archetype1.address;
     agreement1.parameters.push({ name: 'buyer', type: 6, value: user1.address });
@@ -442,92 +410,73 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     // adding user1 to parties even though the task assigned to user1 is not a sign task - this is still allowed
     // you need to be in the parties array of an agreement to be able to cancel an agreement
     agreement1.parties.push(user1.address);
-    setTimeout(async () => {
-      try {
-        let agreementRes = await api.createAgreement(agreement1, user1.token);
-        agreement1.address = agreementRes.address;
-        expect(String(agreement1.address).match(/[0-9A-Fa-f]{40}/)).to.exist;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      let agreementRes = await api.createAgreement(agreement1, user1.token);
+      agreement1.address = agreementRes.address;
+      expect(String(agreement1.address).match(/[0-9A-Fa-f]{40}/)).to.exist;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(20000);
 
-  it('Should verify only ONE pending user task for buyer and complete it', done => {
+  it('Should verify only ONE pending user task for buyer and complete it', async () => {
     // USER TASK VERIFICATION
-    setTimeout(async () => {
-      try {
-        let buyerTasks = await api.getTasksForUser(user1.token);
-        expect(buyerTasks.length).to.equal(1);
-        expect(buyerTasks[0].activityId).to.equal('SignOffPayment');
-        buyerTask = buyerTasks[0];
-        let sellerTasks = await api.getTasksForUser(user2.token);
-        expect(sellerTasks.length).to.equal(0);
-        await api.completeAndSignTaskForUser(buyerTask.activityInstanceId, agreement1.address, user1.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      let buyerTasks = await api.getTasksForUser(user1.token);
+      expect(buyerTasks.length).to.equal(1);
+      expect(buyerTasks[0].activityId).to.equal('SignOffPayment');
+      buyerTask = buyerTasks[0];
+      let sellerTasks = await api.getTasksForUser(user2.token);
+      expect(sellerTasks.length).to.equal(0);
+      await api.completeAndSignTaskForUser(buyerTask.activityInstanceId, agreement1.address, user1.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(15000);
 
-  it('Should verify NO pending user task for buyer', done => {
+  it('Should verify NO pending user task for buyer', async () => {
     // USER TASK VERIFICATION
-    setTimeout(async () => {
-      try {
-        let tasks = await api.getTasksForUser(user1.token);
-        expect(tasks.length).to.equal(0);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      let tasks = await api.getTasksForUser(user1.token);
+      expect(tasks.length).to.equal(0);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should verify only ONE pending user task for seller and complete it', done => {
+  it('Should verify only ONE pending user task for seller and complete it', async () => {
     // USER TASK VERIFICATION
-    setTimeout(async () => {
-      try {
-        let sellerTasks = await api.getTasksForUser(user2.token);
-        expect(sellerTasks.length).to.equal(1);
-        expect(sellerTasks[0].activityId).to.equal('ShipGoods');
-        sellerTask = sellerTasks[0];
-        let buyerTasks = await api.getTasksForUser(user1.token);
-        expect(buyerTasks.length).to.equal(0);
-        await api.completeTaskForUser(sellerTask.activityInstanceId, null, user2.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      let sellerTasks = await api.getTasksForUser(user2.token);
+      expect(sellerTasks.length).to.equal(1);
+      expect(sellerTasks[0].activityId).to.equal('ShipGoods');
+      sellerTask = sellerTasks[0];
+      let buyerTasks = await api.getTasksForUser(user1.token);
+      expect(buyerTasks.length).to.equal(0);
+      await api.completeTaskForUser(sellerTask.activityInstanceId, null, user2.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should verify NO pending user task for seller', done => {
+  it('Should verify NO pending user task for seller', async () => {
     // USER TASK VERIFICATION
-    setTimeout(async () => {
-      try {
-        let tasks = await api.getTasksForUser(user2.token);
-        expect(tasks.length).to.equal(0);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      let tasks = await api.getTasksForUser(user2.token);
+      expect(tasks.length).to.equal(0);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should cancel an agreement by an agreement party member', done => {
+  it('Should cancel an agreement by an agreement party member', async () => {
     // AGREEMENT CANCELATION VERIFICATION
-    setTimeout(async () => {
-      try {
-        await api.cancelAgreement(agreement1.address, user1.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      await api.cancelAgreement(agreement1.address, user1.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
-
 });
 
 
@@ -612,23 +561,20 @@ describe(':: DATA MAPPING TEST ::', function () {
     expect(admin.address).to.exist
   })
 
-  it('Should login users', function (done) {
+  it('Should login users', async () => {
     // LOGIN USERS
-    setTimeout(async () => {
-      try {
-        await api.activateUser(manager);
-        let loginResult = await api.loginUser(manager);
-        expect(loginResult.token).to.exist;
-        manager.token = loginResult.token;
-        await api.activateUser(admin);
-        loginResult = await api.loginUser(admin);
-        expect(loginResult.token).to.exist;
-        admin.token = loginResult.token;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      await api.activateUser(manager);
+      let loginResult = await api.loginUser(manager);
+      expect(loginResult.token).to.exist;
+      manager.token = loginResult.token;
+      await api.activateUser(admin);
+      loginResult = await api.loginUser(admin);
+      expect(loginResult.token).to.exist;
+      admin.token = loginResult.token;
+    } catch (err) {
+      throw err;
+    }
   });
 
   it('Should deploy formation and execution models', async () => {
@@ -658,62 +604,53 @@ describe(':: DATA MAPPING TEST ::', function () {
 
   });
 
-  it('Should create an archetype', done => {
+  it('Should create an archetype', async () => {
     // CREATE ARCHETYPE
-    setTimeout(async () => {
-      try {
-        archetype.documents[0].grant = hoardGrant;
-        Object.assign(archetype, await api.createArchetype(archetype, manager.token));
-        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        agreement.archetype = archetype.address;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      archetype.documents[0].grant = hoardGrant;
+      Object.assign(archetype, await api.createArchetype(archetype, manager.token));
+      expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+      agreement.archetype = archetype.address;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should create an agreement and start formation process', done => {
+  it('Should create an agreement and start formation process', async () => {
     // CREATE AGREEMENT
-    setTimeout(async () => {
-      try {
-        agreement.parameters.push({ name: 'Manager', type: 8, value: manager.address });
-        agreement.parameters.push({ name: 'Administrator', type: 6, value: admin.address });
-        Object.assign(agreement, await api.createAgreement(agreement, manager.token));
-        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      agreement.parameters.push({ name: 'Manager', type: 8, value: manager.address });
+      agreement.parameters.push({ name: 'Administrator', type: 6, value: admin.address });
+      Object.assign(agreement, await api.createAgreement(agreement, manager.token));
+      expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should be able to set data as suspended task\'s assigned user', done => {
-    setTimeout(async () => {
-      try {
-        let managerTasks = await api.getTasksForUser(manager.token);
-        managerTask = managerTasks[0];
-        expect(managerTasks.length).to.be.greaterThan(0);
-        expect(managerTasks[0].activityId).to.equal('apprTask_123');
-        await assert.isFulfilled(api.setActivityDataValues(
-          managerTasks[0].activityInstanceId,
-          [
-            { id: 'writeName', value: 'John Doe', dataType: 2 },
-            { id: 'writeApproved', value: true, dataType: 1 }
-          ],
-          manager.token
-        ));
-        let data = await assert.isFulfilled(api.getActivityDataValues(managerTasks[0].activityInstanceId, manager.token));
-        expect(data.length).to.equal(4);
-        let name = data.filter(d => d.dataMappingId === 'readName')[0].value;
-        let approved = data.filter(d => d.dataMappingId === 'readApproved')[0].value;
-        expect(name).to.equal('John Doe');
-        expect(approved).to.equal(true);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should be able to set data as suspended task\'s assigned user', async () => {
+    try {
+      let managerTasks = await api.getTasksForUser(manager.token);
+      managerTask = managerTasks[0];
+      expect(managerTasks.length).to.be.greaterThan(0);
+      expect(managerTasks[0].activityId).to.equal('apprTask_123');
+      await assert.isFulfilled(api.setActivityDataValues(
+        managerTasks[0].activityInstanceId,
+        [
+          { id: 'writeName', value: 'John Doe', dataType: 2 },
+          { id: 'writeApproved', value: true, dataType: 1 }
+        ],
+        manager.token
+      ));
+      let data = await assert.isFulfilled(api.getActivityDataValues(managerTasks[0].activityInstanceId, manager.token));
+      expect(data.length).to.equal(4);
+      let name = data.filter(d => d.dataMappingId === 'readName')[0].value;
+      let approved = data.filter(d => d.dataMappingId === 'readApproved')[0].value;
+      expect(name).to.equal('John Doe');
+      expect(approved).to.equal(true);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
   it('Should be able to get activity instance details including data mappings', async ()  => {
@@ -734,50 +671,41 @@ describe(':: DATA MAPPING TEST ::', function () {
     }
   }).timeout(10000);
 
-  it('Should be able to set single data and complete suspended task in one transaction', done => {
-    setTimeout(async () => {
-      let data = [
-        { id: 'writeApproved', value: true, dataType: 1 } //IMPORTANT: test completing an activity with only one data in order to trigger the completeActivityWithData single transaction path in the API!
-      ];
-      try {
-        await assert.isFulfilled(api.completeTaskForUser(managerTask.activityInstanceId, data, manager.token));
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should be able to set single data and complete suspended task in one transaction', async () => {
+    let data = [
+      { id: 'writeApproved', value: true, dataType: 1 } //IMPORTANT: test completing an activity with only one data in order to trigger the completeActivityWithData single transaction path in the API!
+    ];
+    try {
+      await assert.isFulfilled(api.completeTaskForUser(managerTask.activityInstanceId, data, manager.token));
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should sign the agreement', done => {
-    setTimeout(async () => {
-      try {
-        let signerTasks = await api.getTasksForUser(manager.token);
-        expect(signerTasks.length).to.be.greaterThan(0);
-        expect(signerTasks[0].activityId).to.equal('signTask_1amiv9a');
-        expect(signerTasks[0].name).to.equal('Sign Off');
-        await api.completeAndSignTaskForUser(signerTasks[0].activityInstanceId, agreement.address, manager.token);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should sign the agreement', async () => {
+    try {
+      let signerTasks = await api.getTasksForUser(manager.token);
+      expect(signerTasks.length).to.be.greaterThan(0);
+      expect(signerTasks[0].activityId).to.equal('signTask_1amiv9a');
+      expect(signerTasks[0].name).to.equal('Sign Off');
+      await api.completeAndSignTaskForUser(signerTasks[0].activityInstanceId, agreement.address, manager.token);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should be able to read agreement data from data mappings by administrator', done => {
-    setTimeout(async () => {
-      try {
-        let adminTasks = await api.getTasksForUser(admin.token);
-        expect(adminTasks.length).to.equal(1);
-        let aiData = await api.getActivityInstance(adminTasks[0].activityInstanceId, admin.token);
-        expect(aiData.data).to.exist;
-        expect(aiData.data.length).to.equal(2);
-        let readApproved = aiData.data.filter(d => d.dataMappingId === 'readApproved')[0];
-        expect(readApproved.value).to.equal(true);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+  it('Should be able to read agreement data from data mappings by administrator', async () => {
+    try {
+      let adminTasks = await api.getTasksForUser(admin.token);
+      expect(adminTasks.length).to.equal(1);
+      let aiData = await api.getActivityInstance(adminTasks[0].activityInstanceId, admin.token);
+      expect(aiData.data).to.exist;
+      expect(aiData.data.length).to.equal(2);
+      let readApproved = aiData.data.filter(d => d.dataMappingId === 'readApproved')[0];
+      expect(readApproved.value).to.equal(true);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
 });
@@ -855,19 +783,16 @@ describe(':: GATEWAY TEST ::', () => {
     expect(tenant.address).to.exist
   }).timeout(global.testTimeoutMS);
 
-  it('Should login users', (done) => {
+  it('Should login users', async () => {
     // LOGIN USERS
-    setTimeout(async () => {
-      try {
-        await api.activateUser(tenant);
-        let loginResult = await api.loginUser(tenant);
-        expect(loginResult.token).to.exist;
-        tenant.token = loginResult.token;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      await api.activateUser(tenant);
+      let loginResult = await api.loginUser(tenant);
+      expect(loginResult.token).to.exist;
+      tenant.token = loginResult.token;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
   it('Should deploy formation and execution models', async () => {
@@ -890,71 +815,58 @@ describe(':: GATEWAY TEST ::', () => {
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
   }).timeout(global.testTimeoutMS);
 
-  it('Should create an archetype', done => {
+  it('Should create an archetype', async () => {
     // CREATE ARCHETYPE
-    setTimeout(async () => {
-      try {
-        archetype.documents[0].grant = hoardGrant;
-        Object.assign(archetype, await api.createArchetype(archetype, tenant.token));
-        expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        agreement.archetype = archetype.address;
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, global.ventCatchUpMS);
+    try {
+      archetype.documents[0].grant = hoardGrant;
+      Object.assign(archetype, await api.createArchetype(archetype, tenant.token));
+      expect(String(archetype.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
+      agreement.archetype = archetype.address;
+    } catch (err) {
+      throw err;
+    }
   }).timeout(10000);
 
-  it('Should create an agreement and start formation process leading to user task', done => {
+  it('Should create an agreement and start formation process leading to user task', async () => {
     // CREATE AGREEMENT
-    setTimeout(async () => {
+    try {
+      let tenantTasks = await api.getTasksForUser(tenant.token);
+      const numberOfTasksBefore = tenantTasks.length;
+      agreement.parameters.length = 0; // reset parameters
+      agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
+      agreement.parameters.push({ name: 'Building Completed', type: 2, value: 1950 });
+      Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
+      expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
       try {
-        let tenantTasks = await api.getTasksForUser(tenant.token);
-        const numberOfTasksBefore = tenantTasks.length;
-        agreement.parameters.length = 0; // reset parameters
-        agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
-        agreement.parameters.push({ name: 'Building Completed', type: 2, value: 1950 });
-        Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
-        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        setTimeout(async () => {
-          try {
-            tenantTasks = await api.getTasksForUser(tenant.token);
-            expect(tenantTasks.length).to.equal(numberOfTasksBefore + 1);
-            done();
-          } catch (err) {
-            done(err);
-          }
-        }, global.ventCatchUpMS);
+        tenantTasks = await api.getTasksForUser(tenant.token);
+        expect(tenantTasks.length).to.equal(numberOfTasksBefore + 1);
       } catch (err) {
-        done(err);
+        throw err;
       }
-    }, global.ventCatchUpMS);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(20000);
 
-  it('Should create an agreement and start formation process with staight-through processing (no user task)', done => {
+  it('Should create an agreement and start formation process with staight-through processing (no user task)', async () => {
     // CREATE AGREEMENT
-    setTimeout(async () => {
+    try {
+      let tenantTasks = await api.getTasksForUser(tenant.token);
+      const numberOfTasksBefore = tenantTasks.length;
+      agreement.parameters.length = 0; // reset parameters
+      agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
+      agreement.parameters.push({ name: 'Building Completed', type: 2, value: 2007 });
+      Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
+      expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
       try {
-        let tenantTasks = await api.getTasksForUser(tenant.token);
-        const numberOfTasksBefore = tenantTasks.length;
-        agreement.parameters.length = 0; // reset parameters
-        agreement.parameters.push({ name: 'Tenant', type: 8, value: tenant.address });
-        agreement.parameters.push({ name: 'Building Completed', type: 2, value: 2007 });
-        Object.assign(agreement, await api.createAgreement(agreement, tenant.token));
-        expect(String(agreement.address)).match(/[0-9A-Fa-f]{40}/).to.exist;
-        setTimeout(async () => {
-          try {
-            tenantTasks = await api.getTasksForUser(tenant.token);
-            expect(tenantTasks.length).to.equal(numberOfTasksBefore);
-            done();
-          } catch (err) {
-            done(err);
-          }
-        }, global.ventCatchUpMS);
+        tenantTasks = await api.getTasksForUser(tenant.token);
+        expect(tenantTasks.length).to.equal(numberOfTasksBefore);
       } catch (err) {
-        done(err);
+        throw err;
       }
-    }, global.ventCatchUpMS);
+    } catch (err) {
+      throw err;
+    }
   }).timeout(20000);
 
 });
