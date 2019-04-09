@@ -101,6 +101,7 @@ const getEcosystem = ecosystemAddress => getContract(global.__abi, global.__mona
 /**
  * Returns a promise to call the forwardCall function of the given userAddress to invoke the function encoded in the given payload on the provided target address and return the result bytes representation
  * The 'payload' parameter must be the output of calling the 'encode(...)' function on a contract's function. E.g. <contract>.<function>.encode(param1, param2)
+ * 'waitForVent' is a boolean parameter which indicates whether callOnBehalfOf should to wait for vent db to catch up to the block height in the forwardCall response, before resolving the promise.
  */
 const callOnBehalfOf = (userAddress, targetAddress, payload, waitForVent) => new Promise((resolve, reject) => {
   const actingUser = getUserAccount(userAddress);

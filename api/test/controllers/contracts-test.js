@@ -325,7 +325,7 @@ describe('CONTRACTS', () => {
       } catch (err) {
         done(err)
       }
-    }, global.ventCatchUpMS)
+    }, 1000)
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
@@ -357,7 +357,7 @@ describe('CONTRACTS', () => {
   //       expect(global.hexToString(execProc.interfaceId)).to.equal(executionInterface);
   //       done();
   //     });
-  //   }, global.ventCatchUpMS);
+  //   }, 1000);
   // }).timeout(10000);
 
   it('Should create an agreement', async () => {
