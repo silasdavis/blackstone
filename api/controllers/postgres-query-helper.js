@@ -361,9 +361,7 @@ const checkParties = (userAccount) => {
     )
   ))`;
 };
-const checkCreator = userAccount => `(a.creator = '${userAccount}' OR a.creator IN (
-  SELECT ou.organization_address FROM organization_users ou WHERE ou.user_address = '${userAccount}'
-))`;
+const checkCreator = userAccount => `(a.creator = '${userAccount}')`;
 const checkAgreementTasks = (userAccount) => {
   const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
   return `(a.agreement_address IN (
