@@ -6,7 +6,7 @@ const boom = require('boom');
 
 const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('CONTROLLERS.auth');
+const log = logger.getLogger('controllers.auth');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
 
 const login = (req, res, next) => {

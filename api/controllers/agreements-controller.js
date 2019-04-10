@@ -19,7 +19,7 @@ const { hoardGet, hoardPut } = require(`${global.__controllers}/hoard-controller
 const { parseBpmnModel } = require(`${global.__controllers}/bpm-controller`);
 const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('CONTROLLERS.agreements');
+const log = logger.getLogger('controllers.agreements');
 const sqlCache = require('./postgres-query-helper');
 const { PARAMETER_TYPES: PARAM_TYPE, AGREEMENT_PARTIES, AGREEMENT_ATTACHMENT_CONTENT_TYPES } = global.__constants;
 

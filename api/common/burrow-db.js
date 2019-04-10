@@ -8,7 +8,7 @@ const R = require('ramda');
 const stream = require('stream');
 
 (function startBurrowDb() {
-  const log = logger.getLogger('BURROW');
+  const log = logger.getLogger('burrow');
 
   // EventEmitter
   function ChainEvents() {

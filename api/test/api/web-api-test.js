@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
 const logger = require(__common + '/logger')
-const log = logger.getLogger('TESTS');
+const log = logger.getLogger('tests');
 
 const api = require('./api-helper')(server)
 const { rightPad } = require(__common + '/controller-dependencies')

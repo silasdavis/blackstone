@@ -25,7 +25,7 @@ global.__lib = path.resolve(__appDir, 'lib')
 global.__schemas = path.resolve(__appDir, 'schemas')
 
 const logger = require(__common + '/logger')
-const log = logger.getLogger('TESTS.Harness')
+const log = logger.getLogger('tests.Harness')
 
 global.__settings = (() => {
   let settings = toml.parse(fs.readFileSync(`${global.__config}/settings.toml`))

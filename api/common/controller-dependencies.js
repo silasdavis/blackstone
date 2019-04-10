@@ -3,7 +3,7 @@ const _ = require('lodash');
 const boom = require('boom');
 
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('CONTROLLERS.dependencies');
+const log = logger.getLogger('controllers.dependencies');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,

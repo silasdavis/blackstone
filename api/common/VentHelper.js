@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 const EventEmitter = require('events');
 const logger = require('./logger');
-const log = logger.getLogger('VENT-HELPER');
+const log = logger.getLogger('vent-helper');
 
 class VentHelper {
   constructor(connectionString, maxWaitTime) {

@@ -13,39 +13,39 @@
       "appenders": ["out"],
       "level": "INFO"
     },
-    "APP": {
+    "app": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "CONTROLLERS": {
+    "controllers": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "BURROW": {
+    "burrow": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "VENT-HELPER": {
+    "vent-helper": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "SCRIPTS": {
+    "scripts": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "TESTS": {
+    "tests": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "QUERIES": {
+    "queries": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "NOTIFICATIONS": {
+    "notifications": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "ANALYTICS": {
+    "analytics": {
       "appenders": ["out"],
       "level": "INFO"
     }

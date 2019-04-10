@@ -18,7 +18,7 @@ let app;
 (function startApp() {
   module.exports = (existingApp, addCustomEndpoints, customMiddleware = [], configureCustomPassport) => {
     if (!app) {
-      const log = logger.getLogger('APP');
+      const log = logger.getLogger('app');
 
       if (configureCustomPassport) {
         configureCustomPassport(passport);

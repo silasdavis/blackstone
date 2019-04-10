@@ -3,7 +3,7 @@ const contracts = require('../controllers/contracts-controller');
 const CONTRACT_ACTIVE_AGREEMENT = global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT;
 const { PARAMETER_TYPES: PARAM_TYPE, DATA_TYPES } = global.__constants;
 const { chain_db_pool } = require(`${global.__common}/postgres-db`);
-const log = logger.getLogger('CONTROLLERS.data-storage');
+const log = logger.getLogger('controllers.data-storage');
 
 /* **********************************************************
  *       PARAMETER TYPES TO SOLIDITY DATA TYPES MAPPING
