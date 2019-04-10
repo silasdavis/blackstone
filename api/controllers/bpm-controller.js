@@ -22,10 +22,11 @@ const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/part
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/constants`);
 const signatureSchema = require(`${global.__schemas}/signature`);
 
-const getActivityInstances = asyncMiddleware(async (req, res) => {
+const getActivityInstances = asyncMiddleware(async (req, res, next) => {
   const data = await sqlCache.getActivityInstances(req.user.address, req.query);
-  const activities = await pgCache.populateTaskNames(data);
-  return res.status(200).json(activities);
+  res.locals.data = await pgCache.populateTaskNames(data);
+  res.status(200);
+  return next();
 });
 
 const _validateDataMappings = (dataMappings) => {
@@ -96,7 +97,7 @@ const addDataTypes = dataMappings => dataMappings.map(dm => ({
   dataType: PARAM_TYPE_TO_DATA_TYPE_MAP[dm.parameterType].dataType,
 }));
 
-const getActivityInstance = asyncMiddleware(async (req, res) => {
+const getActivityInstance = asyncMiddleware(async (req, res, next) => {
   let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
   if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found`);
   if (activityInstanceResult.state !== 4) return res.status(200).json({ activityInstanceId: req.params.id, state: activityInstanceResult.state });
@@ -109,10 +110,12 @@ const getActivityInstance = asyncMiddleware(async (req, res) => {
   } catch (err) {
     throw boom.badImplementation(`Failed to get values for IN data mappings for activity instance id ${req.params.id}: ${err}`);
   }
-  return res.status(200).json(activityInstanceResult);
+  res.locals.data = activityInstanceResult;
+  res.status(200);
+  return next();
 });
 
-const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId } }, res) => {
+const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId } }, res, next) => {
   let dataMappings = await sqlCache.getDataMappingsForActivity(activityInstanceId, dataMappingId);
   if (dataMappingId && !dataMappings[0]) throw boom.notFound(`Data mapping with id ${dataMappingId} for activity instance ${activityInstanceId} does not exist`);
   dataMappings = addDataTypes(dataMappings);
@@ -123,10 +126,12 @@ const getDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
     if (dataMappingId) msg = `Failed to get IN values for activity instance id ${activityInstanceId} and data mapping id ${dataMappingId}: ${err.stack}`;
     throw boom.badImplementation(msg);
   }
-  return res.status(200).json(dataMappingId ? dataMappings[0] : dataMappings);
+  res.locals.data = dataMappingId ? dataMappings[0] : dataMappings;
+  res.status(200);
+  return next();
 });
 
-const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId }, body }, res) => {
+const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanceId, dataMappingId }, body }, res, next) => {
   let dataMappings;
   if (dataMappingId) {
     dataMappings = [Object.assign(body, { id: dataMappingId })];
@@ -138,30 +143,36 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
   _validateDataMappings(dataMappings);
   const setValuePromises = dataMappings.map(data => dataStorage.activityOutDataSetters[`${data.dataType}`](user.address, activityInstanceId, data.id, data.value));
   await Promise.all(setValuePromises)
-    .then(() => res.sendStatus(200))
+    .then(() => {
+      res.status(200);
+      return next();
+    })
     .catch((err) => {
       throw boom.badImplementation(`Failed to set data mapping values for activity ${activityInstanceId}: ${err.stack}`);
     });
 });
 
-const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res) => {
+const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res, next) => {
   if (!address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getTasksByUserAddress(address);
-  const tasks = await pgCache.populateTaskNames(data);
-  return res.status(200).json(tasks);
+  res.locals.data = await pgCache.populateTaskNames(data);
+  res.status(200);
+  return next();
 });
 
-const getModels = asyncMiddleware(async (req, res) => {
+const getModels = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   const retData = [];
   const models = await sqlCache.getModels(req.user.address);
   models.forEach((model) => {
     retData.push(format('Model', model));
   });
-  return res.status(200).json(retData);
+  res.locals.data = retData;
+  res.status(200);
+  return next();
 });
 
-const getApplications = asyncMiddleware(async (req, res) => {
+const getApplications = asyncMiddleware(async (req, res, next) => {
   const applications = await sqlCache.getApplications();
   const appObj = {};
   applications.forEach((_app) => {
@@ -182,13 +193,17 @@ const getApplications = asyncMiddleware(async (req, res) => {
     delete appObj[app.id].direction;
     delete appObj[app.id].dataType;
   });
-  return res.status(200).json(Object.values(appObj));
+  res.locals.data = Object.values(appObj);
+  res.status(200);
+  return next();
 });
 
-const validateProcess = asyncMiddleware(async (req, res) => {
+const validateProcess = asyncMiddleware(async (req, res, next) => {
   if (!req.body.address) throw boom.badRequest('Process definition address required');
   const isValid = await contracts.isValidProcess(req.body.address);
-  return res.status(200).json({ processIsValid: isValid });
+  res.locals.data = { processIsValid: isValid };
+  res.status(200);
+  return next();
 });
 
 const writeDataForActivity = (userAddr, activityInstanceId, dataMappings) => {
@@ -201,7 +216,7 @@ const writeDataForActivity = (userAddr, activityInstanceId, dataMappings) => {
     .catch(err => Promise.reject(err));
 };
 
-const completeActivity = asyncMiddleware(async (req, res) => {
+const completeActivity = asyncMiddleware(async (req, res, next) => {
   const { activityInstanceId } = req.params;
   const userAddr = req.user.address;
   let { data } = req.body;
@@ -225,7 +240,8 @@ const completeActivity = asyncMiddleware(async (req, res) => {
   } else {
     await contracts.completeActivity(userAddr, activityInstanceId);
   }
-  return res.sendStatus(200);
+  res.status(200);
+  return next();
 });
 
 const saveSignature = async (req, agreementAddress) => {
@@ -255,32 +271,38 @@ const saveSignature = async (req, agreementAddress) => {
   await contracts.updateAgreementFileReference('SignatureLog', agreementAddress, hoardGrant);
 };
 
-const signAndCompleteActivity = asyncMiddleware(async (req, res) => {
+const signAndCompleteActivity = asyncMiddleware(async (req, res, next) => {
   const { activityInstanceId, agreementAddress } = req.params;
   const userAddr = req.user.address;
   await saveSignature(req, agreementAddress);
   await contracts.signAgreement(userAddr, agreementAddress);
   await contracts.completeActivity(userAddr, activityInstanceId);
-  return res.sendStatus(200);
+  res.status(200);
+  return next();
 });
 
-const getProcessInstanceCount = asyncMiddleware(async (req, res) => {
+const getProcessInstanceCount = asyncMiddleware(async (req, res, next) => {
   let count = await contracts.getProcessInstanceCount();
   count = parseInt(count, 10);
-  return res.status(200).json({ count });
+  res.locals.data = { count };
+  res.status(200);
+  return next();
 });
 
-const getDefinitions = asyncMiddleware(async (req, res) => {
+const getDefinitions = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getProcessDefinitions(req.user.address, req.query);
-  const processes = await pgCache.populateProcessNames(data);
-  return res.status(200).json(processes);
+  res.locals.data = await pgCache.populateProcessNames(data);
+  res.status(200);
+  return next();
 });
 
-const getDefinition = asyncMiddleware(async (req, res) => {
+const getDefinition = asyncMiddleware(async (req, res, next) => {
   const processDefn = await sqlCache.getProcessDefinitionData(req.params.address, req.user.address);
   const data = await pgCache.populateProcessNames([processDefn]);
-  return res.status(200).json(data[0]);
+  res.locals.data = data[0];
+  res.status(200);
+  return next();
 });
 
 const parseBpmnModel = async (rawXml) => {
@@ -296,19 +318,21 @@ const parseBpmnModel = async (rawXml) => {
   }
 };
 
-const getModelDiagram = asyncMiddleware(async (req, res) => {
+const getModelDiagram = asyncMiddleware(async (req, res, next) => {
   const modelFileReference = await sqlCache.getProcessModelFileReference(req.params.address, req.user.address);
   const diagram = await hoardGet(modelFileReference);
   const data = splitMeta(diagram);
   if (req.headers.accept.includes('application/xml')) {
     res.attachment(data.meta.name);
-    return res.status(200).send(data.data);
-  }
-  if (req.headers.accept.includes('application/json')) {
+    res.locals.data = data.data;
+  } else if (req.headers.accept.includes('application/json')) {
     const parsedModel = await parseBpmnModel(data.data.toString());
-    return res.status(200).json(parsedModel);
+    res.locals.data = parsedModel;
+  } else {
+    throw boom.badRequest(`${req.headers.accept} format not supported`);
   }
-  throw boom.badRequest(`${req.headers.accept} format not supported`);
+  res.status(200);
+  return next();
 });
 
 /* ************************************************************************
@@ -495,7 +519,7 @@ const addDataDefinitionsToModel = (modelAddress, dataStoreFields) => new Promise
     .catch(error => reject(boom.badImplementation(`Failed to add data definitions to model at [ ${modelAddress} ]: ${error}`)));
 });
 
-const createModelFromBpmn = asyncMiddleware(async (req, res) => {
+const createModelFromBpmn = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   if (req.query.format && req.query.format !== 'bpmn') {
     throw boom.notAcceptable(`${req.query.format} format not supported`);
@@ -516,7 +540,9 @@ const createModelFromBpmn = asyncMiddleware(async (req, res) => {
   response.processes = await addProcessesToModel(response.model.address, processes);
   response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));
   response.parsedDiagram = parsedResponse;
-  return res.status(200).json(response);
+  res.locals.data = response;
+  res.status(200);
+  return next();
 });
 
 /* *****************************************************************************

@@ -23,7 +23,7 @@ const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const { PARAMETER_TYPES: PARAM_TYPE } = global.__constants;
 
-const getOrganizations = asyncMiddleware(async (req, res) => {
+const getOrganizations = asyncMiddleware(async (req, res, next) => {
   if (req.query.approver === 'true') {
     req.query.approver_address = req.user.address;
     delete req.query.approver;
@@ -43,14 +43,16 @@ const getOrganizations = asyncMiddleware(async (req, res) => {
       }
       aggregated[address].approvers.push(approver);
     });
-    return res.json(Object.values(aggregated));
+    res.locals.data = Object.values(aggregated);
+    res.status(200);
+    return next();
   } catch (err) {
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
   }
 });
 
-const getOrganization = asyncMiddleware(async (req, res) => {
+const getOrganization = asyncMiddleware(async (req, res, next) => {
   try {
     const data = await sqlCache.getOrganization(req.params.address);
     // Vent query has left join that results in multiple rows for the org for each approver, user, department, and department member
@@ -88,14 +90,16 @@ const getOrganization = asyncMiddleware(async (req, res) => {
     const org = {
       address, organizationKey, name, approvers, users, departments,
     };
-    return res.status(200).send(org);
+    res.locals.data = org;
+    res.status(200);
+    return next();
   } catch (err) {
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
   }
 });
 
-const createOrganization = asyncMiddleware(async (req, res) => {
+const createOrganization = asyncMiddleware(async (req, res, next) => {
   const org = req.body;
   if (!org.name) throw boom.badRequest('Organization name is required');
   if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
@@ -114,32 +118,36 @@ const createOrganization = asyncMiddleware(async (req, res) => {
     });
     await sqlCache.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
     log.info('Added organization name and address to postgres');
-    return res.status(200).json({ address, name: org.name });
+    res.locals.data = { address, name: org.name };
+    res.status(200);
+    return next();
   } catch (err) {
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
   }
 });
 
-const createOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
+const createOrganizationUserAssociation = asyncMiddleware(async (req, res, next) => {
   const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
   await contracts.addUserToOrganization(req.params.userAddress, req.params.address, req.user.address);
-  return res.status(200).send();
+  res.status(200);
+  return next();
 });
 
-const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res) => {
+const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res, next) => {
   const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address, req.user.address);
-  return res.status(200).send();
+  res.status(200);
+  return next();
 });
 
-const createDepartment = asyncMiddleware(async (req, res) => {
+const createDepartment = asyncMiddleware(async (req, res, next) => {
   const { name, users = [] } = req.body;
   const { address } = req.params;
   if (!name) {
@@ -157,14 +165,17 @@ const createDepartment = asyncMiddleware(async (req, res) => {
   // Optionally also add users in the same request
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
-    .then(() => res.status(200).json({ id, name, users }))
-    .catch((err) => {
+    .then(() => {
+      res.locals.data = { id, name, users };
+      res.status(200);
+      return next();
+    }).catch((err) => {
       if (boom.isBoom(err)) throw err;
       throw boom.badImplementation(err);
     });
 });
 
-const removeDepartment = asyncMiddleware(async (req, res) => {
+const removeDepartment = asyncMiddleware(async (req, res, next) => {
   const { address, id } = req.params;
   const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
@@ -172,10 +183,11 @@ const removeDepartment = asyncMiddleware(async (req, res) => {
   }
   await contracts.removeDepartment(address, id, req.user.address);
   await sqlCache.removeDepartmentDetails({ organizationAddress: address, id });
-  res.status(200).send();
+  res.status(200);
+  return next();
 });
 
-const addDepartmentUsers = asyncMiddleware(async (req, res) => {
+const addDepartmentUsers = asyncMiddleware(async (req, res, next) => {
   const { address, id } = req.params;
   const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
@@ -184,21 +196,24 @@ const addDepartmentUsers = asyncMiddleware(async (req, res) => {
   const { users } = req.body;
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
-    .then(() => res.status(200).send())
-    .catch((err) => {
+    .then(() => {
+      res.status(200);
+      return next();
+    }).catch((err) => {
       if (boom.isBoom(err)) throw err;
       throw boom.badImplementation(err);
     });
 });
 
-const removeDepartmentUser = asyncMiddleware(async (req, res) => {
+const removeDepartmentUser = asyncMiddleware(async (req, res, next) => {
   const { address, id, userAddress } = req.params;
   const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeDepartmentUser(address, id, userAddress, req.user.address);
-  res.status(200).send();
+  res.status(200);
+  return next();
 });
 
 const _userExistsOnChain = async (username) => {
@@ -288,7 +303,7 @@ const registerUser = async (userData) => {
     }
   }
   const salt = await bcrypt.genSalt(10);
-  let hash = await bcrypt.hash(password, salt);
+  const passwordHash = await bcrypt.hash(password, salt);
 
   if (isExternalUser) {
     ({ id: userId, address } = await upgradeExternalUser(client, {
@@ -297,7 +312,7 @@ const registerUser = async (userData) => {
       firstName,
       lastName,
       passwordDigest:
-      hash,
+      passwordHash,
       isProducer,
     }));
   } else {
@@ -308,7 +323,7 @@ const registerUser = async (userData) => {
         ) VALUES(
           $1, $2, $3, $4, $5, $6, $7
         ) RETURNING id;`;
-      const { rows } = await client.query({ text: queryString, values: [address, username, firstName, lastName, email, hash, isProducer] });
+      const { rows } = await client.query({ text: queryString, values: [address, username, firstName, lastName, email, passwordHash, isProducer] });
       userId = rows[0].id;
     } catch (err) {
       client.release();
@@ -317,13 +332,13 @@ const registerUser = async (userData) => {
   }
 
   // generate and persist activation code
-  hash = crypto.createHash('sha256');
+  const codeHash = crypto.createHash('sha256');
   const activationCode = crypto.randomBytes(32).toString('hex');
-  hash.update(activationCode);
+  codeHash.update(activationCode);
   try {
     await client.query({
       text: 'INSERT INTO user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);',
-      values: [userId, hash.digest('hex')],
+      values: [userId, codeHash.digest('hex')],
     });
     log.info(`Saved activation code ${activationCode} for user at address ${address}`);
   } catch (err) {
@@ -348,7 +363,7 @@ const sendUserActivationEmail = async (userEmail, senderEmail, webappName, apiUr
   await sendgrid.send(message);
 };
 
-const registrationHandler = asyncMiddleware(async ({ body }, res) => {
+const registrationHandler = asyncMiddleware(async ({ body }, res, next) => {
   const result = await registerUser(body);
   if (process.env.WEBAPP_EMAIL && process.env.WEBAPP_URL) {
     await sendUserActivationEmail(
@@ -359,13 +374,15 @@ const registrationHandler = asyncMiddleware(async ({ body }, res) => {
       result.activationCode,
     );
   }
-  return res.status(200).json({
+  res.locals.data = {
     address: result.address,
     username: result.username,
-  });
+  };
+  res.status(200);
+  return next();
 });
 
-const activateUser = asyncMiddleware(async (req, res) => {
+const activateUser = asyncMiddleware(async (req, res, next) => {
   const hash = crypto.createHash('sha256');
   log.info(`Activation request received with code: ${req.params.activationCode}`);
   hash.update(req.params.activationCode);
@@ -377,24 +394,31 @@ const activateUser = asyncMiddleware(async (req, res) => {
   }
   if (!rows.length) {
     log.error(`Activation code ${req.params.activationCode} does not match any user account`);
-    return res.redirect(`${redirectHost}/?tokenExpired=true`);
+    res.locals.data = `${redirectHost}/?tokenExpired=true`;
+    res.status(302);
+    return next();
   }
   try {
     await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
     log.info(`Successfully activated user at ${rows[0].address}`);
-    return res.redirect(`${redirectHost}/?activated=true`);
+    res.locals.data = `${redirectHost}/?activated=true`;
+    res.status(302);
+    return next();
   } catch (err) {
     log.error(`Failed to activate user account at ${rows[0].address}: ${err}`);
-    return res.redirect(`${redirectHost}/help`);
+    res.locals.data = `${redirectHost}/help`;
+    res.status(302);
+    return next();
   }
 });
 
-const getUsers = asyncMiddleware(async (req, res) => {
-  const data = await sqlCache.getUsers();
-  return res.status(200).json(data);
+const getUsers = asyncMiddleware(async (req, res, next) => {
+  res.locals.data = await sqlCache.getUsers();
+  res.status(200);
+  return next();
 });
 
-const getProfile = asyncMiddleware(async (req, res) => {
+const getProfile = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   const userAddress = req.user.address;
   const data = await sqlCache.getProfile(userAddress);
@@ -411,8 +435,7 @@ const getProfile = asyncMiddleware(async (req, res) => {
       };
     }
     if (department) {
-      const { id } = format('Department', { id: department });
-      organizations[organization].departments.push({ id, name: departmentName });
+      organizations[organization].departments.push({ id: department, name: departmentName });
     }
   });
   user.organizations = Object.values(organizations);
@@ -423,14 +446,15 @@ const getProfile = asyncMiddleware(async (req, res) => {
         'FROM users WHERE address = $1',
       values: [userAddress],
     });
-    _.merge(user, rows[0]);
-    return res.status(200).json(user);
+    res.locals.data = _.merge(user, rows[0]);
+    res.status(200);
+    return next();
   } catch (err) {
     throw boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err}`);
   }
 });
 
-const editProfile = asyncMiddleware(async (req, res) => {
+const editProfile = asyncMiddleware(async (req, res, next) => {
   const userAddress = req.user.address;
   const { error } = Joi.validate(req.body, userProfileSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
@@ -462,7 +486,9 @@ const editProfile = asyncMiddleware(async (req, res) => {
     });
     await client.query('COMMIT');
     if (client) client.release();
-    return res.status(200).json({ address: userAddress });
+    res.locals.data = { address: userAddress };
+    res.status(200);
+    return next();
   } catch (err) {
     if (err.isBoom) throw err;
     throw boom.badImplementation(`Error editing profile: ${err}`);

@@ -681,7 +681,7 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
         log.info('User %s successfully removed from organization %s', userAddress, organizationAddress);
         return resolve();
       }
-      return reject(boom.badImplementation(`Failed to remove user ${userAddress} to organization ${organizationAddress}!: ${returnData}`));
+      return reject(boom.badImplementation(`Failed to remove user ${userAddress} from organization ${organizationAddress}!: ${returnData}`));
     })
     .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
 });

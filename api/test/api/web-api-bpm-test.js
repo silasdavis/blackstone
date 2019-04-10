@@ -11,7 +11,7 @@ const _ = require('lodash');
 const crypto = require('crypto');
 
 const app = require('../../app')();
-const server = require(__common + '/aa-web-api')();
+const server = require(__common + '/aa-web-api');
 const logger = require(__common + '/logger');
 const log = logger.getLogger('tests');
 const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');

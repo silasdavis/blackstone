@@ -10,7 +10,7 @@ const _ = require('lodash');
 const crypto = require('crypto');
 
 const app = require('../../app')();
-const server = require(__common + '/aa-web-api')();
+const server = require(__common + '/aa-web-api');
 const logger = require(__common + '/logger');
 const log = logger.getLogger('tests');
 const contracts = require(`${global.__controllers}/contracts-controller`);
@@ -1180,7 +1180,6 @@ describe(':: Agreement Attachments (External References) ::', () => {
   it('Should allow user 1 to get attachments file from hoard', async () => {
     // GET ATTACHMENTS
     const contentDisposition = await api.getHoard(attachmentsFileReference);
-    console.log('****contentDisposition, ', contentDisposition);
     expect(contentDisposition).to.equal('attachment; filename=\"agreement_attachments.json\"'); // This is the default name of the attachments file given by the API
   }).timeout(10000);
 

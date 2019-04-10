@@ -26,31 +26,33 @@ const login = (req, res, next) => {
       createdAt: user.createdAt,
     };
     log.info(`${user.username} logged in successfully`);
-    return res
-      .cookie(global.__settings.cookie.name, user.token, {
-        secure: global.__settings.cookie.secure,
-        maxAge: global.__settings.cookie.maxAge,
-        httpOnly: global.__settings.cookie.httpOnly,
-      })
-      .status(200)
-      .json(userData);
-  })(req, res);
+    res.cookie(global.__settings.cookie.name, user.token, {
+      secure: global.__settings.cookie.secure,
+      maxAge: global.__settings.cookie.maxAge,
+      httpOnly: global.__settings.cookie.httpOnly,
+    }).status(200);
+    res.locals.data = userData;
+    return next();
+  })(req, res, next);
 };
 
-const validateToken = asyncMiddleware(async (req, res) => {
-  if (req.user) return res.status(200).json(req.user);
+const validateToken = asyncMiddleware(async (req, res, next) => {
+  if (req.user) {
+    res.locals.data = req.user;
+    res.status(200);
+    return next();
+  }
   throw boom.unauthorized('Unauthorized - no logged in user');
 });
 
-const logout = (req, res) => {
+const logout = (req, res, next) => {
   req.logout();
-  res
-    .clearCookie('access_token')
-    .status(200)
-    .json({ message: 'User logged out' });
+  res.clearCookie('access_token').status(200);
+  res.locals.data = { message: 'User logged out' };
+  return next();
 };
 
-const createRecoveryCode = asyncMiddleware(async (req, res) => {
+const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
   const client = await app_db_pool.connect();
   try {
     await client.query('BEGIN');
@@ -96,7 +98,8 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
     await sendgrid.send(msg);
     log.info(`Recovery code created for user with email ${req.body.email}`);
     client.release();
-    res.status(200).send();
+    res.status(200);
+    return next();
   } catch (err) {
     await client.query('ROLLBACK');
     client.release();
@@ -104,7 +107,7 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
   }
 });
 
-const validateRecoveryCode = asyncMiddleware(async (req, res) => {
+const validateRecoveryCode = asyncMiddleware(async (req, res, next) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
   const { rows } = await app_db_pool.query({
@@ -114,12 +117,13 @@ const validateRecoveryCode = asyncMiddleware(async (req, res) => {
   });
   if (rows[0]) {
     log.info('Recovery code validated');
-    return res.sendStatus(200);
+    res.status(200);
+    return next();
   }
   throw boom.badRequest('Valid recovery code not found.');
 });
 
-const resetPassword = asyncMiddleware(async (req, res) => {
+const resetPassword = asyncMiddleware(async (req, res, next) => {
   const client = await app_db_pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
@@ -143,7 +147,8 @@ const resetPassword = asyncMiddleware(async (req, res) => {
       });
       client.release();
       log.info(`Password successfully updated for user id ${rows[0].user_id} and recovery code deleted`);
-      return res.status(200).send();
+      res.status(200);
+      return next();
     }
     throw boom.badRequest('Valid recovery code not found.');
   } catch (err) {

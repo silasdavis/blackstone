@@ -24,6 +24,19 @@ const trimBufferPadding = (buf) => {
 const hexToString = (hex = '') => trimBufferPadding(Buffer.from(hex, 'hex')).toString('utf8');
 const stringToHex = (str = '') => Buffer.from(str, 'utf8').toString('hex');
 
+/**
+ * Wrapper for async route handlers to catch promise rejections
+ * and pass them to express error handler
+ */
+const asyncMiddleware = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    if (!err.isBoom) {
+      return next(boom.badImplementation(err));
+    }
+    return next(err);
+  });
+};
+
 const dependencies = {
   rightPad: (hex, len) => {
     const need = 2 * len - hex.length;
@@ -276,19 +289,6 @@ const dependencies = {
     }
   },
 
-  /**
-   * Wrapper for async route handlers to catch promise rejections
-   * and pass them to express error handler
-   */
-  asyncMiddleware: fn => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch((err) => {
-      if (!err.isBoom) {
-        return next(boom.badImplementation(err));
-      }
-      return next(err);
-    });
-  },
-
   byteLength: string => string.split('').reduce((acc, el) => {
     const newSum = acc + Buffer.byteLength(el, 'utf8');
     return newSum;
@@ -313,9 +313,23 @@ const dependencies = {
     return host;
   },
 
+  sendResponse: asyncMiddleware((req, res, next) => {
+    if (res.statusCode === 302) {
+      if (!res.locals.data || typeof res.locals.data !== 'string') throw boom.badImplementation('Bad or empty url. Cannot redirect');
+      res.redirect(res.locals.data);
+    } else if (typeof res.locals.data === 'string') {
+      res.json(res.locals.data);
+    } else {
+      // `.send` will detect Arrays and Objects and use `.json` under the hood
+      res.send(res.locals.data);
+    }
+    return next();
+  }),
+
   trimBufferPadding,
   hexToString,
   stringToHex,
+  asyncMiddleware,
 };
 
 module.exports = dependencies;

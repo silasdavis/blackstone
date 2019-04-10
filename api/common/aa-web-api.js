@@ -7,117 +7,121 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
 const logger = require(`${global.__common}/logger`);
-const contracts = require(`${global.__controllers}/contracts-controller`);
+const log = logger.getLogger('app');
 
-const Hoard = require('@monax/hoard');
+const app = express();
 
-const hoard = new Hoard.Client(global.__settings.hoard);
+// Passport for authentication
+require(path.join(global.__common, 'passport'))(passport);
+app.use(passport.initialize());
 
-let app;
+app.use(helmet());
 
-(function startApp() {
-  module.exports = (existingApp, addCustomEndpoints, customMiddleware = [], configureCustomPassport) => {
-    if (!app) {
-      const log = logger.getLogger('app');
+// CORS for frontend requests
+const allowCrossDomain = (req, res, next) => {
+  if (req.get('origin')) {
+    res.setHeader('Access-Control-Allow-Origin', req.get('origin'));
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', req.get('host'));
+  }
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Content-Type,Content-Disposition,content-disposition,Authorization,authorization',
+  );
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', 'set-cookie');
+  next();
+};
+app.use(allowCrossDomain);
 
-      if (configureCustomPassport) {
-        configureCustomPassport(passport);
-      } else {
-        require(path.join(global.__common, 'passport'))(passport);
-      }
-      const portHTTP = global.__settings.server.port_http || 3080;
-      app = existingApp || express();
-      app.use(passport.initialize());
-      app.use(helmet());
+// Configure JSON parsing as default
+app.use(bodyParser.json());
+app.use(cookieParser());
 
-      // CORS for frontend requests
-      const allowCrossDomain = (req, res, next) => {
-        if (req.get('origin')) {
-          res.setHeader('Access-Control-Allow-Origin', req.get('origin'));
-        } else {
-          res.setHeader('Access-Control-Allow-Origin', req.get('host'));
-        }
-        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-        res.header(
-          'Access-Control-Allow-Headers',
-          'Content-Type,Content-Disposition,content-disposition,Authorization,authorization',
-        );
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Expose-Headers', 'set-cookie');
-        next();
-      };
-      app.use(allowCrossDomain);
+// Healthcheck
+app.use((req, res, next) => {
+  if (req.path !== '/healthcheck') {
+    log.debug(`${req.method}:${req.path}`);
+  }
+  return next();
+});
+app.use('/healthcheck', require('express-healthcheck')());
 
-      // Configure JSON parsing as default
-      app.use(bodyParser.json());
-      app.use(cookieParser());
+// Allow text for query and bpmn/model routes
+app.use(['/query', '/pg-query', '/bpm/process-models'], bodyParser.text({
+  type: '*/*',
+}));
 
-      app.use((req, res, next) => {
-        if (req.path !== '/healthcheck') {
-          log.debug(`${req.method}:${req.path}`);
-        }
-        return next();
-      });
+/**
+ * HOARD Routes
+ */
+require(`${global.__routes}/hoard-api`)(app);
 
-      // Healthcheck
-      app.use('/healthcheck', require('express-healthcheck')());
+/**
+ * Archetype Routes
+ */
+require(`${global.__routes}/archetypes-api`)(app);
 
-      // Allow text for query and bpmn/model routes
-      app.use(['/query', '/pg-query', '/bpm/process-models'], bodyParser.text({
-        type: '*/*',
-      }));
+/**
+ * Archetype Package Routes
+ */
+require(`${global.__routes}/archetype-packages-api`)(app);
 
-      if (addCustomEndpoints) addCustomEndpoints();
+/**
+ * Agreement Routes
+ */
+require(`${global.__routes}/agreements-api`)(app);
 
-      /**
-       * HOARD Routes
-       */
-      require(`${global.__routes}/hoard-api`)(app, customMiddleware);
+/**
+ * Agreement Collection Routes
+ */
+require(`${global.__routes}/agreement-collections-api`)(app);
 
-      /**
-       * Archetypes Routes
-       * Agreements Routes
-       */
-      require(`${global.__routes}/agreements-api`)(app, customMiddleware);
+/**
+ * User Routes
+ */
+require(`${global.__routes}/users-api`)(app);
 
-      /**
-       * Organization Routes
-       * User Routes
-       */
-      require(`${global.__routes}/participants-api`)(app, customMiddleware);
+/**
+ * Organization Routes
+ */
+require(`${global.__routes}/organizations-api`)(app);
 
-      /**
-       * Static Data Routes
-       */
-      require(`${global.__routes}/static-data-api`)(app, customMiddleware);
+/**
+ * Static Data Routes
+ */
+require(`${global.__routes}/static-data-api`)(app);
 
-      /**
-       * BPM Routes
-       */
-      require(`${global.__routes}/bpm-api`)(app, customMiddleware);
+/**
+ * BPM Model Routes
+ */
+require(`${global.__routes}/bpm-models-api`)(app);
 
-      // ERROR HANDLING MIDDLEWARE
-      app.use((err, req, res, next) => {
-        if (err.output) {
-          log.error(`[ ${err.output.statusCode} ${err.output.payload ? `- ${err.output.payload.error} ]` : ']'}`, err.stack);
-          return res.status(err.output.statusCode).json(err.output.payload);
-        }
-        log.error(err.stack);
-        return res.sendStatus(500);
-      });
+/**
+ * BPM Runtime Routes
+ */
+require(`${global.__routes}/bpm-runtime-api`)(app);
 
-      process.on('unhandledRejection', (reason, p) => {
-        log.error('Unhandled Rejection at: Promise ', p, ' reason: ', reason);
-      });
+// ERROR HANDLING MIDDLEWARE
+app.use((err, req, res, next) => {
+  if (err.output) {
+    log.error(`[ ${err.output.statusCode} ${err.output.payload ? `- ${err.output.payload.error} ]` : ']'}`, err.stack);
+    return res.status(err.output.statusCode).json(err.output.payload);
+  }
+  log.error(err.stack);
+  return res.sendStatus(500);
+});
 
-      process.on('uncaughtException', (err) => {
-        log.error(`uncaughtException, Error: ${err.message}, Stack: ${err.stack}`);
-      });
+process.on('unhandledRejection', (reason, p) => {
+  log.error('Unhandled Rejection at: Promise ', p, ' reason: ', reason);
+});
 
-      const httpServer = http.createServer(app).listen(portHTTP);
+process.on('uncaughtException', (err) => {
+  log.error(`uncaughtException, Error: ${err.message}, Stack: ${err.stack}`);
+});
 
-      return app; // for testing
-    }
-    return app;
-  };
-}());
+const portHTTP = global.__settings.server.port_http || 3080;
+http.createServer(app).listen(portHTTP);
+
+module.exports = app;

@@ -4,10 +4,9 @@ const toml = require('toml');
 const events = require('events');
 const path = require('path');
 const _ = require('lodash');
-const burrow = require('@monax/burrow');
 
 (function bootstrapAPI() {
-  module.exports = (app, customConfigs = {}) => {
+  module.exports = (customConfigs = { startServer: false, globalVariables: () => {} }) => {
     // Set up global directory constants used throughout the app
     global.__appDir = __dirname;
     global.__common = path.resolve(global.__appDir, 'common');
@@ -56,29 +55,30 @@ const burrow = require('@monax/burrow');
     global.hexToString = hexToString;
     global.stringToHex = stringToHex;
 
-    if (customConfigs.globalVariables) customConfigs.globalVariables();
+    customConfigs.globalVariables();
 
     // EventEmitter to signal application state, e.g. to test suite
     const eventEmitter = new events.EventEmitter();
     const eventConsts = { STARTED: 'started' };
 
-    // Local modules require configuration to be loaded
     const logger = require(`${global.__common}/logger`);
-
     const log = logger.getLogger('app');
 
-    log.info('Starting platform ...');
-
+    log.info('Loading contracts ...');
+    // Local modules require configuration to be loaded
     const contracts = require(`${global.__controllers}/contracts-controller`);
-
     contracts.load().then(() => {
       log.info('Contracts loaded.');
-      require(`${global.__common}/aa-web-api`)(app, customConfigs.endpoints, customConfigs.middleware, customConfigs.passport);
-      log.info('Web API started and ready for requests.');
-      log.info('Active Agreements Application started successfully ...');
+      if (customConfigs.startServer) {
+        // Configure routes and start express server
+        require(`${global.__common}/aa-web-api`);
+        log.info('Web API started and ready for requests.');
+        log.info('Active Agreements Application started successfully');
+      }
       eventEmitter.emit(eventConsts.STARTED);
     }).catch((error) => {
       log.error(`Unexpected error initializing the application: ${error.stack}`);
+      process.exit();
     });
 
     return {
