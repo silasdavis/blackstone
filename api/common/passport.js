@@ -32,11 +32,11 @@ module.exports = (passport) => {
 
   const jwtOpts = {
     jwtFromRequest: cookieExtractor,
-    secretOrKey: global.__settings.monax.jwt.secret,
-    issuer: global.__settings.monax.jwt.issuer,
+    secretOrKey: global.__settings.jwt.secret,
+    issuer: global.__settings.jwt.issuer,
     passReqToCallback: true,
     jsonWebTokenOptions: {
-      expiresIn: global.__settings.monax.jwt.expiresIn,
+      expiresIn: global.__settings.jwt.expiresIn,
     },
   };
 
@@ -104,11 +104,11 @@ module.exports = (passport) => {
               address: addressFromChain,
               username,
             },
-            global.__settings.monax.jwt.secret,
+            global.__settings.jwt.secret,
             {
-              expiresIn: global.__settings.monax.jwt.expiresIn,
+              expiresIn: global.__settings.jwt.expiresIn,
               subject: username,
-              issuer: global.__settings.monax.jwt.issuer,
+              issuer: global.__settings.jwt.issuer,
             },
           );
           return done(null, {

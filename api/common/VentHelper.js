@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 const EventEmitter = require('events');
-const logger = require('./monax-logger');
+const logger = require('./logger');
 const log = logger.getLogger('VENT-HELPER');
 
 class VentHelper {

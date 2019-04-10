@@ -2,13 +2,13 @@ const crypto = require('crypto');
 const _ = require('lodash');
 const boom = require('boom');
 
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('monax.controllers');
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('controllers');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
-} = global.__monax_constants;
+} = global.__constants;
 
 const trimBufferPadding = (buf) => {
   let lo = 0;
@@ -307,7 +307,7 @@ const dependencies = {
   prependHttps: (host) => {
     if (!String(host).startsWith('http')) {
       // eslint-disable-next-line no-param-reassign
-      host = process.env.MONAX_ENV === 'local' ? `http://${host}` : `https://${host}`;
+      host = process.env.APP_ENV === 'local' ? `http://${host}` : `https://${host}`;
       return host;
     }
     return host;

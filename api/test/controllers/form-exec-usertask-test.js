@@ -10,7 +10,7 @@ const should = chai.should()
 const expect = chai.expect
 const assert = chai.assert
 const _ = require('lodash')
-const monax = require('@monax/burrow')
+const burrow = require('@monax/burrow')
 const crypto = require('crypto');
 
 global.__appDir = path.resolve()
@@ -24,23 +24,20 @@ global.__data = path.resolve(__appDir, 'data')
 global.__lib = path.resolve(__appDir, 'lib')
 global.__schemas = path.resolve(__appDir, 'schemas')
 
-const logger = require(__common + '/monax-logger')
+const logger = require(__common + '/logger')
 const log = logger.getLogger('Test.Harness')
 
-const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
 global.__settings = (() => {
-  let settings = toml.parse(fs.readFileSync(configFilePath))
-  if (process.env.MONAX_HOARD) _.set(settings, 'monax.hoard', process.env.MONAX_HOARD)
-  if (process.env.MONAX_ANALYTICS_ID) _.set(settings, 'monax.analyticsID', process.env.MONAX_ANALYTICS_ID)
-  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
-  if (process.env.MONAX_ACCOUNTS_SERVER) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER)
-  if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
-  if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
+  let settings = toml.parse(fs.readFileSync(`${global.__config}/settings.toml`))
+  if (process.env.HOARD) _.set(settings, 'hoard', process.env.HOARD)
+  if (process.env.ANALYTICS_ID) _.set(settings, 'analyticsID', process.env.ANALYTICS_ID)
+  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'chain.url', process.env.CHAIN_URL_GRPC);
+  if (process.env.ACCOUNTS_SERVER) _.set(settings, 'accounts.server', process.env.ACCOUNTS_SERVER)
   return settings
 })()
 
-global.__monax_constants = require(path.join(__common, 'monax-constants'));
-global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_BUNDLES
+global.__constants = require(path.join(__common, 'constants'));
+global.__bundles = require(path.join(__common, 'constants')).BUNDLES
 const { hexToString, stringToHex } = require(`${global.__common}/controller-dependencies`);
 global.hexToString = hexToString;
 global.stringToHex = stringToHex;

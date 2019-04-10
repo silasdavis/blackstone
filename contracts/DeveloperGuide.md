@@ -1,3 +1,5 @@
+**Note**: This documentation is no longer applicable to this project and is kept only for reference in regards to the previous project structure.
+
 # Smart Contract SDKs and Bundles - Developer Guide
 
 The following are guidelines as wells as technical details required to understand when working as a developer with Monax SDKs.

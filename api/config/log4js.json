@@ -1,11 +1,5 @@
 {
-  "loggers" : [
-    {
-      "name": "monax",
-      "level": "INFO",
-      "category": "monax"
-    }
-  ],
+  "reloadSecs": 300,
   "appenders": {
     "out": {
       "type": "stdout",
@@ -16,14 +10,6 @@
   },
   "categories": {
     "default": {
-      "appenders": ["out"],
-      "level": "INFO"
-    },
-    "monax": {
-      "appenders": ["out"],
-      "level": "INFO"
-    },
-    "agreements": {
       "appenders": ["out"],
       "level": "INFO"
     }

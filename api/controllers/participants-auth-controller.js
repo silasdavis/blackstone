@@ -5,8 +5,8 @@ const bcrypt = require('bcryptjs');
 const boom = require('boom');
 
 const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('agreements.auth');
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('auth');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
 
 const login = (req, res, next) => {
@@ -27,10 +27,10 @@ const login = (req, res, next) => {
     };
     log.info(`${user.username} logged in successfully`);
     return res
-      .cookie(global.__settings.monax.cookie.name, user.token, {
-        secure: global.__settings.monax.cookie.secure,
-        maxAge: global.__settings.monax.cookie.maxAge,
-        httpOnly: global.__settings.monax.cookie.httpOnly,
+      .cookie(global.__settings.cookie.name, user.token, {
+        secure: global.__settings.cookie.secure,
+        maxAge: global.__settings.cookie.maxAge,
+        httpOnly: global.__settings.cookie.httpOnly,
       })
       .status(200)
       .json(userData);

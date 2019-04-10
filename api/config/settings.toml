@@ -1,38 +1,30 @@
 identity_provider = "TEST_ECOSYSTEM" # for testing/demo only. This should be overwritten using the ENV var IDENTITY_PROVIDER
 
-[monax]
 hoard = "hoard:53431"
 analyticsID = "TEST"
 
-[monax.server]
+[server]
 #port_http =               # default: 3080
 #port_https =              # default: 3443
 #context_path =            # default: 'portal'
 #upload_limit =        # default: '100mb'
 
-[monax.chain]
+[chain]
 host = "chain"
 port = 10997
 
-[monax.accounts]
-server = "0201EF325305ABD75E1FB8A8F539730F71547484"     # for testing/demo only! The account address to use for signing. ENV var MONAX_ACCOUNTS_SERVER_KEY overwrites this, if set!
+[accounts]
+server = "0201EF325305ABD75E1FB8A8F539730F71547484"     # for testing/demo only! The account address to use for signing. ENV var ACCOUNTS_SERVER_KEY overwrites this, if set!
 
-[monax.contracts]
+[contracts]
 load = "EcosystemRegistry, ParticipantsManager, ArchetypeRegistry, ActiveAgreementRegistry, ProcessModelRepository, ApplicationRegistry, BpmService"
 
-[monax.bundles]
-bundles_path = "../contracts/bundles/active-agreements/contract_bundles"
-
-[monax.jwt]
+[jwt]
 issuer = "Agreements.Network"
 expiresIn = "1h"
 secret = "s3cr3t"
 
-[monax.cookie]
+[cookie]
 name = "access_token"
 maxAge = 3600000 # milliseconds
 httpOnly = true
-
-# [monax.pg]
-# app_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"
-# chain_db_url = "postgres://blackstone_development:blackstone_development@postgres:5432/blackstone_development"

@@ -11,8 +11,8 @@ const crypto = require('crypto');
 
 const app = require('../../app')();
 const server = require(__common + '/aa-web-api')();
-const logger = require(__common + '/monax-logger');
-const log = logger.getLogger('agreements.tests');
+const logger = require(__common + '/logger');
+const log = logger.getLogger('tests');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);

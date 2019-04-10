@@ -8,8 +8,8 @@ const {
   asyncMiddleware,
   byteLength,
 } = require(`${global.__common}/controller-dependencies`);
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('agreements.bpm');
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('bpm');
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const {
   hoardPut,
@@ -19,7 +19,7 @@ const sqlCache = require('./postgres-query-helper');
 const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
 const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
-const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/monax-constants`);
+const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/constants`);
 const signatureSchema = require(`${global.__schemas}/signature`);
 
 const getActivityInstances = asyncMiddleware(async (req, res) => {

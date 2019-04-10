@@ -4,14 +4,14 @@ const EventEmitter = require('events');
 const util = require('util');
 const boom = require('boom');
 
-const logger = require(`${global.__common}/monax-logger`);
-const monaxUtils = require(`${global.__common}/monax-utils`);
-const monaxDB = require(`${global.__common}/monax-db`);
-const monaxApp = require(`${global.__common}/monax-app`);
+const logger = require(`${global.__common}/logger`);
+const utils = require(`${global.__common}/utils`);
+const burrowDB = require(`${global.__common}/burrow-db`);
+const burrowApp = require(`${global.__common}/burrow-app`);
 const {
   DATA_TYPES,
   ERROR_CODES: ERR,
-} = global.__monax_constants;
+} = global.__constants;
 
 const NO_TRANSACTION_RESPONSE_ERR = 'No transaction response raw data received from burrow';
 
@@ -19,7 +19,7 @@ const NO_TRANSACTION_RESPONSE_ERR = 'No transaction response raw data received f
  * This module provides the application-specific functions for Active Agreements
  */
 
-const log = logger.getLogger('agreements.contracts');
+const log = logger.getLogger('contracts');
 
 const events = {
   NEW_MESSAGE: 'newMessage',
@@ -34,9 +34,9 @@ util.inherits(ChainEventEmitter, EventEmitter);
 const chainEvents = new ChainEventEmitter();
 
 // Instantiate connection to node
-const serverAccount = global.__settings.monax.accounts.server;
-const chainURL = global.__settings.monax.chain.url || 'localhost:10997';
-const db = new monaxDB.Connection(chainURL, serverAccount);
+const serverAccount = global.__settings.accounts.server;
+const chainURL = global.__settings.chain.url || 'localhost:10997';
+const db = new burrowDB.Connection(chainURL, serverAccount);
 
 const ventHelper = require(`${global.__common}/VentHelper`)(global.__settings.db.chain_db_url, global.max_wait_for_vent_ms || 3000);
 ventHelper.listen();
@@ -86,17 +86,17 @@ const boomify = (burrowError, message) => {
  * @param {*} contractAddress address of the deployed contract
  */
 const getContract = (abiPath, contractName, contractAddress) => {
-  const abi = monaxApp.getAbi(abiPath, contractName);
+  const abi = burrowApp.getAbi(abiPath, contractName);
   return db.burrow.contracts.new(abi, null, contractAddress);
 };
 
 // shortcut functions to retrieve often needed objects and services
 // Note: contracts need to be loaded before invoking these functions. see load() function
 const getBpmService = () => appManager.contracts['BpmService'];
-const getUserAccount = userAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
-const getOrganization = orgAddress => getContract(global.__abi, global.__monax_bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
-const getProcessInstance = piAddress => getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
-const getEcosystem = ecosystemAddress => getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
+const getUserAccount = userAddress => getContract(global.__abi, global.__bundles.COMMONS_AUTH.contracts.USER_ACCOUNT, userAddress);
+const getOrganization = orgAddress => getContract(global.__abi, global.__bundles.PARTICIPANTS_MANAGER.contracts.ORGANIZATION, orgAddress);
+const getProcessInstance = piAddress => getContract(global.__abi, global.__bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
+const getEcosystem = ecosystemAddress => getContract(global.__abi, global.__bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
 
 /**
  * Returns a promise to call the forwardCall function of the given userAddress to invoke the function encoded in the given payload on the provided target address and return the result bytes representation
@@ -133,7 +133,7 @@ const createEcosystem = name => new Promise((resolve, reject) => {
 
 const addExternalAddressToEcosystem = (externalAddress, ecosystemAddress) => new Promise((resolve, reject) => {
   log.trace(`Adding external address ${externalAddress} to Ecosystem at ${ecosystemAddress}`);
-  const ecosystem = getContract(global.__abi, global.__monax_bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
+  const ecosystem = getContract(global.__abi, global.__bundles.COMMONS_AUTH.contracts.ECOSYSTEM, ecosystemAddress);
   ecosystem.addExternalAddress(externalAddress, (err) => {
     if (err) return reject(boom.badImplementation(`Failed to add external address ${externalAddress} to ecosystem at ${ecosystemAddress}: ${err.stack}`));
     log.debug(`Added external address ${externalAddress} to ecosystem at ${ecosystemAddress}`);
@@ -175,55 +175,50 @@ const registerEcosystem = ecosystemName => new Promise(async (resolve, reject) =
   }
 });
 
-/**
- * Uses the configuration 'monax.contracts.load' in the settings to create a number of promises, each loading one of the configured contracts from
- * the DOUG contract and populating the contracts[] in the appManager.
- */
 const load = () => new Promise((resolve, reject) => {
   // Get DOUG address first
   db.burrow.namereg.get('DOUG', (error, DOUG) => {
     if (error) return reject(error);
     log.debug(`Creating AppManager with DOUG at address: ${DOUG}`);
-    appManager = new monaxApp.Manager(db, DOUG.Data);
+    appManager = new burrowApp.Manager(db, DOUG.Data);
     return resolve(DOUG);
   });
 }).then(() => {
   // Then load the modules
   let modules = [];
   // load registered modules from settings
-  if (global.__settings.monax.contracts && global.__settings.monax.contracts.load) {
-    modules = monaxUtils.getArrayFromString(global.__settings.monax.contracts.load);
+  if (global.__settings.contracts && global.__settings.contracts.load) {
+    modules = utils.getArrayFromString(global.__settings.contracts.load);
     log.debug(`Detected ${modules.length} contract modules to be loaded from DOUG: ${modules}`);
   }
   // create promises to load the contracts
   const loadPromises = [];
   modules.forEach(m => loadPromises.push(appManager.loadContract(m)));
   return Promise.all(loadPromises);
-})
-  .then(() => new Promise(async (resolve, reject) => {
-    // Lastly, ensure Ecosystem setup
-    // Resolve the Ecosystem address for this ContractsManager
-    if (global.__settings.identity_provider) {
-      const ecosystemName = global.__settings.identity_provider;
-      log.info(`Validating if Ecosystem ${ecosystemName} is in NameReg`);
-      try {
-        appManager.ecosystemAddress = await getFromNameRegistry(ecosystemName);
+}).then(() => new Promise(async (resolve, reject) => {
+  // Lastly, ensure Ecosystem setup
+  // Resolve the Ecosystem address for this ContractsManager
+  if (global.__settings.identity_provider) {
+    const ecosystemName = global.__settings.identity_provider;
+    log.info(`Validating if Ecosystem ${ecosystemName} is in NameReg`);
+    try {
+      appManager.ecosystemAddress = await getFromNameRegistry(ecosystemName);
+      if (!appManager.ecosystemAddress) {
+        appManager.ecosystemAddress = await registerEcosystem(ecosystemName);
+        // This should not happen, but just in case, double-check the AppManager.ecosystemAddress
         if (!appManager.ecosystemAddress) {
-          appManager.ecosystemAddress = await registerEcosystem(ecosystemName);
-          // This should not happen, but just in case, double-check the AppManager.ecosystemAddress
-          if (!appManager.ecosystemAddress) {
-            return reject(boom.badImplementation('Failed to configure the AppManager with an ecosystem address'));
-          }
-          log.info(`AppManager configured for Ecosystem ${ecosystemName} at address ${appManager.ecosystemAddress}`);
-          return resolve();
+          return reject(boom.badImplementation('Failed to configure the AppManager with an ecosystem address'));
         }
+        log.info(`AppManager configured for Ecosystem ${ecosystemName} at address ${appManager.ecosystemAddress}`);
         return resolve();
-      } catch (err) {
-        return reject(err);
       }
+      return resolve();
+    } catch (err) {
+      return reject(err);
     }
-    return reject(boom.badImplementation('No Ecosystem name set. Unable to start API ...'));
-  }));
+  }
+  return reject(boom.badImplementation('No Ecosystem name set. Unable to start API ...'));
+}));
 
 /**
  * Creates a promise to create a new organization and add to Accounts Manager.
@@ -278,7 +273,7 @@ const createArchetype = (type) => {
 };
 
 const isActiveArchetype = (archetypeAddress) => {
-  const archetype = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
     archetype.isActive((err, data) => {
       if (err || !data.raw) {
@@ -290,7 +285,7 @@ const isActiveArchetype = (archetypeAddress) => {
 };
 
 const getArchetypeAuthor = (archetypeAddress) => {
-  const archetype = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
     archetype.getAuthor((err, data) => {
       if (err || !data.raw) {
@@ -551,7 +546,7 @@ const setMaxNumberOfAttachments = (agreementAddress, maxNumberOfAttachments) => 
 
 const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) => {
   log.trace(`Adding scopes to agreement ${agreementAddr} parameters: ${JSON.stringify(parameters)}`);
-  const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddr);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddr);
   const promises = parameters.map(({ name, value, scope }) => new Promise((resolve, reject) => {
     agreement.setAddressScope(value, name, scope, '', '', '0x0', (error) => {
       if (error) {
@@ -773,7 +768,7 @@ const createProcessModel = (modelId, modelVersion, author, isPrivate, modelFileR
 });
 
 const addDataDefinitionToModel = (pmAddress, dataStoreField) => new Promise((resolve, reject) => {
-  const processModel = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
+  const processModel = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
   log.trace('Adding data definition %s to process model %s', JSON.stringify(dataStoreField), pmAddress);
   const dataIdHex = global.stringToHex(dataStoreField.dataStorageId);
   const dataPathHex = global.stringToHex(dataStoreField.dataPath);
@@ -788,7 +783,7 @@ const addDataDefinitionToModel = (pmAddress, dataStoreField) => new Promise((res
 });
 
 const addProcessInterface = (pmAddress, interfaceId) => new Promise((resolve, reject) => {
-  const processModel = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
+  const processModel = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
   log.trace(`Adding process interface ${interfaceId} to process model at ${pmAddress}`);
   const interfaceIdHex = global.stringToHex(interfaceId);
   processModel.addProcessInterface(interfaceIdHex, (err, data) => {
@@ -810,7 +805,7 @@ const addProcessInterface = (pmAddress, interfaceId) => new Promise((resolve, re
 });
 
 const addParticipant = (pmAddress, participantId, accountAddress, dataPath, dataStorageId, dataStorageAddress) => new Promise((resolve, reject) => {
-  const processModel = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
+  const processModel = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_MODEL, pmAddress);
   log.trace(`Adding participant ${participantId} to process model at ${pmAddress} with data: ${JSON.stringify({
     accountAddress,
     dataPath,
@@ -853,7 +848,7 @@ const createProcessDefinition = (modelAddress, processDefnId) => new Promise((re
 
 const addProcessInterfaceImplementation = (pmAddress, pdAddress, interfaceId) => new Promise((resolve, reject) => {
   log.trace(`Adding process interface implementation ${interfaceId} to process definition ${pdAddress} for process model ${pmAddress}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
   const interfaceIdHex = global.stringToHex(interfaceId);
   processDefinition.addProcessInterfaceImplementation(pmAddress, interfaceIdHex, (err, data) => {
     if (err || !data.raw) {
@@ -886,7 +881,7 @@ const createActivityDefinition = (processAddress, activityId, activityType, task
     subProcessModelId,
     subProcessDefinitionId,
   })}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition.createActivityDefinition(global.stringToHex(activityId), activityType, taskType, behavior,
     global.stringToHex(assignee), multiInstance, global.stringToHex(application), global.stringToHex(subProcessModelId),
     global.stringToHex(subProcessDefinitionId), (error, data) => {
@@ -913,7 +908,7 @@ const createDataMapping = (processAddress, id, direction, accessPath, dataPath, 
     dataStorageId,
     dataStorage,
   })}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition
     .createDataMapping(global.stringToHex(id), direction, global.stringToHex(accessPath),
       global.stringToHex(dataPath), global.stringToHex(dataStorageId), dataStorage, (error) => {
@@ -928,7 +923,7 @@ const createDataMapping = (processAddress, id, direction, accessPath, dataPath, 
 
 const createGateway = (processAddress, gatewayId, gatewayType) => new Promise((resolve, reject) => {
   log.trace(`Creating gateway with data: ${JSON.stringify({ processAddress, gatewayId, gatewayType })}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition.createGateway(global.stringToHex(gatewayId), gatewayType, (error) => {
     if (error) {
       return reject(boom
@@ -945,7 +940,7 @@ const createTransition = (processAddress, sourceGraphElement, targetGraphElement
     sourceGraphElement,
     targetGraphElement,
   })}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition.createTransition(global.stringToHex(sourceGraphElement), global.stringToHex(targetGraphElement), (error, data) => {
     if (error || !data.raw) {
       return reject(boom
@@ -962,7 +957,7 @@ const createTransition = (processAddress, sourceGraphElement, targetGraphElement
 
 const setDefaultTransition = (processAddress, gatewayId, activityId) => new Promise((resolve, reject) => {
   log.trace(`Setting default transition with data: ${JSON.stringify({ processAddress, gatewayId, activityId })}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition.setDefaultTransition(global.stringToHex(gatewayId), global.stringToHex(activityId), (error) => {
     if (error) {
       return reject(boom
@@ -974,7 +969,7 @@ const setDefaultTransition = (processAddress, gatewayId, activityId) => new Prom
 });
 
 const getTransitionConditionFunctionByDataType = (processAddress, dataType) => {
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   const functions = {};
   functions[`${DATA_TYPES.BOOLEAN}`] = processDefinition.createTransitionConditionForBool;
   functions[`${DATA_TYPES.STRING}`] = processDefinition.createTransitionConditionForString;
@@ -1024,7 +1019,7 @@ const createTransitionCondition = (processAddress, dataType, gatewayId, activity
 const signAgreement = (actingUserAddress, agreementAddress) => new Promise(async (resolve, reject) => {
   log.trace('Signing agreement %s by user %s', agreementAddress, actingUserAddress);
   try {
-    const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+    const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
     const payload = agreement.sign.encode();
     await callOnBehalfOf(actingUserAddress, agreementAddress, payload, false);
     log.info('Agreement %s signed by user %s', agreementAddress, actingUserAddress);
@@ -1037,7 +1032,7 @@ const signAgreement = (actingUserAddress, agreementAddress) => new Promise(async
 const cancelAgreement = (actingUserAddress, agreementAddress) => new Promise(async (resolve, reject) => {
   log.trace('Canceling agreement %s by user %s', agreementAddress, actingUserAddress);
   try {
-    const agreement = getContract(global.__abi, global.__monax_bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+    const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
     const payload = agreement.cancel.encode();
     await callOnBehalfOf(actingUserAddress, agreementAddress, payload, true);
     log.info('Agreement %s canceled by user %s', agreementAddress, actingUserAddress);
@@ -1054,7 +1049,7 @@ const completeActivity = (actingUserAddress, activityInstanceId, dataMappingId =
     const piAddress = await bpmService.factory.getProcessInstanceForActivity(activityInstanceId)
       .then(data => data.raw[0]);
     log.info('Found process instance %s for activity instance ID %s', piAddress, activityInstanceId);
-    const processInstance = getContract(global.__abi, global.__monax_bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
+    const processInstance = getContract(global.__abi, global.__bundles.BPM_RUNTIME.contracts.PROCESS_INSTANCE, piAddress);
     let payload;
     if (dataMappingId) {
       log.info('Completing activity with OUT data mapping ID:Value (%s:%s) for activityInstance %s in process instance %s', dataMappingId, value, activityInstanceId, piAddress);
@@ -1130,7 +1125,7 @@ const getProcessDefinitionAddress = (modelId, processId) => new Promise((resolve
 });
 
 const isValidProcess = processAddress => new Promise((resolve, reject) => {
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   log.trace(`Validating process definition at address: ${processAddress}`);
   processDefinition.validate((error, data) => {
     if (error || !data.raw) {
@@ -1166,7 +1161,7 @@ const startProcessFromAgreement = agreementAddress => new Promise((resolve, reje
 
 const getStartActivity = processAddress => new Promise((resolve, reject) => {
   log.trace(`Getting start activity id for process at address: ${processAddress}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, processAddress);
   processDefinition.getStartActivity()
     .then(data => ventHelper.waitForVent(data))
     .then((data) => {
@@ -1202,7 +1197,7 @@ const getProcessInstanceForActivity = activityInstanceId => new Promise((resolve
 });
 
 const getDataMappingKeys = (processDefinition, activityId, direction) => new Promise((resolve, reject) => {
-  const countPromise = direction === global.__monax_constants.DIRECTION.IN ?
+  const countPromise = direction === global.__constants.DIRECTION.IN ?
     processDefinition.getInDataMappingKeys : processDefinition.getOutDataMappingKeys;
   countPromise(global.stringToHex(activityId), (err, data) => {
     if (err || !data.raw) {
@@ -1219,7 +1214,7 @@ const getDataMappingKeys = (processDefinition, activityId, direction) => new Pro
 const getDataMappingDetails = (processDefinition, activityId, dataMappingIds, direction) => new Promise((resolve, reject) => {
   const dataPromises = [];
   dataMappingIds.forEach((dataMappingId) => {
-    const getter = direction === global.__monax_constants.DIRECTION.IN ?
+    const getter = direction === global.__constants.DIRECTION.IN ?
       processDefinition.getInDataMappingDetails : processDefinition.getOutDataMappingDetails;
     dataPromises.push(getter(global.stringToHex(activityId), global.stringToHex(dataMappingId)));
   });
@@ -1231,7 +1226,7 @@ const getDataMappingDetails = (processDefinition, activityId, dataMappingIds, di
 
 const getDataMappingDetailsForActivity = async (pdAddress, activityId, dataMappingIds = [], direction) => {
   log.trace(`Fetching ${direction ? 'out-' : 'in-'}data mapping details for activity ${activityId} in process definition at ${pdAddress}`);
-  const processDefinition = getContract(global.__abi, global.__monax_bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
+  const processDefinition = getContract(global.__abi, global.__bundles.BPM_MODEL.contracts.PROCESS_DEFINITION, pdAddress);
   try {
     const keys = dataMappingIds || (await getDataMappingKeys(processDefinition, activityId, direction)); // NOTE: activityId are hex converted inside getDataMappingKeys and not here
     const details = await getDataMappingDetails(processDefinition, activityId, keys, direction); // NOTE: activityId and dataMappingIds are hex converted inside getDataMappingDetails and not here

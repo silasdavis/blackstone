@@ -1,4 +1,4 @@
-const MONAX_BUNDLES = {
+const BUNDLES = {
   AGREEMENTS: {
     contracts: {
       ACTIVE_AGREEMENT: 'ActiveAgreement',
@@ -110,7 +110,7 @@ const AGREEMENT_ATTACHMENT_CONTENT_TYPES = {
 };
 
 module.exports = {
-  MONAX_BUNDLES,
+  BUNDLES,
   PARAMETER_TYPES,
   DATA_TYPES,
   DIRECTION,

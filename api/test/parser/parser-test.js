@@ -7,7 +7,7 @@ const assert = chai.assert;
 
 global.__config = path.resolve('config');
 global.__common = path.resolve('common');
-global.__monax_constants = require(path.join(__common, 'monax-constants'));
+global.__constants = require(path.join(__common, 'constants'));
 
 const bpmnParser = require(path.resolve("lib", "bpmn-parser"));
 

@@ -15,13 +15,13 @@ const {
   prependHttps,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
-const logger = require(`${global.__common}/monax-logger`);
+const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('participants');
 const { app_db_pool } = require(`${global.__common}/postgres-db`);
-const { DEFAULT_DEPARTMENT_ID } = require(`${global.__common}/monax-constants`);
+const { DEFAULT_DEPARTMENT_ID } = require(`${global.__common}/constants`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
-const { PARAMETER_TYPES: PARAM_TYPE } = global.__monax_constants;
+const { PARAMETER_TYPES: PARAM_TYPE } = global.__constants;
 
 const getOrganizations = asyncMiddleware(async (req, res) => {
   if (req.query.approver === 'true') {
@@ -373,7 +373,7 @@ const activateUser = asyncMiddleware(async (req, res) => {
   const rows = await sqlCache.getUserByActivationCode(codeHex);
   let redirectHost = process.env.WEBAPP_URL;
   if (!String(redirectHost).startsWith('http')) {
-    redirectHost = process.env.MONAX_ENV === 'local' ? `http://${redirectHost}` : `https://${redirectHost}`;
+    redirectHost = process.env.APP_ENV === 'local' ? `http://${redirectHost}` : `https://${redirectHost}`;
   }
   if (!rows.length) {
     log.error(`Activation code ${req.params.activationCode} does not match any user account`);

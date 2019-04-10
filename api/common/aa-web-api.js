@@ -6,28 +6,26 @@ const passport = require('passport');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
-const logger = require(`${global.__common}/monax-logger`);
+const logger = require(`${global.__common}/logger`);
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const Hoard = require('@monax/hoard');
 
-const hoard = new Hoard.Client(global.__settings.monax.hoard);
-
-const seeds = require(`${global.__data}/seeds`);
+const hoard = new Hoard.Client(global.__settings.hoard);
 
 let app;
 
 (function startApp() {
   module.exports = (existingApp, addCustomEndpoints, customMiddleware = [], configureCustomPassport) => {
     if (!app) {
-      const log = logger.getLogger('agreements.web');
+      const log = logger.getLogger('app');
 
       if (configureCustomPassport) {
         configureCustomPassport(passport);
       } else {
         require(path.join(global.__common, 'passport'))(passport);
       }
-      const portHTTP = global.__settings.monax.server.port_http || 3080;
+      const portHTTP = global.__settings.server.port_http || 3080;
       app = existingApp || express();
       app.use(passport.initialize());
       app.use(helmet());
@@ -97,11 +95,6 @@ let app;
        * BPM Routes
        */
       require(`${global.__routes}/bpm-api`)(app, customMiddleware);
-
-      // DEMO SEED ROUTES
-      app.post('/seeds/users', (req, res, next) => {
-        seeds.users(req, res, next, log);
-      });
 
       // ERROR HANDLING MIDDLEWARE
       app.use((err, req, res, next) => {

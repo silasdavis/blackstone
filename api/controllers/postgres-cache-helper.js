@@ -4,8 +4,8 @@ const { splitMeta } = require(`${global.__common}/controller-dependencies`);
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const { hoardGet } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('monax.controllers');
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('controllers');
 
 const parseBpmnModel = async (rawXml) => {
   const anParser = parser.getNewParser();

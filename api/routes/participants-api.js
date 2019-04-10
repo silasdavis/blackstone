@@ -388,7 +388,7 @@ module.exports = (app, customMiddleware) => {
    {
      "address": "9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E",
      "username": "j.smith",
-     "email": "jsmith@monax.io",
+     "email": "jsmith@company.io",
      "organization": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
      "organizationId": "acmecorp92",
      "organizationName": "ACME Corp",
@@ -554,7 +554,7 @@ module.exports = (app, customMiddleware) => {
    * @apiBodyParameter {String} email The user's email address
    * @apiBodyParameter {json} Param Object
     {
-      "email": "hello@monax.io",
+      "email": "hello@company.io",
     }
    *
    * @apiExample {curl} Simple:

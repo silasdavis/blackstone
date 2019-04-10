@@ -4,7 +4,7 @@ const fs = require('fs')
 const toml = require('toml')
 const path = require('path')
 const _ = require('lodash')
-const monax = require('@monax/burrow')
+const burrow = require('@monax/burrow')
 const crypto = require('crypto');
 
 // Set up global directory constants
@@ -13,20 +13,17 @@ global.__config = path.resolve(__dirname, '../', 'config')
 global.__controllers = path.resolve(__dirname, '../', 'controllers')
 global.__abi = path.resolve(__dirname, '../', 'public-abi')
 
-global.__monax_constants = require(path.join(__common, 'monax-constants'));
+global.__constants = require(path.join(__common, 'constants'));
 const { hexToString, stringToHex } = require(`${global.__common}/controller-dependencies`);
 global.hexToString = hexToString;
 global.stringToHex = stringToHex;
 
 (async function () {
   // Read configuration
-  const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
   global.__settings = (() => {
-    let settings = toml.parse(fs.readFileSync(configFilePath))
-    if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
-    if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
-    if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
-    if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
+    let settings = toml.parse(fs.readFileSync(`${global.__config}/settings.toml`))
+    if (process.env.CHAIN_URL_GRPC) _.set(settings, 'chain.url', process.env.CHAIN_URL_GRPC);
+    if (process.env.ACCOUNTS_SERVER_KEY) _.set(settings, 'accounts.server', process.env.ACCOUNTS_SERVER_KEY)
     _.set(
       settings,
       'db.app_db_url',
@@ -42,10 +39,10 @@ global.stringToHex = stringToHex;
     return settings
   })()
 
-  global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_BUNDLES
+  global.__bundles = require(path.join(__common, 'constants')).BUNDLES
 
-  const logger = require(__common + '/monax-logger')
-  const log = logger.getLogger('monax')
+  const logger = require(__common + '/logger')
+  const log = logger.getLogger('migrate-users')
 
   const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');
   log.info('Postgres DB pools created.')
