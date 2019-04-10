@@ -11,7 +11,9 @@ popd
 # Create Blackstone Contracts Docs
 mkdir -p docs/docdev
 pushd contracts/src
-burrow deploy --file=generate-devdocs.yaml
+# Workaround for broken burrow
+mkdir -p $(awk '/binpath/ { print $2 }' < generate-devdocs.yaml)
+burrow deploy generate-devdocs.yaml
 popd
 
 node docs/generator/docgen-contract.js contracts/src/bin > docs/smart_contracts.md

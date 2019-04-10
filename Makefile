@@ -18,11 +18,12 @@ build_contracts:
 
 .PHONY: deploy_contracts
 deploy_contracts:
-	contracts/deploy_contracts $(tgt)
+	cd contracts/src && burrow deploy --chain=$(CHAIN_URL_GRPC) --address=$(CONTRACTS_DEPLOYMENT_ADDRESS) $(if $(tgt),deploy-$(tgt).yaml,deploy.yaml)
 
 .PHONY: test_contracts
 test_contracts:
-	contracts/test_contracts $(tgt)
+	cd contracts/src && burrow deploy --chain=$(CHAIN_URL_GRPC) --address=$(CONTRACTS_DEPLOYMENT_ADDRESS) $(if $(tgt),build-test-$(tgt).yaml,build-test-*.yaml)
+	cd contracts/src && burrow deploy --chain=$(CHAIN_URL_GRPC) --address=$(CONTRACTS_DEPLOYMENT_ADDRESS) $(if $(tgt),test-$(tgt).yaml,test-*.yaml)
 
 .PHONY: copy_abis
 copy_abis:

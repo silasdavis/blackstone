@@ -422,6 +422,6 @@ Run a yaml script, e.g. a manual upgrade.
 
 ```bash
 cd contracts/src
-burrow deploy --chain-url=chain:10997 --mempool-signing --address <deployment-address> --file ../upgrades/NewServiceUpgrade-1.2.7.yaml
+burrow deploy --chain=chain:10997 --mempool-signing --address <deployment-address> --file ../upgrades/NewServiceUpgrade-1.2.7.yaml
 ```
 
