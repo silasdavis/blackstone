@@ -175,6 +175,10 @@ const registerEcosystem = ecosystemName => new Promise(async (resolve, reject) =
   }
 });
 
+/**
+ * Uses the configuration 'monax.contracts.load' in the settings to create a number of promises, each loading one of the configured contracts from
+ * the DOUG contract and populating the contracts[] in the appManager.
+ */
 const load = () => new Promise((resolve, reject) => {
   // Get DOUG address first
   db.burrow.namereg.get('DOUG', (error, DOUG) => {
