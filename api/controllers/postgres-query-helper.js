@@ -5,7 +5,7 @@ const {
 } = require(`${global.__common}/controller-dependencies`);
 const { DEFAULT_DEPARTMENT_ID, AGREEMENT_PARTIES } = global.__constants;
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('controllers');
+const log = logger.getLogger('QUERIES');
 const { app_db_pool, chain_db_pool } = require(`${global.__common}/postgres-db`);
 
 const runQuery = (pool, queryString, values = []) => pool

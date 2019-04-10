@@ -9,7 +9,7 @@ const {
   byteLength,
 } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('bpm');
+const log = logger.getLogger('CONTROLLERS.bpm');
 const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const {
   hoardPut,

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
 const logger = require(__common + '/logger');
-const log = logger.getLogger('tests.api.helper');
+const log = logger.getLogger('TESTS.api.helper');
 const { app_db_pool } = require(`${__common}/postgres-db`);
 
 module.exports = (server) => {

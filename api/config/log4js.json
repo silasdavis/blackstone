@@ -12,6 +12,42 @@
     "default": {
       "appenders": ["out"],
       "level": "INFO"
+    },
+    "APP": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "CONTROLLERS": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "BURROW": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "VENT-HELPER": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "SCRIPTS": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "TESTS": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "QUERIES": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "NOTIFICATIONS": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "ANALYTICS": {
+      "appenders": ["out"],
+      "level": "INFO"
     }
   }
 }

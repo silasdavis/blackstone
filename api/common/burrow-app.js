@@ -5,7 +5,7 @@ const util = require('util');
 const logger = require(`${global.__common}/logger`);
 
 (function bootstrapApp() {
-  const log = logger.getLogger('app');
+  const log = logger.getLogger('BURROW');
 
   // EventEmitter
   function AppEvents() {

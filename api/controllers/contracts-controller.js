@@ -19,7 +19,7 @@ const NO_TRANSACTION_RESPONSE_ERR = 'No transaction response raw data received f
  * This module provides the application-specific functions for Active Agreements
  */
 
-const log = logger.getLogger('contracts');
+const log = logger.getLogger('CONTROLLERS.contracts');
 
 const events = {
   NEW_MESSAGE: 'newMessage',

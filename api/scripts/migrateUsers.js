@@ -42,7 +42,7 @@ global.stringToHex = stringToHex;
   global.__bundles = require(path.join(__common, 'constants')).BUNDLES
 
   const logger = require(__common + '/logger')
-  const log = logger.getLogger('migrate-users')
+  const log = logger.getLogger('SCRIPTS.migrate-users')
 
   const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');
   log.info('Postgres DB pools created.')

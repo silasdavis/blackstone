@@ -65,7 +65,7 @@ const burrow = require('@monax/burrow');
     // Local modules require configuration to be loaded
     const logger = require(`${global.__common}/logger`);
 
-    const log = logger.getLogger('app');
+    const log = logger.getLogger('APP');
 
     log.info('Starting platform ...');
 

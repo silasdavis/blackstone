@@ -10,7 +10,7 @@ log4js.addLayout('json', config => (_logEvent) => {
 });
 
 (function bootstrapLogger() {
-  const initLogger = log4js.getLogger('app');
+  const initLogger = log4js.getLogger('LOG4JS');
   initLogger.info('Initializing LOG4JS ...');
 
   if (!fs.existsSync('logs')) {

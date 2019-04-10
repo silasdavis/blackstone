@@ -5,7 +5,7 @@ const parser = require(path.resolve(global.__lib, 'bpmn-parser.js'));
 const { hoardGet } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
 const logger = require(`${global.__common}/logger`);
-const log = logger.getLogger('controllers');
+const log = logger.getLogger('CONTROLLERS.cache');
 
 const parseBpmnModel = async (rawXml) => {
   const anParser = parser.getNewParser();
