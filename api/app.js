@@ -6,7 +6,7 @@ const path = require('path');
 const _ = require('lodash');
 
 (function bootstrapAPI() {
-  module.exports = (customConfigs = { startServer: false, globalVariables: () => {} }) => {
+  module.exports = (customConfigs = { startServer: true, globalVariables: () => {} }) => {
     // Set up global directory constants used throughout the app
     global.__appDir = __dirname;
     global.__common = path.resolve(global.__appDir, 'common');
