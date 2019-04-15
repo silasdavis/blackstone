@@ -325,7 +325,7 @@ describe('CONTRACTS', () => {
       } catch (err) {
         done(err)
       }
-    }, global.ventCatchUpMS)
+    }, 1000)
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
@@ -357,7 +357,7 @@ describe('CONTRACTS', () => {
   //       expect(global.hexToString(execProc.interfaceId)).to.equal(executionInterface);
   //       done();
   //     });
-  //   }, global.ventCatchUpMS);
+  //   }, 1000);
   // }).timeout(10000);
 
   it('Should create an agreement', async () => {
@@ -378,7 +378,11 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should update the event log hoard reference of an agreement', async () => {
-    await assert.isFulfilled(contracts.updateAgreementAttachments(agrAddress, 'hoard-grant'))
+    await assert.isFulfilled(contracts.updateAgreementFileReference('EventLog', agrAddress, 'hoard-grant'))
+  }).timeout(10000)
+
+  it('Should update the signature log hoard reference of an agreement', async () => {
+    await assert.isFulfilled(contracts.updateAgreementFileReference('SignatureLog', agrAddress, 'hoard-grant'))
   }).timeout(10000)
 
   // it('Should get activity definitions from cache', done => {

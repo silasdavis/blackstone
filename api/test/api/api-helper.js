@@ -16,6 +16,8 @@ module.exports = (server) => {
       }),
 
     registerUser: (user) => {
+      user.firstName = 'firstname';
+      user.lastName = 'lastname';
       return new Promise((resolve, reject) => {
         chai
           .request(server)
@@ -420,6 +422,16 @@ module.exports = (server) => {
           .request(server)
           .put(`/tasks/${activityInstanceId}/complete/${agreement}/sign`)
           .set('Cookie', [`access_token=${token}`])
+          .send({
+            signature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAADElEQVQImWNgoBMAAABpAAFEI8ARAAAAAElFTkSuQmCC',
+            firstName: 'Joe',
+            lastName: 'Smith',
+            company: 'Joe Smith and Sons and Daughters',
+            title: 'CEO',
+            email: 'joe@smithandsonsanddaughters.com',
+            address: '10 Company St. New York, NY 10018',
+            date: 1554326702120,
+          })
           .end((err, res) => {
             if (err) return reject(err);
             if (res.status !== 200) return reject(new Error('complete and sign task for user NOT OK'));

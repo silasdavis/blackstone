@@ -35,6 +35,8 @@ before(function (done) {
 
 const credentials = {
   username: rid(10, 'aA0'),
+  firstName: 'firstname',
+  lastName: 'lastname',
   password: 'IREALLYLOVEBOATS',
   email: `${rid(10, 'aA0')}@test.com`
 }
@@ -114,30 +116,28 @@ describe('hex to string conversions', () => {
 
 describe('Registration/ Login', () => {
   it('Should register a new user', function (done) {
-    this.timeout(10000)
+    // this.timeout(10000)
     chai
       .request(server)
       .post('/users')
       .send(credentials)
       .end((err, res) => {
         res.should.have.status(200)
-        setTimeout(function () {
-          done()
-        }, global.ventCatchUpMS)
-      })
-  })
+        done();
+      });
+  });
 
   it('Should fail to register an existing user', function (done) {
-    this.timeout(10000)
+    // this.timeout(10000)
     chai
       .request(server)
       .post('/users')
       .send(credentials)
       .end((err, res) => {
         res.should.have.status(422)
-        done()
-      })
-  })
+        done();
+      });
+  });
 
   it('Should fail if credentials not passed', (done) => {
     chai
@@ -146,9 +146,9 @@ describe('Registration/ Login', () => {
       .send(badcredentials)
       .end((err, res) => {
         res.should.have.status(400)
-        done()
-      })
-  })
+        done();
+      });
+  });
 
   it('Should fail to login if user is not activated', (done) => {
     chai
@@ -157,10 +157,10 @@ describe('Registration/ Login', () => {
       .send(credentials)
       .end((err, res) => {
         if (err) done(err);
-        res.should.have.status(401)
-        done()
-      })
-  })
+        res.should.have.status(401);
+        done();
+      });
+  });
 
   it('Login as a user to obtain token', async () => {
     try {
@@ -172,7 +172,7 @@ describe('Registration/ Login', () => {
     expect(loginResult.token).to.exist;
     userData = loginResult.loggedInUser;
     token = loginResult.token;
-  }).timeout(10000);
+  }).timeout(5000);
 
   it('Should fail to login as non-existent user', (done) => {
     chai
@@ -180,10 +180,10 @@ describe('Registration/ Login', () => {
       .put('/users/login')
       .send(baduser)
       .end((err, res) => {
-        res.should.have.status(401)
-        done()
-      })
-  })
+        res.should.have.status(401);
+        done();
+      });
+  });
 
   it('Should fail if credentials not passed', (done) => {
     chai
@@ -191,9 +191,9 @@ describe('Registration/ Login', () => {
       .put('/users/login')
       .send(badcredentials)
       .end((err, res) => {
-        res.should.have.status(400)
-        done()
-      })
+        res.should.have.status(400);
+        done();
+      });
   });
 
   it('GET all users', (done) => {
@@ -204,8 +204,8 @@ describe('Registration/ Login', () => {
       .end((err, res) => {
         res.should.have.status(200)
         res.body.should.be.a('array')
-        done()
-      })
+        done();
+      });
   }).timeout(2000);
 
 })
@@ -236,129 +236,122 @@ describe('User Profile', () => {
         res.body.address.toUpperCase().should.equal(userData.address)
         done()
       })
-  })
+  });
 
   it('Should retrieve the logged in user\'s profile', (done) => {
-    setTimeout(() => {
-      request(server)
-        .get('/users/profile')
-        .set('Cookie', [`access_token=${token}`])
-        .expect(200)
-        .end((err, res) => {
-          if (err) return done(err)
-          res.body.should.be.a('object')
-          res.body.address.toUpperCase().should.equal(userData.address)
-          res.body.username.should.equal(credentials.username)
-          res.body.email.should.equal(credentials.email)
-          res.body.firstName.should.equal(newProfileInfo.firstName)
-          res.body.lastName.should.equal(newProfileInfo.lastName)
-          res.body.should.have.property('firstName')
-          res.body.should.have.property('lastName')
-          res.body.country.should.equal(newProfileInfo.country)
-          res.body.region.should.equal(newProfileInfo.region)
-          res.body.isProducer.should.equal(true)
-          res.body.onboarding.should.equal(false)
-          res.body.organizations.should.be.a('array')
-          res.body.createdAt.should.exist
-          done();
-        });
-    }, global.ventCatchUpMS);
-  });
-});
-
-/**
- * ######## ORGANIZATIONS #########################################################################################
- */
-
-describe('Organizations', () => {
-  // Variables for each entity
-  const acme = {
-    name: 'ACME Corp',
-  };
-  const accounting = {
-    name: 'Accounting Department',
-  };
-  const approver = {
-    username: rid(10, 'aA0'),
-    email: `${rid(10, 'aA0')}@test.com`,
-    password: 'approver',
-  };
-  const accountant = {
-    username: rid(10, 'aA0'),
-    email: `${rid(10, 'aA0')}@test.com`,
-    password: 'accountant',
-  };
-  const employee = {
-    username: rid(10, 'aA0'),
-    email: `${rid(10, 'aA0')}@test.com`,
-    password: 'employee',
-  };
-  const nonEmployee = {
-    username: rid(10, 'aA0'),
-    email: `${rid(10, 'aA0')}@test.com`,
-    password: 'nonemployee',
-  };
-  let orgTestToken;
-  // Register all users and login Accountant
-  it('Should register new users and login Accountant', async function () {
-    const approverRes = await api.registerUser(approver);
-    const accountantRes = await api.registerUser(accountant);
-    const employeeRes = await api.registerUser(employee);
-    const nonEmployeeRes = await api.registerUser(nonEmployee);
-    approver.address = approverRes.address;
-    accountant.address = accountantRes.address;
-    employee.address = employeeRes.address;
-    nonEmployee.address = nonEmployeeRes.address;
-    await api.activateUser(accountant);
-    const loginRes = await api.loginUser(accountant);
-    orgTestToken = loginRes.token;
-  });
-
-  it('POST a new organization', (done) => {
-    chai
-      .request(server)
-      .post('/organizations')
-      .set('Cookie', [`access_token=${orgTestToken}`])
-      .send(acme)
+    request(server)
+      .get('/users/profile')
+      .set('Cookie', [`access_token=${token}`])
+      .expect(200)
       .end((err, res) => {
-        if (err) return done(err);
-        res.should.have.status(200);
-        res.body.address.should.exist;
-        res.body.address.should.match(/[0-9A-Fa-f]{40}/); // match for 20 byte hex
-        res.body.name.should.exist;
-        acme.address = res.body.address;
-        setTimeout(function () {
-          // verify organization in vent
+        if (err) return done(err)
+        res.body.should.be.a('object')
+        res.body.address.toUpperCase().should.equal(userData.address)
+        res.body.username.should.equal(credentials.username)
+        res.body.email.should.equal(credentials.email)
+        res.body.firstName.should.equal(newProfileInfo.firstName)
+        res.body.lastName.should.equal(newProfileInfo.lastName)
+        res.body.should.have.property('firstName')
+        res.body.should.have.property('lastName')
+        res.body.country.should.equal(newProfileInfo.country)
+        res.body.region.should.equal(newProfileInfo.region)
+        res.body.isProducer.should.equal(true)
+        res.body.onboarding.should.equal(false)
+        res.body.organizations.should.be.a('array')
+        res.body.createdAt.should.exist
+        done();
+      });
+  });
+
+  /**
+   * ######## ORGANIZATIONS #########################################################################################
+   */
+
+  describe('Organizations', () => {
+    // Variables for each entity
+    const acme = {
+      name: 'ACME Corp',
+    };
+    const accounting = {
+      name: 'Accounting Department',
+    };
+    const approver = {
+      username: rid(10, 'aA0'),
+      email: `${rid(10, 'aA0')}@test.com`,
+      password: 'approver',
+    };
+    const accountant = {
+      username: rid(10, 'aA0'),
+      email: `${rid(10, 'aA0')}@test.com`,
+      password: 'accountant',
+    };
+    const employee = {
+      username: rid(10, 'aA0'),
+      email: `${rid(10, 'aA0')}@test.com`,
+      password: 'employee',
+    };
+    const nonEmployee = {
+      username: rid(10, 'aA0'),
+      email: `${rid(10, 'aA0')}@test.com`,
+      password: 'nonemployee',
+    };
+    let orgTestToken;
+    // Register all users and login Accountant
+    it('Should register new users and login Accountant', async function () {
+      const approverRes = await api.registerUser(approver);
+      const accountantRes = await api.registerUser(accountant);
+      const employeeRes = await api.registerUser(employee);
+      const nonEmployeeRes = await api.registerUser(nonEmployee);
+      approver.address = approverRes.address;
+      accountant.address = accountantRes.address;
+      employee.address = employeeRes.address;
+      nonEmployee.address = nonEmployeeRes.address;
+      await api.activateUser(accountant);
+      const loginRes = await api.loginUser(accountant);
+      orgTestToken = loginRes.token;
+    });
+
+    it('POST a new organization', (done) => {
+      chai
+        .request(server)
+        .post('/organizations')
+        .set('Cookie', [`access_token=${orgTestToken}`])
+        .send(acme)
+        .end((err, res) => {
+          if (err) return done(err);
+          res.should.have.status(200);
+          res.body.address.should.exist;
+          res.body.address.should.match(/[0-9A-Fa-f]{40}/); // match for 20 byte hex
+          res.body.name.should.exist;
+          acme.address = res.body.address;
           chai
+            .request(server)
+            .get(`/organizations?approver=true`)
+            .set('Cookie', [`access_token=${orgTestToken}`])
+            .end((err, res) => {
+              if (err) return done(err);
+              res.should.have.status(200);
+              res.body.should.be.a('array');
+              const resAcme = res.body.find(({ address }) => address === acme.address);
+              resAcme.should.exist;
+              done();
+            });
+        });
+    }).timeout(5000);
+
+    describe('Test Existing Organization', (done) => {
+      beforeEach(function () {
+        if (!acme.address) { assert.fail('No existing organization address. Failing dependent test ...') }
+      });
+
+      it('PUT user Approver to organization', (done) => {
+        chai
           .request(server)
-          .get(`/organizations?approver=true`)
+          .put(`/organizations/${acme.address}/users/${approver.address}`)
           .set('Cookie', [`access_token=${orgTestToken}`])
           .end((err, res) => {
             if (err) return done(err);
             res.should.have.status(200);
-            res.body.should.be.a('array');
-            const resAcme = res.body.find(({ address }) => address === acme.address);
-            resAcme.should.exist;
-            done();
-          });
-        }, global.ventCatchUpMS);
-      });
-  }).timeout(10000);
-
-  describe('Test Existing Organization', (done) => {
-    beforeEach(function () {
-      if (!acme.address) { assert.fail('No existing organization address. Failing dependent test ...') }
-    });
-
-    it('PUT user Approver to organization', (done) => {
-      chai
-        .request(server)
-        .put(`/organizations/${acme.address}/users/${approver.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          setTimeout(function () {
             // verify users on this organization
             chai
               .request(server)
@@ -377,19 +370,17 @@ describe('Organizations', () => {
                 res.body.users[0].username.should.equal(approver.username);
                 done();
               });
-          }, global.ventCatchUpMS);
-        });
-    }).timeout(10000);
+          });
+      }).timeout(10000);
 
-    it('PUT user Accountant to organization', (done) => {
-      chai
-        .request(server)
-        .put(`/organizations/${acme.address}/users/${accountant.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          setTimeout(function () {
+      it('PUT user Accountant to organization', (done) => {
+        chai
+          .request(server)
+          .put(`/organizations/${acme.address}/users/${accountant.address}`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
             // verify users on this organization
             chai
               .request(server)
@@ -403,19 +394,17 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, global.ventCatchUpMS);
-        });
-    }).timeout(10000);
+          });
+      }).timeout(10000);
 
-    it('PUT user Employee to organization', (done) => {
-      chai
-        .request(server)
-        .put(`/organizations/${acme.address}/users/${employee.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          setTimeout(function () {
+      it('PUT user Employee to organization', (done) => {
+        chai
+          .request(server)
+          .put(`/organizations/${acme.address}/users/${employee.address}`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
             // verify users on this organization
             chai
               .request(server)
@@ -427,19 +416,17 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(3);
                 done();
               });
-          }, global.ventCatchUpMS);
-        });
-    }).timeout(10000);
+          });
+      }).timeout(10000);
 
-    it('DELETE a User Employee from organization', (done) => {
-      chai
-        .request(server)
-        .delete(`/organizations/${acme.address}/users/${employee.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          setTimeout(function () {
+      it('DELETE a User Employee from organization', (done) => {
+        chai
+          .request(server)
+          .delete(`/organizations/${acme.address}/users/${employee.address}`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
             // verify users on this organization
             chai
               .request(server)
@@ -451,21 +438,19 @@ describe('Organizations', () => {
                 res.body.users.should.have.length(2);
                 done();
               });
-          }, global.ventCatchUpMS);
-        });
-    }).timeout(10000);
+          });
+      }).timeout(10000);
 
-    it('PUT accounting department to organization', (done) => {
-      chai
-        .request(server)
-        .put(`/organizations/${acme.address}/departments`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .send(accounting)
-        .end((err, res) => {
-          if (err) return done(err);
-          accounting.id = res.body.id;
-          res.should.have.status(200);
-          setTimeout(function () {
+      it('PUT accounting department to organization', (done) => {
+        chai
+          .request(server)
+          .put(`/organizations/${acme.address}/departments`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .send(accounting)
+          .end((err, res) => {
+            if (err) return done(err);
+            accounting.id = res.body.id;
+            res.should.have.status(200);
             // verify departments on this organization
             chai
               .request(server)
@@ -485,27 +470,23 @@ describe('Organizations', () => {
                 acctDep.users.should.be.a('array');
                 done();
               });
-          }, global.ventCatchUpMS);
-        });
-    }).timeout(10000);
+          });
+      }).timeout(10000);
 
-    it('PUT users to accounting department in organization', (done) => {
-      setTimeout(() => {
+      it('PUT users to accounting department in organization', (done) => {
         chai
-        .request(server)
-        .put(`/organizations/${acme.address}/departments/${accounting.id}/users`)
-        .send({ users: [accountant.address] })
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          done();
-        });
-      }, global.ventCatchUpMS);
-    }).timeout(10000);
+          .request(server)
+          .put(`/organizations/${acme.address}/departments/${accounting.id}/users`)
+          .send({ users: [accountant.address] })
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
+            done();
+          });
+      }).timeout(10000);
 
-    it('should include users in each department in GET organization', (done) => {
-      setTimeout(() => {
+      it('should include users in each department in GET organization', (done) => {
         chai
           .request(server)
           .get(`/organizations/${acme.address}`)
@@ -517,52 +498,50 @@ describe('Organizations', () => {
             acctDep.users[0].should.equal(accountant.address);
             done();
           });
-      }, global.ventCatchUpMS);
-    }).timeout(10000);
+      }).timeout(10000);
 
-    it('DELETE user from accounting department in organization', (done) => {
-      setTimeout(() => {
+      it('DELETE user from accounting department in organization', (done) => {
         chai
-        .request(server)
-        .delete(`/organizations/${acme.address}/departments/${accounting.id}/users/${accountant.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          done();
-        });
-      }, global.ventCatchUpMS);
-    }).timeout(10000);
+          .request(server)
+          .delete(`/organizations/${acme.address}/departments/${accounting.id}/users/${accountant.address}`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
+            done();
+          });
+      }).timeout(10000);
 
-    it('Should login a non-member of the organization', async () => {
-      await api.activateUser(nonEmployee);
-      let loginResult = await api.loginUser(nonEmployee);
-      orgTestToken = loginResult.token;
-    }).timeout(10000);
+      it('Should login a non-member of the organization', async () => {
+        await api.activateUser(nonEmployee);
+        let loginResult = await api.loginUser(nonEmployee);
+        orgTestToken = loginResult.token;
+      }).timeout(10000);
 
-    it('GET organizations even for non-member', (done) => {
-      chai
-        .request(server)
-        .get(`/organizations`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          if (err) return done(err);
-          res.should.have.status(200);
-          res.body.should.be.a('array');
-          res.body.should.not.have.length(0);
-          done();
-        });
-    });
+      it('GET organizations even for non-member', (done) => {
+        chai
+          .request(server)
+          .get(`/organizations`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            if (err) return done(err);
+            res.should.have.status(200);
+            res.body.should.be.a('array');
+            res.body.should.not.have.length(0);
+            done();
+          });
+      });
 
-    it('Should not allow GET organization if user is not member or approver', (done) => {
-      chai
-        .request(server)
-        .get(`/organizations/${acme.address}`)
-        .set('Cookie', [`access_token=${orgTestToken}`])
-        .end((err, res) => {
-          res.should.have.status(403);
-          done();
-        });
+      it('Should not allow GET organization if user is not member or approver', (done) => {
+        chai
+          .request(server)
+          .get(`/organizations/${acme.address}`)
+          .set('Cookie', [`access_token=${orgTestToken}`])
+          .end((err, res) => {
+            res.should.have.status(403);
+            done();
+          });
+      });
     });
   });
 });

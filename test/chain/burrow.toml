@@ -111,7 +111,7 @@ ValidatorAddress = "0201EF325305ABD75E1FB8A8F539730F71547484"
     ListenAddress = "tcp://0.0.0.0:26658"
   [RPC.GRPC]
     Enabled = true
-    ListenAddress = "0.0.0.0:10997"
+    ListenAddress = "tcp://0.0.0.0:10997"
   [RPC.Profiler]
     Enabled = false
   [RPC.Metrics]
