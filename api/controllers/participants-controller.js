@@ -5,10 +5,9 @@ const _ = require('lodash');
 const crypto = require('crypto');
 const sendgrid = require('@sendgrid/mail');
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
-const sqlCache = require('./postgres-query-helper');
+const db = require('./postgres-query-helper');
 
 const {
-  format,
   pgUpdate,
   asyncMiddleware,
   getSHA256Hash,
@@ -17,7 +16,7 @@ const {
 const contracts = require('./contracts-controller');
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.participants');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const pool = require(`${global.__common}/postgres-db`)();
 const { DEFAULT_DEPARTMENT_ID } = require(`${global.__common}/constants`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
@@ -29,7 +28,7 @@ const getOrganizations = asyncMiddleware(async (req, res, next) => {
     delete req.query.approver;
   }
   try {
-    const data = await sqlCache.getOrganizations(req.query);
+    const data = await db.getOrganizations(req.query);
     // Vent query has join that results in multiple rows for each org
     // Consolidate data by storing in object 'aggregated'
     const aggregated = {};
@@ -54,7 +53,7 @@ const getOrganizations = asyncMiddleware(async (req, res, next) => {
 
 const getOrganization = asyncMiddleware(async (req, res, next) => {
   try {
-    const data = await sqlCache.getOrganization(req.params.address);
+    const data = await db.getOrganization(req.params.address);
     // Vent query has left join that results in multiple rows for the org for each approver, user, department, and department member
     // Consolidate data by storing approvers and users in objects
     let approvers = {};
@@ -112,11 +111,8 @@ const createOrganization = asyncMiddleware(async (req, res, next) => {
   org.defaultDepartmentId = defDepId;
   try {
     const address = await contracts.createOrganization(org);
-    await app_db_pool.query({
-      text: 'INSERT INTO organizations(address, name) VALUES($1, $2);',
-      values: [address, org.name],
-    });
-    await sqlCache.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
+    await db.insertOrganization(address, org.name);
+    await db.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
     log.info('Added organization name and address to postgres');
     res.locals.data = { address, name: org.name };
     res.status(200);
@@ -128,7 +124,7 @@ const createOrganization = asyncMiddleware(async (req, res, next) => {
 });
 
 const createOrganizationUserAssociation = asyncMiddleware(async (req, res, next) => {
-  const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(req.params.address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
@@ -138,7 +134,7 @@ const createOrganizationUserAssociation = asyncMiddleware(async (req, res, next)
 });
 
 const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res, next) => {
-  const authorized = await sqlCache.userIsOrganizationApprover(req.params.address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(req.params.address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
@@ -155,13 +151,13 @@ const createDepartment = asyncMiddleware(async (req, res, next) => {
   } else if (name.length > 255) {
     throw boom.badRequest('Name length cannot exceed 255 characters');
   }
-  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   const id = getSHA256Hash(`${req.user.address}${name}${Date.now()}`).toUpperCase();
   await contracts.createDepartment(address, id, req.user.address);
-  await sqlCache.insertDepartmentDetails({ organizationAddress: address, id, name });
+  await db.insertDepartmentDetails({ organizationAddress: address, id, name });
   // Optionally also add users in the same request
   const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
   await Promise.all(addUserPromises)
@@ -177,19 +173,19 @@ const createDepartment = asyncMiddleware(async (req, res, next) => {
 
 const removeDepartment = asyncMiddleware(async (req, res, next) => {
   const { address, id } = req.params;
-  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeDepartment(address, id, req.user.address);
-  await sqlCache.removeDepartmentDetails({ organizationAddress: address, id });
+  await db.removeDepartmentDetails({ organizationAddress: address, id });
   res.status(200);
   return next();
 });
 
 const addDepartmentUsers = asyncMiddleware(async (req, res, next) => {
   const { address, id } = req.params;
-  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
@@ -207,7 +203,7 @@ const addDepartmentUsers = asyncMiddleware(async (req, res, next) => {
 
 const removeDepartmentUser = asyncMiddleware(async (req, res, next) => {
   const { address, id, userAddress } = req.params;
-  const authorized = await sqlCache.userIsOrganizationApprover(address, req.user.address);
+  const authorized = await db.userIsOrganizationApprover(address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
@@ -237,7 +233,7 @@ const upgradeExternalUser = async (client, {
   isProducer,
 }) => {
   try {
-    const queryString = `UPDATE users
+    const queryString = `UPDATE ${global.db.schema.app}.users
     SET external_user = false, username = $1, first_name = $2, last_name = $3, password_digest = $4, is_producer = $5
     WHERE email = $6
     RETURNING id, address;`;
@@ -256,7 +252,7 @@ const registerUser = async (userData) => {
   let userId;
   let existingEmail;
   let isExternalUser; // indicates user already exists as "external user"
-  const client = await app_db_pool.connect();
+  const client = await pool.connect();
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
@@ -265,7 +261,7 @@ const registerUser = async (userData) => {
   // check if email or username already registered in pg
   try {
     const { rows } = await client.query({
-      text: 'SELECT LOWER(email) AS email, LOWER(username) AS username, external_user AS "externalUser" FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);',
+      text: `SELECT LOWER(email) AS email, LOWER(username) AS username, external_user AS "externalUser" FROM ${global.db.schema.app}.users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);`,
       values: [email, username],
     });
     if (rows[0]) existingEmail = rows[0].email;
@@ -318,13 +314,7 @@ const registerUser = async (userData) => {
   } else {
     // insert in user db
     try {
-      const queryString = `INSERT INTO users(
-        address, username, first_name, last_name, email, password_digest, is_producer
-        ) VALUES(
-          $1, $2, $3, $4, $5, $6, $7
-        ) RETURNING id;`;
-      const { rows } = await client.query({ text: queryString, values: [address, username, firstName, lastName, email, passwordHash, isProducer] });
-      userId = rows[0].id;
+      userId = await db.insertUser(address, username, firstName, lastName, email, passwordHash, isProducer);
     } catch (err) {
       client.release();
       throw boom.badImplementation(`Failed to save user in db: ${err.stack}`);
@@ -336,10 +326,7 @@ const registerUser = async (userData) => {
   const activationCode = crypto.randomBytes(32).toString('hex');
   codeHash.update(activationCode);
   try {
-    await client.query({
-      text: 'INSERT INTO user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);',
-      values: [userId, codeHash.digest('hex')],
-    });
+    await db.insertUserActivationCode(userId, codeHash.digest('hex'));
     log.info(`Saved activation code ${activationCode} for user at address ${address}`);
   } catch (err) {
     client.release();
@@ -365,7 +352,7 @@ const sendUserActivationEmail = async (userEmail, senderEmail, webappName, apiUr
 
 const registrationHandler = asyncMiddleware(async ({ body }, res, next) => {
   const result = await registerUser(body);
-  if (process.env.WEBAPP_EMAIL && process.env.WEBAPP_URL) {
+  if (process.env.WEBAPP_EMAIL && process.env.WEBAPP_URL && process.env.SENDGRID_API_KEY) {
     await sendUserActivationEmail(
       result.email,
       process.env.WEBAPP_EMAIL,
@@ -387,7 +374,7 @@ const activateUser = asyncMiddleware(async (req, res, next) => {
   log.info(`Activation request received with code: ${req.params.activationCode}`);
   hash.update(req.params.activationCode);
   const codeHex = hash.digest('hex');
-  const rows = await sqlCache.getUserByActivationCode(codeHex);
+  const rows = await db.getUserByActivationCode(codeHex);
   let redirectHost = process.env.WEBAPP_URL;
   if (!String(redirectHost).startsWith('http')) {
     redirectHost = process.env.APP_ENV === 'local' ? `http://${redirectHost}` : `https://${redirectHost}`;
@@ -399,7 +386,7 @@ const activateUser = asyncMiddleware(async (req, res, next) => {
     return next();
   }
   try {
-    await sqlCache.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
+    await db.updateUserActivation(rows[0].address, rows[0].userId, true, codeHex);
     log.info(`Successfully activated user at ${rows[0].address}`);
     res.locals.data = `${redirectHost}/?activated=true`;
     res.status(302);
@@ -413,7 +400,7 @@ const activateUser = asyncMiddleware(async (req, res, next) => {
 });
 
 const getUsers = asyncMiddleware(async (req, res, next) => {
-  res.locals.data = await sqlCache.getUsers();
+  res.locals.data = await db.getUsers();
   res.status(200);
   return next();
 });
@@ -421,7 +408,7 @@ const getUsers = asyncMiddleware(async (req, res, next) => {
 const getProfile = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   const userAddress = req.user.address;
-  const data = await sqlCache.getProfile(userAddress);
+  const data = await db.getProfile(userAddress);
   const user = { address: userAddress };
   // Multiple rows returned because of left join for organization departments.
   // Consolidating data in object.
@@ -440,17 +427,20 @@ const getProfile = asyncMiddleware(async (req, res, next) => {
   });
   user.organizations = Object.values(organizations);
   delete user.organization;
+  const client = await pool.connect();
   try {
-    const { rows } = await app_db_pool.query({
-      text: 'SELECT id, username, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding ' +
-        'FROM users WHERE address = $1',
+    const { rows } = await client.query({
+      text: `SELECT id, username, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding
+        FROM ${global.db.schema.app}.users WHERE address = $1`,
       values: [userAddress],
     });
     res.locals.data = _.merge(user, rows[0]);
     res.status(200);
+    client.release();
     return next();
   } catch (err) {
-    throw boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err}`);
+    client.release();
+    return next(boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err}`));
   }
 });
 
@@ -460,13 +450,12 @@ const editProfile = asyncMiddleware(async (req, res, next) => {
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   if (req.body.email || req.body.username) throw boom.notAcceptable('Email and username cannot be changed');
   if (req.body.password) throw boom.notAcceptable('Password can only be updated by providing currentPassword and newPassword fields');
-  let client;
+  const client = await pool.connect();
   try {
-    client = await app_db_pool.connect();
     await client.query('BEGIN');
     if (req.body.newPassword) {
       const { rows } = await client.query({
-        text: 'SELECT password_digest FROM users WHERE address = $1',
+        text: `SELECT password_digest FROM ${global.db.schema.app}.users WHERE address = $1`,
         values: [userAddress],
       });
       const { password_digest: pwDigest } = rows[0];
@@ -478,20 +467,21 @@ const editProfile = asyncMiddleware(async (req, res, next) => {
     }
     delete req.body.currentPassword;
     delete req.body.newPassword;
-    const { text, values } = pgUpdate('users', req.body);
+    const { text, values } = pgUpdate(`${global.db.schema.app}.users`, req.body);
     values.push(userAddress);
     await client.query({
       text: `${text} WHERE address = $${values.length}`,
       values,
     });
     await client.query('COMMIT');
-    if (client) client.release();
+    client.release();
     res.locals.data = { address: userAddress };
     res.status(200);
     return next();
   } catch (err) {
-    if (err.isBoom) throw err;
-    throw boom.badImplementation(`Error editing profile: ${err}`);
+    client.release();
+    if (err.isBoom) return next(err);
+    return next(boom.badImplementation(`Error editing profile: ${err}`));
   }
 });
 
@@ -514,12 +504,12 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
       newParams.notAccountOrEmail.push({ ...param });
     }
   });
-  const client = await app_db_pool.connect();
+  const client = await pool.connect();
   try {
     let newUsers;
     if (newParams.withEmail.length) {
       const { rows } = await client.query({
-        text: `SELECT LOWER(email) AS email, address FROM users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
+        text: `SELECT LOWER(email) AS email, address FROM ${global.db.schema.app}.users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
         values: newParams.withEmail.map(({ value }) => value),
       });
       newParams.forNewUser = {};
@@ -544,7 +534,7 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
         // Create user in db
-        const queryString = `INSERT INTO users(
+        const queryString = `INSERT INTO ${global.db.schema.app}.users(
           address, username, email, password_digest, is_producer, external_user
           ) VALUES(
             $1, $2, $3, $4, $5, $6

@@ -18,6 +18,9 @@ const _ = require('lodash');
     global.__data = path.resolve(global.__appDir, 'data');
     global.__lib = path.resolve(global.__appDir, 'lib');
     global.__schemas = path.resolve(global.__appDir, 'schemas');
+    _.set(global, 'db.connectionString', `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`);
+    _.set(global, 'db.schema.chain', process.env.POSTGRES_DB_SCHEMA_VENT);
+    _.set(global, 'db.schema.app', process.env.POSTGRES_DB_SCHEMA);
 
     // Read configuration
     global.__settings = (() => {
@@ -32,18 +35,6 @@ const _ = require('lodash');
       if (process.env.COOKIE_MAX_AGE) _.set(settings, 'cookie.maxAge', process.env.COOKIE_MAX_AGE);
       if (process.env.IDENTITY_PROVIDER) _.set(settings, 'identity_provider', process.env.IDENTITY_PROVIDER);
       if (process.env.MAX_WAIT_FOR_VENT_MS) _.set(settings, 'max_wait_for_vent_ms', process.env.MAX_WAIT_FOR_VENT_MS);
-      _.set(
-        settings,
-        'db.app_db_url',
-        `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`,
-      );
-      _.set(settings, 'db.app_db_schema', process.env.POSTGRES_DB_SCHEMA);
-      _.set(
-        settings,
-        'db.chain_db_url',
-        `postgres://${process.env.POSTGRES_DB_USER}:${process.env.POSTGRES_DB_PASSWORD}@${process.env.POSTGRES_DB_HOST}:${process.env.POSTGRES_DB_PORT}/${process.env.POSTGRES_DB_DATABASE}`,
-      );
-      _.set(settings, 'db.chain_db_schema', process.env.POSTGRES_DB_SCHEMA_VENT);
       if (process.env.NODE_ENV === 'production') _.set(settings, 'cookie.secure', true);
       else _.set(settings, 'cookie.secure', false);
       return settings;

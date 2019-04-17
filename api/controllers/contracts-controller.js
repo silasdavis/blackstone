@@ -38,7 +38,7 @@ const serverAccount = global.__settings.accounts.server;
 const chainURL = global.__settings.chain.url || 'localhost:10997';
 const db = new burrowDB.Connection(chainURL, serverAccount);
 
-const ventHelper = require(`${global.__common}/VentHelper`)(global.__settings.db.chain_db_url, global.max_wait_for_vent_ms || 3000);
+const ventHelper = require(`${global.__common}/VentHelper`)(global.db.connectionString, global.max_wait_for_vent_ms || 3000);
 ventHelper.listen();
 
 let appManager;

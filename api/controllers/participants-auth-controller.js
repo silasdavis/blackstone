@@ -7,7 +7,7 @@ const boom = require('boom');
 const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.auth');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const pool = require(`${global.__common}/postgres-db`)();
 
 const login = (req, res, next) => {
   if ((!req.body.username && !req.body.email) || !req.body.password) {
@@ -53,11 +53,11 @@ const logout = (req, res, next) => {
 };
 
 const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
-  const client = await app_db_pool.connect();
+  const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query({
-      text: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+      text: `SELECT id FROM ${global.db.schema.app}.users WHERE LOWER(email) = LOWER($1)`,
       values: [req.body.email],
     });
     let msg;
@@ -70,11 +70,11 @@ const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
       const recoveryCode = crypto.randomBytes(32).toString('hex');
       hash.update(recoveryCode);
       await client.query({
-        text: 'DELETE FROM password_change_requests WHERE user_id = $1',
+        text: `DELETE FROM ${global.db.schema.chain}.password_change_requests WHERE user_id = $1`,
         values: [rows[0].id],
       });
       await client.query({
-        text: 'INSERT INTO password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);',
+        text: `INSERT INTO ${global.db.schema.chain}.password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);`,
         values: [rows[0].id, hash.digest('hex')],
       });
       msg = {
@@ -110,27 +110,33 @@ const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
 const validateRecoveryCode = asyncMiddleware(async (req, res, next) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
-  const { rows } = await app_db_pool.query({
-    text:
-      "SELECT * FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
-    values: [hash.digest('hex')],
-  });
-  if (rows[0]) {
-    log.info('Recovery code validated');
-    res.status(200);
-    return next();
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      `SELECT * FROM ${global.db.schema.app}.password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1`,
+      [hash.digest('hex')],
+    );
+    if (rows[0]) {
+      log.info('Recovery code validated');
+      res.status(200);
+      client.release();
+      return next();
+    }
+    throw boom.badRequest('Valid recovery code not found.');
+  } catch (err) {
+    client.release();
+    if (err.isBoom) return next(err);
+    return next(boom.badImplementation(`Failed to validate recovery code: ${err.stack}`));
   }
-  throw boom.badRequest('Valid recovery code not found.');
 });
 
 const resetPassword = asyncMiddleware(async (req, res, next) => {
-  const client = await app_db_pool.connect();
+  const client = await pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
     codeHash.update(req.params.recoveryCode);
     const { rows } = await client.query({
-      text:
-          "SELECT user_id FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
+      text: `SELECT user_id FROM ${global.db.schema.app}.password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1`,
       values: [codeHash.digest('hex')],
     });
     if (rows[0]) {

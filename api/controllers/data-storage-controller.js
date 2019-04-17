@@ -2,7 +2,7 @@ const logger = require(`${global.__common}/logger`);
 const contracts = require('../controllers/contracts-controller');
 const CONTRACT_ACTIVE_AGREEMENT = global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT;
 const { PARAMETER_TYPES: PARAM_TYPE, DATA_TYPES } = global.__constants;
-const { chain_db_pool } = require(`${global.__common}/postgres-db`);
+const pool = require(`${global.__common}/postgres-db`)();
 const log = logger.getLogger('controllers.data-storage');
 
 /* **********************************************************
@@ -313,24 +313,34 @@ const setActivityOutDataAsAddress = (userAddr, activityInstanceId, dataMappingId
  ********************************** */
 
 const getAgreementValidParameters = agreementAddr => new Promise((resolve, reject) => {
-  const queryStr = `select ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-  from AGREEMENTS ag
-  join ARCHETYPE_PARAMETERS ap on ag.archetype_address = ap.archetype_address
-  where ag.agreement_address = $1;`;
-  chain_db_pool.query(queryStr, [agreementAddr], (err, data) => {
-    if (err) return reject(err);
-    return resolve(data.rows);
-  });
+  const queryStr = `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
+    FROM ${global.db.schema.chain}.agreements ag
+    JOIN ${global.db.schema.chain}.archetype_parameters ap ON ag.archetype_address = ap.archetype_address
+    WHERE ag.agreement_address = $1;`;
+  pool.connect().then(client => client.query(queryStr, [agreementAddr])
+    .then((res) => {
+      client.release();
+      return resolve(res.rows);
+    })
+    .catch((err) => {
+      client.release();
+      return reject(err);
+    }));
 });
 
 const getArchetypeValidParameters = archetypeAddr => new Promise((resolve, reject) => {
-  const queryStr = `select ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-  from ARCHETYPE_PARAMETERS ap
-  where ap.archetype_address = $1;`;
-  chain_db_pool.query(queryStr, [archetypeAddr], (err, data) => {
-    if (err) return reject(err);
-    return resolve(data.rows);
-  });
+  const queryStr = `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
+  FROM ${global.db.schema.chain}.archetype_parameters ap
+  WHERE ap.archetype_address = $1;`;
+  pool.connect().then(client => client.query(queryStr, [archetypeAddr])
+    .then((res) => {
+      client.release();
+      resolve(res.rows);
+    })
+    .catch((err) => {
+      client.release();
+      return reject(err);
+    }));
 });
 
 agreementDataSetters[`${PARAM_TYPE.BOOLEAN}`] = setDataValueAsBool;

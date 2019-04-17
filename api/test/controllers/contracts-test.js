@@ -43,7 +43,7 @@ global.__bundles = require(path.join(__common, 'constants')).BUNDLES
 global.__constants = require(path.join(__common, 'constants'));
 const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
-const { chain_db_pool } = require(`${global.__common}/postgres-db`);
+const pool = require(`${global.__common}/postgres-db`)();
 
 const { hexToString, stringToHex } = require(`${global.__common}/controller-dependencies`);
 global.hexToString = hexToString;
@@ -326,7 +326,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    chain_db_pool.query('select * from process_models;', [], (err, { rows }) => {
+    pool.query(`select * from ${global.db.schema.chain}.process_models;`, [], (err, { rows }) => {
       expect(rows.length).to.be.greaterThan(0)
       let model = rows.filter(item => {
         return item.model_address === pmAddress

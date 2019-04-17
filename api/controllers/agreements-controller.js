@@ -2,7 +2,6 @@ const path = require('path');
 const boom = require('boom');
 const Joi = require('joi');
 const _ = require('lodash');
-const pgCache = require('./postgres-cache-helper');
 
 const {
   format,
@@ -146,30 +145,6 @@ const getArchetype = asyncMiddleware(async (req, res, next) => {
   data = await sqlCache.getArchetypeDataWithProcessDefinitions(req.params.address, req.user.address);
   if (!data) throw boom.notFound(`Archetype at ${req.params.address} not found or user has insufficient privileges`);
   data = format('Archetype', data);
-  let formationProcess;
-  let executionProcess;
-  if (data.formationProcessId) {
-    formationProcess = await pgCache.populateProcessNames([
-      {
-        modelId: data.formationModelId,
-        modelAddress: data.formationModelAddress,
-        processDefinitionId: data.formationProcessId,
-      }]);
-  }
-  if (data.executionProcessId) {
-    executionProcess = await pgCache.populateProcessNames([
-      {
-        modelId: data.executionModelId,
-        modelAddress: data.executionModelAddress,
-        processDefinitionId: data.executionProcessId,
-      }]);
-  }
-  data.formationProcessName = formationProcess ? formationProcess[0].processName : null;
-  data.executionProcessName = executionProcess ? executionProcess[0].processName : null;
-  delete data.formationModelId;
-  delete data.formationProcessId;
-  delete data.executionModelId;
-  delete data.executionProcessId;
   data.parameters = await sqlCache.getArchetypeParameters(req.params.address);
   // Early return if you only are fetching meta data
   if (getBooleanFromString(req.query.meta)) {
@@ -496,7 +471,7 @@ const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
     return Object.values(parameters);
   } catch (err) {
     if (err.isBoom) throw err;
-    throw boom.badImplementation(`Failed to get agreement parameters: ${err}`);
+    throw boom.badImplementation(`Failed to get agreement parameters: ${err.stack}`);
   }
 };
 

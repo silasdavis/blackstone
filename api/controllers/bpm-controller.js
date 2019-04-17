@@ -16,7 +16,6 @@ const {
   hoardGet,
 } = require(`${global.__controllers}/hoard-controller`);
 const sqlCache = require('./postgres-query-helper');
-const pgCache = require('./postgres-cache-helper');
 const dataStorage = require(path.join(`${global.__controllers}/data-storage-controller`));
 const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
 const { PARAM_TYPE_TO_DATA_TYPE_MAP, DATA_TYPES } = require(`${global.__common}/constants`);
@@ -24,7 +23,7 @@ const signatureSchema = require(`${global.__schemas}/signature`);
 
 const getActivityInstances = asyncMiddleware(async (req, res, next) => {
   const data = await sqlCache.getActivityInstances(req.user.address, req.query);
-  res.locals.data = await pgCache.populateTaskNames(data);
+  res.locals.data = data;
   res.status(200);
   return next();
 });
@@ -98,11 +97,10 @@ const addDataTypes = dataMappings => dataMappings.map(dm => ({
 }));
 
 const getActivityInstance = asyncMiddleware(async (req, res, next) => {
-  let activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
+  const activityInstanceResult = (await sqlCache.getActivityInstanceData(req.params.id, req.user.address))[0];
   if (!activityInstanceResult) throw boom.notFound(`Activity instance ${req.params.id} not found`);
   if (activityInstanceResult.state !== 4) return res.status(200).json({ activityInstanceId: req.params.id, state: activityInstanceResult.state });
   if (!activityInstanceResult.assignedToUser) throw boom.forbidden(`User is not an authorized performer for activity instance ${req.params.id}`);
-  activityInstanceResult = (await pgCache.populateTaskNames([activityInstanceResult]))[0];
   activityInstanceResult.data = await sqlCache.getDataMappingsForActivity(req.params.id);
   activityInstanceResult.data = addDataTypes(activityInstanceResult.data);
   try {
@@ -155,7 +153,7 @@ const setDataMappings = asyncMiddleware(async ({ user, params: { activityInstanc
 const getTasksForUser = asyncMiddleware(async ({ user: { address } }, res, next) => {
   if (!address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getTasksByUserAddress(address);
-  res.locals.data = await pgCache.populateTaskNames(data);
+  res.locals.data = data;
   res.status(200);
   return next();
 });
@@ -292,15 +290,14 @@ const getProcessInstanceCount = asyncMiddleware(async (req, res, next) => {
 const getDefinitions = asyncMiddleware(async (req, res, next) => {
   if (!req.user.address) throw boom.badRequest('No logged in user found');
   const data = await sqlCache.getProcessDefinitions(req.user.address, req.query);
-  res.locals.data = await pgCache.populateProcessNames(data);
+  res.locals.data = data;
   res.status(200);
   return next();
 });
 
 const getDefinition = asyncMiddleware(async (req, res, next) => {
-  const processDefn = await sqlCache.getProcessDefinitionData(req.params.address, req.user.address);
-  const data = await pgCache.populateProcessNames([processDefn]);
-  res.locals.data = data[0];
+  const data = await sqlCache.getProcessDefinitionData(req.params.address, req.user.address);
+  res.locals.data = data;
   res.status(200);
   return next();
 });
@@ -418,10 +415,17 @@ const addBpmnGateways = (pdAddress, gateways) => {
       .badImplementation(`Failed to create BPMN gateways for process at ${pdAddress}: ${err.stack}`)));
 };
 
-const addBpmnFlowElements = (pdAddress, tasks) => {
+const addBpmnFlowElements = ({
+  modelId,
+  processDefinitionId,
+  address: pdAddress,
+  processName,
+}, tasks) => {
   const taskPromises = [];
+  const saveTaskDetailPromises = [];
   let dataMappings = [];
   tasks.forEach((task) => {
+    saveTaskDetailPromises.push(sqlCache.saveActivityDetails(modelId, processDefinitionId, processName, task.id, task.name));
     taskPromises.push(contracts.createActivityDefinition(
       pdAddress,
       task.id,
@@ -472,23 +476,24 @@ const addParticipantsFromBpmn = (pmAddress, participants) => new Promise((resolv
     .catch(err => reject(boom.badImplementation(err)));
 });
 
-const addProcessToModel = (pmAddress, pd) => new Promise(async (resolve, reject) => {
+const addProcessToModel = (modelId, modelAddress, pd) => new Promise(async (resolve, reject) => {
   const proc = {
+    modelId,
     processDefinitionId: pd.id,
     interfaceId: pd.interface,
     processName: pd.name,
-    modelAddress: pmAddress,
+    modelAddress,
   };
   try {
-    proc.address = await contracts.createProcessDefinition(pmAddress, pd.id);
-    await contracts.addProcessInterface(pmAddress, pd.interface);
-    await contracts.addProcessInterfaceImplementation(pmAddress, proc.address, pd.interface);
-    await addParticipantsFromBpmn(pmAddress, pd.participants);
-    await addBpmnFlowElements(proc.address, pd.tasks);
-    await addBpmnFlowElements(proc.address, pd.userTasks);
-    await addBpmnFlowElements(proc.address, pd.subProcesses);
-    await addBpmnFlowElements(proc.address, pd.sendTasks);
-    await addBpmnFlowElements(proc.address, pd.serviceTasks);
+    proc.address = await contracts.createProcessDefinition(modelAddress, pd.id);
+    await contracts.addProcessInterface(modelAddress, pd.interface);
+    await contracts.addProcessInterfaceImplementation(modelAddress, proc.address, pd.interface);
+    await addParticipantsFromBpmn(modelAddress, pd.participants);
+    await addBpmnFlowElements(proc, pd.tasks);
+    await addBpmnFlowElements(proc, pd.userTasks);
+    await addBpmnFlowElements(proc, pd.subProcesses);
+    await addBpmnFlowElements(proc, pd.sendTasks);
+    await addBpmnFlowElements(proc, pd.serviceTasks);
     await addBpmnGateways(proc.address, pd.xorGateways);
     await addBpmnGateways(proc.address, pd.andGateways);
     await addTransitionsFromBpmn(proc.address, pd.transitions);
@@ -496,14 +501,15 @@ const addProcessToModel = (pmAddress, pd) => new Promise(async (resolve, reject)
     await setDefaultTransitions(proc.address, pd.defaultTransitions);
     await contracts.isValidProcess(proc.address);
     await contracts.getStartActivity(proc.address);
+    await sqlCache.saveProcessDetails(modelId, pd.id, pd.name);
     return resolve(proc);
   } catch (err) {
     return reject(boom.badImplementation(`Error while adding process [ ${pd.name} ] with id: [ ${pd.id} ]: ${err}`));
   }
 });
 
-const addProcessesToModel = (modelAddress, processes) => new Promise((resolve, reject) => {
-  const processPromises = processes.map(p => addProcessToModel(modelAddress, p));
+const addProcessesToModel = (modelId, modelAddress, processes) => new Promise((resolve, reject) => {
+  const processPromises = processes.map(p => addProcessToModel(modelId, modelAddress, p));
   Promise.all(processPromises)
     .then(processResponses => resolve(processResponses))
     .catch(error => reject(boom.badImplementation(`Failed to add processes to model at [ ${modelAddress} ]: ${error}`)));
@@ -537,7 +543,7 @@ const createModelFromBpmn = asyncMiddleware(async (req, res, next) => {
   const hoardGrant = await pushModelXmlToHoard(rawXml);
   response.model.address = await contracts.createProcessModel(model.id, model.version, model.author, model.private, hoardGrant);
   response.model.dataStoreFields = await addDataDefinitionsToModel(response.model.address, model.dataStoreFields);
-  response.processes = await addProcessesToModel(response.model.address, processes);
+  response.processes = await addProcessesToModel(model.id, response.model.address, processes);
   response.processes = response.processes.map(_proc => Object.assign(_proc, { isPrivate: model.isPrivate, author: model.author }));
   response.parsedDiagram = parsedResponse;
   res.locals.data = response;
