@@ -8,8 +8,8 @@ const {
   getParameterTypes,
   getCollectionTypes,
 } = require(`${global.__controllers}/static-data-controller`);
-
 const { ensureAuth } = require(`${global.__common}/middleware`);
+const { sendResponse } = require(`${global.__common}/controller-dependencies`);
 
 // APIs defined according to specification found here -> http://apidocjs.com
 /**
@@ -24,9 +24,8 @@ const { ensureAuth } = require(`${global.__common}/middleware`);
  */
 
 module.exports = (app, customMiddleware) => {
-  // Use custom middleware if passed, otherwise use plain old ensureAuth
-  let middleware = [];
-  middleware = middleware.concat(customMiddleware.length ? customMiddleware : [ensureAuth]);
+  // Use custom middleware if passed, otherwise use plain old middleware
+  const middleware = customMiddleware || ensureAuth;
 
   /** *************
    * Jurisdictions
@@ -53,7 +52,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/static-data/iso/countries', middleware, getCountries);
+  app.get('/static-data/iso/countries', middleware, getCountries, sendResponse);
 
   /**
   * @api {get} /static-data/iso/countries/:alpha2 Read Country
@@ -78,7 +77,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/static-data/iso/countries/:alpha2', middleware, getAlpha2Countries);
+  app.get('/static-data/iso/countries/:alpha2', middleware, getAlpha2Countries, sendResponse);
 
   /**
   * @api {get} /static-data/iso/countries/:alpha2/regions Read a Country's Regions
@@ -117,7 +116,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/static-data/iso/countries/:alpha2/regions', middleware, getAlpha2CountryRegions);
+  app.get('/static-data/iso/countries/:alpha2/regions', middleware, getAlpha2CountryRegions, sendResponse);
 
   /** **********
    * Currencies
@@ -150,7 +149,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/static-data/iso/currencies', middleware, getCurrencies);
+  app.get('/static-data/iso/currencies', middleware, getCurrencies, sendResponse);
 
   /**
   * @api {get} /static-data/iso/currencies/:alpha3 Read Currency
@@ -175,7 +174,7 @@ module.exports = (app, customMiddleware) => {
   * @apiUse AuthTokenRequired
   *
   */
-  app.get('/static-data/iso/currencies/:alpha3', middleware, getAlpha3Currencies);
+  app.get('/static-data/iso/currencies/:alpha3', middleware, getAlpha3Currencies, sendResponse);
 
   /**
    * @api {get} /static-data/parameter-types Read Parameter Types
@@ -202,7 +201,7 @@ module.exports = (app, customMiddleware) => {
    * @apiUse AuthTokenRequired
    *
    */
-  app.get('/static-data/parameter-types', middleware, getParameterTypes);
+  app.get('/static-data/parameter-types', middleware, getParameterTypes, sendResponse);
 
   /**
    * @api {get} /static-data/parameter-types/:id Read Single Parmeter Type
@@ -216,7 +215,7 @@ module.exports = (app, customMiddleware) => {
    * @apiUse AuthTokenRequired
    *
    */
-  app.get('/static-data/parameter-types/:id', middleware, getParameterType);
+  app.get('/static-data/parameter-types/:id', middleware, getParameterType, sendResponse);
 
 
   /**
@@ -242,5 +241,5 @@ module.exports = (app, customMiddleware) => {
    * @apiUse AuthTokenRequired
    *
    */
-  app.get('/static-data/collection-types', middleware, getCollectionTypes);
+  app.get('/static-data/collection-types', middleware, getCollectionTypes, sendResponse);
 };

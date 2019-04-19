@@ -10,7 +10,7 @@ log4js.addLayout('json', config => (_logEvent) => {
 });
 
 (function bootstrapLogger() {
-  const initLogger = log4js.getLogger();
+  const initLogger = log4js.getLogger('log4js');
   initLogger.info('Initializing LOG4JS ...');
 
   if (!fs.existsSync('logs')) {
@@ -19,13 +19,7 @@ log4js.addLayout('json', config => (_logEvent) => {
   }
 
   const config = require(`${global.__config}/log4js.json`);
-  config.reloadSecs = 300;
   log4js.configure(config);
-
-  config.loggers.forEach((logger) => {
-    initLogger.info(`Configuring logger for category: ${(logger.category || 'default')}, level: ${(logger.level || 'default')}`);
-    const log = log4js.getLogger(logger.category);
-  });
 
   module.exports = log4js;
 }());

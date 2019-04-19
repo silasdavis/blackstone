@@ -94,13 +94,13 @@ const validateProcess = (process, dataStoreFields) => {
       const field = dataStoreFields.filter(f => f.dataPath === transition.condition.lhDataPath)[0];
       transition.condition.rhValue = formatConditionRhValue(transition.condition.rhValue, transition.condition.dataType);
       transition.condition.operator = parseInt(transition.condition.operator, 10);
-      if (Object.values(global.__monax_constants.COMPARISON_OPERATOR).indexOf(transition.condition.operator) === -1) {
+      if (Object.values(global.__constants.COMPARISON_OPERATOR).indexOf(transition.condition.operator) === -1) {
         validationErrors.push(`Invalid operator ${transition.condition.operator} for transition condition in transition ${transition.id} in process ${process.id}`);
       }
       if (!field) {
         validationErrors.push(`No matching dataStore field found for transition ${transition.id} and it's condition lhDataPath ${transition.condition.lhDataPath}`);
       } else {
-        transition.condition.dataType = global.__monax_constants.PARAM_TYPE_TO_DATA_TYPE_MAP[field.parameterType].dataType;
+        transition.condition.dataType = global.__constants.PARAM_TYPE_TO_DATA_TYPE_MAP[field.parameterType].dataType;
       }
       // test if transition conditions only exist on outgoing transitions of xor gateways
       const sourceXorGateways = process.xorGateways.filter(gw => gw.id === transition.source);

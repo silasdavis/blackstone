@@ -7,7 +7,7 @@ const {
   rightPad,
   getNamesOfOrganizations,
 } = require(`${global.__common}/controller-dependencies`);
-const { DEFAULT_DEPARTMENT_ID } = global.__monax_constants;
+const { DEFAULT_DEPARTMENT_ID } = global.__constants;
 const pgq = require('./postgres-query-helper');
 
 const getOrganizations = queryParams => new Promise((resolve, reject) => {

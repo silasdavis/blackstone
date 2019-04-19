@@ -2,13 +2,13 @@ const crypto = require('crypto');
 const _ = require('lodash');
 const boom = require('boom');
 
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('monax.controllers');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('controllers.dependencies');
+const pool = require(`${global.__common}/postgres-db`)();
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
-} = global.__monax_constants;
+} = global.__constants;
 
 const trimBufferPadding = (buf) => {
   let lo = 0;
@@ -23,6 +23,19 @@ const trimBufferPadding = (buf) => {
 };
 const hexToString = (hex = '') => trimBufferPadding(Buffer.from(hex, 'hex')).toString('utf8');
 const stringToHex = (str = '') => Buffer.from(str, 'utf8').toString('hex');
+
+/**
+ * Wrapper for async route handlers to catch promise rejections
+ * and pass them to express error handler
+ */
+const asyncMiddleware = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    if (!err.isBoom) {
+      return next(boom.badImplementation(err));
+    }
+    return next(err);
+  });
+};
 
 const dependencies = {
   rightPad: (hex, len) => {
@@ -256,37 +269,27 @@ const dependencies = {
   getParticipantNames: async (participants, addressKey = 'address') => {
     const text = `SELECT address, COALESCE(username, name) AS "displayName"
     FROM (
-      SELECT username, NULL AS name, address FROM users
+      SELECT username, NULL AS name, address FROM ${global.db.schema.app}.users
       UNION
-      SELECT NULL AS username, name, address FROM organizations
+      SELECT NULL AS username, name, address FROM ${global.db.schema.app}.organizations
     ) accounts
     WHERE address = ANY($1);`;
+    const client = await pool.connect();
     try {
-      const { rows: withNames } = await app_db_pool.query({
+      const { rows: withNames } = await client.query(
         text,
-        values: [participants.map(({ [addressKey]: address }) => address)],
-      });
+        [participants.map(({ [addressKey]: address }) => address)],
+      );
       const names = {};
       withNames.forEach(({ address, displayName }) => {
         names[address] = { displayName };
       });
+      client.release();
       return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
     } catch (err) {
+      client.release();
       throw boom.badImplementation(err);
     }
-  },
-
-  /**
-   * Wrapper for async route handlers to catch promise rejections
-   * and pass them to express error handler
-   */
-  asyncMiddleware: fn => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch((err) => {
-      if (!err.isBoom) {
-        return next(boom.badImplementation(err));
-      }
-      return next(err);
-    });
   },
 
   byteLength: string => string.split('').reduce((acc, el) => {
@@ -307,15 +310,29 @@ const dependencies = {
   prependHttps: (host) => {
     if (!String(host).startsWith('http')) {
       // eslint-disable-next-line no-param-reassign
-      host = process.env.MONAX_ENV === 'local' ? `http://${host}` : `https://${host}`;
+      host = process.env.APP_ENV === 'local' ? `http://${host}` : `https://${host}`;
       return host;
     }
     return host;
   },
 
+  sendResponse: asyncMiddleware((req, res, next) => {
+    if (res.statusCode === 302) {
+      if (!res.locals.data || typeof res.locals.data !== 'string') throw boom.badImplementation('Bad or empty url. Cannot redirect');
+      res.redirect(res.locals.data);
+    } else if (typeof res.locals.data === 'string') {
+      res.json(res.locals.data);
+    } else {
+      // `.send` will detect Arrays and Objects and use `.json` under the hood
+      res.send(res.locals.data);
+    }
+    return next();
+  }),
+
   trimBufferPadding,
   hexToString,
   stringToHex,
+  asyncMiddleware,
 };
 
 module.exports = dependencies;

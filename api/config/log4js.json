@@ -1,11 +1,5 @@
 {
-  "loggers" : [
-    {
-      "name": "monax",
-      "level": "INFO",
-      "category": "monax"
-    }
-  ],
+  "reloadSecs": 300,
   "appenders": {
     "out": {
       "type": "stdout",
@@ -19,11 +13,39 @@
       "appenders": ["out"],
       "level": "INFO"
     },
-    "monax": {
+    "app": {
       "appenders": ["out"],
       "level": "INFO"
     },
-    "agreements": {
+    "controllers": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "burrow": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "vent-helper": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "scripts": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "tests": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "queries": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "notifications": {
+      "appenders": ["out"],
+      "level": "INFO"
+    },
+    "analytics": {
       "appenders": ["out"],
       "level": "INFO"
     }

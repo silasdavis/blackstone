@@ -7,8 +7,7 @@ const { ensureAuth } = require(`${global.__common}/middleware`);
 // APIs defined according to specification found here -> http://apidocjs.com
 module.exports = (app, customMiddleware) => {
   // Use custom middleware if passed, otherwise use plain old ensureAuth
-  let middleware = [];
-  middleware = middleware.concat(customMiddleware.length ? customMiddleware : [ensureAuth]);
+  const middleware = customMiddleware || ensureAuth;
 
   /* **************
    * Content

@@ -5,9 +5,9 @@ const bcrypt = require('bcryptjs');
 const boom = require('boom');
 
 const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('agreements.auth');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('controllers.auth');
+const pool = require(`${global.__common}/postgres-db`)();
 
 const login = (req, res, next) => {
   if ((!req.body.username && !req.body.email) || !req.body.password) {
@@ -26,36 +26,38 @@ const login = (req, res, next) => {
       createdAt: user.createdAt,
     };
     log.info(`${user.username} logged in successfully`);
-    return res
-      .cookie(global.__settings.monax.cookie.name, user.token, {
-        secure: global.__settings.monax.cookie.secure,
-        maxAge: global.__settings.monax.cookie.maxAge,
-        httpOnly: global.__settings.monax.cookie.httpOnly,
-      })
-      .status(200)
-      .json(userData);
-  })(req, res);
+    res.cookie(global.__settings.cookie.name, user.token, {
+      secure: global.__settings.cookie.secure,
+      maxAge: global.__settings.cookie.maxAge,
+      httpOnly: global.__settings.cookie.httpOnly,
+    }).status(200);
+    res.locals.data = userData;
+    return next();
+  })(req, res, next);
 };
 
-const validateToken = asyncMiddleware(async (req, res) => {
-  if (req.user) return res.status(200).json(req.user);
+const validateToken = asyncMiddleware(async (req, res, next) => {
+  if (req.user) {
+    res.locals.data = req.user;
+    res.status(200);
+    return next();
+  }
   throw boom.unauthorized('Unauthorized - no logged in user');
 });
 
-const logout = (req, res) => {
+const logout = (req, res, next) => {
   req.logout();
-  res
-    .clearCookie('access_token')
-    .status(200)
-    .json({ message: 'User logged out' });
+  res.clearCookie('access_token').status(200);
+  res.locals.data = { message: 'User logged out' };
+  return next();
 };
 
-const createRecoveryCode = asyncMiddleware(async (req, res) => {
-  const client = await app_db_pool.connect();
+const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
+  const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query({
-      text: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+      text: `SELECT id FROM ${global.db.schema.app}.users WHERE LOWER(email) = LOWER($1)`,
       values: [req.body.email],
     });
     let msg;
@@ -68,11 +70,11 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
       const recoveryCode = crypto.randomBytes(32).toString('hex');
       hash.update(recoveryCode);
       await client.query({
-        text: 'DELETE FROM password_change_requests WHERE user_id = $1',
+        text: `DELETE FROM ${global.db.schema.chain}.password_change_requests WHERE user_id = $1`,
         values: [rows[0].id],
       });
       await client.query({
-        text: 'INSERT INTO password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);',
+        text: `INSERT INTO ${global.db.schema.chain}.password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);`,
         values: [rows[0].id, hash.digest('hex')],
       });
       msg = {
@@ -96,7 +98,8 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
     await sendgrid.send(msg);
     log.info(`Recovery code created for user with email ${req.body.email}`);
     client.release();
-    res.status(200).send();
+    res.status(200);
+    return next();
   } catch (err) {
     await client.query('ROLLBACK');
     client.release();
@@ -104,29 +107,36 @@ const createRecoveryCode = asyncMiddleware(async (req, res) => {
   }
 });
 
-const validateRecoveryCode = asyncMiddleware(async (req, res) => {
+const validateRecoveryCode = asyncMiddleware(async (req, res, next) => {
   const hash = crypto.createHash('sha256');
   hash.update(req.params.recoveryCode);
-  const { rows } = await app_db_pool.query({
-    text:
-      "SELECT * FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
-    values: [hash.digest('hex')],
-  });
-  if (rows[0]) {
-    log.info('Recovery code validated');
-    return res.sendStatus(200);
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      `SELECT * FROM ${global.db.schema.app}.password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1`,
+      [hash.digest('hex')],
+    );
+    if (rows[0]) {
+      log.info('Recovery code validated');
+      res.status(200);
+      client.release();
+      return next();
+    }
+    throw boom.badRequest('Valid recovery code not found.');
+  } catch (err) {
+    client.release();
+    if (err.isBoom) return next(err);
+    return next(boom.badImplementation(`Failed to validate recovery code: ${err.stack}`));
   }
-  throw boom.badRequest('Valid recovery code not found.');
 });
 
-const resetPassword = asyncMiddleware(async (req, res) => {
-  const client = await app_db_pool.connect();
+const resetPassword = asyncMiddleware(async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const codeHash = crypto.createHash('sha256');
     codeHash.update(req.params.recoveryCode);
     const { rows } = await client.query({
-      text:
-          "SELECT user_id FROM password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1",
+      text: `SELECT user_id FROM ${global.db.schema.app}.password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1`,
       values: [codeHash.digest('hex')],
     });
     if (rows[0]) {
@@ -143,7 +153,8 @@ const resetPassword = asyncMiddleware(async (req, res) => {
       });
       client.release();
       log.info(`Password successfully updated for user id ${rows[0].user_id} and recovery code deleted`);
-      return res.status(200).send();
+      res.status(200);
+      return next();
     }
     throw boom.badRequest('Valid recovery code not found.');
   } catch (err) {

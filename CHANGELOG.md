@@ -78,7 +78,7 @@ This release was tested with the following software and versions:
 - Allow external users to register for an account address only via email
 - Updated GET /bpm/process-definitions route to add optional query params
 - Added storage of data definitions access functions in `bpm-model/DefaultProcessModel.sol`. The data parameters from the XML process model are now persisted in the ProcessModel and exported to a new Vent table PROCESS_MODEL_DATA
-- Added 4 new parameter types to `common/monax-constants.js` and `commons-utils/DataTypesAccess.sol`: BYTES32, DOCUMENT, LARGE_TEXT, POSITIVE_NUMBER
+- Added 4 new parameter types to `common/constants.js` and `commons-utils/DataTypesAccess.sol`: BYTES32, DOCUMENT, LARGE_TEXT, POSITIVE_NUMBER
 - Improved API with ability to add your custom middleware to the blackstone API. Also added the ability to accept a custom passport config.
 - Added support for external users to execute IN/OUT data mappings on activities
 - Upgraded `bpm-model/DefaultProcessModelRepository.sol` to version 1.1.0 in order to support an upgrade to changed contracts `DefaultProcessModel` and `DefaultProcessDefinition` which adds events for data-mapping information that populates the new Vent table `DATA_MAPPINGS`. An upgrade script for existing deployments `contracts/upgrade/ProcessModelRepository-1.1.0.yaml` was added.

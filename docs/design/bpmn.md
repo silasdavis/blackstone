@@ -1,6 +1,6 @@
 # Creating A Workflow
 
-The following are descriptions of the elements required to compose a valid BPMN diagram for the Agreements Network using the Camunda [desktop modeler](https://camunda.com/products/modeler/) or [integrated modeler](https://staging.beta.monax.io/editor) in the Monax Webapp.
+The following are descriptions of the elements required to compose a valid BPMN diagram for the Agreements Network using the Camunda [desktop modeler](https://camunda.com/products/modeler/).
 
 All values in 'quotes' must be used as is (without quotes).
 
