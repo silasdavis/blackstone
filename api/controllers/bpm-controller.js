@@ -243,7 +243,7 @@ const completeActivity = asyncMiddleware(async (req, res, next) => {
 });
 
 const saveSignature = async (req, agreementAddress) => {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',').pop() ||
+  const ip = (req.headers['X-Original-Forwarded-For'] || '').split(',').pop() ||
          req.connection.remoteAddress ||
          req.socket.remoteAddress ||
          req.connection.socket.remoteAddress;
