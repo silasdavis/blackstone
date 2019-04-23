@@ -425,7 +425,7 @@ const createAgreement = asyncMiddleware(async (req, res, next) => {
   await sqlCache.insertAgreementDetails({ address: agreementAddress, name: req.body.name });
   const piAddress = await contracts.startProcessFromAgreement(agreementAddress);
   log.debug(`Process Instance Address: ${piAddress}`);
-  res.locals.data = { address: agreementAddress, newUsers };
+  res.locals.data = { address: agreementAddress, newUsers, parameters };
   res.status(200);
   return next();
 });
