@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const boom = require('boom');
-
+const sqlCache = require(`${global.__controllers}/postgres-query-helper`);
 const { asyncMiddleware, prependHttps } = require(`${global.__common}/controller-dependencies`);
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.auth');
@@ -108,23 +108,17 @@ const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
 });
 
 const validateRecoveryCode = asyncMiddleware(async (req, res, next) => {
-  const hash = crypto.createHash('sha256');
-  hash.update(req.params.recoveryCode);
-  const client = await pool.connect();
   try {
-    const { rows } = await client.query(
-      `SELECT * FROM ${global.db.schema.app}.password_change_requests WHERE created_at > now() - time '00:15' AND recovery_code_digest = $1`,
-      [hash.digest('hex')],
-    );
-    if (rows[0]) {
+    const hash = crypto.createHash('sha256');
+    hash.update(req.params.recoveryCode);
+    const code = await sqlCache.validateRecoveryCode(hash.digest('hex'));
+    if (code) {
       log.info('Recovery code validated');
       res.status(200);
-      client.release();
       return next();
     }
     throw boom.badRequest('Valid recovery code not found.');
   } catch (err) {
-    client.release();
     if (err.isBoom) return next(err);
     return next(boom.badImplementation(`Failed to validate recovery code: ${err.stack}`));
   }

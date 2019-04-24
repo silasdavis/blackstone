@@ -368,8 +368,8 @@ const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agre
 
 const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
   const getterFunc = archAddr
-    ? dataStorage.getArchetypeValidParameters
-    : dataStorage.getAgreementValidParameters;
+    ? sqlCache.getArchetypeValidParameters
+    : sqlCache.getAgreementValidParameters;
   const archetypeParamDetails = await getterFunc(archAddr || agreeAddr);
   return new Promise((resolve, reject) => {
     const params = Array.isArray(parameters) ? parameters : [];
@@ -452,7 +452,7 @@ const _getPrivateAgreementParameters = async (fileRef) => {
 
 const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
   try {
-    const agreementParams = await dataStorage.getAgreementValidParameters(agreementAddr);
+    const agreementParams = await sqlCache.getAgreementValidParameters(agreementAddr);
     const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams);
     if (invalidParams.length > 0) {
       throw boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`);

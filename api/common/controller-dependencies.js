@@ -4,7 +4,7 @@ const boom = require('boom');
 
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.dependencies');
-const pool = require(`${global.__common}/postgres-db`)();
+const { getParticipantNames } = require(`${global.__controllers}/postgres-query-helper`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
@@ -267,27 +267,14 @@ const dependencies = {
   },
 
   getParticipantNames: async (participants, addressKey = 'address') => {
-    const text = `SELECT address, COALESCE(username, name) AS "displayName"
-    FROM (
-      SELECT username, NULL AS name, address FROM ${global.db.schema.app}.users
-      UNION
-      SELECT NULL AS username, name, address FROM ${global.db.schema.app}.organizations
-    ) accounts
-    WHERE address = ANY($1);`;
-    const client = await pool.connect();
     try {
-      const { rows: withNames } = await client.query(
-        text,
-        [participants.map(({ [addressKey]: address }) => address)],
-      );
+      const withNames = await getParticipantNames(participants.map(({ [addressKey]: address }) => address));
       const names = {};
       withNames.forEach(({ address, displayName }) => {
         names[address] = { displayName };
       });
-      client.release();
       return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
     } catch (err) {
-      client.release();
       throw boom.badImplementation(err);
     }
   },
