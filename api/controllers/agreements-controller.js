@@ -8,7 +8,6 @@ const {
   splitMeta,
   asyncMiddleware,
   getBooleanFromString,
-  getParticipantNames,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
@@ -16,7 +15,7 @@ const archetypeSchema = require(`${global.__schemas}/archetype`);
 const agreementSchema = require(`${global.__schemas}/agreement`);
 const { hoardGet, hoardPut } = require(`${global.__controllers}/hoard-controller`);
 const { parseBpmnModel } = require(`${global.__controllers}/bpm-controller`);
-const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
+const { createOrFindAccountsWithEmails, getParticipantNames } = require(`${global.__controllers}/participants-controller`);
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.agreements');
 const sqlCache = require('./postgres-query-helper');
@@ -368,8 +367,8 @@ const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agre
 
 const setAgreementParameters = async (agreeAddr, archAddr, parameters) => {
   const getterFunc = archAddr
-    ? dataStorage.getArchetypeValidParameters
-    : dataStorage.getAgreementValidParameters;
+    ? sqlCache.getArchetypeValidParameters
+    : sqlCache.getAgreementValidParameters;
   const archetypeParamDetails = await getterFunc(archAddr || agreeAddr);
   return new Promise((resolve, reject) => {
     const params = Array.isArray(parameters) ? parameters : [];
@@ -452,7 +451,7 @@ const _getPrivateAgreementParameters = async (fileRef) => {
 
 const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
   try {
-    const agreementParams = await dataStorage.getAgreementValidParameters(agreementAddr);
+    const agreementParams = await sqlCache.getAgreementValidParameters(agreementAddr);
     const { promises, invalidParams } = _generateParamGetterPromises(agreementAddr, agreementParams);
     if (invalidParams.length > 0) {
       throw boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`);

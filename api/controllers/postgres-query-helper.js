@@ -11,7 +11,7 @@ const pool = require(`${global.__common}/postgres-db`)();
 const { app: appDb, chain: chainDb } = global.db.schema;
 
 const QUERIES = {
-  insertUser: `INSERT INTO ${global.db.schema.app}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
+  insertUser: `INSERT INTO ${appDb}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
     VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;`,
 
   insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2);`,
@@ -235,6 +235,38 @@ const QUERIES = {
   removeDepartmentDetails: `DELETE FROM ${appDb}.department_details WHERE organization_address = $1 AND id = $2`,
 
   insertUserActivationCode: `INSERT INTO ${appDb}.user_activation_requests (user_id, activation_code_digest) VALUES($1, $2);`,
+
+  getParticipantNames: `SELECT address, COALESCE(username, name) AS "displayName"
+    FROM (
+      SELECT username, NULL AS name, address FROM ${appDb}.users
+      UNION
+      SELECT NULL AS username, name, address FROM ${appDb}.organizations
+    ) accounts
+    WHERE address = ANY($1);`,
+
+  getAgreementValidParameters: `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
+    FROM ${chainDb}.agreements ag
+    JOIN ${chainDb}.archetype_parameters ap ON ag.archetype_address = ap.archetype_address
+    WHERE ag.agreement_address = $1;`,
+
+  getArchetypeValidParameters: `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
+    FROM ${chainDb}.archetype_parameters ap
+    WHERE ap.archetype_address = $1;`,
+
+  validateRecoveryCode: `SELECT *
+    FROM ${appDb}.password_change_requests
+    WHERE created_at > now() - time '00:15' AND
+    recovery_code_digest = $1`,
+
+  getUserByUsernameOrEmail: `SELECT LOWER(email) AS email, LOWER(username) AS username,
+    external_user AS "externalUser"
+    FROM ${appDb}.users
+    WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);`,
+
+  upgradeExternalUser: `UPDATE ${appDb}.users
+    SET external_user = false, username = $1, first_name = $2, last_name = $3, password_digest = $4, is_producer = $5
+    WHERE email = $6
+    RETURNING id, address;`,
 };
 
 const runQuery = (queryString, values = []) => pool
@@ -958,6 +990,42 @@ const insertDepartmentDetails = ({ organizationAddress, id, name }) => runQuery(
 const removeDepartmentDetails = ({ organizationAddress, id }) => runQuery(QUERIES.removeDepartmentDetails, [organizationAddress, id])
   .catch((err) => { throw boom.badImplementation(`Failed to remove department details: ${err.stack}`); });
 
+const getParticipantNames = addresses => runQuery(QUERIES.getParticipantNames, [addresses])
+  .catch((err) => { throw boom.badImplementation(`Failed to get participant names: ${err.stack}`); });
+
+const getUserByIdType = async ({ idType, id }) => {
+  try {
+    const text = `SELECT id, username, email, address, password_digest AS "passwordDigest",
+    created_at AS "createdAt", activated, first_name AS "firstName", last_name AS "lastName", country, region,
+    is_producer AS "isProducer", onboarding
+    FROM ${appDb}.users
+    WHERE LOWER(${idType}) = LOWER($1)`;
+    return (await runQuery(text, [id]))[0];
+  } catch (err) {
+    throw boom.badImplementation(`Failed to get participant names: ${err.stack}`);
+  }
+};
+
+const getAgreementValidParameters = agreementAddress => runQuery(QUERIES.getAgreementValidParameters, [agreementAddress])
+  .catch((err) => { throw boom.badImplementation(`Failed to get valid parameters for agreement: ${err.stack}`); });
+
+const getArchetypeValidParameters = archetypeAddress => runQuery(QUERIES.getArchetypeValidParameters, [archetypeAddress])
+  .catch((err) => { throw boom.badImplementation(`Failed to get valid parameters for agreement: ${err.stack}`); });
+
+const validateRecoveryCode = code => runQuery(QUERIES.validateRecoveryCode, [code])
+  .then(rows => rows[0])
+  .catch((err) => { throw boom.badImplementation(`Failed to find password recovery code: ${err.stack}`); });
+
+const getUserByUsernameOrEmail = ({ email, username }) => runQuery(QUERIES.getUserByUsernameOrEmail, [email, username])
+  .then(rows => rows[0])
+  .catch((err) => { throw boom.badImplementation(`Failed to find user by username or email: ${err.stack}`); });
+
+const upgradeExternalUser = ({
+  username, firstName, lastName, passwordDigest, isProducer, email,
+}) => runQuery(QUERIES.upgradeExternalUser, [username, firstName, lastName, passwordDigest, isProducer, email])
+  .then(rows => rows[0])
+  .catch((err) => { throw boom.badImplementation(`Failed to upgrade external user: ${err.stack}`); });
+
 module.exports = {
   insertUser,
   insertUserActivationCode,
@@ -1020,4 +1088,11 @@ module.exports = {
   insertCollectionDetails,
   insertDepartmentDetails,
   removeDepartmentDetails,
+  getParticipantNames,
+  getUserByIdType,
+  getAgreementValidParameters,
+  getArchetypeValidParameters,
+  validateRecoveryCode,
+  getUserByUsernameOrEmail,
+  upgradeExternalUser,
 };

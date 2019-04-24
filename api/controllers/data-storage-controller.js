@@ -2,7 +2,6 @@ const logger = require(`${global.__common}/logger`);
 const contracts = require('../controllers/contracts-controller');
 const CONTRACT_ACTIVE_AGREEMENT = global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT;
 const { PARAMETER_TYPES: PARAM_TYPE, DATA_TYPES } = global.__constants;
-const pool = require(`${global.__common}/postgres-db`)();
 const log = logger.getLogger('controllers.data-storage');
 
 /* **********************************************************
@@ -308,41 +307,6 @@ const setActivityOutDataAsAddress = (userAddr, activityInstanceId, dataMappingId
   }
 });
 
-/* **********************************
- *            UTILS
- ********************************** */
-
-const getAgreementValidParameters = agreementAddr => new Promise((resolve, reject) => {
-  const queryStr = `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-    FROM ${global.db.schema.chain}.agreements ag
-    JOIN ${global.db.schema.chain}.archetype_parameters ap ON ag.archetype_address = ap.archetype_address
-    WHERE ag.agreement_address = $1;`;
-  pool.connect().then(client => client.query(queryStr, [agreementAddr])
-    .then((res) => {
-      client.release();
-      return resolve(res.rows);
-    })
-    .catch((err) => {
-      client.release();
-      return reject(err);
-    }));
-});
-
-const getArchetypeValidParameters = archetypeAddr => new Promise((resolve, reject) => {
-  const queryStr = `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-  FROM ${global.db.schema.chain}.archetype_parameters ap
-  WHERE ap.archetype_address = $1;`;
-  pool.connect().then(client => client.query(queryStr, [archetypeAddr])
-    .then((res) => {
-      client.release();
-      resolve(res.rows);
-    })
-    .catch((err) => {
-      client.release();
-      return reject(err);
-    }));
-});
-
 agreementDataSetters[`${PARAM_TYPE.BOOLEAN}`] = setDataValueAsBool;
 agreementDataSetters[`${PARAM_TYPE.STRING}`] = setDataValueAsString;
 agreementDataSetters[`${PARAM_TYPE.NUMBER}`] = setDataValueAsInt;
@@ -391,6 +355,4 @@ module.exports = {
   agreementDataGetters,
   activityOutDataSetters,
   activityInDataGetters,
-  getAgreementValidParameters,
-  getArchetypeValidParameters,
 };

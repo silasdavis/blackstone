@@ -2,7 +2,6 @@ const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const passportJwt = require('passport-jwt');
 const bcrypt = require('bcryptjs');
-const pool = require(`${global.__common}/postgres-db`)();
 const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
@@ -71,24 +70,17 @@ module.exports = (passport) => {
   Return success
   */
   const authenticate = async (usernameOrEmail, idType, password, done) => {
-    const text = `SELECT username, email, address, password_digest, created_at, activated
-      FROM ${global.db.schema.app}.users WHERE LOWER(${idType}) = LOWER($1)`;
-    const client = await pool.connect();
     try {
-      const { rows } = await client.query(
-        text,
-        [usernameOrEmail],
-      );
-      client.release();
-      if (!rows[0]) {
+      const user = await sqlCache.getUserByIdType({ idType, id: usernameOrEmail });
+      if (!user) {
         return done(null, false, { message: `Invalid login credentials - no user found in customers.users with ${idType} [ ${usernameOrEmail} ]` });
       }
-      if (!rows[0].activated) {
+      if (!user.activated) {
         return done(null, false, { message: 'User account not yet activated' });
       }
       const {
-        username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
-      } = rows[0];
+        username, passwordDigest: pwDigest, address: addressFromPg, createdAt,
+      } = user;
 
       // The following section is an additional security measure.
       // The UserAccount address for the user logging in is retrieved from the the Ecosystem smart contract

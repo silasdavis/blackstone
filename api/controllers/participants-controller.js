@@ -22,6 +22,19 @@ const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const { PARAMETER_TYPES: PARAM_TYPE } = global.__constants;
 
+const getParticipantNames = async (participants, addressKey = 'address') => {
+  try {
+    const withNames = await db.getParticipantNames(participants.map(({ [addressKey]: address }) => address));
+    const names = {};
+    withNames.forEach(({ address, displayName }) => {
+      names[address] = { displayName };
+    });
+    return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
+  } catch (err) {
+    throw boom.badImplementation(err);
+  }
+};
+
 const getOrganizations = asyncMiddleware(async (req, res, next) => {
   if (req.query.approver === 'true') {
     req.query.approver_address = req.user.address;
@@ -224,7 +237,7 @@ const _userExistsOnChain = async (username) => {
   }
 };
 
-const upgradeExternalUser = async (client, {
+const upgradeExternalUser = async ({
   username,
   email,
   firstName,
@@ -233,15 +246,12 @@ const upgradeExternalUser = async (client, {
   isProducer,
 }) => {
   try {
-    const queryString = `UPDATE ${global.db.schema.app}.users
-    SET external_user = false, username = $1, first_name = $2, last_name = $3, password_digest = $4, is_producer = $5
-    WHERE email = $6
-    RETURNING id, address;`;
-    const { rows } = await client.query({ text: queryString, values: [username, firstName, lastName, passwordDigest, isProducer, email] });
-    await contracts.addUserToEcosystem(getSHA256Hash(username), rows[0].address);
-    return rows[0];
+    const user = db.upgradeExternalUser({
+      username, firstName, lastName, passwordDigest, isProducer, email,
+    });
+    await contracts.addUserToEcosystem(getSHA256Hash(username), user.address);
+    return user;
   } catch (err) {
-    client.release();
     if (err.isBoom) throw err;
     throw boom.badImplementation(`Failed to upgrade external user to regular user: ${err.stack}`);
   }
@@ -252,7 +262,6 @@ const registerUser = async (userData) => {
   let userId;
   let existingEmail;
   let isExternalUser; // indicates user already exists as "external user"
-  const client = await pool.connect();
   const { error, value } = Joi.validate(userData, userSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
   const {
@@ -260,21 +269,17 @@ const registerUser = async (userData) => {
   } = value;
   // check if email or username already registered in pg
   try {
-    const { rows } = await client.query({
-      text: `SELECT LOWER(email) AS email, LOWER(username) AS username, external_user AS "externalUser" FROM ${global.db.schema.app}.users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);`,
-      values: [email, username],
-    });
-    if (rows[0]) existingEmail = rows[0].email;
-    isExternalUser = rows[0] && rows[0].externalUser && rows[0].email === email.toLowerCase();
-    if (rows[0] && !isExternalUser) {
-      if (rows[0].email === email.toLowerCase()) {
+    const user = await db.getUserByUsernameOrEmail({ email, username });
+    if (user) existingEmail = user.email;
+    isExternalUser = user && user.externalUser && user.email === email.toLowerCase();
+    if (user && !isExternalUser) {
+      if (user.email === email.toLowerCase()) {
         throw boom.badData(`Email ${email} already registered`);
-      } else if (rows[0].username === username.toLowerCase()) {
+      } else if (user.username === username.toLowerCase()) {
         throw boom.badData(`Username ${username} already registered`);
       }
     }
   } catch (err) {
-    client.release();
     if (err.isBoom) throw err;
     throw boom.badImplementation(`Failed to validate if username already registered : ${err.stack}`);
   }
@@ -285,7 +290,6 @@ const registerUser = async (userData) => {
       const userInCache = await _userExistsOnChain(username);
       if (userInCache) throw boom.badData(`Username ${username} already exists`);
     } catch (err) {
-      client.release();
       if (err.isBoom) throw err;
       throw boom.badImplementation(`Failed to validate if user exists on chain: ${err.stack}`);
     }
@@ -294,7 +298,6 @@ const registerUser = async (userData) => {
     try {
       address = await contracts.createUser({ username: getSHA256Hash(username) });
     } catch (err) {
-      client.release();
       throw boom.badImplementation(`Failed to create user on chain: ${err.stack}`);
     }
   }
@@ -302,7 +305,7 @@ const registerUser = async (userData) => {
   const passwordHash = await bcrypt.hash(password, salt);
 
   if (isExternalUser) {
-    ({ id: userId, address } = await upgradeExternalUser(client, {
+    ({ id: userId, address } = await upgradeExternalUser({
       username,
       email: existingEmail,
       firstName,
@@ -316,7 +319,6 @@ const registerUser = async (userData) => {
     try {
       userId = await db.insertUser(address, username, firstName, lastName, email, passwordHash, isProducer);
     } catch (err) {
-      client.release();
       throw boom.badImplementation(`Failed to save user in db: ${err.stack}`);
     }
   }
@@ -329,11 +331,9 @@ const registerUser = async (userData) => {
     await db.insertUserActivationCode(userId, codeHash.digest('hex'));
     log.info(`Saved activation code ${activationCode} for user at address ${address}`);
   } catch (err) {
-    client.release();
     throw boom.badImplementation(`Failed to save user activation code: ${err.stack}`);
   }
 
-  client.release();
   return {
     address, username, email, activationCode,
   };
@@ -427,19 +427,12 @@ const getProfile = asyncMiddleware(async (req, res, next) => {
   });
   user.organizations = Object.values(organizations);
   delete user.organization;
-  const client = await pool.connect();
   try {
-    const { rows } = await client.query({
-      text: `SELECT id, username, email, created_at AS "createdAt", first_name AS "firstName", last_name AS "lastName", country, region, is_producer AS "isProducer", onboarding
-        FROM ${global.db.schema.app}.users WHERE address = $1`,
-      values: [userAddress],
-    });
-    res.locals.data = _.merge(user, rows[0]);
+    const userData = await db.getUserByIdType({ idType: 'address', id: userAddress });
+    res.locals.data = _.merge(user, userData);
     res.status(200);
-    client.release();
     return next();
   } catch (err) {
-    client.release();
     return next(boom.badImplementation(`Failed to get profile data for user at ${userAddress}: ${err}`));
   }
 });
@@ -564,6 +557,7 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
 };
 
 module.exports = {
+  getParticipantNames,
   getOrganizations,
   getOrganization,
   createOrganization,
