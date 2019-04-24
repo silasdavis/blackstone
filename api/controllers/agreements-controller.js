@@ -8,7 +8,6 @@ const {
   splitMeta,
   asyncMiddleware,
   getBooleanFromString,
-  getParticipantNames,
 } = require(`${global.__common}/controller-dependencies`);
 const contracts = require('./contracts-controller');
 const dataStorage = require(path.join(global.__controllers, 'data-storage-controller'));
@@ -16,7 +15,7 @@ const archetypeSchema = require(`${global.__schemas}/archetype`);
 const agreementSchema = require(`${global.__schemas}/agreement`);
 const { hoardGet, hoardPut } = require(`${global.__controllers}/hoard-controller`);
 const { parseBpmnModel } = require(`${global.__controllers}/bpm-controller`);
-const { createOrFindAccountsWithEmails } = require(`${global.__controllers}/participants-controller`);
+const { createOrFindAccountsWithEmails, getParticipantNames } = require(`${global.__controllers}/participants-controller`);
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.agreements');
 const sqlCache = require('./postgres-query-helper');

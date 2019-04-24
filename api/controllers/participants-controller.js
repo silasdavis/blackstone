@@ -22,6 +22,19 @@ const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const { PARAMETER_TYPES: PARAM_TYPE } = global.__constants;
 
+const getParticipantNames = async (participants, addressKey = 'address') => {
+  try {
+    const withNames = await db.getParticipantNames(participants.map(({ [addressKey]: address }) => address));
+    const names = {};
+    withNames.forEach(({ address, displayName }) => {
+      names[address] = { displayName };
+    });
+    return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
+  } catch (err) {
+    throw boom.badImplementation(err);
+  }
+};
+
 const getOrganizations = asyncMiddleware(async (req, res, next) => {
   if (req.query.approver === 'true') {
     req.query.approver_address = req.user.address;
@@ -544,6 +557,7 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
 };
 
 module.exports = {
+  getParticipantNames,
   getOrganizations,
   getOrganization,
   createOrganization,

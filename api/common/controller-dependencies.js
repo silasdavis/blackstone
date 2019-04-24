@@ -1,10 +1,8 @@
 const crypto = require('crypto');
 const _ = require('lodash');
 const boom = require('boom');
-
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('controllers.dependencies');
-const { getParticipantNames } = require(`${global.__controllers}/postgres-query-helper`);
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
@@ -264,19 +262,6 @@ const dependencies = {
       text,
       values,
     };
-  },
-
-  getParticipantNames: async (participants, addressKey = 'address') => {
-    try {
-      const withNames = await getParticipantNames(participants.map(({ [addressKey]: address }) => address));
-      const names = {};
-      withNames.forEach(({ address, displayName }) => {
-        names[address] = { displayName };
-      });
-      return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
-    } catch (err) {
-      throw boom.badImplementation(err);
-    }
   },
 
   byteLength: string => string.split('').reduce((acc, el) => {
