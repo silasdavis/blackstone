@@ -11,7 +11,7 @@ const pool = require(`${global.__common}/postgres-db`)();
 const { app: appDb, chain: chainDb } = global.db.schema;
 
 const QUERIES = {
-  insertUser: `INSERT INTO ${global.db.schema.app}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
+  insertUser: `INSERT INTO ${appDb}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
     VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;`,
 
   insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2);`,
@@ -245,25 +245,25 @@ const QUERIES = {
     WHERE address = ANY($1);`,
 
   getAgreementValidParameters: `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-    FROM ${global.db.schema.chain}.agreements ag
-    JOIN ${global.db.schema.chain}.archetype_parameters ap ON ag.archetype_address = ap.archetype_address
+    FROM ${chainDb}.agreements ag
+    JOIN ${chainDb}.archetype_parameters ap ON ag.archetype_address = ap.archetype_address
     WHERE ag.agreement_address = $1;`,
 
   getArchetypeValidParameters: `SELECT ap.parameter_name AS name, ap.parameter_type AS "parameterType"
-    FROM ${global.db.schema.chain}.archetype_parameters ap
+    FROM ${chainDb}.archetype_parameters ap
     WHERE ap.archetype_address = $1;`,
 
   validateRecoveryCode: `SELECT *
-    FROM ${global.db.schema.app}.password_change_requests
+    FROM ${appDb}.password_change_requests
     WHERE created_at > now() - time '00:15' AND
     recovery_code_digest = $1`,
 
   getUserByUsernameOrEmail: `SELECT LOWER(email) AS email, LOWER(username) AS username,
     external_user AS "externalUser"
-    FROM ${global.db.schema.app}.users
+    FROM ${appDb}.users
     WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2);`,
 
-  upgradeExternalUser: `UPDATE ${global.db.schema.app}.users
+  upgradeExternalUser: `UPDATE ${appDb}.users
     SET external_user = false, username = $1, first_name = $2, last_name = $3, password_digest = $4, is_producer = $5
     WHERE email = $6
     RETURNING id, address;`,
@@ -998,7 +998,7 @@ const getUserByIdType = async ({ idType, id }) => {
     const text = `SELECT id, username, email, address, password_digest AS "passwordDigest",
     created_at AS "createdAt", activated, first_name AS "firstName", last_name AS "lastName", country, region,
     is_producer AS "isProducer", onboarding
-    FROM ${global.db.schema.app}.users
+    FROM ${appDb}.users
     WHERE LOWER(${idType}) = LOWER($1)`;
     return (await runQuery(text, [id]))[0];
   } catch (err) {
