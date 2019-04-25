@@ -176,7 +176,7 @@ contract ActiveAgreementWorkflowTest {
 		agreementRegistry = createNewAgreementRegistry();
 
 		// make an agreement with fields of type address and add role qualifiers.
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), address(0), EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), address(0), EMPTY, governingArchetypes);
 		ActiveAgreement agreement = new DefaultActiveAgreement();
 		agreement.initialize(addr, address(this), "", false, parties, governingAgreements);
 		agreement.setDataValueAsBytes32("AgreementRoleField43", "SellerRole");
@@ -265,7 +265,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 1: Formation, but no execution
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, address(0), EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo1Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
@@ -276,7 +276,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 2: Execution, but no formation
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo2Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		// First try fail, because agreement is not executed
@@ -290,7 +290,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 1: No formation, no execution
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(0), address(0), EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), address(0), EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating Combo3Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
@@ -376,7 +376,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//
@@ -507,7 +507,7 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), formationPD, executionPD, EMPTY, governingArchetypes);
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, executionPD, EMPTY, governingArchetypes);
 		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
 
 		//

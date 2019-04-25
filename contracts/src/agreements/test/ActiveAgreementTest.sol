@@ -49,7 +49,7 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
 		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setEventLogReference(dummyFileRef);
@@ -102,7 +102,7 @@ contract ActiveAgreementTest {
 		parties.push(address(org1));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
 		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
@@ -157,7 +157,7 @@ contract ActiveAgreementTest {
 		parties.push(address(signer2));
 
 		archetype = new DefaultArchetype();
-		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, emptyArray);
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement1 = new DefaultActiveAgreement();
 		agreement1.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement2 = new DefaultActiveAgreement();

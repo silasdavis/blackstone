@@ -100,7 +100,7 @@ contract ActiveAgreementRegistryTest {
 
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 
-    	archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+    	archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 
 		if (address(agreementRegistry).call(functionRegistryCreateAgreement, 
 			address(0), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray)) {
@@ -140,7 +140,7 @@ contract ActiveAgreementRegistryTest {
 
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 	
-		archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		if (archetypeAddr == address(0)) return "Archetype creation returned empty address";
 
 		activeAgreement = agreementRegistry.createAgreement(archetypeAddr, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
@@ -200,10 +200,10 @@ contract ActiveAgreementRegistryTest {
 		
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 
-		employmentArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		employmentArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 
 		// trying to create a ndaAgreement with a governing employmentAgreement when the ndaArchetype does not have a governing employmentArchetype should fail
-		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		employmentAgreement = agreementRegistry.createAgreement(employmentArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		governingAgreements.push(employmentAgreement);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,
@@ -214,14 +214,14 @@ contract ActiveAgreementRegistryTest {
 		// trying to create a ndaAgreement with no governing employmentAgreement when the ndaArchetype has a governing employmentArchetype should fail
 		governingArchetypes.push(employmentArchetype);
 		governingAgreements.length = 0;
-		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, governingArchetypes);
+		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, governingArchetypes);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,
 			ndaArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements))) {
 				return "Expected failure when creating agreement with governing agreements when its archetype has no governing archetypes";
 		}
 
 		// trying to create a ndaAgreement with a unrelated governing agreement when the ndaArchetype has a governing employmentArchetype should fail
-		benefitsArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		benefitsArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		benefitsAgreement = agreementRegistry.createAgreement(benefitsArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		governingAgreements.push(benefitsAgreement);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,

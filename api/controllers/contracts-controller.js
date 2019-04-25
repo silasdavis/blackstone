@@ -262,6 +262,7 @@ const createArchetype = (type) => {
         archetype.isPrivate,
         archetype.active,
         archetype.author,
+        archetype.owner,
         archetype.formationProcessDefinition,
         archetype.executionProcessDefinition,
         archetype.packageId,

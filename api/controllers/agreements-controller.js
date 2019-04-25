@@ -140,15 +140,15 @@ const getArchetypes = asyncMiddleware(async (req, res, next) => {
 
 const getArchetype = asyncMiddleware(async (req, res, next) => {
   let data;
-  if (!req.params.address) throw boom.badRequest('Archetype address is required');
   data = await sqlCache.getArchetypeDataWithProcessDefinitions(req.params.address, req.user.address);
   if (!data) throw boom.notFound(`Archetype at ${req.params.address} not found or user has insufficient privileges`);
   data = format('Archetype', data);
   data.parameters = await sqlCache.getArchetypeParameters(req.params.address);
   // Early return if you only are fetching meta data
   if (getBooleanFromString(req.query.meta)) {
-    data.documents = [];
-    return res.json(data);
+    res.locals.data = data;
+    res.status(200);
+    return next();
   }
   data.jurisdictions = await sqlCache.getArchetypeJurisdictions(req.params.address);
   data.documents = await sqlCache.getArchetypeDocuments(req.params.address);
@@ -164,12 +164,8 @@ const createArchetype = asyncMiddleware(async (req, res, next) => {
   if (!req.body || Object.keys(req.body).length === 0) throw boom.badRequest('Archetype data required');
   let type = { ...req.body };
   type.parameters = type.parameters || [];
-  // TODO: Revisit setting of archetype author
-  // The author is overwritten with the logged-in-user's address for now
-  // since we do not yet have a review/approval process
-  // for changes made to an organization-authored archetype
-  // by a user who is part of that organization
   type.author = req.user.address;
+  if (!type.owner) type.owner = type.author;
   log.debug(`Request to create new archetype: ${type.name}`);
   const { value, error } = Joi.validate(type, archetypeSchema, { abortEarly: false });
   if (error) throw boom.badRequest(`Required fields missing or malformed: ${error}`);
@@ -190,6 +186,12 @@ const createArchetype = asyncMiddleware(async (req, res, next) => {
     if (packageData.author !== req.user.address) throw boom.forbidden(`Package with id ${type.packageId} is not modifiable by user at address ${req.user.address}`);
     if (type.isPrivate && !packageData.isPrivate) throw boom.badRequest(`Private archetype ${type.name} cannot be added to public package with id ${type.packageId}`);
   }
+  let validOwner = type.owner === req.user.address;
+  if (!validOwner) {
+    const userOrgStatus = await sqlCache.userStatusInOrganization(type.owner, req.user.address);
+    validOwner = (userOrgStatus.isMember || userOrgStatus.isApprover);
+  }
+  if (!validOwner) throw boom.badRequest(`Owner ${type.owner} is not a valid organization address, or the user is not a member or approver of the organization.`);
   delete type.name; // don't save these parameters on chain
   delete type.description;
   const archetypeAddress = await contracts.createArchetype(type);
@@ -209,38 +211,31 @@ const createArchetype = asyncMiddleware(async (req, res, next) => {
 });
 
 const activateArchetype = asyncMiddleware(async (req, res, next) => {
-  const archetype = req.params.address;
+  const { address } = req.params;
   const user = req.user.address;
-  const author = await contracts.getArchetypeAuthor(archetype);
-  if (user !== author) throw boom.unauthorized(`User at ${user} is not authorized to activate archetype at ${archetype}`);
-  await contracts.activateArchetype(archetype, user);
+  const archetype = sqlCache.getArchetypeData(address, user);
+  if (!archetype) throw boom.unauthorized(`User at ${user} is not authorized to activate archetype at ${address}`);
+  await contracts.activateArchetype(address, user);
   res.status(200);
   return next();
 });
 
 const deactivateArchetype = asyncMiddleware(async (req, res, next) => {
-  const archetype = req.params.address;
+  const { address } = req.params;
   const user = req.user.address;
-  const author = await contracts.getArchetypeAuthor(archetype);
-  if (user !== author) throw boom.unauthorized(`User at ${user} is not authorized to deactivate archetype at ${archetype}`);
-  await contracts.deactivateArchetype(archetype, user);
+  const archetype = sqlCache.getArchetypeData(address, user);
+  if (!archetype) throw boom.unauthorized(`User at ${user} is not authorized to deactivate archetype at ${address}`);
+  await contracts.deactivateArchetype(address, user);
   res.status(200);
   return next();
 });
 
 const setArchetypeSuccessor = asyncMiddleware(async (req, res, next) => {
-  const { address: archetype, successor } = req.params;
-  if (!archetype) throw boom.badRequest('Archetype address must be supplied');
-  await contracts.setArchetypeSuccessor(archetype, successor || 0x0, req.user.address);
-  res.status(200);
-  return next();
-});
-
-const getArchetypeSuccessor = asyncMiddleware(async (req, res, next) => {
-  const { archetype } = req.params;
-  if (!archetype) throw boom.badRequest('Archetype address must be supplied');
-  const successor = await contracts.getArchetypeSuccessor(archetype, req.user.address);
-  res.locals.data = { address: successor };
+  const { address, successor } = req.params;
+  const user = req.user.address;
+  const archetype = sqlCache.getArchetypeData(address, user);
+  if (!archetype) throw boom.unauthorized(`User at ${user} is not authorized to deactivate archetype at ${address}`);
+  await contracts.setArchetypeSuccessor(address, successor || 0x0, user);
   res.status(200);
   return next();
 });
@@ -333,7 +328,7 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res, next) => {
   const packageData = (await sqlCache.getArchetypePackage(packageId, req.user.address));
   const archetypeData = await sqlCache.getArchetypeData(archetypeAddress, req.user.address);
   if (!archetypeData) {
-    throw boom.forbidden(`Archetype at ${archetypeAddress} not found or user at ${req.user.address} is not the author of the private archetype at ${archetypeAddress} ` +
+    throw boom.forbidden(`Archetype at ${archetypeAddress} not found or user at ${req.user.address} does not have rights to access archetype at ${archetypeAddress} ` +
       `and thus not allowed to add it to the package with id ${packageId}`);
   }
   if (req.user.address !== packageData.author) throw boom.forbidden(`Package with id ${packageId} is not modifiable by user at address ${req.user.address}`);
@@ -643,7 +638,6 @@ module.exports = {
   activateArchetype,
   deactivateArchetype,
   setArchetypeSuccessor,
-  getArchetypeSuccessor,
   updateArchetypeConfiguration,
   addParametersToArchetype,
   createOrFindAccountsWithEmails,

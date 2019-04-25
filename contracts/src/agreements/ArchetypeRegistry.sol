@@ -41,6 +41,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	/**
 	 * @dev Creates a new archetype
 	 * @param _author author
+	 * @param _owner owner
 	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
@@ -56,6 +57,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 		bool _isPrivate, 
 		bool _active, 
 		address _author, 
+		address _owner, 
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
@@ -151,6 +153,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 		* @param _archetype the archetype address
 		* @return price price
 		* @return author author address
+		* @return owner owner address
 		* @return active bool
 		* @return isPrivate bool
 		* @return successor address
@@ -160,6 +163,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	function getArchetypeData(address _archetype) external view returns (
 		uint price,
 		address author,
+		address owner,
 		bool active,
 		bool isPrivate,
 		address successor,
