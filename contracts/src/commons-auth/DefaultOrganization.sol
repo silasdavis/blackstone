@@ -13,7 +13,7 @@ import "commons-auth/UserAccount.sol";
  * @title DefaultOrganization
  * @dev the default implementation of the Organization interface.
  */
-contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Organization {
+contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelegateTarget, Organization {
 	
 	using MappingsLib for Mappings.AddressBoolMap;
 	using ArrayUtilsLib for address[];
@@ -200,6 +200,61 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,0,0), AbstractDelega
 		} else {
 			userAccount = 0x0;
 		}
+	}
+
+	/**
+	 * @dev Adds the specified user to the approvers of this Organization.
+	 * @param _userAccount the user to add as an approver
+	 */
+    function addApprover(address _userAccount) public pre_onlyByApprovers {
+      ErrorsLib.revertIf(
+        _userAccount == address(0),
+        ErrorsLib.INVALID_INPUT(), "DefaultOrganization.addApprover", "Cannot add empty address to approvers"
+      );
+		for (uint i = 0; i < approvers.length; i++) {
+      ErrorsLib.revertIf(
+        approvers[i] == _userAccount,
+        ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultOrganization.addApprover", "Address already exists in approvers"
+      );
+    }
+    approvers.push(_userAccount);
+    emit LogOrganizationApproverUpdate(
+        EVENT_ID_ORGANIZATION_APPROVERS,
+        address(this),
+        _userAccount
+    );
+	}
+
+	/**
+	 * @dev Removes the user from this Organization's approvers
+	 * @param _userAccount the account to remove as an approver
+	 */
+	function removeApprover(address _userAccount) public pre_onlyByApprovers {
+    ErrorsLib.revertIf(
+      approvers.length == 1,
+      ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultOrganization.removeApprover", "Organization must have at least 1 approver"
+    );
+    uint idx;
+    uint remove_idx;
+    for (idx = 0; idx < approvers.length; idx++) {
+      if (approvers[idx] == _userAccount)
+        remove_idx = idx;
+    }
+    ErrorsLib.revertIf(
+      remove_idx == 0 && approvers[remove_idx] != _userAccount,
+      ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultOrganization.removeApprover", "Address not found in organization approvers"
+    );
+    for (idx = remove_idx; idx < approvers.length - 1; idx++) {
+        approvers[idx] = approvers[idx + 1];
+    }
+    delete approvers[approvers.length - 1];
+    approvers.length--;
+    emit LogOrganizationApproverRemoval(
+      EVENT_ID_ORGANIZATION_APPROVERS,
+      NOTHING,
+      address(this),
+      _userAccount
+    );
 	}
 
 	/**

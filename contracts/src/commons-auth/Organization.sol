@@ -157,6 +157,18 @@ contract Organization is VersionedArtifact {
 	function getDepartmentUserAtIndex(bytes32 _depId, uint _index) external view returns (address userAccount);
 
 	/**
+	 * @dev Adds the specified user to this organization as an approver.
+	 * @param _userAccount the user to add as an approver.
+	 */
+	function addApprover(address _userAccount) public;
+
+	/**
+	 * @dev Removes the specified user from this organization as an approver, if at least 1 approver will remain after the removal.
+	 * @param _userAccount the user to remove from the approvers.
+	 */
+	function removeApprover(address _userAccount) public;
+
+	/**
 	 * @dev Adds the specified user to this organization as an active user. If the user already exists, the function ensures the account is active.
 	 * @param _userAccount the user to add
 	 * @return bool true if successful

@@ -57,7 +57,7 @@ const boomify = (burrowError, message) => {
   let error;
   switch (parsedError.code) {
     case ERR.UNAUTHORIZED:
-      error = boom.unauthorized(`${message}: ${parsedError.message}. ${burrowError.stack}`);
+      error = boom.forbidden(`${message}: ${parsedError.message}. ${burrowError.stack}`);
       break;
     case ERR.RESOURCE_NOT_FOUND:
       error = boom.notFound(`${message}: ${parsedError.message}. ${burrowError.stack}`);
@@ -65,11 +65,15 @@ const boomify = (burrowError, message) => {
     case ERR.RESOURCE_ALREADY_EXISTS:
       error = boom.conflict(`${message}: ${parsedError.message}. ${burrowError.stack}`);
       break;
-    case ERR.INVALID_INPUT || ERR.INVALID_PARAMETER_STATE ||
-    ERR.NULL_PARAMETER_NOT_ALLOWED || ERR.OVERWRITE_NOT_ALLOWED:
+    case ERR.INVALID_INPUT:
+    case ERR.INVALID_PARAMETER_STATE:
+    case ERR.NULL_PARAMETER_NOT_ALLOWED:
+    case ERR.OVERWRITE_NOT_ALLOWED:
       error = boom.badRequest(`${message}: ${parsedError.message}. ${burrowError.stack}`);
       break;
-    case ERR.RUNTIME_ERROR || ERR.INVALID_STATE || ERR.DEPENDENCY_NOT_FOUND:
+    case ERR.RUNTIME_ERROR:
+    case ERR.INVALID_STATE:
+    case ERR.DEPENDENCY_NOT_FOUND:
       error = boom.badImplementation(`${message}: ${parsedError.message}. ${burrowError.stack}`);
       break;
     default:
@@ -118,7 +122,7 @@ const callOnBehalfOf = (userAddress, targetAddress, payload, waitForVent) => new
     })
     .catch((err) => {
       if (err.isBoom) reject(err);
-      reject(boom.badImplementation(`Unexpected error in forwardCall function on user ${userAddress} attempting to call target ${targetAddress}: ${err.stack}`));
+      reject(boomify(err, `Unexpected error in forwardCall function on user ${userAddress} attempting to call target ${targetAddress}`));
     });
 });
 
@@ -684,6 +688,36 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
       return reject(boom.badImplementation(`Failed to remove user ${userAddress} from organization ${organizationAddress}!: ${returnData}`));
     })
     .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+});
+
+const addApproverToOrganization = (approverAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Adding approver %s to organization %s', approverAddress, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.addApprover.encode(approverAddress);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload, true)
+    .then(() => {
+      log.info('Approver %s successfully added to organization %s', approverAddress, organizationAddress);
+      return resolve();
+    })
+    .catch((error) => {
+      if (error.isBoom) return reject(error);
+      return reject(boom.badImplementation(`Error forwarding addApprover request via acting approver ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error.stack}`));
+    });
+});
+
+const removeApproverFromOrganization = (approverAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
+  log.trace('Removing approver %s from organization %s', approverAddress, organizationAddress);
+  const organization = getOrganization(organizationAddress);
+  const payload = organization.removeApprover.encode(approverAddress);
+  callOnBehalfOf(actingUserAddress, organizationAddress, payload, true)
+    .then(() => {
+      log.info('Approver %s successfully removed from organization %s', approverAddress, organizationAddress);
+      return resolve();
+    })
+    .catch((error) => {
+      if (error.isBoom) return reject(error);
+      return reject(boom.badImplementation(`Error forwarding removeApprover request via acting approver ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error.stack}`));
+    });
 });
 
 const createDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
@@ -1345,6 +1379,8 @@ module.exports = {
   addUserToEcosystem,
   addUserToOrganization,
   removeUserFromOrganization,
+  addApproverToOrganization,
+  removeApproverFromOrganization,
   createDepartment,
   removeDepartment,
   addDepartmentUser,

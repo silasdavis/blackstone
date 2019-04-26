@@ -2,8 +2,10 @@ const {
   getOrganizations,
   getOrganization,
   createOrganization,
-  createOrganizationUserAssociation,
+  createOrganizationUserAssociations,
   deleteOrganizationUserAssociation,
+  addApproversToOrganization,
+  removeApproverFromOrganization,
   createDepartment,
   removeDepartment,
   addDepartmentUsers,
@@ -169,12 +171,17 @@ module.exports = (app, customMiddleware) => {
   app.post('/organizations', middleware, createOrganization, sendResponse);
 
   /**
-   * @api {put} /organizations/:orgId/users/:userAddress Adds user to Organization
-   * @apiName UpdateOrganizations
+   * @api {put} /organizations/:orgId/users/:userAddress Adds users to Organization
+   * @apiName AddUsers
    * @apiGroup Organizations
    *
+   * @apiBodyParameterExample {json} Param Object
+    {
+      "users": ["10DA7307DA7E74BC54D1E829764E2DE7AD0D8DBB4"]
+    }
+   *
    * @apiExample {curl} Simple:
-   *     curl -iX PUT /organizations/9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E/users/10DA7307DA7E74BC54D1E829764E2DE7AD0D8DBB4
+   *     curl -iX PUT /organizations/9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E/users
    *
    * @apiSuccess (200) Success
    *
@@ -183,8 +190,8 @@ module.exports = (app, customMiddleware) => {
    *
    */
   app.put(
-    '/organizations/:address/users/:userAddress', middleware,
-    createOrganizationUserAssociation,
+    '/organizations/:address/users', middleware,
+    createOrganizationUserAssociations,
     sendResponse,
   );
 
@@ -205,6 +212,50 @@ module.exports = (app, customMiddleware) => {
   app.delete(
     '/organizations/:address/users/:userAddress', middleware,
     deleteOrganizationUserAssociation,
+    sendResponse,
+  );
+  /**
+   * @api {put} /organizations/:orgId/approvers/:userAddress Adds approvers to Organization
+   * @apiName AddApprovers
+   * @apiGroup Organizations
+   *
+   * @apiBodyParameterExample {json} Param Object
+    {
+      "users": ["10DA7307DA7E74BC54D1E829764E2DE7AD0D8DBB4"]
+    }
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX PUT /organizations/9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E/approvers
+   *
+   * @apiSuccess (200) Success
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   *
+   */
+  app.put(
+    '/organizations/:address/approvers', middleware,
+    addApproversToOrganization,
+    sendResponse,
+  );
+
+  /**
+   * @api {delete} /organizations/:orgId/approvers/:userAddress Removes an approver from Organization
+   * @apiName RemoveApprover
+   * @apiGroup Organizations
+   *
+   * @apiExample {curl} Simple:
+   *     curl -iX DELETE /organizations/9F24307DA7E74BC54D1E829764E2DE7AD0D8DF6E/approvers/10DA7307DA7E74BC54D1E829764E2DE7AD0D8DBB4
+   *
+   * @apiSuccess (200) Success
+   *
+   * @apiUse NotLoggedIn
+   * @apiUse AuthTokenRequired
+   *
+   */
+  app.delete(
+    '/organizations/:address/approvers/:userAddress', middleware,
+    removeApproverFromOrganization,
     sendResponse,
   );
 
