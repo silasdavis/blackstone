@@ -70,11 +70,11 @@ const createRecoveryCode = asyncMiddleware(async (req, res, next) => {
       const recoveryCode = crypto.randomBytes(32).toString('hex');
       hash.update(recoveryCode);
       await client.query({
-        text: `DELETE FROM ${global.db.schema.chain}.password_change_requests WHERE user_id = $1`,
+        text: `DELETE FROM ${global.db.schema.app}.password_change_requests WHERE user_id = $1`,
         values: [rows[0].id],
       });
       await client.query({
-        text: `INSERT INTO ${global.db.schema.chain}.password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);`,
+        text: `INSERT INTO ${global.db.schema.app}.password_change_requests (user_id, recovery_code_digest) VALUES($1, $2);`,
         values: [rows[0].id, hash.digest('hex')],
       });
       msg = {
@@ -138,11 +138,11 @@ const resetPassword = asyncMiddleware(async (req, res, next) => {
       const salt = await bcrypt.genSalt(10);
       const passwordDigest = await bcrypt.hash(req.body.password, salt);
       await client.query({
-        text: 'UPDATE users SET password_digest = $1 WHERE id = $2',
+        text: `UPDATE ${global.db.schema.app}.users SET password_digest = $1 WHERE id = $2`,
         values: [passwordDigest, rows[0].user_id],
       });
       await client.query({
-        text: 'DELETE FROM password_change_requests WHERE user_id = $1',
+        text: `DELETE FROM ${global.db.schema.app}.password_change_requests WHERE user_id = $1`,
         values: [rows[0].user_id],
       });
       client.release();
