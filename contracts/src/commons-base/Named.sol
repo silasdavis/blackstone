@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 /**
  * @title Named Interface
@@ -10,5 +10,5 @@ interface Named {
 	 * @dev Returns the name of this contract.
 	 * @return the bytes32 name
 	 */
-	function getName() external view returns (string);
+	function getName() external view returns (string memory);
 }
