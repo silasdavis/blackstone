@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/VersionLinkedAppendOnly.sol";
 
@@ -31,7 +31,7 @@ contract TestCurrencies3 is IsoCurrencies {
 
 contract IsoCurrenciesTest {
 
-  function testIsoCurrencies() external returns (string) {
+  function testIsoCurrencies() external returns (string memory) {
 
     IsoCurrencies100 c100 = new IsoCurrencies100();
     TestCurrencies2 c200 = new TestCurrencies2();

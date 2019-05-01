@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/VersionLinkedAppendOnly.sol";
 
@@ -373,7 +373,7 @@ contract IsoCurrencies100 is VersionLinkedAppendOnly([1,0,0]), IsoCurrencies {
 		registerCurrency(ZWL, "932", "Zimbabwean dollar");
 	}
 
-	function registerCurrency(bytes3 _alpha3, bytes3 _m49, string _name) internal {
+	function registerCurrency(bytes3 _alpha3, bytes3 _m49, string memory _name) internal {
 		currencies[_alpha3] = Currency(_alpha3, _m49, _name, true);
 		currencyKeys.push(_alpha3);
 		emit LogCurrencyRegistration(
