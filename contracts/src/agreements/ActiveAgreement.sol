@@ -5,6 +5,7 @@ import "commons-collections/AddressScopes.sol";
 import "commons-events/EventEmitter.sol";
 import "documents-commons/Signable.sol";
 import "commons-management/VersionedArtifact.sol";
+import "commons-auth/Permissioned.sol";
 
 import "agreements/Agreements.sol";
 
@@ -12,7 +13,7 @@ import "agreements/Agreements.sol";
  * @title ActiveAgreement Interface
  * @dev API for interaction with an Active Agreement
  */
-contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signable, EventEmitter {
+contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, AddressScopes, Signable, EventEmitter {
 
 	event LogAgreementCreation(
 		bytes32 indexed eventId,
@@ -80,6 +81,8 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 
 	// Internal EventListener event
 	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
+
+  bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("creator"));
 
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the

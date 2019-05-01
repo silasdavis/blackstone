@@ -10,13 +10,14 @@ import "commons-collections/AbstractAddressScopes.sol";
 import "commons-events/DefaultEventEmitter.sol";
 import "commons-management/AbstractDelegateTarget.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
+import "commons-auth/AbstractPermissioned.sol";
 
 import "agreements/Agreements.sol";
 import "agreements/AgreementsAPI.sol";
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement.sol";
 
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDelegateTarget, AbstractPermissioned, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
 	using ArrayUtilsLib for address[];
 	using TypeUtilsLib for bytes32;
@@ -28,7 +29,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	bytes32 constant fileKeySignatureLog = keccak256(abi.encodePacked("fileKey.signatureLog"));
 
 	address archetype;
-	address creator;
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
 	Agreements.LegalState legalState;
@@ -67,7 +67,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
 
 		archetype = _archetype;
-		creator = _creator;
 		if (bytes(_privateParametersFileReference).length > 0) {
 			fileReferences.insertOrUpdate(fileKeyPrivateParameters, _privateParametersFileReference);
 		}
@@ -76,6 +75,13 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 		governingAgreements = _governingAgreements;
 		legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
+
+    permissions[ROLE_ID_CREATOR].holders.push(_creator);
+    permissions[ROLE_ID_CREATOR].multiHolder = false;
+    permissions[ROLE_ID_CREATOR].revocable = false;
+    permissions[ROLE_ID_CREATOR].transferable = false;
+    permissions[ROLE_ID_CREATOR].exists = true;
+
 		emit LogAgreementCreation(
 			EVENT_ID_AGREEMENTS,
 			address(this),
@@ -231,7 +237,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	 * @return the creator address
 	 */
 	function getCreator() external view returns (address) {
-		return creator;
+    return permissions[ROLE_ID_CREATOR].holders[0];
 	}
 
 	/**

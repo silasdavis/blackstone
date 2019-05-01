@@ -10,6 +10,7 @@ import "commons-collections/MappingsLib.sol";
 import "documents-commons/Documents.sol";
 import "commons-management/AbstractDelegateTarget.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
+import "commons-auth/AbstractPermissioned.sol";
 
 import "agreements/Archetype.sol";
 
@@ -17,7 +18,7 @@ import "agreements/Archetype.sol";
  * @title DefaultArchetype
  * @dev Default agreements network archetype
  */
-contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, Archetype {
+contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractPermissioned, Archetype {
 
 	using ArrayUtilsLib for bytes32[];
 	using ArrayUtilsLib for address[];
@@ -33,7 +34,6 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	}
 
 	uint price;
-	address author;
 	bool active;
 	bool privateFlag;
 	address successor;
@@ -53,6 +53,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _author author
+	 * @param _owner owner
 	 * @param _isPrivate determines if this archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
@@ -64,6 +65,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		bool _isPrivate,
 		bool _active,
 		address _author,
+		address _owner,
 		address _formationProcess,
 		address _executionProcess,
 		address[] _governingArchetypes)
@@ -73,19 +75,32 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 		ErrorsLib.revertIf(_governingArchetypes.hasDuplicates(),
 			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.initialize", "Governing archetypes must not contain duplicates");
 
-		author = _author;
 		price = _price;
 		privateFlag = _isPrivate;
 		active = _active;
 		formationProcessDefinition = _formationProcess;
 		executionProcessDefinition = _executionProcess;
 		governingArchetypes = _governingArchetypes;
+
+    permissions[ROLE_ID_AUTHOR].holders.push(_author);
+    permissions[ROLE_ID_AUTHOR].multiHolder = false;
+    permissions[ROLE_ID_AUTHOR].revocable = false;
+    permissions[ROLE_ID_AUTHOR].transferable = false;
+    permissions[ROLE_ID_AUTHOR].exists = true;
+
+    permissions[ROLE_ID_OWNER].holders.push(_owner);
+    permissions[ROLE_ID_OWNER].multiHolder = false;
+    permissions[ROLE_ID_OWNER].revocable = false;
+    permissions[ROLE_ID_OWNER].transferable = true;
+    permissions[ROLE_ID_OWNER].exists = true;
+
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
 		emit LogArchetypeCreation(
 			EVENT_ID_ARCHETYPES,
 			address(this),
 			_price,
 			_author,
+			_owner,
 			_active,
 			_isPrivate,
 			successor,
@@ -236,7 +251,15 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address) {
-		return author;
+    return permissions[ROLE_ID_AUTHOR].holders[0];
+	}
+
+	/**
+	 * @dev Gets Owner
+	 * @return owner owner
+	 */
+	function getOwner() external view returns (address) {
+    return permissions[ROLE_ID_OWNER].holders[0];
 	}
 
 	/**

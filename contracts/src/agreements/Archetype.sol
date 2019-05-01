@@ -2,19 +2,21 @@ pragma solidity ^0.4.25;
 
 import "commons-utils/DataTypes.sol";
 import "commons-management/VersionedArtifact.sol";
+import "commons-auth/Permissioned.sol";
 
 
 /**
  * @title Archetype Interface
  * @dev API for interaction with an agreement archetype
  */
-contract Archetype is VersionedArtifact {
+contract Archetype is VersionedArtifact, Permissioned {
 
 	event LogArchetypeCreation(
 		bytes32 indexed eventId,
 		address archetypeAddress,
 		uint price,
 		address author,
+		address owner,
 		bool active,
 		bool isPrivate,
 		address successor,
@@ -74,6 +76,9 @@ contract Archetype is VersionedArtifact {
 	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetypes/jurisdictions";
 	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
 
+  bytes32 public constant ROLE_ID_AUTHOR = keccak256(abi.encodePacked("author"));
+  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("owner"));
+
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
@@ -89,6 +94,7 @@ contract Archetype is VersionedArtifact {
 		bool _isPrivate,
 		bool _active,
 		address _author,
+		address _owner,
 		address _formationProcess,
 		address _executionProcess,
 		address[] _governingArchetypes)
@@ -136,6 +142,12 @@ contract Archetype is VersionedArtifact {
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address author);
+
+	/**
+	 * @dev Gets Owner
+	 * @return owner owner
+	 */
+	function getOwner() external view returns (address owner);
 
 	/**
 	 * @dev Gets document reference with given key
