@@ -206,7 +206,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 	 * @dev Adds the specified user to the approvers of this Organization.
 	 * @param _userAccount the user to add as an approver
 	 */
-    function addApprover(address _userAccount) public pre_onlyByApprovers {
+    function addApprover(address _userAccount) external pre_onlyByApprovers {
       ErrorsLib.revertIf(
         _userAccount == address(0),
         ErrorsLib.INVALID_INPUT(), "DefaultOrganization.addApprover", "Cannot add empty address to approvers"
@@ -229,7 +229,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 	 * @dev Removes the user from this Organization's approvers
 	 * @param _userAccount the account to remove as an approver
 	 */
-	function removeApprover(address _userAccount) public pre_onlyByApprovers {
+	function removeApprover(address _userAccount) external pre_onlyByApprovers {
     ErrorsLib.revertIf(
       approvers.length == 1,
       ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultOrganization.removeApprover", "Organization must have at least 1 approver"
@@ -237,8 +237,10 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
     uint idx;
     uint remove_idx;
     for (idx = 0; idx < approvers.length; idx++) {
-      if (approvers[idx] == _userAccount)
+      if (approvers[idx] == _userAccount) {
         remove_idx = idx;
+        break;
+      }
     }
     ErrorsLib.revertIf(
       remove_idx == 0 && approvers[remove_idx] != _userAccount,
@@ -247,7 +249,6 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
     for (idx = remove_idx; idx < approvers.length - 1; idx++) {
         approvers[idx] = approvers[idx + 1];
     }
-    delete approvers[approvers.length - 1];
     approvers.length--;
     emit LogOrganizationApproverRemoval(
       EVENT_ID_ORGANIZATION_APPROVERS,

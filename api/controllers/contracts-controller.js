@@ -671,7 +671,7 @@ const addUserToOrganization = (userAddress, organizationAddress, actingUserAddre
       }
       return reject(boom.badImplementation(`Failed to add user ${userAddress} to organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding addUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding addUser request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const removeUserFromOrganization = (userAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
@@ -687,7 +687,7 @@ const removeUserFromOrganization = (userAddress, organizationAddress, actingUser
       }
       return reject(boom.badImplementation(`Failed to remove user ${userAddress} from organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeUser request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const addApproverToOrganization = (approverAddress, organizationAddress, actingUserAddress) => new Promise((resolve, reject) => {
@@ -701,7 +701,7 @@ const addApproverToOrganization = (approverAddress, organizationAddress, actingU
     })
     .catch((error) => {
       if (error.isBoom) return reject(error);
-      return reject(boom.badImplementation(`Error forwarding addApprover request via acting approver ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error.stack}`));
+      return reject(boom.badImplementation(`Error forwarding addApprover request via acting approver ${actingUserAddress} to organization ${organizationAddress}! Error: ${error.stack}`));
     });
 });
 
@@ -716,7 +716,7 @@ const removeApproverFromOrganization = (approverAddress, organizationAddress, ac
     })
     .catch((error) => {
       if (error.isBoom) return reject(error);
-      return reject(boom.badImplementation(`Error forwarding removeApprover request via acting approver ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error.stack}`));
+      return reject(boom.badImplementation(`Error forwarding removeApprover request via acting approver ${actingUserAddress} to organization ${organizationAddress}! Error: ${error.stack}`));
     });
 });
 
@@ -733,7 +733,7 @@ const createDepartment = (organizationAddress, id, actingUserAddress) => new Pro
       }
       return reject(boom.badImplementation(`Failed to create department ID ${id} in organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding createDepartment request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding createDepartment request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const removeDepartment = (organizationAddress, id, actingUserAddress) => new Promise((resolve, reject) => {
@@ -749,7 +749,7 @@ const removeDepartment = (organizationAddress, id, actingUserAddress) => new Pro
       }
       return reject(boom.badImplementation(`Failed to remove department ID ${id} in organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartment request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartment request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
@@ -765,7 +765,7 @@ const addDepartmentUser = (organizationAddress, depId, userAddress, actingUserAd
       }
       return reject(boom.badImplementation(`Failed to add user ${userAddress} to department ID ${depId} in organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding addDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding addDepartmentUser request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUserAddress) => new Promise((resolve, reject) => {
@@ -781,7 +781,7 @@ const removeDepartmentUser = (organizationAddress, depId, userAddress, actingUse
       }
       return reject(boom.badImplementation(`Failed to remove user ${userAddress} from department ID ${depId} in organization ${organizationAddress}!: ${returnData}`));
     })
-    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to oganization ${organizationAddress}! Error: ${error}`)));
+    .catch(error => reject(boom.badImplementation(`Error forwarding removeDepartmentUser request via acting user ${actingUserAddress} to organization ${organizationAddress}! Error: ${error}`)));
 });
 
 const createProcessModel = (modelId, modelVersion, author, isPrivate, modelFileReference) => new Promise((resolve, reject) => {
