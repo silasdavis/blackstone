@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-utils/TypeUtilsLib.sol";
 
@@ -11,7 +11,7 @@ contract TypeUtilsTest {
 	using TypeUtilsLib for address;
 	using TypeUtilsLib for bytes;
 
-	function testLengthBytes32() external pure returns (string) {
+	function testLengthBytes32() external pure returns (string memory) {
 		bytes32 b = "Hello World";
 		if (b.contentLength() != 11) { return "Length of 'Hello World' bytes32 should be 11"; }
 		b = "  apple!";
@@ -25,7 +25,7 @@ contract TypeUtilsTest {
 		return "success";
 	}
 
-    function testUintToBytes32() external pure returns (string) {
+    function testUintToBytes32() external pure returns (string memory) {
     	uint v = 99;
         if (v.toBytes32() != "99") { return "Converting uint 99 to bytes32 failed."; }
     	v = 0;
@@ -36,7 +36,7 @@ contract TypeUtilsTest {
         return "success";
     }
     
-    function testIsEmpty() external pure returns (string) {
+    function testIsEmpty() external pure returns (string memory) {
     	
     	bytes32 b32val1 = "";
     	bytes32 b32val2 = "bla";
@@ -49,7 +49,7 @@ contract TypeUtilsTest {
     	return "success";
     }
 
-	function testBytes32ToString() external pure returns (string) {
+	function testBytes32ToString() external pure returns (string memory) {
 		bytes32 input = "Rumpelstiltskin";
 		string memory expectedResult = "Rumpelstiltskin";
 		if (keccak256(abi.encodePacked(input.toString())) != keccak256(abi.encodePacked(expectedResult)))
@@ -57,7 +57,7 @@ contract TypeUtilsTest {
 		return "success";
 	}
 
-	function testStringToBytes32() external pure returns (string) {
+	function testStringToBytes32() external pure returns (string memory) {
 		string memory s = "blabla";
 		if (s.toBytes32() != "blabla") { return "Converting string 'blabla' to bytes32 failed."; }
 		s = "123 Pelham 100%";
@@ -70,7 +70,7 @@ contract TypeUtilsTest {
 		return "success";
 	}
 
-	function testBytesToBytes32() external pure returns (string) {
+	function testBytesToBytes32() external pure returns (string memory) {
 		bytes memory b = "blabla";
 		if (b.toBytes32() != "blabla") { return "Converting bytes 'blabla' to bytes32 failed."; }
 		b = "123 Pelham 100%";
@@ -83,7 +83,7 @@ contract TypeUtilsTest {
 		return "success";
 	}
 
-	function testBytesToUint() external pure returns (string) {
+	function testBytesToUint() external pure returns (string memory) {
 		uint number = 928349;
 		bytes memory b = abi.encode(number);
 		if (b.toUint() != number) { return "Converting bytes to number should return same value"; }

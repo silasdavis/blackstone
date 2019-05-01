@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-utils/ArrayUtilsLib.sol";
 
@@ -19,7 +19,7 @@ contract ArrayUtilsTest {
 	/**
 	 * @dev Tests the contains() functions
 	 */
-	function testContains() external returns (string) {
+	function testContains() external returns (string memory) {
 
 		delete b32Values;
 		b32Values.push("1");
@@ -55,7 +55,7 @@ contract ArrayUtilsTest {
 	/**
 	 * @dev Tests the hasDuplicates() functions
 	 */
-	function testHasDuplicates() external returns (string) {
+	function testHasDuplicates() external returns (string memory) {
 
 		delete b32Values;
 		b32Values.push("bla");
