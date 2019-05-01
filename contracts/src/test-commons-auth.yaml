@@ -207,6 +207,18 @@ jobs:
     relation: eq
     val: success
 
+- name: testOrganizationApproverUpdates
+  call:
+    destination: $ParticipantsManagerTest
+    bin: ParticipantsManagerTest
+    function: testOrganizationApproverUpdates
+
+- name: assertOrganizationAuthorization
+  assert:
+    key: $testOrganizationApproverUpdates
+    relation: eq
+    val: success
+
 
 ##########
 # Ecosystem Tests

@@ -1016,7 +1016,8 @@
         "Type": "address",
         "Primary": true
       }
-    ]
+    ],
+    "DeleteMarkerField": "__DELETE__"
   },
   {
     "TableName": "organization_users",

@@ -136,12 +136,14 @@ const createOrganization = asyncMiddleware(async (req, res, next) => {
   }
 });
 
-const createOrganizationUserAssociation = asyncMiddleware(async (req, res, next) => {
+const createOrganizationUserAssociations = asyncMiddleware(async (req, res, next) => {
   const authorized = await db.userIsOrganizationApprover(req.params.address, req.user.address);
   if (!authorized) {
     throw boom.forbidden('User is not an approver of the organization and not authorized to add users');
   }
-  await contracts.addUserToOrganization(req.params.userAddress, req.params.address, req.user.address);
+  const { users } = req.body;
+  const addUserPromises = users.map(user => contracts.addUserToOrganization(user, req.params.address, req.user.address));
+  await Promise.all(addUserPromises);
   res.status(200);
   return next();
 });
@@ -152,6 +154,20 @@ const deleteOrganizationUserAssociation = asyncMiddleware(async (req, res, next)
     throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
   }
   await contracts.removeUserFromOrganization(req.params.userAddress, req.params.address, req.user.address);
+  res.status(200);
+  return next();
+});
+
+const addApproversToOrganization = asyncMiddleware(async (req, res, next) => {
+  const { users } = req.body;
+  const addApproverPromises = users.map(user => contracts.addApproverToOrganization(user, req.params.address, req.user.address));
+  await Promise.all(addApproverPromises);
+  res.status(200);
+  return next();
+});
+
+const removeApproverFromOrganization = asyncMiddleware(async (req, res, next) => {
+  await contracts.removeApproverFromOrganization(req.params.userAddress, req.params.address, req.user.address);
   res.status(200);
   return next();
 });
@@ -561,8 +577,10 @@ module.exports = {
   getOrganizations,
   getOrganization,
   createOrganization,
-  createOrganizationUserAssociation,
+  createOrganizationUserAssociations,
   deleteOrganizationUserAssociation,
+  addApproversToOrganization,
+  removeApproverFromOrganization,
   createDepartment,
   removeDepartment,
   addDepartmentUsers,
