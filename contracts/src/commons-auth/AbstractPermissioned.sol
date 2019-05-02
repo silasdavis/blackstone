@@ -93,23 +93,9 @@ contract AbstractPermissioned is Permissioned {
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.grantPermission", "The specified permission does not exist. Create it first.");
         if (permissions[_permission].multiHolder) {
-            // look for empty slots from previous deletions and if the new holder is already registered
-            bool alreadyHasPermission;
-            uint emptySlotIndex = uint(-1); //NOTE: using uint(-1) to signal "no empty slots" would not work if an array of holders were ever be filled to the max.
-            for (uint i=0; i<permissions[_permission].holders.length; i++) {
-                if (permissions[_permission].holders[i] == _newHolder) {
-                    alreadyHasPermission = true;
-                }
-                if (permissions[_permission].holders[i] == address(0) && emptySlotIndex == uint(-1)) {
-                    emptySlotIndex = i;
-                }
-            }
-            if (!alreadyHasPermission) {
-                if (emptySlotIndex == uint(-1))
-                    permissions[_permission].holders.push(_newHolder);
-                else
-                    permissions[_permission].holders[emptySlotIndex] = _newHolder;
-            }
+            // check if the new holder is already registered
+            if (!permissions[_permission].holders.contains(_newHolder))
+                permissions[_permission].holders.push(_newHolder);
         }
         // a single-held permission that has already been granted cannot be overwritten here. Use transferPermission(...)!
         else if (permissions[_permission].holders[0] == address(0)) {
