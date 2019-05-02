@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-utils/ArrayUtilsLib.sol";
@@ -46,7 +46,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 	 * @param _initialApprovers an array of addresses that should be registered as approvers for this Organization
 	 * @param _defaultDepartmentId an optional ID for the default department of this organization
 	 */
-	function initialize(address[] _initialApprovers, bytes32 _defaultDepartmentId)
+	function initialize(address[] calldata _initialApprovers, bytes32 _defaultDepartmentId)
 		external
 		pre_post_initialize
 	{
@@ -166,7 +166,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 		if (_pos < approvers.length) {
 			return approvers[_pos];
 		}
-		return 0x0;
+		return address(0);
 	}
 
 	/**
@@ -187,7 +187,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 			(, address userAccount) = users.keyAtIndex(_pos);
 			return userAccount;
 		}
-		return 0x0;
+		return address(0);
 	}
 
 	function getNumberOfDepartmentUsers(bytes32 _depId) external view returns (uint size) {
@@ -198,7 +198,7 @@ contract DefaultOrganization is AbstractVersionedArtifact(1,1,0), AbstractDelega
 		if (_index < self.departments[_depId].users.keys.length) {
 		 	userAccount = self.departments[_depId].users.keys[_index];
 		} else {
-			userAccount = 0x0;
+			userAccount = address(0);
 		}
 	}
 

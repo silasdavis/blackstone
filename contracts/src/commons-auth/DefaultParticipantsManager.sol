@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -30,11 +30,11 @@ contract DefaultParticipantsManager is AbstractVersionedArtifact(1,0,0), Abstrac
      * @return the address of the created UserAccount
      */
     function createUserAccount(bytes32 _id, address _owner, address _ecosystem) external returns (address userAccount) {
-        userAccount = new ObjectProxy(artifactsFinder, OBJECT_CLASS_USER_ACCOUNT);
+        userAccount = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_USER_ACCOUNT));
         UserAccount(userAccount).initialize(_owner, _ecosystem);
         uint error = ParticipantsManagerDb(database).addUserAccount(userAccount);
         if (error == BaseErrors.NO_ERROR()) {
-            if (_id != "" && _ecosystem != 0x0) {
+            if (_id != "" && _ecosystem != address(0)) {
                 Ecosystem(_ecosystem).addUserAccount(_id, userAccount);
             }
         }
@@ -49,7 +49,7 @@ contract DefaultParticipantsManager is AbstractVersionedArtifact(1,0,0), Abstrac
 	 * @return BaseErrors.NO_ERROR() if successful
 	 * @return the address of the newly created Organization, or 0x0 if not successful
 	 */
-    function createOrganization(address[] _initialApprovers, bytes32 _defaultDepartmentId) external returns (uint error, address organization) {
+    function createOrganization(address[] calldata _initialApprovers, bytes32 _defaultDepartmentId) external returns (uint error, address organization) {
         address[] memory approvers;
         if (_initialApprovers.length == 0) {
             approvers = new address[](1);
@@ -59,7 +59,7 @@ contract DefaultParticipantsManager is AbstractVersionedArtifact(1,0,0), Abstrac
             approvers = _initialApprovers;
         }
 
-        organization = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ORGANIZATION);
+        organization = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_ORGANIZATION));
         Organization(address(organization)).initialize(approvers, _defaultDepartmentId);
         error = ParticipantsManagerDb(database).addOrganization(organization);
         ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),

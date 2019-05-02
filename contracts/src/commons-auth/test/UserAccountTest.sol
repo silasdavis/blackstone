@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-utils/TypeUtilsLib.sol";
 
@@ -19,32 +19,37 @@ contract UserAccountTest {
 	/**
 	 * @dev Tests the UserAccount call forwarding logic
 	 */
-	function testCallForwarding() external returns (string) {
+	function testCallForwarding() external returns (string memory) {
 
+        bool success;
 		uint testState = 42;
 		bytes32 testKey = "myKey";
 		TestService testService = new TestService();
 
 		UserAccount account = new DefaultUserAccount();
-		account.initialize(this, 0x0);
+		account.initialize(address(this), address(0));
 		UserAccount externalAccount = new DefaultUserAccount();
-		externalAccount.initialize(msg.sender, 0x0);
+		externalAccount.initialize(msg.sender, address(0));
 
 		bytes memory payload;
 		payload = abi.encodeWithSignature("fakeFunction(bytes32)", testState);
-		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+		(success, ) = address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload));
+		if (success)
 			return "Forwarding a call to a non-existent function should revert";
 
 		payload = abi.encodeWithSignature(functionSigServiceInvocation, address(this), testState, testKey);
 		// first test that the correct signature is working
-		if (!address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+		(success, ) = address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload));
+		if (!success)
 			return "Forwarding a call to the valid function signature should not revert";
 
 		// test failures
-		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(0), payload)))
+		(success, ) = address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(0), payload));
+		if (success)
 			return "Forwarding a call to an empty address should revert";
 		// unauthorized accounts (not owner)
-		if (address(externalAccount).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+		(success, ) = address(externalAccount).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload));
+		if (success)
 			return "Forwarding a call from an unauthorized address should fail";
 
 		// test successful invocation
@@ -62,14 +67,14 @@ contract UserAccountTest {
 		// test different input/return data
 		payload = abi.encodeWithSignature("isStringLonger5(string)", longString);
 		returnData = account.forwardCall(address(testService), payload);
-		if (returnData[31] != 1) return "isStringLonger5 should return true for longString"; // boolean is left-padded, so the value is at the end of the bytes
+		if (uint8(returnData[31]) != uint8(1)) return "isStringLonger5 should return true for longString"; // boolean is left-padded, so the value is at the end of the bytes
 
 		// test revert reason return
 		payload = abi.encodeWithSignature("invokeRevert()");
-		if (address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload)))
+		(success, ) = address(account).call(abi.encodeWithSignature(functionSigForwardCall, address(testService), payload));
+		if (success)
 			return "A revert from a forwarded function call should propagate as revert";
 
-        bool success;
         uint returnSize;
 		address target = address(account);
 		bytes memory data = abi.encodeWithSignature(functionSigForwardCall, address(testService), payload);
@@ -94,8 +99,9 @@ contract UserAccountTest {
         // 0x4e6f7420656e6f7567682045746865722070726f76696465642e000000000000 // String data
 
         // Since we know that the expected revert reason fits into 32 bytes, we can simply grab those last 32 bytes
-        for (uint i=returnData.length-32; i<returnData.length; i++) {
-            if (uint(returnData[i]) != 0) {
+		uint i;
+        for (i=returnData.length-32; i<returnData.length; i++) {
+            if (uint256(uint8(returnData[i])) != 0) {
                 tempByteArray.push(returnData[i]);
             }
         }
@@ -131,7 +137,7 @@ contract TestService {
 		return "congrats";
 	}
 
-	function isStringLonger5(string _string) public pure returns (bool) {
+	function isStringLonger5(string memory _string) public pure returns (bool) {
 		if (bytes(_string).length > 5)
 			return true;
 		else

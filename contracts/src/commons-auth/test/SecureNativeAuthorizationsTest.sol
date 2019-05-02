@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 // Tested Contracts
 import "commons-auth/SecureNativeAuthorizations.sol";
@@ -29,7 +29,7 @@ contract SecureNativeAuthorizationsTest {
      * @dev Tests `SecureNativeAuthorizations` functions
      * @return error string or "success"
      */
-    function testFunctions() external returns (string) {
+    function testFunctions() external returns (string memory) {
         // Confirm contract has correct initial authorizations
         
        
