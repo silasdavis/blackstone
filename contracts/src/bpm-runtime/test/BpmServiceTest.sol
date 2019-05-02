@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
@@ -111,11 +111,11 @@ contract BpmServiceTest {
 		// ArtifactsRegistry
 		artifactsRegistry = new DefaultArtifactsRegistry();
         DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
-		artifactsRegistry.registerArtifact(serviceIdModelRepository, processModelRepository, processModelRepository.getArtifactVersion(), true);
-		artifactsRegistry.registerArtifact(serviceIdApplicationRegistry, applicationRegistry, applicationRegistry.getArtifactVersion(), true);
+		artifactsRegistry.registerArtifact(serviceIdModelRepository, address(processModelRepository), processModelRepository.getArtifactVersion(), true);
+		artifactsRegistry.registerArtifact(serviceIdApplicationRegistry, address(applicationRegistry), applicationRegistry.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_MODEL(), address(defaultProcessModelImpl), defaultProcessModelImpl.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
-		ArtifactsFinderEnabled(processModelRepository).setArtifactsFinder(artifactsRegistry);
+		ArtifactsFinderEnabled(address(processModelRepository)).setArtifactsFinder(address(artifactsRegistry));
 	}
 
 	/**
@@ -125,9 +125,9 @@ contract BpmServiceTest {
 	function createNewTestBpmService() internal returns (TestBpmService) {
 		TestBpmService service = new TestBpmService(serviceIdModelRepository, serviceIdApplicationRegistry);
 		BpmServiceDb serviceDb = new BpmServiceDb();
-		SystemOwned(serviceDb).transferSystemOwnership(service);
-		AbstractDbUpgradeable(service).acceptDatabase(serviceDb);
-		service.setArtifactsFinder(artifactsRegistry);
+		SystemOwned(serviceDb).transferSystemOwnership(address(service));
+		AbstractDbUpgradeable(service).acceptDatabase(address(serviceDb));
+		service.setArtifactsFinder(address(artifactsRegistry));
         artifactsRegistry.registerArtifact(service.OBJECT_CLASS_PROCESS_INSTANCE(), address(defaultProcessInstanceImpl), defaultProcessInstanceImpl.getArtifactVersion(), true);
 		// check that dependencies are wired correctly
 		require (address(service.getApplicationRegistry()) != address(0), "ApplicationRegistry in new BpmService not found");
@@ -140,7 +140,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a process graph consisting of sequential activities.
 	 */
-	function testProcessGraphSequential() external returns (string) {
+	function testProcessGraphSequential() external returns (string memory) {
 
 		// Graph: activity1 -> activity2 -> activity3
 		graph.clear();
@@ -201,7 +201,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a process graph containing AND split and join transitions
 	 */
-	function testProcessGraphParallelGateway() external returns (string) {
+	function testProcessGraphParallelGateway() external returns (string memory) {
 
 		//                                 /-> activity2 ->\
 		// Graph: activity1 -> AND SPLIT ->                 -> AND JOIN -> activity4
@@ -276,7 +276,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a process graph containing XOR split and join transitions
 	 */
-	function testProcessGraphExclusiveGateway() external returns (string) {
+	function testProcessGraphExclusiveGateway() external returns (string memory) {
 
 		//                                 /-> activity2 ->\
 		// Graph: activity1 -> XOR SPLIT ----> activity3 ----> XOR JOIN -> activity5
@@ -364,7 +364,7 @@ contract BpmServiceTest {
 		/**
 	 * @dev Tests a process graph containing XOR split with default transition
 	 */
-	function testProcessGraphExclusiveGatewayWithDefault() external returns (string) {
+	function testProcessGraphExclusiveGatewayWithDefault() external returns (string memory) {
 
 		//                                 /-> activity2 ->\ // default transition
 		// Graph: activity1 -> XOR SPLIT --
@@ -395,7 +395,8 @@ contract BpmServiceTest {
 
 		// test REVERT for XOR gateway with no outputs to fire
 		if (graph.isTransitionEnabled(graph.transitionKeys[0]) != true) return "Transition1 should be enabled";
-		if (address(this).call(bytes4(keccak256(abi.encodePacked("executeGraph()")))))
+		(success, ) = address(this).call(abi.encodeWithSignature("executeGraph()"));
+		if (success)
 			return "Executing transition1 with all outputs false and no default transition should REVERT";
 
 		// correct setup by defining a default transition and try again
@@ -412,7 +413,7 @@ contract BpmServiceTest {
 	 * @dev Tests a process graph containing multiple sequential gateways to ensure activation markers are passed along correctly
 	 * using artificial activities between the gateways.
 	 */
-	function testProcessGraphMultiGateway() external returns (string) {
+	function testProcessGraphMultiGateway() external returns (string memory) {
 
 		//                                 /---------------> activity2 --------------->\
 		// Graph: activity1 -> AND SPLIT ->                                             -> AND JOIN -> activity5
@@ -526,7 +527,7 @@ contract BpmServiceTest {
 	 * @dev Tests a process graph containing a looping pattern based on a condition
 	 * using artificial activities between the gateways.
 	 */
-	function testProcessGraphConditionalLoop() external returns (string) {
+	function testProcessGraphConditionalLoop() external returns (string memory) {
 
 		//                               
 		// Graph: activity1 -> XOR JOIN ->  -------- activity2 -------> activity3 ------> XOR SPLIT -> activity5
@@ -624,7 +625,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests the creation and configuration of a process instance from a process definition, specifically the tranlation into a BpmRuntime.ProcessGraph
 	 */
-	function testProcessGraphCreation() external returns (string) {
+	function testProcessGraphCreation() external returns (string memory) {
 
 		//                                              /--> activity3 -------------\
 		// Graph: activity1 -> activity2 -> XOR SPLIT --                             --> XOR JOIN -> activity6
@@ -633,10 +634,10 @@ contract BpmServiceTest {
 		bytes32 bytes32Value;
 
 		(error, addr) = processModelRepository.createProcessModel("testModel2", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
-		addr = pm.createProcessDefinition("ProcessDefinition1", artifactsRegistry);
+		addr = pm.createProcessDefinition("ProcessDefinition1", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -655,7 +656,7 @@ contract BpmServiceTest {
  		pd.createTransition(activityId3, transitionId2);
 		pd.createTransition(activityId5, transitionId2);
 		pd.createTransition(transitionId2, activityId6);
-		pd.createTransitionConditionForUint(transitionId1, activityId3, "Age", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.GTE), 18);
+		pd.createTransitionConditionForUint(transitionId1, activityId3, "Age", EMPTY, address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.GTE), 18);
 		pd.setDefaultTransition(transitionId1, activityId4);
 
 		// Validate to set the start activity and enable runtime configuration
@@ -663,7 +664,7 @@ contract BpmServiceTest {
 		if (!success) return bytes32Value.toString();
 
 		ProcessInstance pi = new DefaultProcessInstance();
-		pi.initialize(pd, address(this), EMPTY);
+		pi.initialize(address(pd), address(this), EMPTY);
 		graph.configure(pi);
 		if (graph.processInstance != address(pi)) return "ProcessGraph.configure() should have set the process instance on the graph";
 
@@ -712,13 +713,13 @@ contract BpmServiceTest {
 	/**
 	 * @dev Uses a simple process flow in order to test BpmService-internal functions.
 	 */
-	function testInternalProcessExecution() external returns (string) {
+	function testInternalProcessExecution() external returns (string memory) {
 
 		(error, addr) = processModelRepository.createProcessModel("testModel3", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
-		addr = pm.createProcessDefinition("ProcessDefinitionSequence", artifactsRegistry);
+		addr = pm.createProcessDefinition("ProcessDefinitionSequence", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -732,12 +733,13 @@ contract BpmServiceTest {
 
 		TestBpmService service = createNewTestBpmService();
 
-		ProcessInstance pi = service.createDefaultProcessInstance(pd, this, EMPTY);
+		ProcessInstance pi = service.createDefaultProcessInstance(address(pd), address(this), EMPTY);
 
 		pi.initRuntime();
 		if (pi.getState() != uint(BpmRuntime.ProcessInstanceState.ACTIVE)) return "PI should be ACTIVE after runtime initiation";
-		if (address(pi).call(bytes4(keccak256(abi.encodePacked("initRuntime()")))))
-			return "It should not be possible to initiate an ACTIVE PI again";
+		(success, ) = address(pi).call(abi.encodeWithSignature("initRuntime()"));
+		if (success)
+			return "Attempting to initiate an ACTIVE PI again should revert";
 		// TODO test more error conditions around pi.initRuntime(), e.g. invalid PD, etc.
 
 		service.addProcessInstance(pi);
@@ -767,7 +769,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a straight-through process with XOR and AND gateways
 	 */
-	function testGatewayRouting() external returns (string) {
+	function testGatewayRouting() external returns (string memory) {
 
 		//                                                 /-> activity3 -\
 		//                                 /-> XOR SPLIT --                --> XOR JOIN -\
@@ -780,10 +782,10 @@ contract BpmServiceTest {
 		uint8 state;
 
 		(error, addr) = processModelRepository.createProcessModel("routingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
-		addr = pm.createProcessDefinition("RoutingPD", artifactsRegistry);
+		addr = pm.createProcessDefinition("RoutingPD", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -805,7 +807,7 @@ contract BpmServiceTest {
 		pd.createTransition(transitionId3, transitionId4);
 		pd.createTransition(activityId2, transitionId4);
 		pd.createTransition(transitionId4, activityId5);
-		pd.createTransitionConditionForUint(transitionId2, activityId3, "Age", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.GTE), 18);
+		pd.createTransitionConditionForUint(transitionId2, activityId3, "Age", EMPTY, address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.GTE), 18);
 		pd.setDefaultTransition(transitionId2, activityId4);
 		
 		// Validate to set the start activity and enable runtime configuration
@@ -815,7 +817,7 @@ contract BpmServiceTest {
 		TestBpmService service = createNewTestBpmService();
 
 		// Start first process instance with Age not set (should take default transition to activity4)
-		ProcessInstance pi1 = service.createDefaultProcessInstance(pd, this, EMPTY);
+		ProcessInstance pi1 = service.createDefaultProcessInstance(address(pd), address(this), EMPTY);
 
 		// verify expected routing decisions ahead of start
 		if (pi1.resolveTransitionCondition(transitionId2, activityId3)) return "TransitionCondition to activity3 should be false without a value being set in the process";
@@ -836,7 +838,7 @@ contract BpmServiceTest {
 		if (!xorPathCorrect) return "The XOR split should have invoked activity4 as default transition";
 
 		// Start second process with Age data set (should take activity3 route)
-		ProcessInstance pi2 = service.createDefaultProcessInstance(pd, this, EMPTY);
+		ProcessInstance pi2 = service.createDefaultProcessInstance(address(pd), address(this), EMPTY);
 		pi2.setDataValueAsUint("Age", 55);
 		error = service.startProcessInstance(pi2);
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start of p2";
@@ -856,7 +858,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a conditional looping implementation (see also loop graph test)
 	 */
-	function testConditionalLoopRoute() external returns (string) {
+	function testConditionalLoopRoute() external returns (string memory) {
 
 		//                               
 		// Graph: activity1 -> XOR JOIN ->  -------- activity2  ------> XOR SPLIT -> activity4
@@ -868,10 +870,10 @@ contract BpmServiceTest {
 		uint8 state;
 
 		(error, addr) = processModelRepository.createProcessModel("loopingModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
-		addr = pm.createProcessDefinition("LoopingPD", artifactsRegistry);
+		addr = pm.createProcessDefinition("LoopingPD", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -886,7 +888,7 @@ contract BpmServiceTest {
 		pd.createTransition(transitionId2, activityId3);
 		pd.createTransition(transitionId2, activityId4);
  		pd.createTransition(activityId3, transitionId1);
-		pd.createTransitionConditionForBool(transitionId2, activityId4, "PaymentsMade", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), true);
+		pd.createTransitionConditionForBool(transitionId2, activityId4, "PaymentsMade", "agreement", address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), true);
 		pd.setDefaultTransition(transitionId2, activityId3);
 		
 		// Validate to set the start activity and enable runtime configuration
@@ -897,7 +899,7 @@ contract BpmServiceTest {
 
 		// Start first process instance with Payments Made uninitialized
 		ProcessInstance pi = new DefaultProcessInstance();
-		pi.initialize(pd, this, EMPTY);
+		pi.initialize(address(pd), address(this), EMPTY);
 		graph.configure(pi);
 
 		// inspect the process graph
@@ -928,7 +930,7 @@ contract BpmServiceTest {
 		// start the process execution
 		service.addProcessInstance(pi);
 		TestData dataStorage = new TestData();
-		pi.setDataValueAsAddress("agreement", dataStorage);
+		pi.setDataValueAsAddress("agreement", address(dataStorage));
 	
 		// verify expected routing decisions ahead of start
 		if (pi.resolveTransitionCondition(transitionId2, activityId4)) return "TransitionCondition to activity4 should be false with default value";
@@ -977,7 +979,7 @@ contract BpmServiceTest {
 	/**
 	 * @dev Tests a graph with multiple successive gateways and conditions and default transitions to ensure the logic is translated correctly
 	 */
-	function testSuccessiveGatewaysRoute() external returns (string) {
+	function testSuccessiveGatewaysRoute() external returns (string memory) {
 
 		//                                   default                               condition
 		// Graph: activity1 -> XOR SPLIT ---/-----------------> XOR JOIN/SPLIT --------------------> XOR JOIN-> activity4
@@ -988,10 +990,10 @@ contract BpmServiceTest {
 		bytes32 activityId;
 
 		(error, addr) = processModelRepository.createProcessModel("twoGatewayModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
-		addr = pm.createProcessDefinition("TwoGatewayPD", artifactsRegistry);
+		addr = pm.createProcessDefinition("TwoGatewayPD", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 		
 		// the process definition is using straight-through activities
@@ -1011,9 +1013,9 @@ contract BpmServiceTest {
  		pd.createTransition(activityId3, transitionId3);
 		pd.createTransition(transitionId3, activityId4);
 
-		pd.createTransitionConditionForUint(transitionId1, activityId2, "Year", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.LT), uint(1978));
+		pd.createTransitionConditionForUint(transitionId1, activityId2, "Year", "agreement", address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.LT), uint(1978));
 		pd.setDefaultTransition(transitionId1, transitionId2);
-		pd.createTransitionConditionForString(transitionId2, transitionId3, "Lastname", "agreement", 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), "Smith");
+		pd.createTransitionConditionForString(transitionId2, transitionId3, "Lastname", "agreement", address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), "Smith");
 		pd.setDefaultTransition(transitionId2, activityId3);
 		
 		// Validate to set the start activity and enable runtime configuration
@@ -1024,7 +1026,7 @@ contract BpmServiceTest {
 
 		// Start first process instance with Payments Made uninitialized
 		ProcessInstance pi = new DefaultProcessInstance();
-		pi.initialize(pd, this, EMPTY);
+		pi.initialize(address(pd), address(this), EMPTY);
 
 		// produce a copy of the ProcessGraph for inspection
 		graph.configure(pi);
@@ -1044,7 +1046,7 @@ contract BpmServiceTest {
 			return "The default output of transition2 should be activityId3";
 
 		TestData dataStorage = new TestData();
-		pi.setDataValueAsAddress("agreement", dataStorage);
+		pi.setDataValueAsAddress("agreement", address(dataStorage));
 
 		// FIRST RUN: Set conditions to make process go through ALL conditional activities (activities 2 + 3)
 		dataStorage.setDataValueAsUint("Year", uint(1950));
@@ -1055,7 +1057,9 @@ contract BpmServiceTest {
 		if (pi.resolveTransitionCondition(transitionId1, activityId2) == false) return "TransitionCondition for Year should be true in first run";
 		if (pi.resolveTransitionCondition(transitionId2, transitionId3) == true) return "TransitionCondition for Lastname should be false in first run using the PD element ID";
 		if (pi.resolveTransitionCondition(transitionId2, keccak256(abi.encodePacked(transitionId2, transitionId3))) == true) return "TransitionCondition for Lastname should be false in first run using the artificial place ID";
-		if (address(pi).call(abi.encodeWithSignature("resolveTransitionCondition(bytes32,bytes32)", transitionId2, bytes32("fakeIdTTGGSS")))) return "Attempting to resolve a condition with an unknown target element should revert";
+		(success, ) = address(pi).call(abi.encodeWithSignature("resolveTransitionCondition(bytes32,bytes32)", transitionId2, bytes32("fakeIdTTGGSS")));
+		if (success)
+			return "Attempting to resolve a condition with an unknown target element should revert";
 
 		// start the process execution
 		pi.execute(service);
@@ -1071,8 +1075,8 @@ contract BpmServiceTest {
 
 		// SECOND RUN: Set conditions to make process go straight through and skip activities 2 + 3
 		pi = new DefaultProcessInstance();
-		pi.initialize(pd, this, EMPTY);
-		pi.setDataValueAsAddress("agreement", dataStorage);
+		pi.initialize(address(pd), address(this), EMPTY);
+		pi.setDataValueAsAddress("agreement", address(dataStorage));
 		dataStorage.setDataValueAsUint("Year", uint(2000));
 		dataStorage.setDataValueAsString("Lastname", "Smith");
 
@@ -1099,7 +1103,7 @@ contract BpmServiceTest {
 	/**
 	 * Tests invocation of application completion functions in general
 	 */
-	function testSequentialServiceApplications() external returns (string) {
+	function testSequentialServiceApplications() external returns (string memory) {
 
 		// re-usable variables for return values
 		bytes32 bytes32Value;
@@ -1114,21 +1118,21 @@ contract BpmServiceTest {
 		FailureServiceApplication serviceApp = new FailureServiceApplication();
 
 		(error, addr) = processModelRepository.createProcessModel("serviceApplicationsModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
 		applicationRegistry.addApplication(serviceApp1Id, BpmModel.ApplicationType.EVENT, address(eventApp), bytes4(EMPTY), EMPTY);
 		applicationRegistry.addApplication(serviceApp2Id, BpmModel.ApplicationType.SERVICE, address(serviceApp), bytes4(EMPTY), EMPTY);
 
-		addr = pm.createProcessDefinition("ServiceApplicationProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("ServiceApplicationProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		// Activity1 is configured as an asynchronous invocation in order to test the IN/OUT data mappings
 		error = pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.EVENT, BpmModel.TaskBehavior.SENDRECEIVE, EMPTY, false, serviceApp1Id, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating EVENT task activity1 definition";
-		pd.createDataMapping(activityId1, BpmModel.Direction.IN, eventApp.inDataIdAge(), "Age", "storage", 0x0);
-		pd.createDataMapping(activityId1, BpmModel.Direction.IN, eventApp.inDataIdGreeting(), "Message", EMPTY, 0x0);
-		pd.createDataMapping(activityId1, BpmModel.Direction.OUT, eventApp.outDataIdResult(), "Response", EMPTY, 0x0);
+		pd.createDataMapping(activityId1, BpmModel.Direction.IN, eventApp.inDataIdAge(), "Age", "storage", address(0));
+		pd.createDataMapping(activityId1, BpmModel.Direction.IN, eventApp.inDataIdGreeting(), "Message", EMPTY, address(0));
+		pd.createDataMapping(activityId1, BpmModel.Direction.OUT, eventApp.outDataIdResult(), "Response", EMPTY, address(0));
 		error = pd.createActivityDefinition(activityId2, BpmModel.ActivityType.TASK, BpmModel.TaskType.SERVICE, BpmModel.TaskBehavior.SEND, EMPTY, false, serviceApp2Id, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating SERVICE task activity2 definition";
 		pd.createTransition(activityId1, activityId2);
@@ -1139,9 +1143,9 @@ contract BpmServiceTest {
 
 		// create a PI and set up data content for testing
 		// NOTE: must match data mapping instructions in activity definitions above!
-		ProcessInstance pi = service.createDefaultProcessInstance(pd, this, EMPTY);
+		ProcessInstance pi = service.createDefaultProcessInstance(address(pd), address(this), EMPTY);
 		dataStorage.setDataValueAsUint("Age", 78);
-		pi.setDataValueAsAddress("storage", dataStorage);
+		pi.setDataValueAsAddress("storage", address(dataStorage));
 		pi.setDataValueAsString("Message", "Hello World");
 
 		error = service.startProcessInstance(pi);
@@ -1162,9 +1166,11 @@ contract BpmServiceTest {
 		if (dataPath != "Message") return "The dataPath after storage resolution for inDataIdGreeting is not correct";
 
 		// test failure scenarios for IN mappings
-		if (address(pi).call(keccak256(abi.encodePacked("getActivityInDataAsUint(bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge()))
+		(success, ) = address(pi).call(abi.encodeWithSignature("getActivityInDataAsUint(bytes32,bytes32)", eventApp.activityInstanceId(), eventApp.inDataIdAge()));
+		if (success)
 			return "Retrieving IN data outside of the application should REVERT";
-		if (address(eventApp).call(keccak256(abi.encodePacked("retrieveInDataAge()"))))
+		(success, ) = address(eventApp).call(abi.encodeWithSignature("retrieveInDataAge()"));
+		if (success)
 			return "Retrieving IN data in the event application outside of APPLICATION state should REVERT";
 		// test successful IN mappings set during completion of the event
 		if (eventApp.getAgeDuringCompletion() != 78)
@@ -1173,7 +1179,8 @@ contract BpmServiceTest {
 			return "IN data inDataIdGreeting not correctly saved during completion of eventApp";
 
 		// trying to set OUT data from here should fail
-		if (address(pi).call(keccak256(abi.encodePacked("setActivityOutDataAsBytes32(bytes32,bytes32,bytes32)")), eventApp.activityInstanceId(), eventApp.inDataIdAge(), "bla"))
+		(success, ) = address(pi).call(abi.encodeWithSignature("setActivityOutDataAsBytes32(bytes32,bytes32,bytes32)", eventApp.activityInstanceId(), eventApp.inDataIdAge(), bytes32("bla")));
+		if (success)
 			return "Retrieving IN data outside of the application should REVERT";
 		// try completing activity1 from here should fail
 		error = pi.completeActivity(pi.getActivityInstanceAtIndex(0), service);
@@ -1205,7 +1212,7 @@ contract BpmServiceTest {
 		return SUCCESS;
 	}
 
-	function testParticipantResolution() external returns (string) {
+	function testParticipantResolution() external returns (string memory) {
 
 		bytes32 bytes32Value;
 		bytes32 dataPathOnAgreement = "buyer";
@@ -1213,22 +1220,22 @@ contract BpmServiceTest {
 		bytes32 dataPathOnProcess = "customAssignee";
 	
 		(error, addr) = processModelRepository.createProcessModel("conditionalPerformerModel", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
 		// Create participants, one conditional performer and one direct one.
 		TestData dataStorage = new TestData(); // this simulates the Agreement's DataStorage
 		dataStorage.setDataValueAsAddress(dataPathOnAgreement, assignee1);
 		// conditional data path with direct storage address
-		pm.addParticipant(participantId1, 0x0, dataPathOnAgreement, EMPTY, dataStorage);
+		pm.addParticipant(participantId1, address(0), dataPathOnAgreement, EMPTY, address(dataStorage));
 		// specific account participant
-		pm.addParticipant(participantId2, this, EMPTY, EMPTY, 0x0);
+		pm.addParticipant(participantId2, address(this), EMPTY, EMPTY, address(0));
 		// conditional data path with indirect storage ID
-		pm.addParticipant(participantId3, 0x0, dataPathOnAgreement, dataStorageId, 0x0);
+		pm.addParticipant(participantId3, address(0), dataPathOnAgreement, dataStorageId, address(0));
 		// conditional data path on process instance
-		pm.addParticipant(participantId4, 0x0, dataPathOnProcess, EMPTY, 0x0);
+		pm.addParticipant(participantId4, address(0), dataPathOnProcess, EMPTY, address(0));
 
-		addr = pm.createProcessDefinition("SingleTaskProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("SingleTaskProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		// creating a valid model with a single activity
@@ -1238,9 +1245,9 @@ contract BpmServiceTest {
 		if (!success) return bytes32Value.toString();
 
 		TestProcessInstance pi = new TestProcessInstance();
-		pi.initialize(pd, address(0), EMPTY);
-		pi.setDataValueAsAddress(dataStorageId, dataStorage); // supports indirect navigation to DataStorage via a field in the process instance
-		pi.setDataValueAsAddress(dataPathOnProcess, this); // supports direct lookup of address via a field in the process instance
+		pi.initialize(address(pd), address(0), EMPTY);
+		pi.setDataValueAsAddress(dataStorageId, address(dataStorage)); // supports indirect navigation to DataStorage via a field in the process instance
+		pi.setDataValueAsAddress(dataPathOnProcess, address(this)); // supports direct lookup of address via a field in the process instance
 		pi.initRuntime();
 
 		bytes32 dataPath;
@@ -1263,7 +1270,7 @@ contract BpmServiceTest {
 	/**
 	 * Tests a simple process flow using public BpmService API
 	 */
-	function testSequentialProcessWithUserTask() external returns (string) {
+	function testSequentialProcessWithUserTask() external returns (string memory) {
 
 		bytes32 bytes32Value;
 		bytes memory returnData;
@@ -1274,26 +1281,26 @@ contract BpmServiceTest {
 		//TODO missing test coverage of the authorizePerformer function / completeActivity for users in different department settings
 
 		UserAccount user1 = new DefaultUserAccount();
-		user1.initialize(this, 0x0);
+		user1.initialize(address(this), address(0));
 		UserAccount organizationUser = new DefaultUserAccount();
-		organizationUser.initialize(this, 0x0);
+		organizationUser.initialize(address(this), address(0));
 		DefaultOrganization org1 = new DefaultOrganization();
 		org1.initialize(emptyAddressArray, EMPTY);
-		if (!org1.addUserToDepartment(organizationUser, EMPTY)) return "Unable to add user account to organization default department";
+		if (!org1.addUserToDepartment(address(organizationUser), EMPTY)) return "Unable to add user account to organization default department";
 
 		// Register a typical WEB application with only a webform
-		error = applicationRegistry.addApplication("Webform1", BpmModel.ApplicationType.WEB, 0x0, bytes4(EMPTY), "MyCustomWebform");
+		error = applicationRegistry.addApplication("Webform1", BpmModel.ApplicationType.WEB, address(0), bytes4(EMPTY), "MyCustomWebform");
 		if (error != BaseErrors.NO_ERROR()) return "Error registering WEB application for user task";
 
 		(error, addr) = processModelRepository.createProcessModel("testModelUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
 		// Register participants to be used for USER tasks
-		pm.addParticipant(participantId1, user1, EMPTY, EMPTY, 0x0); // user participant
-		pm.addParticipant(participantId2, org1, EMPTY, EMPTY, 0x0); // organization participant
+		pm.addParticipant(participantId1, address(user1), EMPTY, EMPTY, address(0)); // user participant
+		pm.addParticipant(participantId2, address(org1), EMPTY, EMPTY, address(0)); // organization participant
 
-		addr = pm.createProcessDefinition("UserTaskProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("UserTaskProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		// Activity 1 is assigned to user1
@@ -1304,10 +1311,10 @@ contract BpmServiceTest {
 		if (error != BaseErrors.NO_ERROR()) return "Error creating USER task activity for participant2";
 		pd.createTransition(activityId1, activityId2);
 
-		pd.createDataMapping(activityId1, BpmModel.Direction.IN, "nameAccessPoint", "Name", "storage", 0x0);
-		pd.createDataMapping(activityId1, BpmModel.Direction.OUT, "approvedAccessPoint", "Approved", EMPTY, 0x0);
-		pd.createDataMapping(activityId2, BpmModel.Direction.IN, "approvedAccessPoint", "Approved", EMPTY, 0x0);
-		pd.createDataMapping(activityId2, BpmModel.Direction.OUT, "ageAccessPoint", "Age", "storage", 0x0);
+		pd.createDataMapping(activityId1, BpmModel.Direction.IN, "nameAccessPoint", "Name", "storage", address(0));
+		pd.createDataMapping(activityId1, BpmModel.Direction.OUT, "approvedAccessPoint", "Approved", EMPTY, address(0));
+		pd.createDataMapping(activityId2, BpmModel.Direction.IN, "approvedAccessPoint", "Approved", EMPTY, address(0));
+		pd.createDataMapping(activityId2, BpmModel.Direction.OUT, "ageAccessPoint", "Age", "storage", address(0));
 		// Create a DataStorage to use for IN/OUT data mappings
 		TestData dataStorage = new TestData();
 		dataStorage.setDataValueAsBytes32("Name", "Smith");
@@ -1317,23 +1324,25 @@ contract BpmServiceTest {
 		if (!success) return bytes32Value.toString();
 
 		// test error conditions for creating a process via model and pd IDs
-		if (address(service).call(bytes4(keccak256(abi.encodePacked("startProcessFromRepository(bytes32,bytes32,bytes32)"))), "FakeModelIdddddd", "UserTaskProcess", EMPTY))
+		(success, ) = address(service).call(abi.encodeWithSignature("startProcessFromRepository(bytes32,bytes32,bytes32)", bytes32("FakeModelIdddddd"), bytes32("UserTaskProcess"), EMPTY));
+		if (success)
 			return "Starting a process with invalid model ID should REVERT";
-		if (address(service).call(bytes4(keccak256(abi.encodePacked("startProcessFromRepository(bytes32,bytes32,bytes32)"))), pm.getId(), "TotallyFakeProcessssId", EMPTY))
+		(success, ) = address(service).call(abi.encodeWithSignature("startProcessFromRepository(bytes32,bytes32,bytes32)", pm.getId(), bytes32("TotallyFakeProcessssId"), EMPTY));
+		if (success)
 			return "Starting a process with invalid process definition ID should REVERT";
 
 		// test successful creation via model and pd IDs
 		(error, addr) = service.startProcessFromRepository(pm.getId(), "UserTaskProcess", EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start";
-		if (addr == 0x0) return "No error during process start, but PI address is empty!";
+		if (addr == address(0)) return "No error during process start, but PI address is empty!";
 		ProcessInstance pi = ProcessInstance(addr);
 
 		// some of the data mappings reference a DataStorage object that needs to be set in the PI
-		pi.setDataValueAsAddress("storage", dataStorage);
+		pi.setDataValueAsAddress("storage", address(dataStorage));
 
 		// verify DB state
 		if (service.getNumberOfProcessInstances() != 1) return "There should be 1 PI after process start";
-		if (service.getNumberOfActivityInstances(pi) != 1) return "There should be 1 AI after process start";
+		if (service.getNumberOfActivityInstances(address(pi)) != 1) return "There should be 1 AI after process start";
 		if (pi.getNumberOfActivityInstances() != 1) return "There should be 1 AI in the ProcessInstance after start";
 
 		// verify individual activity instances
@@ -1343,7 +1352,8 @@ contract BpmServiceTest {
 		if (addr != address(user1)) return "Activity1 should be assigned to user1";
 
 		// test data mappings via user-assigned task
-		if (address(pi).call(bytes4(keccak256(abi.encodePacked("getActivityInDataAsBytes32(bytes32,bytes32)"))), pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")))
+		(success, ) = address(pi).call(abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
+		if (success)
 			 return "It should not be possible to access IN data mappings from a non-performer address";
 		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBytes32(bytes32,bytes32)", pi.getActivityInstanceAtIndex(0), bytes32("nameAccessPoint")));
 		if (returnData.toBytes32() != "Smith") return "IN data mapping Name should return correctly via user1";
@@ -1358,22 +1368,25 @@ contract BpmServiceTest {
 		if (addr != address(user1)) return "Activity1 should be completedBy user1";
 
 		// verify new world state
-		if (service.getNumberOfActivityInstances(pi) != 2) return "There should be 2 AIs after task1 completion";
+		if (service.getNumberOfActivityInstances(address(pi)) != 2) return "There should be 2 AIs after task1 completion";
 		if (pi.getNumberOfActivityInstances() != 2) return "There should be 2 AIs in the ProcessInstance after task1 completion";
 		( , , , addr, , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity2 should be suspended";
 		if (addr != address(org1)) return "Activity2 should be assigned to the organization org1";
 
 		// test data mappings via organization-assigned task
-		if (address(user1).call(abi.encodeWithSignature("forwardCall(address,bytes)", address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")))))
+		(success, ) = address(user1).call(abi.encodeWithSignature("forwardCall(address,bytes)", address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint"))));
+		if (success)
 			return "Accessing IN data mappings from a user account that is not the performer should revert";
 		returnData = organizationUser.forwardCall(address(pi), abi.encodeWithSignature("getActivityInDataAsBool(bytes32,bytes32)", pi.getActivityInstanceAtIndex(1), bytes32("approvedAccessPoint")));
+		// TODO use "decode" with solidity 0.5
 		if (returnData.length != 32) return "should have length 32";
-		if (uint(returnData[31]) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
+		if (uint256(uint8(returnData[31])) != 1) return "IN data mapping Approved should return true via user organizationUser in activity2";
 		organizationUser.forwardCall(address(pi), abi.encodeWithSignature("setActivityOutDataAsUint(bytes32,bytes32,uint256)", pi.getActivityInstanceAtIndex(1), bytes32("ageAccessPoint"), uint(21)));
 
 		// complete user task 2 and check outcome
 		returnData = user1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
+		// TODO use "decode" with solidity 0.5
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempt to complete activity2 by user1 should fail";
 
 		// complete the activity here using an OUT data mapping to set the Age
@@ -1397,23 +1410,23 @@ contract BpmServiceTest {
 	/**
 	 * Tests aborting a process midflight
 	 */
-	function testProcessAbort() external returns (string) {
+	function testProcessAbort() external returns (string memory) {
 
 		bytes32 bytes32Value;
 
 		TestBpmService service = createNewTestBpmService();
 
 		UserAccount user1 = new DefaultUserAccount();
-		user1.initialize(this, 0x0);
+		user1.initialize(address(this), address(0));
 	
 		(error, addr) = processModelRepository.createProcessModel("testModelAbort", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
 		// Register participants to be used for USER tasks
-		pm.addParticipant(participantId1, user1, EMPTY, EMPTY, 0x0); // user participant
+		pm.addParticipant(participantId1, address(user1), EMPTY, EMPTY, address(0)); // user participant
 
-		addr = pm.createProcessDefinition("AbortProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("AbortProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		// Activity 1 is a NONE
@@ -1430,18 +1443,18 @@ contract BpmServiceTest {
 
 		// create two process instances, one via the BpmService.startProcess function and one via direct constructor
 		// to make sure they are both abortable by the ower (this contract)
-		(error, addr) = service.startProcess(pd, EMPTY);
+		(error, addr) = service.startProcess(address(pd), EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start";
-		if (addr == 0x0) return "No error during process start, but PI address is empty!";
+		if (addr == address(0)) return "No error during process start, but PI address is empty!";
 		ProcessInstance pi1 = ProcessInstance(addr);
 		ProcessInstance pi2 = new DefaultProcessInstance();
-		pi2.initialize(pd, 0x0, EMPTY);
+		pi2.initialize(address(pd), address(0), EMPTY);
 		service.startProcessInstance(pi2);
 
 		// verify DB state
 		if (service.getNumberOfProcessInstances() != 2) return "There should be 1 PI after process start";
-		if (service.getNumberOfActivityInstances(pi1) != 2) return "There should be 2 AIs in pi1";
-		if (service.getNumberOfActivityInstances(pi2) != 2) return "There should be 2 AIs in pi2";
+		if (service.getNumberOfActivityInstances(address(pi1)) != 2) return "There should be 2 AIs in pi1";
+		if (service.getNumberOfActivityInstances(address(pi2)) != 2) return "There should be 2 AIs in pi2";
 
 		// verify individual activity instances
 		uint8 state;
@@ -1475,14 +1488,14 @@ contract BpmServiceTest {
 	/**
 	 * Tests a multi-instance user task flow
 	 */
-	function testMultiInstanceUserTask() external returns (string) {
+	function testMultiInstanceUserTask() external returns (string memory) {
 
 		bytes32 bytes32Value;
 
 		UserAccount user1 = new DefaultUserAccount();
-		user1.initialize(this, 0x0);
+		user1.initialize(address(this), address(0));
 		UserAccount user2 = new DefaultUserAccount();
-		user2.initialize(this, 0x0);
+		user2.initialize(address(this), address(0));
 
 		TestBpmService service = createNewTestBpmService();
 
@@ -1493,13 +1506,13 @@ contract BpmServiceTest {
 		dataStorage.setDataValueAsAddressArray("SIGNATORIES", signatories);
 
 		(error, addr) = processModelRepository.createProcessModel("multiInstanceUserTasks", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		ProcessModel pm = ProcessModel(addr);
 
 		// Register a participant to be used for USER tasks that replicates the AN behavior
-		pm.addParticipant(participantId1, 0x0, "SIGNATORIES", "agreement", 0x0);
+		pm.addParticipant(participantId1, address(0), "SIGNATORIES", "agreement", address(0));
 
-		addr = pm.createProcessDefinition("MultiInstanceUserTaskProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("MultiInstanceUserTaskProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 
 		error = pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, EMPTY, EMPTY, EMPTY);
@@ -1513,14 +1526,14 @@ contract BpmServiceTest {
 		if (!success) return bytes32Value.toString();
 
 		// Start process instance
-		ProcessInstance pi = service.createDefaultProcessInstance(pd, this, EMPTY);
-		pi.setDataValueAsAddress("agreement", dataStorage);
+		ProcessInstance pi = service.createDefaultProcessInstance(address(pd), address(this), EMPTY);
+		pi.setDataValueAsAddress("agreement", address(dataStorage));
 		error = service.startProcessInstance(pi);
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start";
 
 		// verify DB state
 		if (service.getNumberOfProcessInstances() != 1) return "There should be 1 PI";
-		if (service.getNumberOfActivityInstances(pi) != 2) return "There should be 2 AIs";
+		if (service.getNumberOfActivityInstances(address(pi)) != 2) return "There should be 2 AIs";
 
 		// verify process state
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The PI should be active";
@@ -1543,14 +1556,14 @@ contract BpmServiceTest {
 		if (pi.getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The PI should be completed";
 
 		// number of AIs should still be 2 at this point
-		if (service.getNumberOfActivityInstances(pi) != 2) return "There should still be 2 AIs after completing only 1 instance";
+		if (service.getNumberOfActivityInstances(address(pi)) != 2) return "There should still be 2 AIs after completing only 1 instance";
 
 		// complete remaining user task
 		user2.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(1), service));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "Activity1.2 should be completed";
 
-		if (service.getNumberOfActivityInstances(pi) != 3) return "There should be 3 AIs after completing all instances of the multi-instance user task";
+		if (service.getNumberOfActivityInstances(address(pi)) != 3) return "There should be 3 AIs after completing all instances of the multi-instance user task";
 
 		// remaining activities should be completed
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(1));
@@ -1567,7 +1580,7 @@ contract BpmServiceTest {
 	/**
 	 * Tests a simple process flow using public BpmService API
 	 */
-	function testSubprocesses() external returns (string) {
+	function testSubprocesses() external returns (string memory) {
 
 		bytes32 bytes32Value;
 		ProcessInstance[3] memory subProcesses;
@@ -1576,22 +1589,22 @@ contract BpmServiceTest {
 
 		// Two process models
 		(error, addr) = processModelRepository.createProcessModel("ModelA", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create ProcessModel A";
+		if (addr == address(0)) return "Unable to create ProcessModel A";
 		ProcessModel pmA = ProcessModel(addr);
-		pmA.addParticipant(participantId1, address(this), EMPTY, EMPTY, 0x0);
+		pmA.addParticipant(participantId1, address(this), EMPTY, EMPTY, address(0));
 
 		(error, addr) = processModelRepository.createProcessModel("ModelB", [1,0,0], modelAuthor, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create ProcessModel B";
+		if (addr == address(0)) return "Unable to create ProcessModel B";
 		ProcessModel pmB = ProcessModel(addr);
 
 		// One 'main' process and three sub-process definitions
-		addr = pmA.createProcessDefinition("MainProcess", artifactsRegistry);
+		addr = pmA.createProcessDefinition("MainProcess", address(artifactsRegistry));
 		ProcessDefinition pdMain = ProcessDefinition(addr);
-		addr = pmA.createProcessDefinition("SubProcessA", artifactsRegistry);
+		addr = pmA.createProcessDefinition("SubProcessA", address(artifactsRegistry));
 		ProcessDefinition pdSubA = ProcessDefinition(addr);
-		addr = pmA.createProcessDefinition("SubProcessA2", artifactsRegistry);
+		addr = pmA.createProcessDefinition("SubProcessA2", address(artifactsRegistry));
 		ProcessDefinition pdSubA2 = ProcessDefinition(addr);
-		addr = pmB.createProcessDefinition("SubProcessB", artifactsRegistry);
+		addr = pmB.createProcessDefinition("SubProcessB", address(artifactsRegistry));
 		ProcessDefinition pdSubB = ProcessDefinition(addr);
 
 		// The test covers a "main" process with three subprocess activities. The first two subprocesses have activities that should be suspended.
@@ -1616,8 +1629,8 @@ contract BpmServiceTest {
 		if (!success) return bytes32Value.toString();
 
 		// Start process instance with data to simulate agreement reference
-		ProcessInstance piMain = service.createDefaultProcessInstance(pdMain, this, EMPTY);
-		piMain.setDataValueAsAddress("agreement", this);
+		ProcessInstance piMain = service.createDefaultProcessInstance(address(pdMain), address(this), EMPTY);
+		piMain.setDataValueAsAddress("agreement", address(this));
 		error = service.startProcessInstance(piMain);
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error during process start";
 
@@ -1680,12 +1693,12 @@ contract BpmServiceTest {
  */
 contract TestBpmService is DefaultBpmService {
 
-	constructor (string _appRegistryId, string _modelRepoId) public
+	constructor (string memory _appRegistryId, string memory _modelRepoId) public
 		DefaultBpmService(_appRegistryId, _modelRepoId) {
 	}
 
 	function addProcessInstance(ProcessInstance _pi) external {
-		BpmServiceDb(database).addProcessInstance(_pi);
+		BpmServiceDb(database).addProcessInstance(address(_pi));
 	}
 
 	function getDatabase() external view returns (BpmServiceDb) {
@@ -1766,18 +1779,18 @@ contract EventApplication is Application {
 	}
 
 	/// returns the greeting IN data saved in the completion function
-	function getGreetingDuringCompletion() external view returns (string) {
+	function getGreetingDuringCompletion() external view returns (string memory) {
 		return greetingDuringCompletion;
 	}
 
 	/// allows invoking the inDataIdAge mapping via the application
-	function retrieveInDataAge() public view returns (uint) {
+	function retrieveInDataAge() public returns (uint) {
 		address pi = bpmService.getProcessInstanceForActivity(activityInstanceId);
 		return ProcessInstance(pi).getActivityInDataAsUint(activityInstanceId, inDataIdAge);
 	}
 
 	/// allows invoking the inDataIdGreeting mapping via the application
-	function retrieveInDataGreeting() public view returns (string) {
+	function retrieveInDataGreeting() public returns (string memory) {
 		address pi = bpmService.getProcessInstanceForActivity(activityInstanceId);
 		return ProcessInstance(pi).getActivityInDataAsString(activityInstanceId, inDataIdGreeting);
 	}

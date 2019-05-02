@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -96,7 +96,7 @@ library BpmRuntimeLib {
      * @param _value the value
      * @return the number of tasks at the end of the operation
      */
-    function insertOrUpdate(BpmRuntime.ActivityInstanceMap storage _map, BpmRuntime.ActivityInstance _value) internal returns (uint)
+    function insertOrUpdate(BpmRuntime.ActivityInstanceMap storage _map, BpmRuntime.ActivityInstance memory _value) internal returns (uint)
     {
         if (_map.rows[_value.id].exists) {
             _map.rows[_value.id].value = _value;
@@ -182,7 +182,7 @@ library BpmRuntimeLib {
                     if (!setPerformer(_activityInstance, _processDefinition, _rootDataStorage)) {
                         return BaseErrors.INVALID_STATE();
                     }
-                    // TODO require(_activityInstance.performer != 0x0)
+                    // TODO require(_activityInstance.performer != address(0))
                     // USER tasks are always suspended to wait for external completion
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
                     emit LogActivityInstanceStateUpdate(
@@ -195,7 +195,7 @@ library BpmRuntimeLib {
                 else if (_activityInstance.state == BpmRuntime.ActivityInstanceState.SUSPENDED) {
                     address taskPerformer = authorizePerformer(_activityInstance.id, ProcessInstance(_activityInstance.processInstance));
                     // if the taskPerformer is empty, the authorization is regarded as failed
-                    if (taskPerformer == 0x0) {
+                    if (taskPerformer == address(0)) {
                         return BaseErrors.INVALID_ACTOR();
                     }
 
@@ -205,8 +205,8 @@ library BpmRuntimeLib {
                         ( , _activityInstance.performer, , , ) = _service.getApplicationRegistry().getApplicationData(application);
                         // USER tasks are allowed to have an application without code, i.e. no location address!
                         // In that case we have to skip the application invocation to avoid an error
-                        if (_activityInstance.performer != 0x0) {
-                            error = invokeApplication(_activityInstance, _rootDataStorage, application, taskPerformer, _processDefinition, _service.getApplicationRegistry());
+                        if (_activityInstance.performer != address(0)) {
+                            error = invokeApplication(_activityInstance, address(_rootDataStorage), application, taskPerformer, _processDefinition, _service.getApplicationRegistry());
                             if (error != BaseErrors.NO_ERROR()) {
                                 // a USER task remains suspended if the completion function failed
                                 _activityInstance.state = BpmRuntime.ActivityInstanceState.SUSPENDED;
@@ -218,7 +218,7 @@ library BpmRuntimeLib {
                                     _activityInstance.performer,
                                     uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)
                                 );
-                                return;
+                                return (error);
                             }
                         }
                     }
@@ -227,7 +227,7 @@ library BpmRuntimeLib {
                     // all clear to mark task as complete.
                     // The AI performer is unset to avoid leaving any permissions open.
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
-                    _activityInstance.performer = 0x0;
+                    _activityInstance.performer = address(0);
                     _activityInstance.completedBy = taskPerformer;
                     _activityInstance.completed = block.timestamp;
                     emitAICompletionEvent(
@@ -252,8 +252,8 @@ library BpmRuntimeLib {
                 ( , _activityInstance.performer, , , ) = _service.getApplicationRegistry().getApplicationData(application);
                 // for synchronous service applications, the state is set to APPLICATION instead of SUSPENDED (for asynchronous behavior)
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.APPLICATION;
-                error = invokeApplication(_activityInstance, _rootDataStorage, application, msg.sender, _processDefinition, _service.getApplicationRegistry());
-                _activityInstance.performer = 0x0;
+                error = invokeApplication(_activityInstance, address(_rootDataStorage), application, msg.sender, _processDefinition, _service.getApplicationRegistry());
+                _activityInstance.performer = address(0);
                 emit LogActivityInstanceStateAndPerformerUpdate(
                     EVENT_ID_ACTIVITY_INSTANCES,
                     _activityInstance.id,
@@ -267,7 +267,7 @@ library BpmRuntimeLib {
                         _activityInstance.id,
                         uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
                     );
-                    return;
+                    return (error);
                 }
                 
                 _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
@@ -309,17 +309,17 @@ library BpmRuntimeLib {
                             _activityInstance.id,
                             uint8(BpmRuntime.ActivityInstanceState.APPLICATION)
                         );
-                        error = invokeApplication(_activityInstance, _rootDataStorage, application, msg.sender, _processDefinition, _service.getApplicationRegistry());
+                        error = invokeApplication(_activityInstance, address(_rootDataStorage), application, msg.sender, _processDefinition, _service.getApplicationRegistry());
                         if (error != BaseErrors.NO_ERROR()) {
                             _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
-                            _activityInstance.performer = 0x0;
+                            _activityInstance.performer = address(0);
                             emit LogActivityInstanceStateAndPerformerUpdate(
                                 EVENT_ID_ACTIVITY_INSTANCES,
                                 _activityInstance.id,
                                 _activityInstance.performer,
                                 uint8(BpmRuntime.ActivityInstanceState.INTERRUPTED)
                             );
-                            return;
+                            return (error);
                         }
                     }
 
@@ -335,13 +335,13 @@ library BpmRuntimeLib {
                     else {
                         _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                         _activityInstance.completedBy = _activityInstance.performer;
-                        _activityInstance.performer = 0x0;
+                        _activityInstance.performer = address(0);
                         _activityInstance.completed = block.timestamp;
                         emitAICompletionEvent(
                             _activityInstance.id,
                             _activityInstance.completedBy,
                             _activityInstance.completed,
-                            0x0,
+                            address(0),
                             BpmRuntime.ActivityInstanceState.COMPLETED
                         );
                     }
@@ -353,13 +353,13 @@ library BpmRuntimeLib {
                     }
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.COMPLETED;
                     _activityInstance.completedBy = _activityInstance.performer;
-                    _activityInstance.performer = 0x0;
+                    _activityInstance.performer = address(0);
                     _activityInstance.completed = block.timestamp;
                     emitAICompletionEvent(
                         _activityInstance.id,
                         _activityInstance.completedBy,
                         _activityInstance.completed,
-                        0x0,
+                        address(0),
                         BpmRuntime.ActivityInstanceState.COMPLETED
                     );
                 }
@@ -373,8 +373,8 @@ library BpmRuntimeLib {
         else if (activityType == uint8(BpmModel.ActivityType.SUBPROCESS)) {
             if (_activityInstance.state == BpmRuntime.ActivityInstanceState.CREATED) {
                 address subProcessDefinition = findProcessDefinitionForSubprocessActivity(_activityInstance, _processDefinition, _service.getProcessModelRepository());
-                // TODO assert(subProcessDefinition != 0x0)
-                if (subProcessDefinition == 0x0) {
+                // TODO assert(subProcessDefinition != address(0))
+                if (subProcessDefinition == address(0)) {
                     _activityInstance.state = BpmRuntime.ActivityInstanceState.INTERRUPTED;
                     emit LogActivityInstanceStateUpdate(
                         EVENT_ID_ACTIVITY_INSTANCES,
@@ -413,7 +413,7 @@ library BpmRuntimeLib {
                         _activityInstance.id,
                         uint8(_activityInstance.state)
                     );
-                    return;
+                    return (error);
                 }
             }
             else if (_activityInstance.state == BpmRuntime.ActivityInstanceState.SUSPENDED) {
@@ -588,7 +588,7 @@ library BpmRuntimeLib {
                 _activityInstance.performer
             );
         }
-        return (_activityInstance.performer != 0x0);
+        return (_activityInstance.performer != address(0));
     }
 
     /**
@@ -601,12 +601,12 @@ library BpmRuntimeLib {
      * @return authorizedPerformer - the address (msg.sender or tx.origin) that was authorized, or 0x0 if no authorization is given
      */
     function authorizePerformer(bytes32 _activityInstanceId, ProcessInstance _processInstance)
-        public view
+        public
         returns (address authorizedPerformer)
     {
         (bytes32 activityId, , , address performer, , ) = _processInstance.getActivityInstanceData(_activityInstanceId);
         if (performer == address(0)) {
-            return;
+            return address(0);
         }
         if (performer == msg.sender) {
             authorizedPerformer = msg.sender;
@@ -615,7 +615,7 @@ library BpmRuntimeLib {
             authorizedPerformer = tx.origin;
         }
         // if the performer cannot be determined directly (i.e. via msg.sender or tx.origin), check against a potential organization + scope (department/role)
-        if (authorizedPerformer == 0x0 && ERC165Utils.implementsInterface(performer, getERC165IdOrganization())) {
+        if (authorizedPerformer == address(0) && ERC165Utils.implementsInterface(performer, getERC165IdOrganization())) {
             // check if this organization performer and activity context require a restrictive scope (department)
             bytes32 scope = _processInstance.resolveAddressScope(performer, activityId, _processInstance);
             if (Organization(performer).authorizeUser(msg.sender, scope)) {
@@ -646,7 +646,7 @@ library BpmRuntimeLib {
         ( , appAddress, completionFunction, , ) = _applicationRegistry.getApplicationData(_application);
         // For some reason, making the .call below on an 0x0 address (or any address) does not return false, so we need to detect this situation beforehand
         // TODO check if the address is not 0x0 and has a code field
-        if (appAddress == 0x0) {
+        if (appAddress == address(0)) {
             return BaseErrors.RESOURCE_NOT_FOUND();
         }
         if (completionFunction == "") {
@@ -657,9 +657,9 @@ library BpmRuntimeLib {
 
         //TODO support custom completion functions. Currently only the DEFAULT_COMPLETION_FUNCTION signature is supported
 
-        //TODO should we give an Application the BpmService (or better ApplicationService) via the complete function?
-
-        if (!appAddress.call(completionFunction, _activityInstance.processInstance, _activityInstance.id, _activityInstance.activityId, (_txPerformer == 0x0 ? msg.sender : _txPerformer)))
+        bool success;
+        (success, ) = appAddress.call(abi.encodeWithSelector(completionFunction, _activityInstance.processInstance, _activityInstance.id, _activityInstance.activityId, (_txPerformer == address(0) ? msg.sender : _txPerformer)));
+        if (!success)
             return BaseErrors.RUNTIME_ERROR();
         return BaseErrors.NO_ERROR();
     }
@@ -679,8 +679,8 @@ library BpmRuntimeLib {
         ( , , dataPath, dataStorageId, dataStorage) = _direction == BpmModel.Direction.IN ?
             _processInstance.processDefinition.getInDataMappingDetails(activityId, _dataMappingId) :
             _processInstance.processDefinition.getOutDataMappingDetails(activityId, _dataMappingId);
-        if (dataStorage != 0x0) {
-            return;
+        if (dataStorage != address(0)) {
+            return (dataStorage, dataPath);
         }
         else if (dataStorageId != "") {
             // retrieve the target by looking for the dataStorageId in the context of this ProcessInstance's dataStorage
@@ -698,7 +698,7 @@ library BpmRuntimeLib {
      * @param _repository a ProcessModelRepository in case the subprocess definition is in a different model than the provided ProcessDefinition
      * @return the address of a ProcessDefinition if successful, 0x0 otherwise
      */
-    function findProcessDefinitionForSubprocessActivity(BpmRuntime.ActivityInstance _activityInstance, ProcessDefinition _processDefinition, ProcessModelRepository _repository) internal view returns (address subProcessDefinition) {
+    function findProcessDefinitionForSubprocessActivity(BpmRuntime.ActivityInstance memory _activityInstance, ProcessDefinition _processDefinition, ProcessModelRepository _repository) internal view returns (address subProcessDefinition) {
         bytes32 modelId;
         bytes32 processId;
         ( , , , , , , modelId, processId) = _processDefinition.getActivityData(_activityInstance.activityId);
@@ -728,14 +728,14 @@ library BpmRuntimeLib {
         address dataStorageAddress;
         address account;
         (account, dataPath, dataStorageId, dataStorageAddress) = _processModel.getParticipantData(_participant);
-        if (account != 0x0)
+        if (account != address(0))
             target = account;
-        else if (dataStorageAddress != 0x0)
+        else if (dataStorageAddress != address(0))
             target = dataStorageAddress;
         else if (dataStorageId != "")
             target = _dataStorage.getDataValueAsAddress(dataStorageId);
         else
-            target = _dataStorage;
+            target = address(_dataStorage);
     }
     
     /**
@@ -1083,7 +1083,7 @@ library BpmRuntimeLib {
     function isCompleted(BpmRuntime.ProcessGraph storage _graph) public returns (bool completed, bool readyActivities) {
         readyActivities = (execute(_graph) > 0) ? true : hasActivatableActivities(_graph);
         if (readyActivities)
-            return;
+            return (false, readyActivities);
         BpmRuntime.ActivityNode memory node;
         for (uint i=0; i<_graph.activityKeys.length; i++) {
             node = _graph.activities[_graph.activityKeys[i]];
@@ -1091,7 +1091,7 @@ library BpmRuntimeLib {
                 node.instancesTotal != node.instancesCompleted &&
                 node.instancesTotal > 0) {
                 completed = false;
-                return;
+                return (completed, readyActivities);
             }
         }
         completed = true;

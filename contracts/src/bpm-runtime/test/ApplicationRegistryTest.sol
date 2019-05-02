@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
@@ -23,24 +23,24 @@ contract ApplicationRegistryTest {
 
     bytes4 customCompletionFunction = bytes4(keccak256(abi.encodePacked("customComplete(address,bytes32,address)")));
 
-    function testApplicationRegistry() external returns (string) {
+    function testApplicationRegistry() external returns (string memory) {
 
         uint error;
 
         ApplicationRegistry registry = new DefaultApplicationRegistry();
         ApplicationRegistryDb registryDb = new ApplicationRegistryDb();
-        SystemOwned(registryDb).transferSystemOwnership(registry);
-        AbstractDbUpgradeable(registry).acceptDatabase(registryDb);
+        SystemOwned(registryDb).transferSystemOwnership(address(registry));
+        AbstractDbUpgradeable(address(registry)).acceptDatabase(address(registryDb));
 
         TestApplication app1 = new TestApplication();
         TestApplication app2 = new TestApplication();
 
         // add applications
-        error = registry.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, app1, bytes4(EMPTY), EMPTY);
+        error = registry.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, address(app1), bytes4(EMPTY), EMPTY);
         if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding application1 to the registry";
-        error = registry.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, app1, bytes4(EMPTY), EMPTY);
+        error = registry.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, address(app1), bytes4(EMPTY), EMPTY);
         if (error != BaseErrors.RESOURCE_ALREADY_EXISTS()) return "Expected RESOURCE_ALREADY_EXISTS for adding an already existing application1";
-        error = registry.addApplication(serviceApp2Id, BpmModel.ApplicationType.SERVICE, app2, customCompletionFunction, EMPTY);
+        error = registry.addApplication(serviceApp2Id, BpmModel.ApplicationType.SERVICE, address(app2), customCompletionFunction, EMPTY);
         if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding an application2 to the registry";
 
         if (registry.getNumberOfApplications() != 2) return "There should be 2 applications registered";

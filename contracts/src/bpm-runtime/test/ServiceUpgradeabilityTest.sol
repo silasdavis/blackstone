@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
@@ -21,26 +21,26 @@ contract ServiceUpgradeabilityTest {
 
 	bytes4 customCompletionFunction = bytes4(keccak256(abi.encodePacked("customComplete(address,bytes32,address)")));
 
-	function testServiceUpgradeability() external returns (string) {
+	function testServiceUpgradeability() external returns (string memory) {
 
 			uint error;
 
 			ApplicationRegistry registryV1 = new DefaultApplicationRegistry();
 			ApplicationRegistryDb registryDb = new ApplicationRegistryDb();
-			SystemOwned(registryDb).transferSystemOwnership(registryV1);
-			AbstractDbUpgradeable(registryV1).acceptDatabase(registryDb);
+			SystemOwned(registryDb).transferSystemOwnership(address(registryV1));
+			AbstractDbUpgradeable(address(registryV1)).acceptDatabase(address(registryDb));
 
 			TestApplication app1 = new TestApplication();
 			TestApplication app2 = new TestApplication();
 
-			error = registryV1.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, app1, bytes4(EMPTY), EMPTY);
+			error = registryV1.addApplication(serviceApp1Id, BpmModel.ApplicationType.SERVICE, address(app1), bytes4(EMPTY), EMPTY);
 			if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding application1 to registryV1";
-			error = registryV1.addApplication(serviceApp2Id, BpmModel.ApplicationType.SERVICE, app2, customCompletionFunction, EMPTY);
+			error = registryV1.addApplication(serviceApp2Id, BpmModel.ApplicationType.SERVICE, address(app2), customCompletionFunction, EMPTY);
 			if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding application2 to registryV1";
 			if (registryV1.getNumberOfApplications() != 2) return "There should be 2 applications registered via registryV1";
 
 			ApplicationRegistry registryV2 = new  DefaultApplicationRegistry();
-			if (!AbstractDbUpgradeable(registryV1).migrateTo(registryV2)) return "Unexpected error while migrating from registryV1 to registryV2";
+			if (!AbstractDbUpgradeable(address(registryV1)).migrateTo(address(registryV2))) return "Unexpected error while migrating from registryV1 to registryV2";
 			if (registryV2.getNumberOfApplications() != 2) return "There should be 2 applications registered via registryV2";
 			if (registryDb.getSystemOwner() != address(registryV2)) return "ApplicationRegistryDb owner is not set to registryV2";
 
