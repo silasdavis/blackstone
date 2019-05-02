@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "documents-commons/Agreement.sol";
 import "documents-commons/test/SignatoryProxy.sol";
@@ -6,7 +6,7 @@ import "documents-commons/test/SignatoryProxy.sol";
 
 contract UseCaseTest {
 
-    function testMasterServiceAgreement() external returns (string) {
+    function testMasterServiceAgreement() external returns (string memory) {
 
         string memory versionHash = "98h238f7dsyr923hr29f29283rjf92832rwosd";
 
@@ -26,9 +26,9 @@ contract UseCaseTest {
         if (1 != agreement.getNumberOfVersions()) return "Version hash was not saved in the agreement.";
 
         // start signing and test effective and confirmed state
-        consumer.signAgreement(agreement, versionHash);
+        consumer.signAgreement(address(agreement), versionHash);
         if (agreement.isEffective() || agreement.isConfirmedVersion(versionHash)) return "The agreement should not be effective or confirmed with one signature missing.";
-        provider.signAgreement(agreement, versionHash);
+        provider.signAgreement(address(agreement), versionHash);
         if (!agreement.isEffective() || !agreement.isConfirmedVersion(versionHash)) return "The agreement should be effective and confirmed after second signature.";
 
         return "success";

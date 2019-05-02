@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -15,7 +15,7 @@ contract AbstractDocumentTest {
      *
      * @return "success", if successful or an explanatory message if not successful.
      */
-    function testDocumentCreation() external returns (string) {
+    function testDocumentCreation() external returns (string memory) {
 
         Document doc1 = new TestDocument("doc1");
 
@@ -31,7 +31,7 @@ contract AbstractDocumentTest {
      *
      * @return "success", if successful or an explanatory message if not successful.
      */
-    function testDocumentVersioning() external returns (string) {
+    function testDocumentVersioning() external returns (string memory) {
 
         string memory docHash = "8jH87gYUV78jHBghuyuf543Rd";
 
@@ -56,7 +56,7 @@ contract AbstractDocumentTest {
  */
 contract TestDocument is AbstractDocument {
     // Constructor
-    constructor(string _name) AbstractDocument(_name) public {}
+    constructor(string memory _name) AbstractDocument(_name) public {}
 
     /**
      * @dev Implement `canAddVersion` to permit testing versioning capabilities.

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "documents-commons/Agreement.sol";
 
@@ -11,18 +11,19 @@ contract SignatoryProxy {
 	 *
 	 * @param _name is _name
 	 */
-	function createAgreementAsOwner(string _name) external returns (address) {
+	function createAgreementAsOwner(string calldata _name) external returns (address) {
 		agreement = new Agreement(_name);
-		return agreement;
+		return address(agreement);
 	}
 
 	/**
 	 * @dev Invokes confirmExecutionAgreement on the provided agreement using the specified version.
 	 *
 	 * @param _agreement the agreement
+	 * @param _version the version
 	 */
-	function signAgreement(address _agreement, string version) external returns (uint) {
-		return Agreement(_agreement).confirmExecutionVersion(version);
+	function signAgreement(address _agreement, string calldata _version) external returns (uint) {
+		return Agreement(_agreement).confirmExecutionVersion(_version);
 	}
 
     /**
@@ -38,7 +39,7 @@ contract SignatoryProxy {
 	 *
 	 * @param _version is _version
 	 */
-    function addVersion(string _version) external {
+    function addVersion(string calldata _version) external {
     	agreement.addVersion(_version);
 	}
 
@@ -56,7 +57,7 @@ contract SignatoryProxy {
 	*
 	* @param _version is _version
 	*/
-	function confirmExecutionVersion(string _version) external {
+	function confirmExecutionVersion(string calldata _version) external {
 		agreement.confirmExecutionVersion(_version);
 	}
 

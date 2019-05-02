@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "documents-commons/AbstractDocument.sol";
 
@@ -12,7 +12,7 @@ contract DefaultDocument is AbstractDocument {
 	 * @dev Creates a new DefaultDocument with the specified name
 	 * @param _name the document name
 	 */
-	constructor(string _name) AbstractDocument(_name) public { }
+	constructor(string memory _name) AbstractDocument(_name) public { }
 
     /**
      * @dev Default implementation that allows the document owner add versions.
