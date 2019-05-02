@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/Bytes32Identifiable.sol";
 import "commons-management/VersionedArtifact.sol";
@@ -134,7 +134,7 @@ contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side comparison value
 	 */
-	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value) external;
+	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string calldata _value) external;
 
 	/**
 	 * @dev Creates a transition condition between the specified gateway and activity using the given parameters.
@@ -233,7 +233,7 @@ contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
 	 * @param _participantId the ID of a participant in the model
 	 * @return an array of activity IDs
 	 */
-	function getActivitiesForParticipant(bytes32 _participantId) external view returns (bytes32[]);
+	function getActivitiesForParticipant(bytes32 _participantId) external view returns (bytes32[] memory);
 
 	/**
 	 * @dev Returns the number of IN data mappings for the specified activity.
@@ -270,14 +270,14 @@ contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
 	 * @param _activityId the ID of the activity in this ProcessDefinition
 	 * @return the data mapping ids
 	 */
-	function getInDataMappingKeys(bytes32 _activityId) external view returns (bytes32[]);
+	function getInDataMappingKeys(bytes32 _activityId) external view returns (bytes32[] memory);
 
 	/**
 	 * @dev Returns an array of the OUT data mapping ids of the specified activity.
 	 * @param _activityId the ID of the activity in this ProcessDefinition
 	 * @return the data mapping ids
 	 */
-	function getOutDataMappingKeys(bytes32 _activityId) external view returns (bytes32[]);
+	function getOutDataMappingKeys(bytes32 _activityId) external view returns (bytes32[] memory);
 
 	/**
 	 * @dev Returns information about the IN data mapping of the specified activity with the given ID.
@@ -346,7 +346,7 @@ contract ProcessDefinition is VersionedArtifact, Bytes32Identifiable {
 	 * @return gatewayType - the BpmModel.GatewayType
 	 * @return defaultOutput - the default output connection (applies only to XOR|OR type gateways)
 	 */
-	function getGatewayGraphDetails(bytes32 _id) external view returns (bytes32[] inputs, bytes32[] outputs, BpmModel.GatewayType gatewayType, bytes32 defaultOutput);
+	function getGatewayGraphDetails(bytes32 _id) external view returns (bytes32[] memory inputs, bytes32[] memory outputs, BpmModel.GatewayType gatewayType, bytes32 defaultOutput);
 
 	/**
 	 * @dev indicates whether this ProcessDefinition implements the specified interface

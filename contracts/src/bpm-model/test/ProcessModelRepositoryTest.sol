@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/Owned.sol";
@@ -29,14 +29,14 @@ contract ProcessModelRepositoryTest {
      */
     function createNewProcessModelRepository() internal returns (ProcessModelRepository repository) {
 		repository =  new DefaultProcessModelRepository();
-        ArtifactsFinderEnabled(repository).setArtifactsFinder(artifactsRegistry);
-        artifactsRegistry.registerArtifact(repository.OBJECT_CLASS_PROCESS_MODEL(), defaultProcessModelImpl, defaultProcessModelImpl.getArtifactVersion(), true);
+        ArtifactsFinderEnabled(address(repository)).setArtifactsFinder(address(artifactsRegistry));
+        artifactsRegistry.registerArtifact(repository.OBJECT_CLASS_PROCESS_MODEL(), address(defaultProcessModelImpl), defaultProcessModelImpl.getArtifactVersion(), true);
 		ProcessModelRepositoryDb database = new ProcessModelRepositoryDb();
-		SystemOwned(database).transferSystemOwnership(repository);
-		AbstractDbUpgradeable(repository).acceptDatabase(database);
+		SystemOwned(database).transferSystemOwnership(address(repository));
+		AbstractDbUpgradeable(address(repository)).acceptDatabase(address(database));
 	}
 
-	function testRepository() external returns (string) {
+	function testRepository() external returns (string memory) {
 
 		ProcessModelRepository repo = createNewProcessModelRepository();
 		

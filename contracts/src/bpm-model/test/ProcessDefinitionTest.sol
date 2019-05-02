@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/TypeUtilsLib.sol";
@@ -36,7 +36,7 @@ contract ProcessDefinitionTest {
 	/**
 	 * @dev Tests building of the ProcessDefinition and checking for validity along the way
 	 */
-	function testProcessDefinition() external returns (string) {
+	function testProcessDefinition() external returns (string memory) {
 	
 		//                                              
 		// Graph: activity1 -> activity2 -> XOR SPLIT -/---------------> XOR JOIN -> activity4
@@ -45,6 +45,8 @@ contract ProcessDefinitionTest {
 
 		// re-usable test variables
 		uint error;
+		bool success;
+		bytes32 errorMsg;
 
 		ProcessModel pm = new DefaultProcessModel();
 		pm.initialize("testModel", [1,0,0], author, false, dummyModelFileReference);
@@ -52,20 +54,17 @@ contract ProcessDefinitionTest {
 		pd.initialize("p1", address(pm));
 		
 		// test process interface handling
-		error = pd.addProcessInterfaceImplementation(pm, "AgreementFormation");
+		error = pd.addProcessInterfaceImplementation(address(pm), "AgreementFormation");
 		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Expected error for adding non-existent process interface.";
 		error = pm.addProcessInterface("AgreementFormation");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add process interface Formation to model";
 		error = pm.addProcessInterface("AgreementExecution");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add process interface Execution to model";
-		error = pd.addProcessInterfaceImplementation(pm, "AgreementFormation");
+		error = pd.addProcessInterfaceImplementation(address(pm), "AgreementFormation");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add valid process interface Formation to process definition.";
-		error = pd.addProcessInterfaceImplementation(pm, "AgreementExecution");
+		error = pd.addProcessInterfaceImplementation(address(pm), "AgreementExecution");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add valid process interface Execution to process definition.";
 		if (pd.getNumberOfImplementedProcessInterfaces() != 2) return "Number of implemented interfaces should be 2";
-
-		bool valid;
-		bytes32 errorMsg;
 
 		// test activity creation
 
@@ -73,7 +72,7 @@ contract ProcessDefinitionTest {
 		error = pd.createActivityDefinition("activity999", BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, "fakeParticipantXYZ", false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.RESOURCE_NOT_FOUND()) return "Creating activity with unknown participant should fail";
 
-		error = pm.addParticipant(participantId1, assignee1, EMPTY, EMPTY, 0x0);
+		error = pm.addParticipant(participantId1, assignee1, EMPTY, EMPTY, address(0));
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add a valid participant";
 
 		error = pd.createActivityDefinition("activity999", BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, participantId1, false, EMPTY, EMPTY, EMPTY);
@@ -85,8 +84,8 @@ contract ProcessDefinitionTest {
 		error = pd.createActivityDefinition(activity1Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, "app1", EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Creating activity1 failed";
 
-		(valid, errorMsg) = pd.validate();
-		if (!valid) return "The process definition has a single user task and should be valid";
+		(success, errorMsg) = pd.validate();
+		if (!success) return "The process definition has a single user task and should be valid";
 		if (pd.getStartActivity() != activity1Id) return "Start activity should be activity1 after first validation";
 		error = pd.createActivityDefinition(activity1Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, false, "app1", EMPTY, EMPTY);
 		if (error != BaseErrors.RESOURCE_ALREADY_EXISTS()) return "Expected RESOURCE_ALREADY_EXISTS for duplicate activity1 creation";
@@ -96,43 +95,49 @@ contract ProcessDefinitionTest {
 		if (error != BaseErrors.NO_ERROR()) return "Creating activity2 failed";
 		if (pd.getNumberOfActivities() != 2) return "The process should have two activity definitions at this point";
 
-		(valid, errorMsg) = pd.validate();
-		if (valid) return "The process definition has duplicate start activities and should not be valid";
+		(success, errorMsg) = pd.validate();
+		if (success) return "The process definition has duplicate start activities and should not be valid";
 		
 		// Scenario 1: Sequential Process
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), "blablaActivity", activity2Id))
-			return "Expected REVERT when creating transition for non-existent source element";
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), activity1Id, "blablaActivity"))
-			return "Expected REVERT when creating transition for non-existent target element";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransition(bytes32,bytes32)", bytes32("blablaActivity"), activity2Id));
+		if (success)
+			return "Creating transition for non-existent source element should revert";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransition(bytes32,bytes32)", activity1Id, bytes32("blablaActivity")));
+		if (success)
+			return "Creating transition for non-existent target element should revert";
 		error = pd.createTransition(activity1Id, activity2Id);
 		if (error != BaseErrors.NO_ERROR()) return "Creating transition activity1 -> activity2 failed";
 
-		(valid, errorMsg) = pd.validate();
-		if (!valid) return errorMsg.toString(); // should be valid at this point
+		(success, errorMsg) = pd.validate();
+		if (!success) return errorMsg.toString(); // should be valid at this point
 		if (pd.getStartActivity() != activity1Id) return "Start activity should still be activity1";
 
 		// Scenario 2: XOR Split
 		// create gateway to allow valid setup
 		pd.createGateway("gateway1", BpmModel.GatewayType.XOR);
-		(valid, errorMsg) = pd.validate();
-		if (valid) return "The process definition has an unreachable gateway and should not be valid";
+		(success, errorMsg) = pd.validate();
+		if (success) return "The process definition has an unreachable gateway and should not be valid";
 
 		// Activity 3
 		error = pd.createActivityDefinition(activity3Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Creating activity3 failed";
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransition(bytes32,bytes32)"))), activity1Id, activity3Id))
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransition(bytes32,bytes32)", activity1Id, activity3Id));
+		if (success)
 			return "Expected REVERT when attempting to overwrite existing outgoing transition";
 		// Activity 4
 		error = pd.createActivityDefinition(activity4Id, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Creating activity4 failed";
 
 		// check transition condition failure
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "fakeXX", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
-			return "Adding condition for non-existent gateway should fail";
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", "fakeXX", EMPTY, EMPTY, 0x0, 0, 0x0))
-			return "Adding condition for non-existent activity should fail";
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
-			return "Adding condition for non-existent transition connection should fail";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)", bytes32("fakeXX"), activity3Id, EMPTY, EMPTY, address(0), uint8(0), address(0)));
+		if (success)
+			return "Adding condition for non-existent gateway should revert";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)", bytes32("gateway1"), bytes32("fakeXX"), EMPTY, EMPTY, address(0), uint8(0), address(0)));
+		if (success)
+			return "Adding condition for non-existent activity should revert";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)", bytes32("gateway1"), activity3Id, EMPTY, EMPTY, address(0), uint8(0), address(0)));
+		if (success)
+			return "Adding condition for non-existent transition connection should revert";
 
 		// establish all missing connections
 		pd.createGateway("gateway2", BpmModel.GatewayType.XOR);
@@ -143,11 +148,13 @@ contract ProcessDefinitionTest {
 
 		// test transition condition failure when adding condition on default transition
 		pd.setDefaultTransition("gateway1", "gateway2");
-		if (address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", "gateway2", EMPTY, EMPTY, 0x0, 0, 0x0))
-			return "Adding condition for the default transition shoudl fail";
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)", bytes32("gateway1"), bytes32("gateway2"), EMPTY, EMPTY, address(0), uint8(0), address(0)));
+		if (success)
+			return "Adding condition for the default transition should revert";
 
 		// test transition condition success
-		if (!address(pd).call(bytes4(keccak256(abi.encodePacked("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)"))), "gateway1", activity3Id, EMPTY, EMPTY, 0x0, 0, 0x0))
+		(success, ) = address(pd).call(abi.encodeWithSignature("createTransitionConditionForAddress(bytes32,bytes32,bytes32,bytes32,address,uint8,address)", bytes32("gateway1"), activity3Id, EMPTY, EMPTY, address(0), uint8(0), address(0)));
+		if (!success)
 			return "Adding condition on valid transition should succeed";
 
 		//TODO missing test if condition gets deleted when setting activity3 as the default transition
@@ -161,8 +168,8 @@ contract ProcessDefinitionTest {
 		if (outputs.length != 2) return "XOR SPLIT gateway should have 2 outgoing transitions";
 		if (defaultOutput != "gateway2") return "XOR SPLIT should have gateway2 set as default transition";
 
-		(valid, errorMsg) = pd.validate();
-		if (!valid) return errorMsg.toString(); // process definition should be valid at this point
+		(success, errorMsg) = pd.validate();
+		if (!success) return errorMsg.toString(); // process definition should be valid at this point
 
 		bytes32[] memory activityIds = pd.getActivitiesForParticipant(participantId1);
 		if (activityIds.length != 1)
@@ -176,7 +183,7 @@ contract ProcessDefinitionTest {
 	/**
 	 * @dev Tests the setup and resolution of transition conditions via the ProcessDefinition
 	 */
-	function testTransitionConditionResolution() external returns (string) {
+	function testTransitionConditionResolution() external returns (string memory) {
 
 		ProcessModel pm = new DefaultProcessModel();
 		pm.initialize("conditionsModel", [1,0,0], author, false, dummyModelFileReference);
@@ -191,17 +198,17 @@ contract ProcessDefinitionTest {
 		pd.createTransition(transition1Id, activity2Id);
 		pd.createTransition(transition1Id, activity3Id);
 
-		pd.createTransitionConditionForAddress(transition1Id, activity2Id, "buyer", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), this);
-		pd.createTransitionConditionForUint(transition1Id, activity3Id, "elevation", EMPTY, 0x0, uint8(DataStorageUtils.COMPARISON_OPERATOR.LTE), 500);
+		pd.createTransitionConditionForAddress(transition1Id, activity2Id, "buyer", EMPTY, address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.EQ), address(this));
+		pd.createTransitionConditionForUint(transition1Id, activity3Id, "elevation", EMPTY, address(0), uint8(DataStorageUtils.COMPARISON_OPERATOR.LTE), 500);
 
 		// this is the DataStorage used for resolving conditions
 		TestData dataStorage = new TestData();
 		
-		if (pd.resolveTransitionCondition(transition1Id, activity2Id, dataStorage)) return "The condition for transition1/activity2 should be false as the data is not set";
-		dataStorage.setDataValueAsAddress("buyer", this);
-		if (!pd.resolveTransitionCondition(transition1Id, activity2Id, dataStorage)) return "The condition for transition1/activity2 should be true after data is set";
+		if (pd.resolveTransitionCondition(transition1Id, activity2Id, address(dataStorage))) return "The condition for transition1/activity2 should be false as the data is not set";
+		dataStorage.setDataValueAsAddress("buyer", address(this));
+		if (!pd.resolveTransitionCondition(transition1Id, activity2Id, address(dataStorage))) return "The condition for transition1/activity2 should be true after data is set";
 		dataStorage.setDataValueAsUint("elevation", 2200);
-		if (pd.resolveTransitionCondition(transition1Id, activity3Id, dataStorage)) return "The condition for transition1/activity3 should be false";
+		if (pd.resolveTransitionCondition(transition1Id, activity3Id, address(dataStorage))) return "The condition for transition1/activity3 should be false";
 
 		return SUCCESS;
 	}

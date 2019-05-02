@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -82,7 +82,7 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	{
 		ErrorsLib.revertIf(_id == "",
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(),"ProcessDefinition.constructor","_id is NULL");
-		ErrorsLib.revertIf(_model == 0x0,
+		ErrorsLib.revertIf(_model == address(0),
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(),"ProcessDefinition.constructor","_model is NULL");
 		owner = msg.sender;
 		id = _id;
@@ -291,9 +291,10 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 		returns (uint error)
 	{
 		error = BaseErrors.NO_ERROR();
-		address pm = _model == 0x0 ? address(model) : _model;
+		address pm = _model == address(0) ? address(model) : _model;
 		bytes32 key = keccak256(abi.encodePacked(pm, _interfaceId));
-		if (processInterfaces.rows[key].exists) return; // ignore if the interface was added already
+		if (processInterfaces.rows[key].exists)
+			return (error); // ignore if the interface was added already
 		if (ProcessModel(pm).hasProcessInterface(_interfaceId) == false) return BaseErrors.RESOURCE_NOT_FOUND();
 		processInterfaces.rows[key].keyIdx = processInterfaces.keys.push(key);
 		processInterfaces.rows[key].value = BpmModel.ProcessInterface({model: pm, interfaceId: _interfaceId});
@@ -318,7 +319,7 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	 * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
 	 * @param _value the right-hand side primitive comparison value
 	 */
-	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string _value)
+	function createTransitionConditionForString(bytes32 _gatewayId, bytes32 _targetElementId, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator, string calldata _value)
 		external
 		pre_gatewayOutTransitionExists(_gatewayId, _targetElementId)
 		pre_targetNotDefaultTransition(_gatewayId, _targetElementId)
@@ -509,24 +510,24 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	 * @param _participantId the ID of a participant in the model
 	 * @return an array of activity IDs
 	 */
-	function getActivitiesForParticipant(bytes32 _participantId) external view returns (bytes32[]) {
-		if (_participantId == "")
-			return;
-		uint i;
-		uint resultSize = 0;
-		// due to limitations in Solidity, we have to create a fixed size memory array that is larger than the intended result
-		bytes32[] memory tempResult = new bytes32[](graphElements.activityIds.length);
-		for (i=0; i<graphElements.activityIds.length; i++) {
-			if (graphElements.rows[graphElements.activityIds[i]].activity.assignee == _participantId) {
-				tempResult[resultSize++] = graphElements.activityIds[i];
+	function getActivitiesForParticipant(bytes32 _participantId) external view returns (bytes32[] memory) {
+		if (_participantId != "") {
+			uint i;
+			uint resultSize = 0;
+			// due to limitations in Solidity, we have to create a fixed size memory array that is larger than the intended result
+			bytes32[] memory tempResult = new bytes32[](graphElements.activityIds.length);
+			for (i=0; i<graphElements.activityIds.length; i++) {
+				if (graphElements.rows[graphElements.activityIds[i]].activity.assignee == _participantId) {
+					tempResult[resultSize++] = graphElements.activityIds[i];
+				}
 			}
+			// once we know how many results there are, we can create a correctly sized return array
+			bytes32[] memory prunedResult = new bytes32[](resultSize);
+			for (i=0; i<resultSize; i++) {
+				prunedResult[i] = tempResult[i];
+			}
+			return prunedResult;
 		}
-		// once we know how many results there are, we can create a correctly sized return array
-		bytes32[] memory prunedResult = new bytes32[](resultSize);
-		for (i=0; i<resultSize; i++) {
-			prunedResult[i] = tempResult[i];
-		}
-		return prunedResult;
 	}
 
 	/**
@@ -572,7 +573,7 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	 * @param _activityId the ID of the activity in this ProcessDefinition
 	 * @return the data mapping ids
 	 */
-	function getInDataMappingKeys(bytes32 _activityId) external view returns (bytes32[]) {
+	function getInDataMappingKeys(bytes32 _activityId) external view returns (bytes32[] memory) {
 		return graphElements.rows[_activityId].activity.inMappingKeys;
 	}
 
@@ -581,7 +582,7 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	 * @param _activityId the ID of the activity in this ProcessDefinition
 	 * @return the data mapping ids
 	 */
-	function getOutDataMappingKeys(bytes32 _activityId) external view returns (bytes32[]) {
+	function getOutDataMappingKeys(bytes32 _activityId) external view returns (bytes32[] memory) {
 		return graphElements.rows[_activityId].activity.outMappingKeys;
 	}
 
@@ -686,7 +687,7 @@ contract DefaultProcessDefinition is AbstractVersionedArtifact(1,0,0), AbstractD
 	 * @return gatewayType - the BpmModel.GatewayType
 	 * @return defaultOutput - the default output connection (applies only to XOR|OR type gateways)
 	 */
-	function getGatewayGraphDetails(bytes32 _id) external view returns (bytes32[] inputs, bytes32[] outputs, BpmModel.GatewayType gatewayType, bytes32 defaultOutput) {
+	function getGatewayGraphDetails(bytes32 _id) external view returns (bytes32[] memory inputs, bytes32[] memory outputs, BpmModel.GatewayType gatewayType, bytes32 defaultOutput) {
 		inputs = graphElements.rows[_id].gateway.inputs;
 		outputs = graphElements.rows[_id].gateway.outputs;
 		gatewayType = graphElements.rows[_id].gateway.gatewayType;

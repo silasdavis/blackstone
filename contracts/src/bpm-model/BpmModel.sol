@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/DataStorageUtils.sol";
 
@@ -193,7 +193,7 @@ library BpmModel {
      * @param _operator the uint8 representation of a DataStorageUtils.COMPARISON_OPERATOR
      * @return a TransitionCondition struct initialized with a left-hand ConditionalData and operator
      */
-    function createLeftHandTransitionCondition(bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator) internal pure returns (TransitionCondition condition) {
+    function createLeftHandTransitionCondition(bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage, uint8 _operator) internal pure returns (TransitionCondition memory condition) {
         DataStorageUtils.ConditionalData memory lhData = DataStorageUtils.ConditionalData({dataPath: _dataPath, dataStorageId: _dataStorageId, dataStorage: _dataStorage, exists: true});
         condition.lhData = lhData;
         condition.operator= DataStorageUtils.COMPARISON_OPERATOR(_operator);

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/DataTypes.sol";
@@ -23,7 +23,7 @@ contract ProcessModelTest {
 
 	ProcessDefinition defaultProcessDefinitionImpl = new DefaultProcessDefinition();
 
-	function testProcessModel() external returns (string) {
+	function testProcessModel() external returns (string memory) {
 		
 		uint error;
 		address newAddress;
@@ -55,7 +55,7 @@ contract ProcessModelTest {
 		if (key != keccak256(abi.encodePacked(bytes32("agreement"),bytes32("Hash")))) return "Hashed key for Hash data definition should match";
 		if (paramType != uint(DataTypes.ParameterType.BYTES32)) return "Parameter type for Hash data definition should be Bytes32";
 
-		newAddress = pm.createProcessDefinition("p1", artifactsRegistry);
+		newAddress = pm.createProcessDefinition("p1", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(newAddress);
 		
 		if (pm.getProcessDefinition("p1") != address(pd)) return "Returned ProcessDefinition address does not match.";
@@ -63,29 +63,29 @@ contract ProcessModelTest {
 		// test process interface handling
 		error = pm.addProcessInterface("AgreementFormation");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add process interface to model";
-		error = pd.addProcessInterfaceImplementation(0x0, "AgreementFormation");
+		error = pd.addProcessInterfaceImplementation(address(0), "AgreementFormation");
 		if (error != BaseErrors.NO_ERROR()) return "Unable to add valid process interface to process definition.";
 		if (pm.getNumberOfProcessInterfaces() != 1) return "Wrong number of process interfaces";
 
 		// test participants
-		error = pm.addParticipant(participant1Id, 0x0, EMPTY, EMPTY, 0x0);
+		error = pm.addParticipant(participant1Id, address(0), EMPTY, EMPTY, address(0));
 		if (error != BaseErrors.INVALID_PARAM_VALUE()) return "Expected INVALID_PARAM_VALUE setting conditional participant without dataPath";
-		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, this);
+		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, address(this));
 		if (error != BaseErrors.INVALID_PARAM_VALUE()) return "Expected INVALID_PARAM_VALUE setting participant and conditional participant dataStorage";
-		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, "storageId", 0x0);
+		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, "storageId", address(0));
 		if (error != BaseErrors.INVALID_PARAM_VALUE()) return "Expected INVALID_PARAM_VALUE setting participant and conditional participant dataStorage ID";
-		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, 0x0);
+		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, address(0));
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding valid participant1 to the model";
-		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, 0x0);
+		error = pm.addParticipant(participant1Id, participant1Address, EMPTY, EMPTY, address(0));
 		if (error != BaseErrors.RESOURCE_ALREADY_EXISTS()) return "Expected RESOURCE_ALREADY_EXISTS adding participant twice";
 
-		error = pm.addParticipant(participant2Id, 0x0, "Buyer", "myDataStore", 0x0);
+		error = pm.addParticipant(participant2Id, address(0), "Buyer", "myDataStore", address(0));
 		if (error != BaseErrors.NO_ERROR()) return "Unexpected error adding valid participant2 to the model";
-		if (pm.getConditionalParticipant("Buyer", "", 0x0) != "")
+		if (pm.getConditionalParticipant("Buyer", "", address(0)) != "")
 			return "Retrieving invalid conditional participant Buyer should return nothing";
-		if (pm.getConditionalParticipant("", "", 0x0) != "")
+		if (pm.getConditionalParticipant("", "", address(0)) != "")
 			return "Retrieving empty conditional participant should return nothing";
-		if (pm.getConditionalParticipant("Buyer", "myDataStore", 0x0) != participant2Id)
+		if (pm.getConditionalParticipant("Buyer", "myDataStore", address(0)) != participant2Id)
 			return "Retrieving valid conditional participant should return participant2";
 
 		return "success";
