@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -168,7 +168,7 @@ library Mappings {
      * @param _index the index
      * @return (BaseErrors.NO_ERROR(), key) or (BaseErrors.INDEX_OUT_OF_BOUNDS(), "")
      */
-    function keyAtIndex(bytes32[] _keys, uint _index) internal pure returns (uint, bytes32) {
+    function keyAtIndex(bytes32[] memory _keys, uint _index) internal pure returns (uint, bytes32) {
         if(_keys.length > 0 && _index < _keys.length) {
             return (BaseErrors.NO_ERROR(), _keys[_index]);
         }
@@ -181,11 +181,11 @@ library Mappings {
      * @param _index the index
      * @return (BaseErrors.NO_ERROR(), key) or (BaseErrors.INDEX_OUT_OF_BOUNDS(), 0x0)
      */
-    function keyAtIndex(address[] _keys, uint _index) internal pure returns (uint, address) {
+    function keyAtIndex(address[] memory _keys, uint _index) internal pure returns (uint, address) {
         if(_keys.length > 0 && _index < _keys.length) {
             return (BaseErrors.NO_ERROR(), _keys[_index]);
         }
-        return (BaseErrors.INDEX_OUT_OF_BOUNDS(), 0x0);
+        return (BaseErrors.INDEX_OUT_OF_BOUNDS(), address(0));
     }
 
     /**
@@ -194,7 +194,7 @@ library Mappings {
      * @param _index the index
      * @return (BaseErrors.NO_ERROR(), key) or (BaseErrors.INDEX_OUT_OF_BOUNDS(), uint(-1))
      */
-    function keyAtIndex(uint[] _keys, uint _index) internal pure returns (uint, uint) {
+    function keyAtIndex(uint[] memory _keys, uint _index) internal pure returns (uint, uint) {
         if(_keys.length > 0 && _index < _keys.length) {
             return (BaseErrors.NO_ERROR(), _keys[_index]);
         }
@@ -207,7 +207,7 @@ library Mappings {
      * @param _index the index
      * @return (BaseErrors.NO_ERROR(), key) or (BaseErrors.INDEX_OUT_OF_BOUNDS(), "")
      */
-    function keyAtIndex(string[] _keys, uint _index) internal pure returns (uint, string) {
+    function keyAtIndex(string[] memory _keys, uint _index) internal pure returns (uint, string memory) {
         if(_keys.length > 0 && _index < _keys.length) {
             return (BaseErrors.NO_ERROR(), _keys[_index]);
         }
@@ -274,7 +274,7 @@ library Mappings {
      * @param _index the index position to delete
      * @return an empty bytes32 or the key of the element that was shuffled.
      */
-    function deleteInKeys(string[] storage _array, uint _index) internal returns (string swapKey) {
+    function deleteInKeys(string[] storage _array, uint _index) internal returns (string memory swapKey) {
         uint lastPos = _array.length - 1;
         if (_index != lastPos) {
          swapKey = _array[lastPos];

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/Owned.sol";
@@ -19,7 +19,7 @@ contract VersionLinked is AbstractVersioned, Owned {
 	 * @dev Constructor - Sets the msg.sender as the owner.
 	 * @param _version the version of this VersionLinked contract
 	 */
-	constructor(uint8[3] _version) public {
+	constructor(uint8[3] memory _version) public {
 		owner = msg.sender;
 		semanticVersion = _version;
 	}
@@ -33,14 +33,14 @@ contract VersionLinked is AbstractVersioned, Owned {
 	 * 		   BaseErrors.INVALID_PARAM_VALUE() if the given VersionLinked instance has the same version or address as this contract.
 	 */
 	function acceptVersionLink(VersionLinked _link) external returns (uint error) {
-		if (address(_link) == 0x0) return BaseErrors.NULL_PARAM_NOT_ALLOWED();
+		if (address(_link) == address(0)) return BaseErrors.NULL_PARAM_NOT_ALLOWED();
 		if (_link.getOwner() != owner) return BaseErrors.INVALID_STATE();
-		int comp = _link.compareVersion(this);
+		int comp = _link.compareVersion(address(this));
 		if (comp == 0 || address(_link) == address(this)) return BaseErrors.INVALID_PARAM_VALUE(); // same version or object address. not allowed to replace itself.
 
 		// this contract has a higher version than _link
 		if (comp > 0) {
-			if (address(currentPredecessor) != 0x0 && _link.compareVersion(currentPredecessor) >= 0) {
+			if (address(currentPredecessor) != address(0) && _link.compareVersion(address(currentPredecessor)) >= 0) {
 				// link is lower than (or equal) to existing predecessor, pass the request on
 				return currentPredecessor.acceptVersionLink(_link);
 			}
@@ -48,7 +48,7 @@ contract VersionLinked is AbstractVersioned, Owned {
 		}
 		// _link version is higher than this contract
 		else {
-			if (address(currentSuccessor) != 0x0 && _link.compareVersion(currentSuccessor) <= 0) {
+			if (address(currentSuccessor) != address(0) && _link.compareVersion(address(currentSuccessor)) <= 0) {
 				// link is higher than (or equal to) existing successor, pass the request on
 				return currentSuccessor.acceptVersionLink(_link);
 			}
@@ -79,14 +79,13 @@ contract VersionLinked is AbstractVersioned, Owned {
 			}
 		}
 		// deal with an existing predecessor
-		if (error == BaseErrors.NO_ERROR() && address(oldPredecessor) != 0x0) {
+		if (error == BaseErrors.NO_ERROR() && address(oldPredecessor) != address(0)) {
 			if (msg.sender != address(oldPredecessor)) {
 				error = oldPredecessor.acceptVersionLink(_newPredecessor);
 			}
 			else if (_newPredecessor.getPredecessor() != address(oldPredecessor)) {
 				error = BaseErrors.INVALID_PARAM_STATE();
 			}
-			if (error != BaseErrors.NO_ERROR()) return;
 		}
 
 		if (error != BaseErrors.NO_ERROR()) {
@@ -117,7 +116,7 @@ contract VersionLinked is AbstractVersioned, Owned {
 			}
 		}
 		// deal with an existing successor
-		if (error == BaseErrors.NO_ERROR() && address(oldSuccessor) != 0x0) {
+		if (error == BaseErrors.NO_ERROR() && address(oldSuccessor) != address(0)) {
 			if (msg.sender != address(oldSuccessor)) {
 				error = oldSuccessor.acceptVersionLink(_newSuccessor);
 			}
@@ -136,7 +135,7 @@ contract VersionLinked is AbstractVersioned, Owned {
 	 * @return the address of the predecessor or 0x0 if not set
 	 */
 	function getPredecessor() external view returns (address) {
-		return currentPredecessor;
+		return address(currentPredecessor);
 	}
 
 	/**
@@ -144,7 +143,7 @@ contract VersionLinked is AbstractVersioned, Owned {
 	 * @return the address of the successor or 0x0 if not set
 	 */
 	function getSuccessor() external view returns (address) {
-		return currentSuccessor;
+		return address(currentSuccessor);
 	}
 	
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 // Libraries
 import "commons-base/BaseErrors.sol";
@@ -171,8 +171,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.Bytes32AddressMap storage _map, uint _index) public view returns (uint error, address value, uint nextIndex) {
         bytes32 key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 
@@ -190,7 +191,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_ALREADY_EXISTS
      */
-    function insert(Mappings.Bytes32StringMap storage _map, bytes32 _key, string _value) public returns (uint)
+    function insert(Mappings.Bytes32StringMap storage _map, bytes32 _key, string memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -205,7 +206,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.Bytes32StringMap storage _map, bytes32 _key, string _value) public returns (uint)
+    function insertOrUpdate(Mappings.Bytes32StringMap storage _map, bytes32 _key, string memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -262,7 +263,7 @@ library MappingsLib {
     /**
      * @return the value registered at the specified key, or an empty string if it doesn't exist
      */
-    function get(Mappings.Bytes32StringMap storage _map, bytes32 _key) public view returns (string) {
+    function get(Mappings.Bytes32StringMap storage _map, bytes32 _key) public view returns (string memory) {
         return _map.rows[_key].value;
     }
 
@@ -308,11 +309,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value, and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.Bytes32StringMap storage _map, uint _index) public view returns (uint error, string value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.Bytes32StringMap storage _map, uint _index) public view returns (uint error, string memory value, uint nextIndex) {
         bytes32 key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 
@@ -449,8 +451,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.Bytes32UintMap storage _map, uint _index) public view returns (uint error, uint value, uint nextIndex) {
         bytes32 key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 
@@ -585,8 +588,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.Bytes32Bytes32Map storage _map, uint _index) public view returns (uint error, bytes32 value, uint nextIndex) {
         bytes32 key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -603,7 +607,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_ALREADY_EXISTS()
      */
-    function insert(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key, address[] _value) public returns (uint)
+    function insert(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -618,7 +622,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key, address[] _value) public returns (uint)
+    function insertOrUpdate(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -721,7 +725,7 @@ library MappingsLib {
      * @param _key the key
      * @return the addresses array value registered at the specified key, or empty address[] if it doesn't exist
      */
-   function get(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key) public view returns (address[]) {
+   function get(Mappings.Bytes32AddressArrayMap storage _map, bytes32 _key) public view returns (address[] memory) {
         return _map.rows[_key].value;
     }
 
@@ -772,11 +776,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value or address[], and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.Bytes32AddressArrayMap storage _map, uint _index) public view returns (uint error, address[] value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.Bytes32AddressArrayMap storage _map, uint _index) public view returns (uint error, address[] memory value, uint nextIndex) {
         bytes32 key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -833,7 +838,7 @@ library MappingsLib {
     function remove(Mappings.AddressBytes32Map storage _map, address _key) public returns (uint) {
          if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
          address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-         if (swapKey != 0x0) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
+         if (swapKey != address(0)) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
          delete _map.rows[_key];
          return BaseErrors.NO_ERROR();
      }
@@ -913,8 +918,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.AddressBytes32Map storage _map, uint _index) public view returns (uint error, bytes32 value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -931,7 +937,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_ALREADY_EXISTS
      */
-    function insert(Mappings.AddressStringMap storage _map, address _key, string _value) public returns (uint)
+    function insert(Mappings.AddressStringMap storage _map, address _key, string memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -946,7 +952,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.AddressStringMap storage _map, address _key, string _value) public returns (uint)
+    function insertOrUpdate(Mappings.AddressStringMap storage _map, address _key, string memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -971,7 +977,7 @@ library MappingsLib {
     function remove(Mappings.AddressStringMap storage _map, address _key) public returns (uint) {
         if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
         address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-        if (swapKey != 0x0) {
+        if (swapKey != address(0)) {
             _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx;
         }
         delete _map.rows[_key];
@@ -1003,7 +1009,7 @@ library MappingsLib {
     /**
      * @return the value registered at the specified key, or an empty string if it doesn't exist
      */
-    function get(Mappings.AddressStringMap storage _map, address _key) public view returns (string) {
+    function get(Mappings.AddressStringMap storage _map, address _key) public view returns (string memory) {
         return _map.rows[_key].value;
     }
 
@@ -1049,11 +1055,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value, and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.AddressStringMap storage _map, uint _index) public view returns (uint error, string value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.AddressStringMap storage _map, uint _index) public view returns (uint error, string memory value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 
@@ -1111,7 +1118,7 @@ library MappingsLib {
     function remove(Mappings.AddressBoolMap storage _map, address _key) public returns (uint) {
          if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
          address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-         if (swapKey != 0x0) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
+         if (swapKey != address(0)) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
          delete _map.rows[_key];
          return BaseErrors.NO_ERROR();
      }
@@ -1191,8 +1198,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.AddressBoolMap storage _map, uint _index) public view returns (uint error, bool value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -1209,7 +1217,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_ALREADY_EXISTS()
      */
-    function insert(Mappings.AddressBytes32ArrayMap storage _map, address _key, bytes32[] _value) public returns (uint) {
+    function insert(Mappings.AddressBytes32ArrayMap storage _map, address _key, bytes32[] memory _value) public returns (uint) {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
         return BaseErrors.NO_ERROR();
@@ -1223,7 +1231,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.AddressBytes32ArrayMap storage _map, address _key, bytes32[] _value) public returns (uint) {
+    function insertOrUpdate(Mappings.AddressBytes32ArrayMap storage _map, address _key, bytes32[] memory _value) public returns (uint) {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
         } else {
@@ -1290,7 +1298,7 @@ library MappingsLib {
     function remove(Mappings.AddressBytes32ArrayMap storage _map, address _key) public returns (uint) {
         if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
         address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-        if (swapKey != 0x0) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
+        if (swapKey != address(0)) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
         delete _map.rows[_key];
         return BaseErrors.NO_ERROR();
     }
@@ -1325,7 +1333,7 @@ library MappingsLib {
      * @param _key the key
      * @return the addresses array value registered at the specified key, or empty bytes32[] if it doesn't exist
      */
-   function get(Mappings.AddressBytes32ArrayMap storage _map, address _key) public view returns (bytes32[]) {
+   function get(Mappings.AddressBytes32ArrayMap storage _map, address _key) public view returns (bytes32[] memory) {
         return _map.rows[_key].value;
     }
 
@@ -1376,11 +1384,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value or bytes32[], and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.AddressBytes32ArrayMap storage _map, uint _index) public view returns (uint error, bytes32[] value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.AddressBytes32ArrayMap storage _map, uint _index) public view returns (uint error, bytes32[] memory value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 
@@ -1438,7 +1447,7 @@ library MappingsLib {
     function remove(Mappings.AddressAddressMap storage _map, address _key) public returns (uint) {
          if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
          address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-         if (swapKey != 0x0) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
+         if (swapKey != address(0)) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
          delete _map.rows[_key];
          return BaseErrors.NO_ERROR();
      }
@@ -1518,8 +1527,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.AddressAddressMap storage _map, uint _index) public view returns (uint error, address value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -1536,7 +1546,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_ALREADY_EXISTS()
      */
-    function insert(Mappings.AddressAddressArrayMap storage _map, address _key, address[] _value) public returns (uint)
+    function insert(Mappings.AddressAddressArrayMap storage _map, address _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -1551,7 +1561,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.AddressAddressArrayMap storage _map, address _key, address[] _value) public returns (uint)
+    function insertOrUpdate(Mappings.AddressAddressArrayMap storage _map, address _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -1619,7 +1629,7 @@ library MappingsLib {
     function remove(Mappings.AddressAddressArrayMap storage _map, address _key) public returns (uint) {
          if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
          address swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
-         if (swapKey != 0x0) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
+         if (swapKey != address(0)) { _map.rows[swapKey].keyIdx = _map.rows[_key].keyIdx; }
          delete _map.rows[_key];
          return BaseErrors.NO_ERROR();
      }
@@ -1654,7 +1664,7 @@ library MappingsLib {
      * @param _key the key
      * @return the addresses array value registered at the specified key, or empty address[] if it doesn't exist
      */
-   function get(Mappings.AddressAddressArrayMap storage _map, address _key) public view returns (address[]) {
+   function get(Mappings.AddressAddressArrayMap storage _map, address _key) public view returns (address[] memory) {
         return _map.rows[_key].value;
     }
 
@@ -1705,11 +1715,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value or address[], and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.AddressAddressArrayMap storage _map, uint _index) public view returns (uint error, address[] value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.AddressAddressArrayMap storage _map, uint _index) public view returns (uint error, address[] memory value, uint nextIndex) {
         address key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -1851,8 +1862,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.UintAddressMap storage _map, uint _index) public view returns (uint error, address value, uint nextIndex) {
         uint key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -1869,7 +1881,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_ALREADY_EXISTS()
      */
-    function insert(Mappings.UintAddressArrayMap storage _map, uint _key, address[] _value) public returns (uint)
+    function insert(Mappings.UintAddressArrayMap storage _map, uint _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -1884,7 +1896,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.UintAddressArrayMap storage _map, uint _key, address[] _value) public returns (uint)
+    function insertOrUpdate(Mappings.UintAddressArrayMap storage _map, uint _key, address[] memory _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -1987,7 +1999,7 @@ library MappingsLib {
      * @param _key the key
      * @return the addresses array value registered at the specified key, or empty address[] if it doesn't exist
      */
-   function get(Mappings.UintAddressArrayMap storage _map, uint _key) public view returns (address[]) {
+   function get(Mappings.UintAddressArrayMap storage _map, uint _key) public view returns (address[] memory) {
         return _map.rows[_key].value;
     }
 
@@ -2038,11 +2050,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value or address[], and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.UintAddressArrayMap storage _map, uint _index) public view returns (uint error, address[] value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.UintAddressArrayMap storage _map, uint _index) public view returns (uint error, address[] memory value, uint nextIndex) {
         uint key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -2059,7 +2072,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR() or BaseErrors.RESOURCE_ALREADY_EXISTS()
      */
-    function insert(Mappings.UintBytes32ArrayMap storage _map, uint _key, bytes32[] _value) public returns (uint) {
+    function insert(Mappings.UintBytes32ArrayMap storage _map, uint _key, bytes32[] memory _value) public returns (uint) {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
         return BaseErrors.NO_ERROR();
@@ -2073,7 +2086,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.UintBytes32ArrayMap storage _map, uint _key, bytes32[] _value) public returns (uint) {
+    function insertOrUpdate(Mappings.UintBytes32ArrayMap storage _map, uint _key, bytes32[] memory _value) public returns (uint) {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
         } else {
@@ -2175,7 +2188,7 @@ library MappingsLib {
      * @param _key the key
      * @return the addresses array value registered at the specified key, or empty bytes32[] if it doesn't exist
      */
-   function get(Mappings.UintBytes32ArrayMap storage _map, uint _key) public view returns (bytes32[]) {
+   function get(Mappings.UintBytes32ArrayMap storage _map, uint _key) public view returns (bytes32[] memory) {
         return _map.rows[_key].value;
     }
 
@@ -2226,11 +2239,12 @@ library MappingsLib {
      * @param _index the index
      * @return BaseErrors.NO_ERROR() or BaseErrors.INDEX_OUT_OF_BOUNDS(), value or bytes32[], and nextIndex
      */
-    function valueAtIndexHasNext(Mappings.UintBytes32ArrayMap storage _map, uint _index) public view returns (uint error, bytes32[] value, uint nextIndex) {
+    function valueAtIndexHasNext(Mappings.UintBytes32ArrayMap storage _map, uint _index) public view returns (uint error, bytes32[] memory value, uint nextIndex) {
         uint key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
     /**
@@ -2247,7 +2261,7 @@ library MappingsLib {
      * @param _value the value
      * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_ALREADY_EXISTS
      */
-    function insert(Mappings.StringAddressMap storage _map, string _key, address _value) public returns (uint)
+    function insert(Mappings.StringAddressMap storage _map, string memory _key, address _value) public returns (uint)
     {
         if (_map.rows[_key].exists) { return BaseErrors.RESOURCE_ALREADY_EXISTS(); }
         insertOrUpdate(_map, _key, _value);
@@ -2262,7 +2276,7 @@ library MappingsLib {
      * @param _value the value
      * @return the size of the map after the operation
      */
-    function insertOrUpdate(Mappings.StringAddressMap storage _map, string _key, address _value) public returns (uint)
+    function insertOrUpdate(Mappings.StringAddressMap storage _map, string memory _key, address _value) public returns (uint)
     {
         if (_map.rows[_key].exists) {
             _map.rows[_key].value = _value;
@@ -2284,7 +2298,7 @@ library MappingsLib {
      * @param _key the key
      * @return BaseErrors.NO_ERROR or BaseErrors.RESOURCE_NOT_FOUND.
      */
-    function remove(Mappings.StringAddressMap storage _map, string _key) public returns (uint) {
+    function remove(Mappings.StringAddressMap storage _map, string memory _key) public returns (uint) {
         if (!_map.rows[_key].exists) { return BaseErrors.RESOURCE_NOT_FOUND(); }
         string memory swapKey = Mappings.deleteInKeys(_map.keys, _map.rows[_key].keyIdx);
         if (bytes(swapKey).length > 0) {
@@ -2312,21 +2326,21 @@ library MappingsLib {
      * @dev Convenience function to return the row[_key].exists value.
      * @return true if the map contains valid values at the specified key, false otherwise.
      */
-    function exists(Mappings.StringAddressMap storage _map, string _key) public view returns (bool) {
+    function exists(Mappings.StringAddressMap storage _map, string memory _key) public view returns (bool) {
         return _map.rows[_key].exists;
     }
 
     /**
      * @return the value registered at the specified key, or 0x0 if it doesn't exist
      */
-    function get(Mappings.StringAddressMap storage _map, string _key) public view returns (address) {
+    function get(Mappings.StringAddressMap storage _map, string memory _key) public view returns (address) {
         return _map.rows[_key].value;
     }
 
     /**
      * @return the index of the given key or int_constant uint(-1) if the key does not exist
      */
-    function keyIndex(Mappings.StringAddressMap storage _map, string _key) public view returns (uint) {
+    function keyIndex(Mappings.StringAddressMap storage _map, string memory _key) public view returns (uint) {
         if (!_map.rows[_key].exists) { return uint(-1); }
         return _map.rows[_key].keyIdx;
     }
@@ -2351,7 +2365,7 @@ library MappingsLib {
      * @return key the key or ""
      * @return nextindex the next index if there is one or 0
      */
-    function keyAtIndexHasNext(Mappings.StringAddressMap storage _map, uint _index) public view returns (uint error, string key, uint nextIndex) {
+    function keyAtIndexHasNext(Mappings.StringAddressMap storage _map, uint _index) public view returns (uint error, string memory key, uint nextIndex) {
         (error, key) = keyAtIndex(_map, _index);
         if (++_index < _map.keys.length) {
             nextIndex = _index;
@@ -2368,8 +2382,9 @@ library MappingsLib {
     function valueAtIndexHasNext(Mappings.StringAddressMap storage _map, uint _index) public view returns (uint error, address value, uint nextIndex) {
         string memory key;
         (error, key, nextIndex) = keyAtIndexHasNext(_map, _index);
-        if (error != BaseErrors.NO_ERROR()) { return; }
-        value = get(_map, key);
+        if (error == BaseErrors.NO_ERROR()) {
+            value = get(_map, key);
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -84,7 +84,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to Bytes32AddressMap in Mappings.
      */
-    function testBytes32AddressMap() external returns (string) {
+    function testBytes32AddressMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -186,7 +186,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to Bytes32StringMap in Mappings.
      */
-    function testBytes32StringMap() external returns (string) {
+    function testBytes32StringMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -288,7 +288,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to Bytes32Bytes32Map in Mappings.
      */
-    function testBytes32Bytes32Map() external returns (string) {
+    function testBytes32Bytes32Map() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -390,7 +390,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to Bytes32Bytes32Map in Mappings.
      */
-    function testBytes32UintMap() external returns (string) {
+    function testBytes32UintMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -493,7 +493,7 @@ contract MappingsLibTest {
      * @dev Tests functions belonging to Bytes32AddressArrayMap in Mappings.
      * TODO: test functions that return dynamic arrays. 
      */
-    function testBytes32AddressArrayMap() external returns (string) {
+    function testBytes32AddressArrayMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -598,7 +598,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to AddressBytes32Map in Mappings.
      */
-    function testAddressBytes32Map() external returns (string) {
+    function testAddressBytes32Map() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -621,7 +621,7 @@ contract MappingsLibTest {
 
         // Value tests
         if (!addrB32Map.exists(addr1)) { return "Key addr1 should exist"; }
-        if (addrB32Map.exists(this)) { return "Fake key for 'this' should not exist"; }
+        if (addrB32Map.exists(address(this))) { return "Fake key for 'this' should not exist"; }
         if (addrB32Map.get(addr1) != bytes32_3) { return "Wrong value returned for key: addr3"; }
         if (addrB32Map.get(addr2) != bytes32_2) { return "Wrong value returned for key: addr2"; }
 
@@ -631,11 +631,11 @@ contract MappingsLibTest {
 
         // key tests
         if (addrB32Map.keyIndex(addr3) != 2) { return "Expected index 2 for addr3."; }
-        if (addrB32Map.keyIndex(this) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
+        if (addrB32Map.keyIndex(address(this)) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
         (error, key) = addrB32Map.keyAtIndex(1);
         if (error != BaseErrors.NO_ERROR() && key != addr2) { return "Expected no error and key addr2 at index 1"; }
         (error, key) = addrB32Map.keyAtIndex(999);
-        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != 0x0) { return "Expected error and empty 0x0 return value for out of range index."; }
+        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != address(0)) { return "Expected error and empty 0x0 return value for out of range index."; }
 
         // Removal tests
         uint removedKeyIdx = addrB32Map.keyIndex(addr2);
@@ -700,7 +700,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to AddressBoolMap in Mappings.
      */
-    function testAddressBoolMap() external returns (string) {
+    function testAddressBoolMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -723,7 +723,7 @@ contract MappingsLibTest {
 
         // Value tests
         if (!addrBoolMap.exists(addr1)) { return "Key addr1 should exist"; }
-        if (addrBoolMap.exists(this)) { return "Fake key for 'this' should not exist"; }
+        if (addrBoolMap.exists(address(this))) { return "Fake key for 'this' should not exist"; }
         if (addrBoolMap.get(addr1) != bool_true) { return "Wrong value returned for key: addr3"; }
         if (addrBoolMap.get(addr2) != bool_true) { return "Wrong value returned for key: addr2"; }
 
@@ -733,11 +733,11 @@ contract MappingsLibTest {
 
         // key tests
         if (addrBoolMap.keyIndex(addr3) != 2) { return "Expected index 2 for addr3."; }
-        if (addrBoolMap.keyIndex(this) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
+        if (addrBoolMap.keyIndex(address(this)) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
         (error, key) = addrBoolMap.keyAtIndex(1);
         if (error != BaseErrors.NO_ERROR() && key != addr2) { return "Expected no error and key addr2 at index 1"; }
         (error, key) = addrBoolMap.keyAtIndex(999);
-        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != 0x0) { return "Expected error and empty 0x0 return value for out of range index."; }
+        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != address(0)) { return "Expected error and empty 0x0 return value for out of range index."; }
 
         // Removal tests
         uint removedKeyIdx = addrBoolMap.keyIndex(addr2);
@@ -803,7 +803,7 @@ contract MappingsLibTest {
      * @dev Tests functions belonging to AddressBytes32ArrayMap in Mappings.
      * TODO: test functions that return dynamic arrays.
      */
-    function testAddressBytes32ArrayMap() external returns (string) {
+    function testAddressBytes32ArrayMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -843,7 +843,7 @@ contract MappingsLibTest {
         (error, key) = addrB32ArrayMap.keyAtIndex(1);
         if (error != BaseErrors.NO_ERROR() && key != addr2) { return "Expected no error and key addr2 at index 1"; }
         (error, key) = addrB32ArrayMap.keyAtIndex(999);
-        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != 0x0) { return "Expected error and empty return value for out of range index."; }
+        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != address(0)) { return "Expected error and empty return value for out of range index."; }
 
         // Removal tests
         uint removedKeyIdx = addrB32ArrayMap.keyIndex(addr2);
@@ -910,7 +910,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to AddressAddressMap in Mappings.
      */
-    function testAddressAddressMap() external returns (string) {
+    function testAddressAddressMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -933,7 +933,7 @@ contract MappingsLibTest {
 
         // Value tests
         if (!addrAddrMap.exists(addr1)) { return "Key addr1 should exist"; }
-        if (addrAddrMap.exists(this)) { return "Fake key for 'this' should not exist"; }
+        if (addrAddrMap.exists(address(this))) { return "Fake key for 'this' should not exist"; }
         if (addrAddrMap.get(addr1) != addr3) { return "Wrong value returned for key: addr3"; }
         if (addrAddrMap.get(addr2) != addr2) { return "Wrong value returned for key: addr2"; }
 
@@ -943,11 +943,11 @@ contract MappingsLibTest {
 
         // key tests
         if (addrAddrMap.keyIndex(addr3) != 2) { return "Expected index 2 for addr3."; }
-        if (addrAddrMap.keyIndex(this) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
+        if (addrAddrMap.keyIndex(address(this)) != uint(-1)) { return "Expected index -1 for non-existing key for 'this'."; }
         (error, key) = addrAddrMap.keyAtIndex(1);
         if (error != BaseErrors.NO_ERROR() && key != addr2) { return "Expected no error and key addr2 at index 1"; }
         (error, key) = addrAddrMap.keyAtIndex(999);
-        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != 0x0) { return "Expected error and empty 0x0 return value for out of range index."; }
+        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != address(0)) { return "Expected error and empty 0x0 return value for out of range index."; }
 
         // Removal tests
         uint removedKeyIdx = addrAddrMap.keyIndex(addr2);
@@ -1013,7 +1013,7 @@ contract MappingsLibTest {
      * @dev Tests functions belonging to AddressAddressArrayMap in Mappings.
      * TODO: test functions that return dynamic arrays.
      */
-    function testAddressAddressArrayMap() external returns (string) {
+    function testAddressAddressArrayMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -1053,7 +1053,7 @@ contract MappingsLibTest {
         (error, key) = addrAddrArrayMap.keyAtIndex(1);
         if (error != BaseErrors.NO_ERROR() && key != addr2) { return "Expected no error and key addr2 at index 1"; }
         (error, key) = addrAddrArrayMap.keyAtIndex(999);
-        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != 0x0) { return "Expected error and empty return value for out of range index."; }
+        if (error != BaseErrors.INDEX_OUT_OF_BOUNDS() || key != address(0)) { return "Expected error and empty return value for out of range index."; }
 
         // Removal tests
         uint removedKeyIdx = addrAddrArrayMap.keyIndex(addr2);
@@ -1118,7 +1118,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to UintAddressMap in Mappings.
      */
-    function testUintAddressMap() external returns (string) {
+    function testUintAddressMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -1221,7 +1221,7 @@ contract MappingsLibTest {
      * @dev Tests functions belonging to UintAddressArrayMap in Mappings.
      * TODO: test functions that return dynamic arrays.
      */
-    function testUintAddressArrayMap() external returns (string) {
+    function testUintAddressArrayMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -1327,7 +1327,7 @@ contract MappingsLibTest {
      * @dev Tests functions belonging to UintBytes32ArrayMap in Mappings.
      * TODO: test functions that return dynamic arrays.
      */
-    function testUintBytes32ArrayMap() external returns (string) {
+    function testUintBytes32ArrayMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;
@@ -1432,7 +1432,7 @@ contract MappingsLibTest {
     /**
      * @dev Tests functions belonging to StringAddressMap in Mappings.
      */
-    function testStringAddressMap() external returns (string) {
+    function testStringAddressMap() external returns (string memory) {
 
         // reusable variables during test
         uint error;

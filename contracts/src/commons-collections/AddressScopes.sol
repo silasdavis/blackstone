@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/DataStorage.sol";
 
@@ -79,5 +79,5 @@ contract AddressScopes {
 	 * @dev Returns the list of keys identifying the address/context scopes.
 	 * @return the bytes32 scope keys
 	 */
-	function getAddressScopeKeys() external view returns (bytes32[]);
+	function getAddressScopeKeys() external view returns (bytes32[] memory);
 }

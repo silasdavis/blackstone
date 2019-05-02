@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -112,8 +112,8 @@ library DataStorageUtils {
    * - _dataStorage is a zero address
    * - _dataPath is an empty bytes32
    */
-  modifier pre_verifyExpressionParametersExist(address _dataStorage, bytes32 _dataPath) {
-    ErrorsLib.revertIf(_dataStorage == address(0),
+  modifier pre_verifyExpressionParametersExist(DataStorage _dataStorage, bytes32 _dataPath) {
+    ErrorsLib.revertIf(address(_dataStorage) == address(0),
       ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DataStorageUtils.pre_verifyExpressionParametersExist", "dataStorage is NULL");
     ErrorsLib.revertIf(_dataPath == "",
       ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DataStorageUtils.pre_verifyExpressionParametersExist", "dataPath is NULL");
@@ -129,7 +129,7 @@ library DataStorageUtils {
     * @param _value the value
     * @return the number of data objects in the map after the operation
     */
-  function insertOrUpdate(DataMap storage _map, Data _value) internal returns (uint) {
+  function insertOrUpdate(DataMap storage _map, Data memory _value) internal returns (uint) {
     if (_map.rows[_value.id].exists) {
         _map.rows[_value.id].value = _value;
     } else {
@@ -143,7 +143,7 @@ library DataStorageUtils {
   /**
     * @dev Returns the Data registered at the specified ID in the given map.
     */
-  function get(DataMap storage _map, bytes32 _id) internal view returns (Data) {
+  function get(DataMap storage _map, bytes32 _id) internal view returns (Data memory) {
     return _map.rows[_id].value;
   }
 
@@ -325,7 +325,7 @@ library DataStorageUtils {
       return DataStorage(_refDataStorage).getDataValueAsAddress(_dataStorageId);
     }
     else {
-      return _refDataStorage;
+      return address(_refDataStorage);
     }
   }
 
@@ -338,7 +338,7 @@ library DataStorageUtils {
    * @param _value a string value to use as right-hand value to compare against the target data
    * @return boolean result of the comparison
    */
-  function resolveExpression(DataStorage _dataStorage, bytes32 _dataId, bytes32 _dataPath, COMPARISON_OPERATOR _op, string _value)
+  function resolveExpression(DataStorage _dataStorage, bytes32 _dataId, bytes32 _dataPath, COMPARISON_OPERATOR _op, string calldata _value)
     external view
     pre_onlySupportsEqualityOperations(_op)
     pre_verifyExpressionParametersExist(_dataStorage, _dataPath)

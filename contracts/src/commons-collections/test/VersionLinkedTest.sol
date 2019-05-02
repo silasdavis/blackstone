@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -9,7 +9,7 @@ import "commons-collections/VersionLinked.sol";
  */
 contract ForeignOwner {
 	
-	function createLink(uint8[3] _v) external returns (VersionLinked) {
+	function createLink(uint8[3] calldata _v) external returns (VersionLinked) {
 		return new VersionLinked(_v);
 	}
 }
@@ -19,7 +19,7 @@ contract ForeignOwner {
  */
 contract DelegateVersionLinked is VersionLinked {
 	
-	constructor(uint8[3] _v) VersionLinked(_v) public {}
+	constructor(uint8[3] memory _v) VersionLinked(_v) public {}
 	
 	function delegateAcceptVersionLink(VersionLinked _target, VersionLinked _link) external returns (uint) {
 		return _target.acceptVersionLink(_link);
@@ -30,7 +30,7 @@ contract VersionLinkedTest {
 	
 	ForeignOwner otherLinkList = new ForeignOwner();
 		
-	function testVersionLinking() external returns (string) {
+	function testVersionLinking() external returns (string memory) {
 
 		VersionLinked v100 = new VersionLinked([1,0,0]);
 		VersionLinked v100_1 = new VersionLinked([1,0,0]);
@@ -45,8 +45,8 @@ contract VersionLinkedTest {
 		if (v100.acceptVersionLink(v100) != BaseErrors.INVALID_PARAM_VALUE()) return "Expected error when registering same address.";
 		if (v100.acceptVersionLink(otherLinkList.createLink([9,9,9])) != BaseErrors.INVALID_STATE()) return "Expected error when registering foreign owned link.";
 		if (v100.acceptVersionLink(v110) != BaseErrors.NO_ERROR()) return "Failed to link versions 100 and 110";
-		if (v100.getPredecessor() != 0x0) return "Predecessor to v100 should be empty!";
-		if (v110.getSuccessor() != 0x0) return "Successor to v110 should be empty!";
+		if (v100.getPredecessor() != address(0)) return "Predecessor to v100 should be empty!";
+		if (v110.getSuccessor() != address(0)) return "Successor to v110 should be empty!";
 		if (v100.getSuccessor() != address(v110)) return "v110 should be successor to v100.";
 		if (v110.getPredecessor() != address(v100)) return "v100 should be predecessor to v110.";
 		

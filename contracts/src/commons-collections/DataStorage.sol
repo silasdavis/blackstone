@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 /**
  * @title DataStorage Interface
@@ -147,14 +147,14 @@ contract DataStorage {
    * @param _id the id of the data
    * @param _value the string value of the data
    */
-  function setDataValueAsString (bytes32 _id, string _value) external;
+  function setDataValueAsString (bytes32 _id, string calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return string the value of the data
    */
-  function getDataValueAsString (bytes32 _id) external view returns (string);
+  function getDataValueAsString (bytes32 _id) external view returns (string memory);
   
   /**
    * @dev Creates a Data object with the given value and inserts it into the DataMap
@@ -217,69 +217,69 @@ contract DataStorage {
    * @param _id the id of the data
    * @param _value the bool[] value of the data
    */
-  function setDataValueAsBoolArray (bytes32 _id, bool[] _value) external;
+  function setDataValueAsBoolArray (bytes32 _id, bool[] calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return bool[] the value of the data
    */
-  function getDataValueAsBoolArray (bytes32 _id) external view returns (bool[]);
+  function getDataValueAsBoolArray (bytes32 _id) external view returns (bool[] memory);
 
   /**
    * @dev Creates a Data object with the given value and inserts it into the DataMap
    * @param _id the id of the data
    * @param _value the address[] value of the data
    */
-  function setDataValueAsAddressArray (bytes32 _id, address[] _value) external;
+  function setDataValueAsAddressArray (bytes32 _id, address[] calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return address[] the value of the data
    */
-  function getDataValueAsAddressArray (bytes32 _id) external view returns (address[]);
+  function getDataValueAsAddressArray (bytes32 _id) external view returns (address[] memory);
 
   /**
    * @dev Creates a Data object with the given value and inserts it into the DataMap
    * @param _id the id of the data
    * @param _value the uint[] value of the data
    */
-  function setDataValueAsUintArray (bytes32 _id, uint[] _value) external;
+  function setDataValueAsUintArray (bytes32 _id, uint[] calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return uint256[] the value of the data
    */
-  function getDataValueAsUintArray (bytes32 _id) external view returns (uint[]);
+  function getDataValueAsUintArray (bytes32 _id) external view returns (uint[] memory);
 
   /**
    * @dev Creates a Data object with the given value and inserts it into the DataMap
    * @param _id the id of the data
    * @param _value the int256[] value of the data
    */
-  function setDataValueAsIntArray (bytes32 _id, int[] _value) external;
+  function setDataValueAsIntArray (bytes32 _id, int[] calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return int256[] the value of the data
    */
-  function getDataValueAsIntArray (bytes32 _id) external view returns (int[]);
+  function getDataValueAsIntArray (bytes32 _id) external view returns (int[] memory);
 
   /**
    * @dev Creates a Data object with the given value and inserts it into the DataMap
    * @param _id the id of the data
    * @param _value the bytes32[] value of the data
    */
-  function setDataValueAsBytes32Array (bytes32 _id, bytes32[] _value) external;
+  function setDataValueAsBytes32Array (bytes32 _id, bytes32[] calldata _value) external;
 
   /**
    * @dev Gets the value of the Data object identified by the given id
    * @param _id the id of the data
    * @return bytes32[] the value of the data
    */
-  function getDataValueAsBytes32Array (bytes32 _id) external view returns (bytes32[]);
+  function getDataValueAsBytes32Array (bytes32 _id) external view returns (bytes32[] memory);
 
 }

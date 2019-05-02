@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -9,7 +9,7 @@ import "commons-collections/VersionLinkedAppendOnly.sol";
  */
 contract ForeignOwner {
 	
-	function createLink(uint8[3] _v) external returns (VersionLinkedAppendOnly) {
+	function createLink(uint8[3] calldata _v) external returns (VersionLinkedAppendOnly) {
 		return new VersionLinkedAppendOnly(_v);
 	}
 }
@@ -19,7 +19,7 @@ contract ForeignOwner {
  */
 contract DelegateVersionLinked is VersionLinkedAppendOnly {
 	
-	constructor(uint8[3] _v) VersionLinkedAppendOnly(_v) public {}
+	constructor(uint8[3] memory _v) VersionLinkedAppendOnly(_v) public {}
 	
 	function delegateAcceptVersionLink(VersionLinkedAppendOnly _target, VersionLinkedAppendOnly _link) external returns (uint) {
 		return _target.appendNewVersion(_link);
@@ -33,7 +33,7 @@ contract VersionLinkedAppendOnlyTest {
 	// function in order to test setPredecessor()
 	function getOwner() public pure returns (address) {}
 	
-	function testAppendOnlyLinking() external returns (string) {
+	function testAppendOnlyLinking() external returns (string memory) {
 		VersionLinkedAppendOnly v100 = new VersionLinkedAppendOnly([1,0,0]);
 		VersionLinkedAppendOnly v100_1 = new VersionLinkedAppendOnly([1,0,0]);
 		VersionLinkedAppendOnly v110 = new VersionLinkedAppendOnly([1,1,0]);
@@ -59,10 +59,10 @@ contract VersionLinkedAppendOnlyTest {
 			return "Failed to link versions 100 and 110";
 		}
 
-		if (v100.getPredecessor() != 0x0) {
+		if (v100.getPredecessor() != address(0)) {
 			return "Predecessor to v100 should be empty!";
 		}
-		if (v110.getSuccessor() != 0x0) {
+		if (v110.getSuccessor() != address(0)) {
 			return "Successor to v110 should be empty!";
 		} 
 		if (v100.getSuccessor() != address(v110)) {
