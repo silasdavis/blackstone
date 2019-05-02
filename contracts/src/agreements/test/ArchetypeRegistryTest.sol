@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/SystemOwned.sol";
 import "commons-utils/TypeUtilsLib.sol";
@@ -64,33 +64,32 @@ contract ArchetypeRegistryTest {
 	function createNewArchetypeRegistry() internal returns (ArchetypeRegistry) {
 		DefaultArchetypeRegistry newRegistry = new DefaultArchetypeRegistry();
 		ArchetypeRegistryDb registryDb = new ArchetypeRegistryDb();
-		SystemOwned(registryDb).transferSystemOwnership(newRegistry);
-		AbstractDbUpgradeable(newRegistry).acceptDatabase(registryDb);
-		newRegistry.setArtifactsFinder(artifactsRegistry);
-        artifactsRegistry.registerArtifact(newRegistry.OBJECT_CLASS_ARCHETYPE(), defaultArchetypeImpl, defaultArchetypeImpl.getArtifactVersion(), true);
+		SystemOwned(registryDb).transferSystemOwnership(address(newRegistry));
+		AbstractDbUpgradeable(newRegistry).acceptDatabase(address(registryDb));
+		newRegistry.setArtifactsFinder(address(artifactsRegistry));
+        artifactsRegistry.registerArtifact(newRegistry.OBJECT_CLASS_ARCHETYPE(), address(defaultArchetypeImpl), defaultArchetypeImpl.getArtifactVersion(), true);
 		return newRegistry;
 	}
 
 	/**
 	 * @dev Covers the creation and setup of an archetype
 	 */
-	function testArchetypeCreation() external returns (string) {
+	function testArchetypeCreation() external returns (string memory) {
 
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
 		address archetype;
 		uint error;
+		bool success;
 
 		// test positive creation first to confirm working function signature
-		if (!address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray))) {
-			return "Creating an archetype with valid parameters should succeed";
-		}
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray)));
+		if (!success) return "Creating an archetype with valid parameters should succeed";
+
 		// test failures
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, address(0), falseAddress, falseAddress, falseAddress, EMPTY, emptyArray))) {
-			return "Creating archetype with empty author should revert";
-		}
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, falseAddress, address(0), falseAddress, falseAddress, EMPTY, emptyArray))) {
-			return "Creating archetype with empty owner should revert";
-		}
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, address(0), falseAddress, falseAddress, falseAddress, EMPTY, emptyArray)));
+		if (success) return "Creating archetype with empty author should revert";
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, address(0), falseAddress, falseAddress, EMPTY, emptyArray)));
+		if (success) return "Creating archetype with empty owner should revert";
 
 		archetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (archetype == address(0)) return "Archetype address is empty after creation";
@@ -120,14 +119,17 @@ contract ArchetypeRegistryTest {
 		// Document Attachments
 
 		// First verify that the function signature works
-		if (!address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference))) {
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference));
+		if (!success) {
 			return "Using the addDocument function signature to add a document to a valid archetype should not fail";
 		}
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference))) {
-			return "Adding a document with the same file reference twice should fail";
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, archetype, fileReference));
+		if (success) {
+			return "Adding a document with the same file reference twice should revert";
 		}
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, falseAddress, fileReference))) {
-			return "Adding a document to non-existent archetype should fail";
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryAddDocument, falseAddress, fileReference));
+		if (success) {
+			return "Adding a document to non-existent archetype should revert";
 		}
 		if (Archetype(archetype).getNumberOfDocuments() != 1) return "Documents on archetype exptected to be 1";
 		if (Archetype(archetype).getDocumentKeyAtIndex(0) != keccak256(abi.encodePacked(fileReference))) return "Archetype's document key at index 0 should match the hash of the file reference";
@@ -202,7 +204,7 @@ contract ArchetypeRegistryTest {
 		return SUCCESS;
 	}
 
-	function testArchetypeSuccessor() external returns (string) {
+	function testArchetypeSuccessor() external returns (string memory) {
 
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
 
@@ -223,21 +225,23 @@ contract ArchetypeRegistryTest {
 		return SUCCESS;
 	}
 
-	function testArchetypePackages() external returns (string) {
+	function testArchetypePackages() external returns (string memory) {
 
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
 
 		uint error;
 		bool active;
+		bool success;
 	
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetypePackage, address(0), fakePackageId, droneArchetype))) {
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetypePackage, address(0), fakePackageId, droneArchetype));
+		if (success)
 			return "Creating an archetype package with an empty author should revert";
-		}
 
 		droneArchetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == address(0)) return "droneArchetype address empty after creation";
 
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryAddArchetypeToPackage, fakePackageId, droneArchetype))) {
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryAddArchetypeToPackage, fakePackageId, droneArchetype));
+		if (success) {
 			return "Adding an archetype to a non-existent package ID should revert";
 		}
 
@@ -272,8 +276,9 @@ contract ArchetypeRegistryTest {
 		return SUCCESS;
 	}
 
-	function testGoverningArchetypes() external returns (string) {
+	function testGoverningArchetypes() external returns (string memory) {
 
+		bool success;
 		ArchetypeRegistry registry = createNewArchetypeRegistry();
 
 		address archetype;
@@ -288,10 +293,9 @@ contract ArchetypeRegistryTest {
 		archetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithDupes.push(archetype);
 		
-		if (address(registry).call(abi.encodeWithSignature("createArchetype(uint,bool,bool,address,address,address,bytes32,address[])", 
-			0, false, true, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes))) {
-				return "Creating archetype with duplicate governing archetypes should fail";
-		}
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes));
+		if (success)
+			return "Creating archetype with duplicate governing archetypes should revert";
 
 		archetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		addrArrayWithoutDupes.push(archetype);

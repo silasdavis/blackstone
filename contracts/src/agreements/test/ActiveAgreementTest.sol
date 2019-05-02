@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-auth/DefaultOrganization.sol";
@@ -40,15 +40,15 @@ contract ActiveAgreementTest {
 	/**
 	 * @dev Covers the setup and proper data retrieval of an agreement
 	 */
-	function testActiveAgreementSetup() external returns (string) {
+	function testActiveAgreementSetup() external returns (string memory) {
 
 		address result;
 		ActiveAgreement agreement;
 		Archetype archetype;
 		signer1 = new DefaultUserAccount();
-		signer1.initialize(this, address(0));
+		signer1.initialize(address(this), address(0));
 		signer2 = new DefaultUserAccount();
-		signer2.initialize(this, address(0));
+		signer2.initialize(address(this), address(0));
 
 		// set up the parties.
 		delete parties;
@@ -76,7 +76,7 @@ contract ActiveAgreementTest {
 
 		// function testing
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(address(archetype), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setEventLogReference(dummyFileRef);
 		if (keccak256(abi.encodePacked(agreement.getEventLogReference())) != keccak256(abi.encodePacked(dummyFileRef)))
 			return "The EventLog file reference was not set/retrieved correctly";
@@ -178,14 +178,16 @@ contract ActiveAgreementTest {
 	/**
 	 * @dev Covers testing signing an agreement via users and organizations and the associated state changes.
 	 */
-	function testActiveAgreementSigning() external returns (string) {
+	function testActiveAgreementSigning() external returns (string memory) {
 
 	  	ActiveAgreement agreement;
 		Archetype archetype;
+		bool success;
+
 		signer1 = new DefaultUserAccount();
-		signer1.initialize(this, address(0));
+		signer1.initialize(address(this), address(0));
 		signer2 = new DefaultUserAccount();
-		signer2.initialize(this, address(0));
+		signer2.initialize(address(this), address(0));
 
 		// set up the parties.
 		// Signer1 is a direct signer
@@ -193,7 +195,7 @@ contract ActiveAgreementTest {
 		address[] memory emptyAddressArray;
 		Organization org1 = new DefaultOrganization();
 		org1.initialize(emptyAddressArray, EMPTY);
-		if (!org1.addUserToDepartment(signer2, EMPTY)) return "Unable to add user account to organization";
+		if (!org1.addUserToDepartment(address(signer2), EMPTY)) return "Unable to add user account to organization";
 		delete parties;
 		parties.push(address(signer1));
 		parties.push(address(org1));
@@ -201,22 +203,22 @@ contract ActiveAgreementTest {
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(address(archetype), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test signing
 		address signee;
 		uint timestamp;
-		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementSign)))
-			return "Signing from test address should REVERT due to invalid actor";
-		(signee, timestamp) = agreement.getSignatureDetails(signer1);
+		(success, ) = address(agreement).call(abi.encodeWithSignature(functionSigAgreementSign));
+		if (success) return "Signing from test address should REVERT due to invalid actor";
+		(signee, timestamp) = agreement.getSignatureDetails(address(signer1));
 		if (timestamp != 0) return "Signature timestamp for signer1 should be 0 before signing";
 		if (AgreementsAPI.isFullyExecuted(agreement)) return "AgreementsAPI.isFullyExecuted should be false before signing";
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED";
 
 		// Signing with Signer1 as party
 		signer1.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
-		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer1";
-		(signee, timestamp) = agreement.getSignatureDetails(signer1);
+		if (!agreement.isSignedBy(address(signer1))) return "Agreement should be signed by signer1";
+		(signee, timestamp) = agreement.getSignatureDetails(address(signer1));
 		if (signee != address(signer1)) return "Signee for signer1 should be signer1";
 		if (timestamp == 0) return "Signature timestamp for signer1 should be set after signing";
 		if (AgreementsAPI.isFullyExecuted(agreement)) return "AgreementsAPI.isFullyExecuted should be false after signer1";
@@ -224,9 +226,9 @@ contract ActiveAgreementTest {
 
 		// Signing with Signer2 via the organization
 		signer2.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
-		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer2";
-		if (agreement.isSignedBy(org1)) return "Agreement should NOT be signed by org1";
-		(signee, timestamp) = agreement.getSignatureDetails(org1);
+		if (!agreement.isSignedBy(address(signer1))) return "Agreement should be signed by signer2";
+		if (agreement.isSignedBy(address(org1))) return "Agreement should NOT be signed by org1";
+		(signee, timestamp) = agreement.getSignatureDetails(address(org1));
 		if (signee != address(signer2)) return "Signee for org1 should be signer1";
 		if (timestamp == 0) return "Signature timestamp for org1 should be set after signing";
 		if (!AgreementsAPI.isFullyExecuted(agreement)) return "AgreementsAPI.isFullyExecuted should be true after signer2";
@@ -253,15 +255,17 @@ contract ActiveAgreementTest {
 	/**
 	 * @dev Covers canceling an agreement in different stages
 	 */
-	function testActiveAgreementCancellation() external returns (string) {
+	function testActiveAgreementCancellation() external returns (string memory) {
 
 		ActiveAgreement agreement1;
 		ActiveAgreement agreement2;
 		Archetype archetype;
+		bool success;
+
 		signer1 = new DefaultUserAccount();
-		signer1.initialize(this, address(0));
+		signer1.initialize(address(this), address(0));
 		signer2 = new DefaultUserAccount();
-		signer2.initialize(this, address(0));
+		signer2.initialize(address(this), address(0));
 
 		// set up the parties.
 		delete parties;
@@ -271,13 +275,13 @@ contract ActiveAgreementTest {
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement1 = new DefaultActiveAgreement();
-		agreement1.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement1.initialize(address(archetype), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement2 = new DefaultActiveAgreement();
-		agreement2.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement2.initialize(address(archetype), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
-		if (address(agreement1).call(abi.encodePacked(functionSigAgreementCancel)))
-			return "Canceling from test address should REVERT due to invalid actor";
+		(success, ) = address(agreement1).call(abi.encodeWithSignature(functionSigAgreementCancel));
+		if (success) return "Canceling from test address should REVERT due to invalid actor";
 		if (agreement1.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should NOT be CANCELED";
 		if (agreement2.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should NOT be CANCELED";
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
@@ -31,7 +31,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 		address /*_author*/,
 		address /*_formationProcess*/,
 		address /*_executionProcess*/,
-		address[] /*_governingArchetypes*/)
+		address[] calldata /*_governingArchetypes*/)
 		external
 	{
 		revert(ErrorsLib.format(ErrorsLib.INVALID_STATE(),
@@ -63,7 +63,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 		address _owner,
 		address _formationProcess,
 		address _executionProcess,
-		address[] _governingArchetypes)
+		address[] calldata _governingArchetypes)
 		external
 		pre_post_initialize
 	{
@@ -165,7 +165,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 
 	/**
 	 * @dev Activates this archetype
-   * REVERTS if:
+   	 * REVERTS if:
 	 * - msg.sender is not the owner or a member of the owner organization
 	 */
 	function activate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
@@ -176,7 +176,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 
 	/**
 	 * @dev Deactivates this archetype
-   * REVERTS if:
+	 * REVERTS if:
 	 * - msg.sender is not the owner or a member of the owner organization
 	 */
 	function deactivate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {

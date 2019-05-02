@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-auth/Permissioned.sol";
 
@@ -51,10 +51,10 @@ contract ActiveAgreement is ActiveAgreement_v1_0_1, Permissioned {
 		address _archetype, 
 		address _creator, 
 		address _owner, 
-		string _privateParametersFileReference, 
+		string calldata _privateParametersFileReference, 
 		bool _isPrivate, 
-		address[] _parties, 
-		address[] _governingAgreements)
+		address[] calldata _parties, 
+		address[] calldata _governingAgreements)
 		external;
 
 	/**

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-management/Upgradeable.sol";
 import "bpm-runtime/ProcessStateChangeListener.sol";
@@ -61,11 +61,11 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 		address _archetype,
 		address _creator, 
 		address _owner, 
-		string _privateParametersFileReference,
+		string calldata _privateParametersFileReference,
 		bool _isPrivate,
-		address[] _parties, 
+		address[] calldata _parties, 
 		bytes32 _collectionId, 
-		address[] _governingAgreements) 
+		address[] calldata _governingAgreements) 
 		external returns (address activeAgreement);
 
 	/**
@@ -152,7 +152,7 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 * @return formationProcessInstance - the address of the process instance representing the formation of this agreement
 	 * @return executionProcessInstance - the address of the process instance representing the execution of this agreement
 	 */
-	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, address creator, string privateParametersFileReference, string eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
+	function getActiveAgreementData(address _activeAgreement) external view returns (address archetype, address creator, string memory privateParametersFileReference, string memory eventLogFileReference, uint maxNumberOfEvents, bool isPrivate, uint8 legalState, address formationProcessInstance, address executionProcessInstance);
 
     /**
 	 * @dev Returns the number of agreement parameter entries.
@@ -196,14 +196,14 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 * @param _activeAgreement the address of active agreement
 	 * @param _eventLogFileReference the file reference of the event log of this agreement
 	 */
-	 function setEventLogReference(address _activeAgreement, string _eventLogFileReference) external;
+	 function setEventLogReference(address _activeAgreement, string calldata _eventLogFileReference) external;
 
 	/**
 	 * @dev Updates the file reference for the signature log of the specified agreement
 	 * @param _activeAgreement the address of active agreement
 	 * @param _signatureLogFileReference the file reference of the signature log of this agreement
 	 */
-	 function setSignatureLogReference(address _activeAgreement, string _signatureLogFileReference) external;
+	 function setSignatureLogReference(address _activeAgreement, string calldata _signatureLogFileReference) external;
 
 	/**
 	 * @dev Creates a new agreement collection

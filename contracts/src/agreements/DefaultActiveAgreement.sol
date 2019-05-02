@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
@@ -27,10 +27,10 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractAct
 	function initialize(
 		address /*_archetype*/,
 		address /*_creator*/,
-		string /*_privateParametersFileReference*/,
+		string calldata /*_privateParametersFileReference*/,
 		bool /*_isPrivate*/,
-		address[] /*_parties*/,
-		address[] /*_governingAgreements*/)
+		address[] calldata /*_parties*/,
+		address[] calldata /*_governingAgreements*/)
 		external
 	{
 		revert(ErrorsLib.format(ErrorsLib.INVALID_STATE(),
@@ -53,10 +53,10 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractAct
 		address _archetype, 
 		address _creator, 
 		address _owner, 
-		string _privateParametersFileReference, 
+		string calldata _privateParametersFileReference, 
 		bool _isPrivate, 
-		address[] _parties, 
-		address[] _governingAgreements)
+		address[] calldata _parties, 
+		address[] calldata _governingAgreements)
 		external
 		pre_post_initialize
 	{
@@ -108,7 +108,8 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractAct
 			uint8(legalState),
 			maxNumberOfEvents
 		);
-		for (uint i = 0; i < _parties.length; i++) {
+		uint i;
+		for (i = 0; i < _parties.length; i++) {
 			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
@@ -133,7 +134,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractAct
 		(signee, party) = AgreementsAPI.authorizePartyActor(address(this));
 
 		// if the signee is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(signee == 0x0, ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
+		ErrorsLib.revertIf(signee == address(0), ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
 
 		// the signature is only applied, if no previous signature for the party exists
 		if (signatures[party].timestamp == 0) {

@@ -93,10 +93,10 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	function initialize(
 		address _archetype, 
 		address _creator, 
-		string _privateParametersFileReference, 
+		string calldata _privateParametersFileReference, 
 		bool _isPrivate, 
-		address[] _parties, 
-		address[] _governingAgreements)
+		address[] calldata _parties, 
+		address[] calldata _governingAgreements)
 		external
 		pre_post_initialize
 	{
@@ -141,7 +141,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * governing agreement's archetype corresponds to one of the governing archetypes.
 	 * This function makes sure that all governing agreements that are required were passed.
 	 */
-	function validateGoverningAgreements(address[] memory _governingAgreements, address[] _governingArchetypes) internal view {
+	function validateGoverningAgreements(address[] memory _governingAgreements, address[] memory _governingArchetypes) internal view {
 	
 		// _governingAgreements length must match governingArchetypes length. This is a shortcut verification to avoid expensive looping
 		ErrorsLib.revertIf(_governingAgreements.length != _governingArchetypes.length,
@@ -213,7 +213,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference to the private parameters of this ActiveAgreement
 	 * @return the reference to an external document containing private parameters
 	 */
-	function getPrivateParametersReference() external view returns (string){
+	function getPrivateParametersReference() external view returns (string memory){
 		return fileReferences.get(fileKeyPrivateParameters);
 	}
 
@@ -229,7 +229,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Updates the file reference for the event log of this agreement
 	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function setEventLogReference(string _eventLogFileReference) external {
+	function setEventLogReference(string calldata _eventLogFileReference) external {
 		fileReferences.insertOrUpdate(fileKeyEventLog, _eventLogFileReference);
 		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, address(this), _eventLogFileReference);
 	}
@@ -238,7 +238,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference for the event log of this ActiveAgreement
 	 * @return the reference to an external document containing the event log
 	 */
-	function getEventLogReference() external view returns (string) {
+	function getEventLogReference() external view returns (string memory) {
 		return fileReferences.get(fileKeyEventLog);
 	}
 
@@ -246,7 +246,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Updates the file reference for the signature log of this agreement
 	 * @param _signatureLogFileReference the file reference to the signature log
 	 */
-	function setSignatureLogReference(string _signatureLogFileReference) external {
+	function setSignatureLogReference(string calldata _signatureLogFileReference) external {
 		fileReferences.insertOrUpdate(fileKeySignatureLog, _signatureLogFileReference);
 		emit LogAgreementSignatureLogReference(EVENT_ID_AGREEMENTS, address(this), _signatureLogFileReference);
 	}
@@ -255,7 +255,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference for the signature log of this ActiveAgreement
 	 * @return the reference to an external document containing the signature log
 	 */
-	function getSignatureLogReference() external view returns (string) {
+	function getSignatureLogReference() external view returns (string memory) {
 		return fileReferences.get(fileKeySignatureLog);
 	}
 

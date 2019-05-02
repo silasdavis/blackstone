@@ -94,10 +94,10 @@ contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes
 	function initialize(
 		address _archetype, 
 		address _creator, 
-		string _privateParametersFileReference, 
+		string calldata _privateParametersFileReference, 
 		bool _isPrivate, 
-		address[] _parties, 
-		address[] _governingAgreements)
+		address[] calldata _parties, 
+		address[] calldata _governingAgreements)
 		external;
 		
 	/**
@@ -141,31 +141,31 @@ contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes
 	 * @dev Returns the reference to the private parameters of this ActiveAgreement
 	 * @return the reference to an external document containing private parameters
 	 */
-	function getPrivateParametersReference() external view returns (string);
+	function getPrivateParametersReference() external view returns (string memory);
 
 	/**
 	 * @dev Updates the file reference for the event log of this agreement
 	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function setEventLogReference(string _eventLogFileReference) external;
+	function setEventLogReference(string calldata _eventLogFileReference) external;
 
 	/**
 	 * @dev Returns the reference for the event log of this ActiveAgreement
 	 * @return the file reference for the event log of this agreement
 	 */
-	function getEventLogReference() external view returns (string);
+	function getEventLogReference() external view returns (string memory);
 
 	/**
 	 * @dev Updates the file reference for the signature log of this agreement
 	 * @param _signatureLogFileReference the file reference to the signature log
 	 */
-	function setSignatureLogReference(string _signatureLogFileReference) external;
+	function setSignatureLogReference(string calldata _signatureLogFileReference) external;
 
 	/**
 	 * @dev Returns the reference for the signature log of this ActiveAgreement
 	 * @return the reference to an external document containing the signature log
 	 */
-	function getSignatureLogReference() external view returns (string);
+	function getSignatureLogReference() external view returns (string memory);
 
 	/**
 	 * @dev Returns the max number of events for the event log
@@ -220,11 +220,11 @@ contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes
 	 */
 	function isSignedBy(address _signee) external view returns (bool);
 
-	/**
-	 * @dev Sets the legal state of this agreement
-	 * @param _legalState the Agreements.LegalState
-	 */
-	function setLegalState(Agreements.LegalState _legalState) external;
+    /**
+     * @dev Sets the legal state of this agreement
+     * @param _legalState the Agreements.LegalState
+     */
+    function setLegalState(Agreements.LegalState _legalState) external;
 
 	/**
 	 * @dev Returns the legal state of this agreement
@@ -232,11 +232,11 @@ contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes
 	 */
 	function getLegalState() external view returns (uint8);
 
-    /**
-     * @dev Sets the legal state of this agreement to Agreements.LegalState.FULFILLED.
-     * !deprecated! use #setLegalState(Agreements.LegalState) instead
-     */
-    function setFulfilled() external;
+	/**
+	 * @dev Sets the legal state of this agreement to Agreements.LegalState.FULFILLED.
+	 * Note: All other legal states are set by internal logic.
+	 */
+	function setFulfilled() external;
 
 	/**
 	 * @dev Registers the msg.sender as having cancelled the agreement.

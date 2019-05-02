@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -50,7 +50,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 * @param _serviceIdArchetypeRegistry the ID with which to resolve the ArchetypeRegistry dependency
 	 * @param _serviceIdBpmService the ID with which to resolve the BpmService dependency
 	 */
-	constructor (string _serviceIdArchetypeRegistry, string _serviceIdBpmService) public {
+	constructor (string memory _serviceIdArchetypeRegistry, string memory _serviceIdBpmService) public {
 		ErrorsLib.revertIf(bytes(_serviceIdArchetypeRegistry).length == 0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.constructor", "_serviceIdArchetypeRegistry parameter must not be empty");
 		ErrorsLib.revertIf(bytes(_serviceIdBpmService).length == 0,
@@ -80,14 +80,14 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 		address _archetype,
 		address _creator, 
 		address _owner, 
-		string _privateParametersFileReference,
+		string calldata _privateParametersFileReference,
 		bool _isPrivate, 
-		address[] _parties, 
+		address[] calldata _parties, 
 		bytes32 _collectionId, 
-		address[] _governingAgreements) 
+		address[] calldata _governingAgreements) 
 		external returns (address agreementAddress)
 	{
-    agreementAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_AGREEMENT);
+    agreementAddress = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_AGREEMENT));
 		ActiveAgreement agreement = ActiveAgreement(agreementAddress);
     agreement.initialize(_archetype, _creator, _owner, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
 		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(agreementAddress);
@@ -166,6 +166,8 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 		ErrorsLib.revertIf(serviceAddress == address(0),
 			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultActiveAgreementsRegistry.startProcessLifecycle", "BpmService dependency not found in ArtifactsFinder");
 
+		ProcessInstance pi;
+
 		// FORMATION PROCESS
 		if (Archetype(_agreement.getArchetype()).getFormationProcessDefinition() != address(0)) {
 			ErrorsLib.revertIf(_agreement.getLegalState() != uint8(Agreements.LegalState.FORMULATED),
@@ -173,7 +175,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 			ErrorsLib.revertIf(ActiveAgreementRegistryDb(database).getAgreementFormationProcess(address(_agreement)) != address(0),
 				ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.startProcessLifecycle", "The provided agreement already has an ongoing formation ProcessInstance");
 			
-			ProcessInstance pi = createFormationProcess(_agreement);
+			pi = createFormationProcess(_agreement);
 			// keep track of the process for the agreement, regardless of whether the start (below) actually succeeds, because the PI is created
 			ActiveAgreementRegistryDb(database).setAgreementFormationProcess(address(_agreement), address(pi));
 			error = BpmService(serviceAddress).startProcessInstance(pi);
@@ -202,7 +204,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 */
 	function createFormationProcess(ActiveAgreement _agreement) internal returns (ProcessInstance processInstance) {
 		address pd = Archetype(_agreement.getArchetype()).getFormationProcessDefinition();
-		ErrorsLib.revertIf(pd == 0x0,
+		ErrorsLib.revertIf(pd == address(0),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.createFormationProcess", "No ProcessDefinition found on the agreement's archetype");
 		// we deliberately accept the fact that the artifactsFinder could still be 0x0, if the contract was never initialized correctly
 		// However, when deployed through DOUG, the artifactsFinder is set, so we avoid having to check every time.
@@ -225,7 +227,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 */
 	function createExecutionProcess(ActiveAgreement _agreement) internal returns (ProcessInstance processInstance) {
 		address pd = Archetype(_agreement.getArchetype()).getExecutionProcessDefinition();
-		ErrorsLib.revertIf(pd == 0x0,
+		ErrorsLib.revertIf(pd == address(0),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultActiveAgreementRegistry.createExecutionProcess", "No ProcessDefinition found on the agreement's archetype");
 		// we deliberately accept the fact that the artifactsFinder could still be 0x0, if the contract was never initialized correctly
 		// However, when deployed through DOUG, the artifactsFinder is set, so we avoid having to check every time.
@@ -357,8 +359,8 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	function getActiveAgreementData(address _activeAgreement) external view returns (
 		address archetype,
 		address creator,
-		string privateParametersFileReference,
-		string eventLogFileReference,
+		string memory privateParametersFileReference,
+		string memory eventLogFileReference,
 		uint maxNumberOfEvents,
 		bool isPrivate,
 		uint8 legalState,
@@ -444,7 +446,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 * @return id bytes32 id of package
 	 */
 	function createAgreementCollection(address _author, Agreements.CollectionType _collectionType, bytes32 _packageId) external returns (uint error, bytes32 id) {
-		if (_author == 0x0 || _packageId == "") return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
+		if (_author == address(0) || _packageId == "") return (BaseErrors.NULL_PARAM_NOT_ALLOWED(), "");
 		id = keccak256(abi.encodePacked(abi.encodePacked(ActiveAgreementRegistryDb(database).getNumberOfCollections(), _packageId, block.timestamp)));
 		error = ActiveAgreementRegistryDb(database).createCollection(id, _author, _collectionType, _packageId);
 		if (error == BaseErrors.NO_ERROR()) {
@@ -532,10 +534,10 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 			// CANCELED and DEFAULT trigger aborting any running processes for this agreement
 			if (ActiveAgreement(msg.sender).getLegalState() == uint8(Agreements.LegalState.CANCELED) ||
 				ActiveAgreement(msg.sender).getLegalState() == uint8(Agreements.LegalState.DEFAULT)) {
-					if (ActiveAgreementRegistryDb(database).getAgreementFormationProcess(msg.sender) != 0x0) {
+					if (ActiveAgreementRegistryDb(database).getAgreementFormationProcess(msg.sender) != address(0)) {
 						ProcessInstance(ActiveAgreementRegistryDb(database).getAgreementFormationProcess(msg.sender)).abort();
 					}
-					if (ActiveAgreementRegistryDb(database).getAgreementExecutionProcess(msg.sender) != 0x0) {
+					if (ActiveAgreementRegistryDb(database).getAgreementExecutionProcess(msg.sender) != address(0)) {
 						ProcessInstance(ActiveAgreementRegistryDb(database).getAgreementExecutionProcess(msg.sender)).abort();
 					}
 			}
@@ -588,7 +590,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 * @param _activeAgreement Address of active agreement
 	 * @param _eventLogFileReference the file reference of the event log of this agreement
 	 */
-	function setEventLogReference(address _activeAgreement, string _eventLogFileReference) external {
+	function setEventLogReference(address _activeAgreement, string calldata _eventLogFileReference) external {
 		ActiveAgreement(_activeAgreement).setEventLogReference(_eventLogFileReference);
 	}
 
@@ -597,7 +599,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 * @param _activeAgreement the address of active agreement
 	 * @param _signatureLogFileReference the file reference of the signature log of this agreement
 	 */
-	function setSignatureLogReference(address _activeAgreement, string _signatureLogFileReference) external {
+	function setSignatureLogReference(address _activeAgreement, string calldata _signatureLogFileReference) external {
 		ActiveAgreement(_activeAgreement).setSignatureLogReference(_signatureLogFileReference);
 	}
 

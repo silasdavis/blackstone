@@ -138,13 +138,13 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
     function execute(BpmService _service) public returns (uint error) {
         // TODO should check that the owner of the DB and the owner of the PI match (or that the PI is in the DB)
         // TODO external invocation still possible, but might be OK since it might not result in any processing if the engine has not changed the state of the PI?!
-        return self.execute(_service);
+        error = self.execute(_service);
         emit LogProcessInstanceStateUpdate(
             EVENT_ID_PROCESS_INSTANCES,
             address(this),
             uint8(self.state)
         );
-
+        return error;
     }
 
 	/**

@@ -116,7 +116,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @param _fileReference the external reference to the document
 	 */
 	// TODO: determine access (presumably only author should be able to add documents)
-	function addDocument(string _fileReference) external {
+	function addDocument(string calldata _fileReference) external {
 		bytes32 docKey = keccak256(abi.encodePacked(_fileReference));
 		ErrorsLib.revertIf(documents.exists(docKey),
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultArchetype.addDocument", "A document with the same file reference already exists");
@@ -244,7 +244,15 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address) {
-    	return author;
+    return permissions[ROLE_ID_AUTHOR].holders[0];
+	}
+
+	/**
+	 * @dev Gets Owner
+	 * @return owner owner
+	 */
+	function getOwner() external view returns (address) {
+    return permissions[ROLE_ID_OWNER].holders[0];
 	}
 
 	/**
@@ -254,7 +262,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @param _key the document key
 	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(bytes32 _key) external view returns (string fileReference) {
+	function getDocument(bytes32 _key) external view returns (string memory fileReference) {
 		ErrorsLib.revertIf(!documents.exists(_key),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetype.getDocument", "A document reference for the given key does not exist");
 		fileReference = documents.get(_key);
@@ -374,7 +382,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @dev Returns all governing archetype address for this archetype
 	 * @return the address array containing all governing archetypes
 	 */
-	function getGoverningArchetypes() external view returns (address[]) {
+	function getGoverningArchetypes() external view returns (address[] memory) {
 		return governingArchetypes;
 	}
 

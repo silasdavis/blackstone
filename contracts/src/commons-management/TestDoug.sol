@@ -29,7 +29,7 @@ contract TestDoug is DOUG {
 		success = true;
 	}
 
-    function register(string calldata _id, address _address) external returns (uint8[3]) {
+    function register(string calldata _id, address _address) external returns (uint8[3] memory) {
 		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 	}
 

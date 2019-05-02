@@ -91,14 +91,14 @@ contract Archetype_v1_0_0 is VersionedArtifact {
 		address _author,
 		address _formationProcess,
 		address _executionProcess,
-		address[] _governingArchetypes)
+		address[] calldata _governingArchetypes)
 		external;
 
 	/**
 	 * @dev Adds the document specified by the external reference to this Archetype
 	 * @param _fileReference the external reference to the document
 	 */
-	function addDocument(string _fileReference) external;
+	function addDocument(string calldata _fileReference) external;
 
 	/**
 	 * @dev Adds a parameter to this Archetype
@@ -138,11 +138,17 @@ contract Archetype_v1_0_0 is VersionedArtifact {
 	function getAuthor() external view returns (address author);
 
 	/**
+	 * @dev Gets Owner
+	 * @return owner owner
+	 */
+	function getOwner() external view returns (address owner);
+
+	/**
 	 * @dev Gets document reference with given key
 	 * @param _key document key
 	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(bytes32 _key) external view returns (string fileReference);
+	function getDocument(bytes32 _key) external view returns (string memory fileReference);
 
 	/**
 	 * @dev Gets number of parameters
@@ -217,7 +223,7 @@ contract Archetype_v1_0_0 is VersionedArtifact {
 	 * @dev Returns all governing archetype address for this archetype
 	 * @return the address array containing all governing archetypes
 	 */
-	function getGoverningArchetypes() external view returns (address[]);
+	function getGoverningArchetypes() external view returns (address[] memory);
 
 	/**
 	 * @dev Returns the address of the ProcessDefinition that orchestrates the agreement formation.

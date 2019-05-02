@@ -18,6 +18,9 @@ import "commons-auth/DefaultOrganization.sol";
 contract ParticipantsManagerTest {
 
     string constant SUCCESS = "success";
+    string constant functionSigUserAccountForwardCall = "forwardCall(address,bytes)";
+    string constant functionSigAddApprover = "addApprover(address)";
+    string constant functionSigRemoveApprover = "removeApprover(address)";
 
     uint error;
     address addr;
@@ -317,66 +320,71 @@ contract ParticipantsManagerTest {
     /**
      * @dev Tests the removal/addition of organization approvers
      */
-    function testOrganizationApproverUpdates() external returns (string) {
+    function testOrganizationApproverUpdates() external returns (string memory) {
 
-        string memory functionSig = "";
-        string memory forwardSig = "forwardCall(address,bytes)";
-		    bytes memory payload;
+        bool success;
+        bytes memory payload;
 
         UserAccount user1 = new DefaultUserAccount();
-        user1.initialize(this, address(myEcosystem));
+        user1.initialize(address(this), address(myEcosystem));
         UserAccount user2 = new DefaultUserAccount();
-        user2.initialize(this, address(myEcosystem));
+        user2.initialize(address(this), address(myEcosystem));
         UserAccount user3 = new DefaultUserAccount();
-        user3.initialize(this, address(myEcosystem));
+        user3.initialize(address(this), address(myEcosystem));
         UserAccount user4 = new DefaultUserAccount();
-        user4.initialize(this, address(myEcosystem));
+        user4.initialize(address(this), address(myEcosystem));
 
         Organization org = new DefaultOrganization();
         address[] memory admins = new address[](1);
-		    admins[0] = address(user1);
+		admins[0] = address(user1);
         org.initialize(admins, EMPTY);
 
-        functionSig = "addApprover(address)";
         // Test for successful add
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (!address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user2));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (!success)
           return "Should NOT fail to add approver";
         if (org.getNumberOfApprovers() != 2) return "Failed to add approver";
         if (org.getApproverAtIndex(0) != address(user1)) return "Failed to keep existing approvers after adding approver";
         if (org.getApproverAtIndex(1) != address(user2)) return "Failed to add correct address to approvers";
         // Test for failed add
-        payload = abi.encodeWithSignature(functionSig, address(user4));
-        if (address(user3).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user4));
+        (success, ) = address(user3).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if non-approver attempting to add another approver";
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user2));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if adding same approver more than once";
-        payload = abi.encodeWithSignature(functionSig, 0x0);
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(0));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if adding an empty address";
-        payload = abi.encodeWithSignature(functionSig, address(user3));
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user3));
         user1.forwardCall(address(org), payload);
 
-        functionSig = "removeApprover(address)";
         // Test for successful remove
-        payload = abi.encodeWithSignature(functionSig, address(user3));
-        if (!address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user3));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (!success)
           return "Should NOT fail to remove approver";
         if (org.getNumberOfApprovers() != 2) return "Failed to remove approver";
         if (org.getApproverAtIndex(0) != address(user1)) return "Failed to remove correct address from approvers- user1 not found";
         if (org.getApproverAtIndex(1) != address(user2)) return "Failed to remove correct address from approvers- user2 not found";
         // Test for failed remove
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (address(user3).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user2));
+        (success, ) = address(user3).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if non-approver attempting to remove another approver";
-        payload = abi.encodeWithSignature(functionSig, address(user3));
-        if (address(user2).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user3));
+        (success, ) = address(user2).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if user to remove is not an approver";
-        payload = abi.encodeWithSignature(functionSig, address(user2));
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user2));
         user1.forwardCall(address(org), payload);
-        payload = abi.encodeWithSignature(functionSig, address(user1));
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user1));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if removing last remaining approver";
 
         return SUCCESS;
