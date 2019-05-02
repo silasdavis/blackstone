@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/Versioned.sol";
@@ -43,7 +43,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _address the address of the contract
      * @return true if successful, false otherwise
 	 */
-    function deploy(string _id, address _address) external pre_onlyByOwner returns (bool success) {
+    function deploy(string calldata _id, address _address) external pre_onlyByOwner returns (bool success) {
 		return deployVersion(_id, _address, [0,0,0]);
 	}
 
@@ -64,7 +64,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _address the address of the contract
      * @return true if successful, false otherwise
 	 */
-    function deployVersion(string _id, address _address, uint8[3] _version) public pre_onlyByOwner returns (bool success) {
+    function deployVersion(string memory _id, address _address, uint8[3] memory _version) public pre_onlyByOwner returns (bool success) {
         ErrorsLib.revertIf(bytes(_id).length == 0 || _address == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultDoug.deployVersion", "_id and _address must not be empty");
 
@@ -90,7 +90,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
 
 		// to trigger an automatic upgrade procedure, both contracts must be Upgradeable, VersionedArtifact contracts
 		// and the version being deployed must be higher.
-		if (existingActiveLocation != 0x0 &&
+		if (existingActiveLocation != address(0) &&
 			isHigherArtifactVersion(existingActiveLocation, _address) &&
 			ERC165Utils.implementsInterface(existingActiveLocation, getERC165IdUpgradeable()) &&
 			ERC165Utils.implementsInterface(_address, getERC165IdUpgradeable()))
@@ -112,7 +112,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _address the address of the contract
 	 * @return version - the version under which the contract was registered.
      */
-    function register(string _id, address _address) external pre_onlyByOwner returns (uint8[3] version) {
+    function register(string calldata _id, address _address) external pre_onlyByOwner returns (uint8[3] memory version) {
 		return registerVersion(_id, _address, [0,0,0]);
 	}
 
@@ -127,7 +127,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _address the address of the contract
 	 * @return version - the version under which the contract was registered.
      */
-    function registerVersion(string _id, address _address, uint8[3] _version) public pre_onlyByOwner returns (uint8[3] version) {
+    function registerVersion(string memory _id, address _address, uint8[3] memory _version) public pre_onlyByOwner returns (uint8[3] memory version) {
         ErrorsLib.revertIf(bytes(_id).length == 0 || _address == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultDoug.registerVersion", "_id and _address must not be empty");
 
@@ -150,7 +150,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _id the ID under which the contract is registered
      * @return the contract's address of 0x0 if no active version for the given ID is registered.
      */
-    function lookup(string _id) external view returns (address contractAddress) {
+    function lookup(string calldata _id) external view returns (address contractAddress) {
 		(contractAddress, ) = ArtifactsRegistry(registry).getArtifact(_id);
 	}
 
@@ -161,7 +161,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @param _id the ID under which the contract is registered
      * @return the contract's address of 0x0 if no active version for the given ID is registered.
      */
-    function lookupVersion(string _id, uint8[3] _version) external view returns (address contractAddress) {
+    function lookupVersion(string calldata _id, uint8[3] calldata _version) external view returns (address contractAddress) {
 		contractAddress = ArtifactsRegistry(registry).getArtifactByVersion(_id, _version);
 	}
 
@@ -188,7 +188,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
 	/**
 	 * @dev Returns true if both address are VersionedArtifact contracts and the successor version is higher than the existing
 	 */
-	function isHigherArtifactVersion(address existing, address successor) private view returns (bool) {
+	function isHigherArtifactVersion(address existing, address successor) private returns (bool) {
 		return ERC165Utils.implementsInterface(existing, getERC165IdVersionedArtifact()) &&
 			   ERC165Utils.implementsInterface(successor, getERC165IdVersionedArtifact()) &&
 			   VersionedArtifact(existing).compareArtifactVersion(successor) > 0;
@@ -202,7 +202,7 @@ contract DefaultDoug is StorageDefProxied, StorageDefOwner, StorageDefRegistry, 
      * @return 0 (equal), -1 (B version is lower), or 1 (B version is higher).
      * //TODO move to a math library
      */
-	function compareVersions(uint8[3] _a, uint8[3] _b) private pure returns (int result) {
+	function compareVersions(uint8[3] memory _a, uint8[3] memory _b) private pure returns (int result) {
         result = compareUint8Values(_a[0], _b[0]);
         if (result != 0) { return result; }
         result = compareUint8Values(_a[1], _b[1]);

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 
@@ -13,10 +13,10 @@ contract ObjectProxyTest {
     string constant SUCCESS = "success";
     string objectClass = "AN://test-object";
 
-    function testProxyHandling() external returns (string) {
+    function testProxyHandling() external returns (string memory) {
 
         ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
-        DefaultArtifactsRegistry(artifactsRegistry).initialize(); // this sets the system owner
+        DefaultArtifactsRegistry(address(artifactsRegistry)).initialize(); // this sets the system owner
 
         ObjectInterface impl1 = new ObjectImplV1();
         ObjectInterface impl2 = new ObjectImplV2();
@@ -52,7 +52,7 @@ contract TestObjectProxy is ObjectProxy {
         return getArtifactsFinder();
     }
 
-    function getClass() external view returns (string) {
+    function getClass() external view returns (string memory) {
         return getObjectClass();
     }
 }

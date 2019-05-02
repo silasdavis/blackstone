@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/SystemOwned.sol";
@@ -39,7 +39,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
      * @param _version the semantic version of the artifact
      * @param _activeVersion whether this version of the artifact should be tracked as the active version
      */
-    function registerArtifact(string _artifactId, address _artifactAddress, uint8[3] _version, bool _activeVersion)
+    function registerArtifact(string calldata _artifactId, address _artifactAddress, uint8[3] calldata _version, bool _activeVersion)
         external
         pre_onlyBySystemOwner
     {
@@ -76,7 +76,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
      * @param _artifactId the ID of the artifact
      * @param _version the semantic version of the artifact
      */
-    function setActiveVersion(string _artifactId, uint8[3] _version)
+    function setActiveVersion(string calldata _artifactId, uint8[3] calldata _version)
         external
         pre_onlyBySystemOwner
     {
@@ -102,7 +102,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     /**
      * @dev Implements ArtifactsFinder.getArtifact(string)
      */
-    function getArtifact(string _artifactId) external view returns (address location, uint8[3] version) {
+    function getArtifact(string calldata _artifactId) external view returns (address location, uint8[3] memory version) {
         location = artifacts[_artifactId].activeVersion;
         version = artifacts[_artifactId].versions[location];
     }
@@ -110,7 +110,7 @@ contract DefaultArtifactsRegistry is ArtifactsRegistry, AbstractDelegateTarget, 
     /**
      * @dev Implements ArtifactsFinder.getArtifactByVersion(string,uint8[3])
      */
-    function getArtifactByVersion(string _artifactId, uint8[3] _version) external view returns (address location) {
+    function getArtifactByVersion(string calldata _artifactId, uint8[3] calldata _version) external view returns (address location) {
         location = artifacts[_artifactId].locations[keccak256(abi.encodePacked(_version))];
     }
 }

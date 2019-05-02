@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 /**
  * @title ArtifactsFinder
@@ -12,7 +12,7 @@ interface ArtifactsFinder {
      * @return location - the address of the smart contract artifact, if it exists
      * @return version - the semantic version of the artifact
      */
-    function getArtifact(string _artifactId) external view returns (address location, uint8[3] version);
+    function getArtifact(string calldata _artifactId) external view returns (address location, uint8[3] memory version);
 
     /**
      * @dev Returns the location of the artifact with the given ID and version.
@@ -20,6 +20,6 @@ interface ArtifactsFinder {
      * @param _version the semantic version of the artifact
      * @return location - the address of the smart contract artifact, if it exists
      */
-    function getArtifactByVersion(string _artifactId, uint8[3] _version) external view returns (address location);
+    function getArtifactByVersion(string calldata _artifactId, uint8[3] calldata _version) external view returns (address location);
 
 }

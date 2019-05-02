@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-standards/ERC165.sol";
 
@@ -25,7 +25,7 @@ contract VersionedArtifact {
      * @param _version the version to which this contract's version is compared
      * @return 0 (equal), -1 (the other version is lower), or 1 (the other version is higher).
      */
-    function compareArtifactVersion(uint8[3] _version) public view returns (int result);
+    function compareArtifactVersion(uint8[3] memory _version) public view returns (int result);
 
 	/**
 	 * @dev Returns the major version number
@@ -49,5 +49,5 @@ contract VersionedArtifact {
      * @dev Returns the version as 3-digit array
      * @return the version as unit8[3]
      */
-    function getArtifactVersion() external view returns (uint8[3]);
+    function getArtifactVersion() external view returns (uint8[3] memory);
 }

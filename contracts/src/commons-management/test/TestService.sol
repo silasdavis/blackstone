@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-management/AbstractUpgradeable.sol";
 import "commons-management/ArtifactsFinderEnabled.sol";
@@ -10,7 +10,7 @@ contract TestService is AbstractUpgradeable, ArtifactsFinderEnabled {
     string public dependencyKey;
     address public dependencyService;
 
-    constructor(uint8[3] _v, string _depKey) public AbstractVersionedArtifact(_v[0],_v[1],_v[2]) {
+    constructor(uint8[3] memory _v, string memory _depKey) public AbstractVersionedArtifact(_v[0],_v[1],_v[2]) {
         dependencyKey = _depKey;
     }
 
@@ -25,7 +25,7 @@ contract TestService is AbstractUpgradeable, ArtifactsFinderEnabled {
     function refreshDependencies() public {
         if (bytes(dependencyKey).length > 0) {
             (dependencyService, ) = ArtifactsFinder(artifactsFinder).getArtifact(dependencyKey);
-            require(dependencyService != 0x0, "dependency not found");
+            require(dependencyService != address(0), "dependency not found");
         }
     }
 

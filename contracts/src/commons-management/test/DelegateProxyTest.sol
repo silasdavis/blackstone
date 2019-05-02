@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-utils/TypeUtilsLib.sol";
 import "commons-management/AbstractDelegateProxy.sol";
@@ -11,13 +11,13 @@ contract DelegateProxyTest {
     string constant SUCCESS = "success";
     bytes1[] tempByteArray;
 
-    function testDelegateCallReturns() external returns (string) {
+    function testDelegateCallReturns() external returns (string memory) {
 
         TestDelegate delegate = new TestDelegate();
         TestProxy proxy = new TestProxy(address(delegate));
         
         if (proxy.getDelegate() != address(delegate)) return "The delegate should be set in the proxy";
-        string memory result = TestDelegate(proxy).regularFunction();
+        string memory result = TestDelegate(address(proxy)).regularFunction();
         if (keccak256(abi.encodePacked(result)) != keccak256(abi.encodePacked("message"))) return "Proxy invocation of regularFunction should have returned the message";
         
         // check that the revert reason from the inner delegate function is returned as the proxy's revert reason
@@ -47,8 +47,9 @@ contract DelegateProxyTest {
         // 0x4e6f7420656e6f7567682045746865722070726f76696465642e000000000000 // String data
 
         // Since we know that the expected revert reason fits into 32 bytes, we can simply grab those last 32 bytes
-        for (uint i=returnData.length-32; i<returnData.length; i++) {
-            if (uint(returnData[i]) != 0) {
+        uint i;
+        for (i=returnData.length-32; i<returnData.length; i++) {
+            if (uint256(uint8(returnData[i])) != 0) {
                 tempByteArray.push(returnData[i]);
             }
         }
@@ -80,11 +81,11 @@ contract TestProxy is AbstractDelegateProxy {
 
 contract TestDelegate {
 
-    function regularFunction() public returns (string) {
+    function regularFunction() public pure returns (string memory) {
         return "message";
     }
 
-    function revertFunction() public {
+    function revertFunction() public pure {
         revert("TestDelegate::error");
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 
@@ -23,7 +23,7 @@ contract AbstractDelegateProxy {
      * @dev Fallback function that dispatches any invocation of this contract via delegatecall to a proxied contract.
      * @return This function will return whatever the implementation call returns and re-throw any revert reasons
      */
-    function () public {
+    function () external {
         address target = getDelegate();
         ErrorsLib.revertIf(target == address(0),
             ErrorsLib.INVALID_STATE(), "AbstractDelegateProxy", "Delegate target address must not be empty");
