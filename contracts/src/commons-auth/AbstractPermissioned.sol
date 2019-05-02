@@ -117,15 +117,25 @@ contract AbstractPermissioned is Permissioned {
         }
     }
 
+    /**
+     * @dev Transfers the specified permission from the sender to the given holder.
+     * The new address will be added in the same position as the old holder's address (instead of removing the old address and pushing in the new one)
+     * REVERTS if:
+     * - the caller does not hold specified permission
+     * - the specified permission does not exist
+     * - the new holder already holds the specified permission
+     * @param _permission the permission identifier
+     * @param _newHolder the address the permission is to be transfered to
+     */
     function transferPermission(bytes32 _permission, address _newHolder)
         external
     {
-		// TODO, if perm is multiholder, then transferPermission needs to check if the new holder is already a holder!
-
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.transferPermission", "The specified permission does not exist. Create it first.");
         ErrorsLib.revertIf(!permissions[_permission].transferable,
             ErrorsLib.INVALID_STATE(), "AbstractPermissioned.transferPermission", "The specified permission is not transferable");
+        ErrorsLib.revertIf(permissions[_permission].holders.contains(_newHolder),
+            ErrorsLib.RESOURCE_ALREADY_EXISTS(), "AbstractPermissioned.transferPermission", "The new holder already holds the specified permission");
         // to transfer a permission, it does not matter whether it's multi-holder or not.
         for (uint i=0; i<permissions[_permission].holders.length; i++) {
             if (permissions[_permission].holders[i] == msg.sender) {
@@ -137,6 +147,15 @@ contract AbstractPermissioned is Permissioned {
         revert(ErrorsLib.format(ErrorsLib.UNAUTHORIZED(), "AbstractPermissioned.transferPermission", "The msg.sender does not hold the specified permission"));
     }
 
+    /**
+     * @dev Revokes the specified permission from the given holder.
+     * REVERTS if:
+     * - the caller does not hold ROLE_ID_PERMISSION_ADMIN permission
+     * - the specified permission does not exist
+     * - the given holder does not hold the specified permission
+     * @param _permission the permission identifier
+     * @param _holder the address having the permission revoked
+     */
     function revokePermission(bytes32 _permission, address _holder)
         external
         pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
@@ -145,20 +164,26 @@ contract AbstractPermissioned is Permissioned {
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The specified permission does not exist. Create it first.");
         ErrorsLib.revertIf(!permissions[_permission].revocable,
             ErrorsLib.INVALID_STATE(), "AbstractPermissioned.revokePermission", "The specified permission is not revocable");
-        if (permissions[_permission].multiHolder) {
-            for (uint i=0; i<permissions[_permission].holders.length; i++) {
-                if (permissions[_permission].holders[i] == _holder) {
-                    delete permissions[_permission].holders[i];
-                    return;
-                }
+        bool removed = false;
+        for (uint i=0; i<permissions[_permission].holders.length; i++) {
+            if (removed || permissions[_permission].holders[i] == _holder) {
+                if (i + 1 < permissions[_permission].holders.length)
+                    permissions[_permission].holders[i] = permissions[_permission].holders[i + 1];
+                if (!removed)
+                    removed = true;
             }
         }
-        else {
-            delete permissions[_permission].holders[0];
-        }
-        // for multiholder ??? leave slot empty and fill it on the next grantPermission? or shift all array entries?
+        ErrorsLib.revertIf(!removed,
+            ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The specified account does not hold this permission");
+        permissions[_permission].holders.length--;
     }
 
+    /**
+     * @dev Indicates whether the specified permission is held by the given holder.
+     * @param _permission the permission identifier
+     * @param _holder the address holding the permission
+     * @return true if the permission holders includes the given address
+     */
     function hasPermission(bytes32 _permission, address _holder) public view returns (bool result) {
         if (permissions[_permission].exists) {
             result = permissions[_permission].multiHolder ?
