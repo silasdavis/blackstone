@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-events/EventListener.sol";
 
@@ -33,7 +33,7 @@ contract AbstractEventListener is EventListener {
 	/**
 	 * @dev See EventListener.eventFired(bytes32,address,string)
 	 */
-	function eventFired(bytes32 /*_event*/, address /*_source*/, string /*_data*/) external {}
+	function eventFired(bytes32 /*_event*/, address /*_source*/, string calldata /*_data*/) external {}
 
 	/**
 	 * @dev See EventListener.eventFired(bytes32,address,bytes32,address)

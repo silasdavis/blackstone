@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/Mappings.sol";
 import "commons-collections/MappingsLib.sol";
@@ -69,7 +69,7 @@ contract DefaultEventEmitter is EventEmitter {
      * @param _source the emitting source's address
      * @param _data the event payload
      */
-    function emitEvent(bytes32 _event, address _source, string _data) internal {
+    function emitEvent(bytes32 _event, address _source, string memory _data) internal {
         for (uint i=0; i<listeners.rows[_event].value.length; i++) {
             EventListener(listeners.rows[_event].value[i]).eventFired(_event, _source, _data);
         }

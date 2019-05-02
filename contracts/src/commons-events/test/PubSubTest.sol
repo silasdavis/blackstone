@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-events/EventListener.sol";
 import "commons-events/AbstractEventListener.sol";
@@ -7,15 +7,15 @@ import "commons-events/DefaultEventEmitter.sol";
 
 contract PubSubTest {
 
-	function testPubSub() external returns (string) {
+	function testPubSub() external returns (string memory) {
 
 		MyEmitter mine = new MyEmitter();
 		YourEmitter yours = new YourEmitter();
 		MyReceiver receiver = new MyReceiver();
 		receiver.registerEmitters(mine, yours); // test both ways of addEventListener, from within listener and from outside
-		mine.addEventListener("bytes32", receiver);
-		yours.addEventListener("address", receiver);
-		yours.addEventListener("uint", receiver);
+		mine.addEventListener("bytes32", address(receiver));
+		yours.addEventListener("address", address(receiver));
+		yours.addEventListener("uint", address(receiver));
 
 		// check number of listerners for selected events
 		if (mine.getNumberOfListeners(mine.EVENT_CREATED()) != 0) return "Expected # of listeners for EVENT_DELETED to be 0.";
@@ -61,7 +61,7 @@ contract PubSubTest {
 		if (receiver.bytes32Payload() != "someNewB32") return "bytes32Payload not set as expected after changeBytes32";
 
 		eventsCount = receiver.numberOfEvents();
-		yours.changeAddress(receiver);
+		yours.changeAddress(address(receiver));
 		if (receiver.numberOfEvents() != eventsCount+1) return "Number of events unchanged after changeAddress";
 		if (receiver.lastEvent() != "address") return "lastEvent expected to be address after changeAddress";
 		if (receiver.lastSource() != address(yours)) return "lastSource expected to be mine after changeAddress";
@@ -138,7 +138,7 @@ contract TestEmitter is DefaultEventEmitter {
 contract MyEmitter is TestEmitter {
 
 	function modify() public {
-		emitEvent(EVENT_UPDATED, this);
+		emitEvent(EVENT_UPDATED, address(this));
 	}
 
 	function deleteByTest() public {
@@ -146,21 +146,21 @@ contract MyEmitter is TestEmitter {
 	}
 
 	function changeBytes32(bytes32 _newValue) public {
-		emitEvent("bytes32", this, _newValue);
+		emitEvent("bytes32", address(this), _newValue);
 	}
 }
 
 contract YourEmitter is TestEmitter {
 
 	function customEvent(bytes32 _event) public {
-		emitEvent(_event, this);
+		emitEvent(_event, address(this));
 	}
 
 	function changeAddress(address _newValue) public {
-		emitEvent("address", this, _newValue);
+		emitEvent("address", address(this), _newValue);
 	}
 
 	function changeUint(uint _newValue) public {
-		emitEvent("uint", this, _newValue);
+		emitEvent("uint", address(this), _newValue);
 	}
 }

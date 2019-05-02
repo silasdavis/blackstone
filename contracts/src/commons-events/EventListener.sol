@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 /**
  * @title EventListener
@@ -43,7 +43,7 @@ interface EventListener {
 	 * @param _source the source of the event
 	 * @param _data the payload
 	 */
-	function eventFired(bytes32 _event, address _source, string _data) external;
+	function eventFired(bytes32 _event, address _source, string calldata _data) external;
 
 	/**
 	 * @dev Invoked by an EventEmitter for a named event with an additional bytes32 payload.
