@@ -527,10 +527,11 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
     governingAgreements,
   } = agreement;
   const isPrivate = agreement.isPrivate || false;
+  const owner = creator; // TODO: Owner should be received through request body
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreement(archetype, creator, privateParametersFileReference, isPrivate,
+    .factory.createAgreement(archetype, creator, owner, privateParametersFileReference, isPrivate,
       parties, collectionId, governingAgreements, (error, data) => {
         if (error || !data.raw) {
           return reject(boomify(error, `Failed to create agreement by ${creator} from archetype at ${agreement.archetype}`));

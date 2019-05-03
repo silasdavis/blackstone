@@ -20,11 +20,12 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 		address	agreementAddress,
 		address	archetypeAddress,
 		address	creator,
+		address	owner,
+		string privateParametersFileReference,
+		string eventLogFileReference,
 		bool isPrivate,
 		uint8 legalState,
-		uint32 maxEventCount,
-		string privateParametersFileReference,
-		string eventLogFileReference
+		uint32 maxEventCount
 	);
 
 	event LogAgreementLegalStateUpdate(
@@ -83,12 +84,14 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
 
   bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("creator"));
+  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("owner"));
 
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
 	 * @param _creator the account that created this agreement
+	 * @param _owner the account that owns this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
@@ -97,6 +100,7 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	function initialize(
 		address _archetype, 
 		address _creator, 
+		address _owner, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
 		address[] _parties, 

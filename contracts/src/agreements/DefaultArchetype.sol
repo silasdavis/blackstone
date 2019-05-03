@@ -18,7 +18,7 @@ import "agreements/Archetype.sol";
  * @title DefaultArchetype
  * @dev Default agreements network archetype
  */
-contract DefaultArchetype is AbstractVersionedArtifact(1,0,0), AbstractDelegateTarget, AbstractPermissioned, Archetype {
+contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateTarget, AbstractPermissioned, Archetype {
 
 	using ArrayUtilsLib for bytes32[];
 	using ArrayUtilsLib for address[];

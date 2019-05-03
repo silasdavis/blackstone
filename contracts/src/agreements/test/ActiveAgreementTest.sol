@@ -51,7 +51,7 @@ contract ActiveAgreementTest {
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setEventLogReference(dummyFileRef);
 		if (keccak256(abi.encodePacked(agreement.getEventLogReference())) != keccak256(abi.encodePacked(dummyFileRef)))
 			return "The EventLog file reference was not set/retrieved correctly";
@@ -104,7 +104,7 @@ contract ActiveAgreementTest {
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement = new DefaultActiveAgreement();
-		agreement.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test signing
 		address signee;
@@ -159,9 +159,9 @@ contract ActiveAgreementTest {
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		agreement1 = new DefaultActiveAgreement();
-		agreement1.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement1.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement2 = new DefaultActiveAgreement();
-		agreement2.initialize(archetype, address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement2.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
 		if (address(agreement1).call(bytes4(keccak256(abi.encodePacked("cancel()")))))
