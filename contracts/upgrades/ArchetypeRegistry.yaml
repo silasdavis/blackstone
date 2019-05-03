@@ -47,7 +47,6 @@ jobs:
   deploy:
     contract: DefaultArchetypeRegistry.bin
     libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
-    data: ["ArchetypeRegistry"]
 
 - name: ChangeUpgradeOwnership
   call:
