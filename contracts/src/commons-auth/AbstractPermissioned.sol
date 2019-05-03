@@ -83,6 +83,7 @@ contract AbstractPermissioned is Permissioned {
      * REVERTS if:
      * - the caller does not hold ROLE_ID_PERMISSION_ADMIN permission
      * - the specified permission does not exist
+     * - the specified permission is a non-multiHolder permission and has already been set
      * @param _permission the permission identifier
      * @param _newHolder the address being granted the permission
      */
@@ -97,9 +98,14 @@ contract AbstractPermissioned is Permissioned {
             if (!permissions[_permission].holders.contains(_newHolder))
                 permissions[_permission].holders.push(_newHolder);
         }
-        // a single-held permission that has already been granted cannot be overwritten here. Use transferPermission(...)!
-        else if (permissions[_permission].holders[0] == address(0)) {
-            permissions[_permission].holders[0] = _newHolder;
+        else if (permissions[_permission].holders.length == 0) {
+            permissions[_permission].holders.push(_newHolder);
+        } else {
+            revert(ErrorsLib.format(
+              ErrorsLib.OVERWRITE_NOT_ALLOWED(),
+              "AbstractPermissioned.grantPermission",
+              "Single-held permission that has already been granted cannot be overwritten here. Use transferPermission instead."
+            ));
         }
     }
 
@@ -136,31 +142,37 @@ contract AbstractPermissioned is Permissioned {
     /**
      * @dev Revokes the specified permission from the given holder.
      * REVERTS if:
-     * - the caller does not hold ROLE_ID_PERMISSION_ADMIN permission
+     * - the caller is removing another account's permission and does not hold ROLE_ID_PERMISSION_ADMIN permission
      * - the specified permission does not exist
+     * - the specified permission id not revocable
+     * - the only admin permission holder is being removed
      * - the given holder does not hold the specified permission
      * @param _permission the permission identifier
      * @param _holder the address having the permission revoked
      */
     function revokePermission(bytes32 _permission, address _holder)
         external
-        pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
     {
+        ErrorsLib.revertIf(msg.sender != _holder && !hasPermission(ROLE_ID_PERMISSION_ADMIN, msg.sender),
+          ErrorsLib.UNAUTHORIZED(), "AbstractPermissioned.revokePermission", "The msg.sender does not have the required permission");
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The specified permission does not exist. Create it first.");
         ErrorsLib.revertIf(!permissions[_permission].revocable,
             ErrorsLib.INVALID_STATE(), "AbstractPermissioned.revokePermission", "The specified permission is not revocable");
-        bool removed = false;
+        ErrorsLib.revertIf(_permission == ROLE_ID_PERMISSION_ADMIN && permissions[ROLE_ID_PERMISSION_ADMIN].holders.length == 1,
+          ErrorsLib.INVALID_STATE(), "AbstractPermissioned.revokePermission", "Admin permission holders cannot be left empty");
+        bool removed;
         for (uint i=0; i<permissions[_permission].holders.length; i++) {
-            if (removed || permissions[_permission].holders[i] == _holder) {
-                if (i + 1 < permissions[_permission].holders.length)
-                    permissions[_permission].holders[i] = permissions[_permission].holders[i + 1];
-                if (!removed)
-                    removed = true;
+            if (permissions[_permission].holders[i] == _holder) {
+                removed = true;
+                for (uint j=i; j<permissions[_permission].holders.length - 1; j++) {
+                    permissions[_permission].holders[j] = permissions[_permission].holders[j + 1];
+                }
+                break;
             }
         }
         ErrorsLib.revertIf(!removed,
-            ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The specified account does not hold this permission");
+            ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The given account does not hold this permission.");
         permissions[_permission].holders.length--;
     }
 

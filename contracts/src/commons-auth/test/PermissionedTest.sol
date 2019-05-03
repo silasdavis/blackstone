@@ -43,6 +43,8 @@ contract PermissionedTest {
     // Create and set up more permissions with different attributes
 		object1.createPermission(permission2, true, false, false);
 		object1.grantPermission(permission2, address(this));
+		object1.createPermission(permission3, false, false, false);
+		object1.grantPermission(permission3, address(this));
 
     // Make another permissioned object and permissions for testing pre_requiresPermission
 		PermissionedObject object3 = new PermissionedObject(address(this));
@@ -65,11 +67,14 @@ contract PermissionedTest {
     /* grantPermission
       1. Fails pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
       2. Permission does not exist
+      3. Overwritting an already-granted single-holder permission
     */
     if (address(object3).call(abi.encodeWithSignature(functionSigGrantPermission,
 			permission1, msg.sender))) return "Granting a permission without the admin role should revert";
     if (address(object1).call(abi.encodeWithSignature(functionSigGrantPermission,
 			"fakePermission", msg.sender))) return "Granting a non-existent permission should revert";
+    if (address(object1).call(abi.encodeWithSignature(functionSigGrantPermission,
+			permission3, msg.sender))) return "Re-granting a single-holder permission should revert";
 
     /* transferPermission
       1. Permission does not exist
@@ -96,11 +101,13 @@ contract PermissionedTest {
       4. Permission is not held by specified account
     */
     if (address(object3).call(abi.encodeWithSignature(functionSigRevokePermission,
-			permission2, msg.sender))) return "Revoking a permission without the admin role should revert";
+			permission2, msg.sender))) return "Revoking another account's permission without the admin role should revert";
   	if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
 			"fakePermission", msg.sender))) return "Revoking a non-existent permission should revert";
 		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
 			permission2, address(this)))) return "Revoking a non-revocable permission should revert";
+		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
+			object1.ROLE_ID_PERMISSION_ADMIN(), address(this)))) return "Revoking the admin permission from the only holder should revert";
 		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
 			permission1, msg.sender))) return "Revoking a permission from an account that doesn't hold the permission should revert";
 
