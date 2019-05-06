@@ -6,6 +6,7 @@ note- parameters are handled separately
   name: 'agreement title',
   archetype: '82335549119BF4C18B3C8D37EDB770A617ED6018',
   creator: '36ADA22D3A4B841EFB73414CD97C35C0A660C1C2',
+  owner: '36ADA22D3A4B841EFB73414CD97C35C0A660C1C2',
   isPrivate: '1',
   parties: ['36ADA22D3A4B841EFB73414CD97C35C0A660C1C2'],
   maxNumberOfAttachments: 10,
@@ -26,6 +27,9 @@ const agreementSchema = Joi.object().keys({
     .hex()
     .required(),
   creator: Joi.string()
+    .hex()
+    .required(),
+  owner: Joi.string()
     .hex()
     .required(),
   isPrivate: [

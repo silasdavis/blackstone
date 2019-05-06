@@ -521,13 +521,13 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   const {
     archetype,
     creator,
+    owner,
     privateParametersFileReference,
     parties,
     collectionId,
     governingAgreements,
   } = agreement;
   const isPrivate = agreement.isPrivate || false;
-  const owner = creator; // TODO: Owner should be received through request body
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']

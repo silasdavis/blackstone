@@ -388,6 +388,7 @@ const createAgreement = asyncMiddleware(async (req, res, next) => {
     name: req.body.name,
     archetype: req.body.archetype,
     creator: req.user.address,
+    owner: req.body.owner || req.user.address,
     isPrivate: req.body.isPrivate,
     parties,
     collectionId: req.body.collectionId,
