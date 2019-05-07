@@ -6,7 +6,7 @@ const {
 const { DEFAULT_DEPARTMENT_ID, AGREEMENT_PARTIES } = global.__constants;
 const logger = require(`${global.__common}/logger`);
 const log = logger.getLogger('queries');
-const pool = require(`${global.__common}/postgres-db`)();
+const pool = require(`${global.__common}/postgres-db`);
 
 const { app: appDb, chain: chainDb } = global.db.schema;
 
