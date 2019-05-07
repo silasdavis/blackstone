@@ -61,7 +61,7 @@ contract AbstractPermissioned is Permissioned {
      * @param _permission the permission identifier
      * @param _multiHolder determines whether the permission can be granted to multiple people at the same time
      * @param _revocable determines whether the permission can be revoked by the permission administrator
-     * @param _transferable determines whether holders of the permission is allowed to transfer their grant to someone else
+     * @param _transferable determines whether holders of the permission are allowed to transfer their grant to someone else
      */
     function createPermission(bytes32 _permission, bool _multiHolder, bool _revocable, bool _transferable)
         external

@@ -83,8 +83,8 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	// Internal EventListener event
 	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
 
-  bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("creator"));
-  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("agreement.creator"));
+  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("agreement.owner"));
 
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the

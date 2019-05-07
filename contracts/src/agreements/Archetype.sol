@@ -76,8 +76,8 @@ contract Archetype is VersionedArtifact, Permissioned {
 	bytes32 public constant EVENT_ID_ARCHETYPE_JURISDICTIONS = "AN://archetypes/jurisdictions";
 	bytes32 public constant EVENT_ID_GOVERNING_ARCHETYPES = "AN://governing-archetypes";
 
-  bytes32 public constant ROLE_ID_AUTHOR = keccak256(abi.encodePacked("author"));
-  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 public constant ROLE_ID_AUTHOR = keccak256(abi.encodePacked("archetype.author"));
+  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("archetype.owner"));
 
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
