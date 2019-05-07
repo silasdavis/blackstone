@@ -541,22 +541,23 @@ const updateAgreementAttachments = asyncMiddleware(async (req, res, next) => {
     attachments = splitMeta(attachments);
     attachments = JSON.parse(attachments.data);
   }
-  if (attachments.length < data.maxNumberOfAttachments) {
-    attachments.push({
-      name,
-      submitter: req.user.address,
-      timestamp: Date.now(),
-      content,
-      contentType,
-    });
-    // Store new data in hoard
-    const hoardGrant = await hoardPut({ agreement: address, name: 'agreement_attachments.json' }, JSON.stringify(attachments));
-    await contracts.updateAgreementFileReference('EventLog', address, hoardGrant);
-    res.locals.data = { attachmentsFileReference: hoardGrant, attachments };
-    res.status(200);
-    return next();
-  }
-  throw boom.badRequest(`Cannot add attachment. Max number of attachments (${data.maxNumberOfAttachments}) has been reached.`);
+  // TODO: Put back attachments length check when some kind of metering is established
+  // if (attachments.length < data.maxNumberOfAttachments) {
+  attachments.push({
+    name,
+    submitter: req.user.address,
+    timestamp: Date.now(),
+    content,
+    contentType,
+  });
+  // Store new data in hoard
+  const hoardGrant = await hoardPut({ agreement: address, name: 'agreement_attachments.json' }, JSON.stringify(attachments));
+  await contracts.updateAgreementFileReference('EventLog', address, hoardGrant);
+  res.locals.data = { attachmentsFileReference: hoardGrant, attachments };
+  res.status(200);
+  return next();
+  // }
+  // throw boom.badRequest(`Cannot add attachment. Max number of attachments (${data.maxNumberOfAttachments}) has been reached.`);
 });
 
 const signAgreement = asyncMiddleware(async (req, res, next) => {
