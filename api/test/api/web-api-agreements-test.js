@@ -1172,10 +1172,11 @@ describe(':: Agreement Attachments (External References) ::', () => {
     attachmentsFileReference = res.attachmentsFileReference;
   }).timeout(10000);
 
-  it("Should not allow user 1 to upload more attachments than the agreement's maxNumberOfAttachments", async () => {
-    // CHECK MAX ATTACHMENTS
-    await assert.isRejected(api.uploadAttachmentFile(agreement.address, user1.token));
-  }).timeout(10000);
+  // TODO: Hiding this test as we currently allow any number of attachments. Add back once some metering is established for attachments.
+  // it("Should not allow user 1 to upload more attachments than the agreement's maxNumberOfAttachments", async () => {
+  //   // CHECK MAX ATTACHMENTS
+  //   await assert.isRejected(api.uploadAttachmentFile(agreement.address, user1.token));
+  // }).timeout(10000);
 
   it('Should allow user 1 to get attachments file from hoard', async () => {
     // GET ATTACHMENTS
