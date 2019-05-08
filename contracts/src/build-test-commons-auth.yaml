@@ -17,6 +17,9 @@ jobs:
   - name: UserAccountTest
     build:
       contract: commons-auth/test/UserAccountTest.sol
+  - name: PermissionedTest
+    build:
+      contract: commons-auth/test/PermissionedTest.sol
   - name: ParticipantsManagerTest
     build:
       contract: commons-auth/test/ParticipantsManagerTest.sol

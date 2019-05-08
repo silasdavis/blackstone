@@ -20,11 +20,12 @@ import "agreements/Agreements.sol";
  * @title DefaultArchetypeRegistry
  * @dev Creates and tracks archetypes
  */
-contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
+contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
 	
 	/**
 	 * @dev Creates a new archetype
 	 * @param _author author
+	 * @param _owner owner
 	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
@@ -40,6 +41,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		bool _isPrivate, 
 		bool _active, 
 		address _author,
+		address _owner,
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
@@ -50,7 +52,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		ErrorsLib.revertIf(_author == 0x0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype author address must not be empty");
 		archetype = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ARCHETYPE);
-		Archetype(archetype).initialize(_price, _isPrivate, _active, _author,  _formationProcess, _executionProcess, _governingArchetypes);
+		Archetype(archetype).initialize(_price, _isPrivate, _active, _author, _owner, _formationProcess, _executionProcess, _governingArchetypes);
 		// since this is a newly created archetype address, we can safely ignore the return value of the DB.addArchetype() function
 		ArchetypeRegistryDb(database).addArchetype(archetype);
 		if (_packageId != "")
@@ -223,6 +225,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 	function getArchetypeData(address _archetype) external view returns (
 		uint price,
 		address author,
+		address owner,
 		bool active,
 		bool isPrivate,
 		address successor,
@@ -232,6 +235,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
 		if (ArchetypeRegistryDb(database).archetypeExists(_archetype)) {
 			price = Archetype(_archetype).getPrice();
 			author = Archetype(_archetype).getAuthor();
+			owner = Archetype(_archetype).getOwner();
 			active = Archetype(_archetype).isActive();
 			isPrivate = Archetype(_archetype).isPrivate();
 			successor = Archetype(_archetype).getSuccessor();

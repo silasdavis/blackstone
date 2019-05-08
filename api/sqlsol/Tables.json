@@ -58,6 +58,11 @@
         "Type": "address"
       },
       {
+        "Field": "owner",
+        "ColumnName": "owner",
+        "Type": "address"
+      },
+      {
         "Field": "isPrivate",
         "ColumnName": "is_private",
         "Type": "bool"
@@ -265,6 +270,11 @@
       {
         "Field": "author",
         "ColumnName": "author",
+        "Type": "address"
+      },
+      {
+        "Field": "owner",
+        "ColumnName": "owner",
         "Type": "address"
       },
       {

@@ -49,6 +49,7 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	 * @dev Creates an Active Agreement with the given parameters
 	 * @param _archetype archetype
 	 * @param _creator address
+	 * @param _owner address
 	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
@@ -59,6 +60,7 @@ contract ActiveAgreementRegistry is ObjectFactory, Upgradeable, ProcessStateChan
 	function createAgreement(
 		address _archetype,
 		address _creator, 
+		address _owner, 
 		string _privateParametersFileReference,
 		bool _isPrivate,
 		address[] _parties, 

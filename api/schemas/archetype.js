@@ -6,6 +6,7 @@ sample archetype:
 {
   name: 'archetype name',
   author: '36ADA22D3A4B841EFB73414CD97C35C0A660C1C2',
+  owner: '36ADA22D3A4B841EFB73414CD97C35C0A660C1C2',
   description: 'things about this archetype',
   isPrivate: 1,
   active: 1,
@@ -58,6 +59,9 @@ const archetypeSchema = Joi.object().keys({
     .required().max(255, 'utf8'),
   password: Joi.string().optional(),
   author: Joi.string()
+    .hex()
+    .required(),
+  owner: Joi.string()
     .hex()
     .required(),
   description: Joi.string().required(),

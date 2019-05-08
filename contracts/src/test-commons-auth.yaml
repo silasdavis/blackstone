@@ -151,6 +151,28 @@ jobs:
 
 
 ##########
+# Permissioned Tests
+
+- name: PermissionedTest
+  deploy:
+    contract: PermissionedTest.bin
+    instance: PermissionedTest
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib
+
+- name: testPermissions
+  call:
+    destination: $PermissionedTest
+    bin: PermissionedTest
+    function: testPermissions
+
+- name: assertPermissions
+  assert:
+    key: $testPermissions
+    relation: eq
+    val: success
+
+
+##########
 # ParticipantsManager Tests
 
 - name: ParticipantsManagerTest

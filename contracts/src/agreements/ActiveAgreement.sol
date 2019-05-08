@@ -5,6 +5,7 @@ import "commons-collections/AddressScopes.sol";
 import "commons-events/EventEmitter.sol";
 import "documents-commons/Signable.sol";
 import "commons-management/VersionedArtifact.sol";
+import "commons-auth/Permissioned.sol";
 
 import "agreements/Agreements.sol";
 
@@ -12,18 +13,19 @@ import "agreements/Agreements.sol";
  * @title ActiveAgreement Interface
  * @dev API for interaction with an Active Agreement
  */
-contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signable, EventEmitter {
+contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, AddressScopes, Signable, EventEmitter {
 
 	event LogAgreementCreation(
 		bytes32 indexed eventId,
 		address	agreementAddress,
 		address	archetypeAddress,
 		address	creator,
+		address	owner,
+		string privateParametersFileReference,
+		string eventLogFileReference,
 		bool isPrivate,
 		uint8 legalState,
-		uint32 maxEventCount,
-		string privateParametersFileReference,
-		string eventLogFileReference
+		uint32 maxEventCount
 	);
 
 	event LogAgreementLegalStateUpdate(
@@ -81,11 +83,15 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 	// Internal EventListener event
 	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
 
+  bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("agreement.creator"));
+  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("agreement.owner"));
+
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
 	 * @param _creator the account that created this agreement
+	 * @param _owner the account that owns this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
@@ -94,6 +100,7 @@ contract ActiveAgreement is VersionedArtifact, DataStorage, AddressScopes, Signa
 	function initialize(
 		address _archetype, 
 		address _creator, 
+		address _owner, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
 		address[] _parties, 

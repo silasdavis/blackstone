@@ -262,6 +262,7 @@ const createArchetype = (type) => {
         archetype.isPrivate,
         archetype.active,
         archetype.author,
+        archetype.owner,
         archetype.formationProcessDefinition,
         archetype.executionProcessDefinition,
         archetype.packageId,
@@ -520,6 +521,7 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   const {
     archetype,
     creator,
+    owner,
     privateParametersFileReference,
     parties,
     collectionId,
@@ -529,7 +531,7 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
   log.trace(`Creating agreement with following data: ${JSON.stringify(agreement)}`);
   appManager
     .contracts['ActiveAgreementRegistry']
-    .factory.createAgreement(archetype, creator, privateParametersFileReference, isPrivate,
+    .factory.createAgreement(archetype, creator, owner, privateParametersFileReference, isPrivate,
       parties, collectionId, governingAgreements, (error, data) => {
         if (error || !data.raw) {
           return reject(boomify(error, `Failed to create agreement by ${creator} from archetype at ${agreement.archetype}`));
@@ -537,6 +539,17 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
         log.info(`Created agreement by ${creator} at address ${data.raw[0]}`);
         return resolve(data.raw[0]);
       });
+});
+
+const initializeObjectAdministrator = agreementAddress => new Promise((resolve, reject) => {
+  log.trace(`Initializing agreement admin role for agreement: ${agreementAddress}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.initializeObjectAdministrator(serverAccount, (error) => {
+    if (error) {
+      return reject(boomify(error, `Failed to initialize object admin for agreement ${agreementAddress}`));
+    }
+    return resolve();
+  });
 });
 
 const setMaxNumberOfAttachments = (agreementAddress, maxNumberOfAttachments) => new Promise((resolve, reject) => {
@@ -1366,6 +1379,7 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
+  initializeObjectAdministrator,
   setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,
   updateAgreementFileReference,

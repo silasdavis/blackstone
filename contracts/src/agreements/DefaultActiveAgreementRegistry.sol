@@ -27,7 +27,7 @@ import "agreements/ArchetypeRegistry.sol";
  * @title DefaultActiveAgreementRegistry Interface
  * @dev A contract interface to create and manage Active Agreements.
  */
-contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,1), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
+contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractEventListener, AbstractDbUpgradeable, ActiveAgreementRegistry {
 
 	using ArrayUtilsLib for address[];
 
@@ -63,6 +63,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,1), Abs
 	 * @dev Creates an Active Agreement with the given parameters
 	 * @param _archetype archetype
 	 * @param _creator address
+	 * @param _owner address
 	 * @param _privateParametersFileReference the file reference of the private parametes of this agreement
 	 * @param _isPrivate agreement is private
 	 * @param _parties parties array
@@ -78,6 +79,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,1), Abs
 	function createAgreement(
 		address _archetype,
 		address _creator, 
+		address _owner, 
 		string _privateParametersFileReference,
 		bool _isPrivate, 
 		address[] _parties, 
@@ -87,7 +89,7 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,0,1), Abs
 	{
     agreementAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_AGREEMENT);
 		ActiveAgreement agreement = ActiveAgreement(agreementAddress);
-    agreement.initialize(_archetype, _creator, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
+    agreement.initialize(_archetype, _creator, _owner, _privateParametersFileReference, _isPrivate, _parties, _governingAgreements);
 		uint error = ActiveAgreementRegistryDb(database).registerActiveAgreement(agreementAddress);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultActiveAgreementRegistry.createAgreement", "Active Agreement already exists");

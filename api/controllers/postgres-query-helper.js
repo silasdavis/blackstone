@@ -25,6 +25,18 @@ const QUERIES = {
     ) AS "isApprover"
     FROM ${chainDb}.organization_approvers;`,
 
+  userStatusInOrganization: `
+    SELECT $1 IN (
+      SELECT approver_address
+      FROM ${chainDb}.organization_approvers oa
+      WHERE oa.organization_address = $2
+    ) AS "isApprover", $1 IN (
+      SELECT user_address
+      FROM ${chainDb}.organization_users ou
+      WHERE ou.organization_address = $2
+    ) AS "isMember"
+    FROM ${chainDb}.organization_accounts;`,
+
   getOrganization: `SELECT o.organization_address AS address, UPPER(encode(o.organization_id::bytea, 'hex')) AS "organizationKey",
     od.name, oa.approver_address AS approver, approver_details.username AS "approverName",
     ou.user_address AS user, member_details.username AS "userName",
@@ -62,26 +74,57 @@ const QUERIES = {
 
   getParameterTypes: `SELECT CAST(parameter_type AS INTEGER) AS "parameterType", label FROM ${chainDb}.parameter_types`,
 
-  getArchetypeData: `SELECT a.archetype_address as address, ad.name, a.author,
-    ad.description, a.price, a.active, a.is_private as "isPrivate"
+  getArchetypeData: `
+    WITH membered AS (
+      SELECT organization_address
+      FROM ${chainDb}.organization_users ou
+      WHERE ou.user_address = $2
+    )
+
+    SELECT a.archetype_address as address, ad.name, a.author, a.owner,
+    authors.username AS "authorDisplayName", owners.name AS "ownerDisplayName",
+    ad.description, a.price, a.active, a.is_private as "isPrivate",
+    (a.owner = $1 OR a.owner IN (SELECT * FROM membered)) AS "isOwner"
     FROM ${chainDb}.archetypes a
     JOIN ${appDb}.archetype_details ad ON a.archetype_address = ad.address
+    LEFT JOIN ${appDb}.users authors ON authors.address = a.author
+    LEFT JOIN (
+      SELECT username AS name, address FROM ${appDb}.users
+      UNION
+      SELECT name, address FROM ${appDb}.organizations
+    ) owners ON owners.address = a.owner
     WHERE
     a.archetype_address = $1 AND (
-      (a.is_private = FALSE AND a.active = TRUE) OR a.author = $2
+      (a.is_private = FALSE AND a.active = TRUE) OR (a.owner = $2 OR a.owner IN (SELECT * FROM membered))
     );`,
 
-  getArchetypeDataWithProcessDefinitions: `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate", a.successor, a.formation_process_definition as "formationProcessDefinition", a.execution_process_definition as "executionProcessDefinition", 
+  getArchetypeDataWithProcessDefinitions: `
+    WITH membered AS (
+      SELECT organization_address
+      FROM ${chainDb}.organization_users ou
+      WHERE ou.user_address = $2
+    )
+    SELECT a.archetype_address as address, ad.name, a.author, a.owner, ad.description, a.price, a.active, a.is_private as "isPrivate",
+    authors.username AS "authorDisplayName", owners.name AS "ownerDisplayName",
+    a.successor, a.formation_process_definition as "formationProcessDefinition", a.execution_process_definition as "executionProcessDefinition", 
     d.process_name AS "formationProcessName", e.process_name AS "executionProcessName",
     d.model_id as "formationModelId", e.model_id as "executionModelId", 
     d.model_address as "formationModelAddress", e.model_address as "executionModelAddress", 
-    d.id as "formationProcessId", e.id as "executionProcessId" 
+    d.id as "formationProcessId", e.id as "executionProcessId",
+    (a.owner = $2 OR a.owner IN (SELECT * FROM membered)) AS "isOwner"
     FROM ${chainDb}.archetypes a 
     LEFT JOIN (SELECT pd.id, pdet.process_name, pd.interface_id, pd.model_address, pd.model_id, pd.process_definition_address FROM ${chainDb}.process_definitions pd JOIN ${appDb}.process_details pdet ON pd.model_id = pdet.model_id AND pd.id = pdet.process_id) d ON a.formation_process_definition = d.process_definition_address
     LEFT JOIN (SELECT pd.id, pdet.process_name, pd.interface_id, pd.model_address, pd.model_id, pd.process_definition_address FROM ${chainDb}.process_definitions pd JOIN ${appDb}.process_details pdet ON pd.model_id = pdet.model_id AND pd.id = pdet.process_id) e ON a.execution_process_definition = e.process_definition_address
+    LEFT JOIN ${appDb}.users authors ON authors.address = a.author
+    LEFT JOIN (
+      SELECT username AS name, address FROM ${appDb}.users
+      UNION
+      SELECT name, address FROM ${appDb}.organizations
+    ) owners ON owners.address = a.owner
     JOIN ${appDb}.archetype_details ad ON a.archetype_address = ad.address 
-    WHERE archetype_address = $1
-    AND (a.is_private = $2 OR a.author = $3)`,
+    WHERE archetype_address = $1 AND (
+      (a.is_private = FALSE AND a.active = TRUE) OR (a.owner = $2 OR a.owner IN (SELECT * FROM membered))
+    );`,
 
   getArchetypeParameters: `SELECT ap.parameter_name AS name, ap.parameter_type AS type, pt.label AS label 
     FROM ${chainDb}.archetype_parameters ap
@@ -105,13 +148,14 @@ const QUERIES = {
     JOIN ${appDb}.archetype_details ad ON ga.governing_archetype_address = ad.address
     WHERE archetype_address = $1;`,
 
-  getArchetypePackage: `SELECT UPPER(encode(package_id::bytea, 'hex')) AS id, pd.name, pd.description, p.author, p.is_private as "isPrivate", p.active 
+  getArchetypePackage: `SELECT UPPER(encode(package_id::bytea, 'hex')) AS id, pd.name, pd.description, p.author,
+    p.is_private as "isPrivate", p.active, (p.author = $1) AS "isOwner"
     FROM ${chainDb}.archetype_packages p 
     JOIN ${appDb}.package_details pd ON UPPER(pd.id) = UPPER(encode(package_id::bytea, 'hex')) 
     WHERE ((is_private = FALSE AND active = TRUE) OR author = $1) AND 
     package_id = $2;`,
 
-  getArchetypesInPackage: `SELECT ad.name, a.archetype_address as address, a.active from ARCHETYPES a 
+  getArchetypesInPackage: `SELECT ad.name, a.archetype_address as address, a.active FROM ARCHETYPES a 
     JOIN ${chainDb}.archetype_to_package ap ON a.archetype_address = ap.archetype_address 
     JOIN ${appDb}.archetype_details ad ON a.archetype_address = ad.address 
     WHERE ap.package_id = $1`,
@@ -311,7 +355,14 @@ const userIsOrganizationApprover = (orgAddress, userAccount) => runQuery(
   [userAccount, orgAddress],
 )
   .then(rows => rows[0].isApprover)
-  .catch((err) => { throw boom.badImplementation(`Failed to get organizations: ${err.stack}`); });
+  .catch((err) => { throw boom.badImplementation(`Failed to get user's organization approver status: ${err.stack}`); });
+
+const userStatusInOrganization = (orgAddress, userAccount) => runQuery(
+  QUERIES.userStatusInOrganization,
+  [userAccount, orgAddress],
+)
+  .then(rows => rows[0])
+  .catch((err) => { throw boom.badImplementation(`Failed to get user's status in organization: ${err.stack}`); });
 
 const getOrganization = orgAddress => runQuery(QUERIES.getOrganization, [orgAddress])
   .catch((err) => { throw boom.badImplementation(`Failed to get data for organization at ${orgAddress}: ${err.stack}`); });
@@ -374,16 +425,24 @@ const getParameterTypes = () => runQuery(QUERIES.getParameterTypes)
 
 const getArchetypes = (queryParams, userAccount) => {
   const query = where(queryParams);
-  const queryString = `SELECT a.archetype_address as address, ad.name, a.author, ad.description, a.price, a.active, a.is_private as "isPrivate",
+  const queryString = `
+    WITH membered AS (
+      SELECT organization_address
+      FROM ${chainDb}.organization_users ou
+      WHERE ou.user_address = $${query.queryVals.length + 1}
+    )
+
+    SELECT a.archetype_address as address, ad.name, a.author, a.owner, ad.description, a.price, a.active, a.is_private as "isPrivate",
     (SELECT cast(count(ad.archetype_address) as integer) FROM ${chainDb}.archetype_documents ad WHERE a.archetype_address = ad.archetype_address) AS "numberOfDocuments",
     (SELECT cast(count(af.archetype_address) as integer) FROM ${chainDb}.archetype_parameters af WHERE a.archetype_address = af.archetype_address) AS "numberOfParameters",
-    array_remove(array_agg(DISTINCT(aj.country)), NULL) AS countries
+    array_remove(array_agg(DISTINCT(aj.country)), NULL) AS countries,
+    (a.owner = $${query.queryVals.length + 1} OR a.owner IN (SELECT * FROM membered)) AS "isOwner"
     FROM ${chainDb}.archetypes a
     JOIN ${appDb}.archetype_details ad ON a.archetype_address = ad.address
     LEFT JOIN ${chainDb}.archetype_jurisdictions aj ON aj.archetype_address = a.archetype_address
     WHERE
     ${query.queryString} AND (
-      (a.is_private = FALSE AND a.active = TRUE) OR a.author = $${query.queryVals.length + 1}
+      (a.is_private = FALSE AND a.active = TRUE) OR (a.owner = $${query.queryVals.length + 1} OR a.owner IN (SELECT * FROM membered))
     )
     GROUP BY a.archetype_address, ad.name, ad.description;`;
   return runQuery(queryString, [...query.queryVals, userAccount])
@@ -396,7 +455,7 @@ const getArchetypeData = (archetypeAddress, userAccount) => runQuery(QUERIES.get
 
 const getArchetypeDataWithProcessDefinitions = (archetypeAddress, userAccount) => runQuery(
   QUERIES.getArchetypeDataWithProcessDefinitions,
-  [archetypeAddress, false, userAccount],
+  [archetypeAddress, userAccount],
 )
   .then((data) => {
     if (data.length === 0) throw boom.notFound(`No archetypes found at address ${archetypeAddress}`);
@@ -450,7 +509,8 @@ const getGoverningArchetypes = archetypeAddress => runQuery(QUERIES.getGoverning
 const getArchetypePackages = (queryParams, userAccount) => {
   const query = where(queryParams);
   const queryString = `SELECT UPPER(encode(package_id::bytea, 'hex')) AS id, pd.name, pd.description,
-    p.author, p.is_private as "isPrivate", p.active
+    p.author, p.is_private as "isPrivate", p.active,
+    (p.author = $${query.queryVals.length + 1}) AS "isOwner"
     FROM ${chainDb}.archetype_packages p
     JOIN ${appDb}.package_details pd ON UPPER(pd.id) = UPPER(encode(package_id::bytea, 'hex'))
     WHERE
@@ -1033,6 +1093,7 @@ module.exports = {
   getOrganizations,
   getOrganization,
   userIsOrganizationApprover,
+  userStatusInOrganization,
   getUsers,
   getProfile,
   getCountries,
