@@ -407,6 +407,7 @@ const createAgreement = asyncMiddleware(async (req, res, next) => {
   agreement.privateParametersFileReference = await hoardPut({ name: 'privateParameters.json' }, JSON.stringify(privateParams));
   delete agreement.name; // Don't store name on chain
   const agreementAddress = await contracts.createAgreement(agreement);
+  await contracts.initializeObjectAdministrator(agreementAddress);
   await contracts.setMaxNumberOfAttachments(agreementAddress, parseInt(req.body.maxNumberOfAttachments, 10));
   await setAgreementParameters(agreementAddress, req.body.archetype, publicParams);
   await contracts.setAddressScopeForAgreementParameters(agreementAddress, parameters.filter(({ scope }) => scope));

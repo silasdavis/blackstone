@@ -24,11 +24,11 @@ contract PermissionedTest {
 
 		// Make a permissioned object with no pre-determined admin
 		PermissionedObject object1 = new PermissionedObject(address(0));
-		if (!object1.hasPermission(object1.ROLE_ID_PERMISSION_ADMIN(), address(this))) return "The test contract should be the admin for object1";
+		if (!object1.hasPermission(object1.ROLE_ID_OBJECT_ADMIN(), address(this))) return "The test contract should be the admin for object1";
 
 		// Make a permissioned object with pre-determined admin
 		PermissionedObject object2 = new PermissionedObject(msg.sender);
-		if (!object2.hasPermission(object2.ROLE_ID_PERMISSION_ADMIN(), msg.sender)) return "The test msg.sender should be the admin for object2";
+		if (!object2.hasPermission(object2.ROLE_ID_OBJECT_ADMIN(), msg.sender)) return "The test msg.sender should be the admin for object2";
 
 		// verify function signatures are all working before testing revert scenarios!
 		if (!address(object1).call(abi.encodeWithSignature(functionSigCreatePermission,
@@ -51,12 +51,12 @@ contract PermissionedTest {
 		object3.createPermission(permission1, true, true, true);
 		object3.createPermission(permission2, true, true, true);
 		object3.grantPermission(permission2, msg.sender);
-		object3.transferPermission(object3.ROLE_ID_PERMISSION_ADMIN(), msg.sender);
+		object3.transferPermission(object3.ROLE_ID_OBJECT_ADMIN(), msg.sender);
 
     // Revert Scenarios:
 
     /* createPermission
-      1. Fails pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
+      1. Fails pre_requiresPermission(ROLE_ID_OBJECT_ADMIN)
       2. Permission already exists
     */
     if (address(object3).call(abi.encodeWithSignature(functionSigCreatePermission,
@@ -65,7 +65,7 @@ contract PermissionedTest {
 			permission1, true, false, false))) return "Creating a permission that already exists should revert";
 
     /* grantPermission
-      1. Fails pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
+      1. Fails pre_requiresPermission(ROLE_ID_OBJECT_ADMIN)
       2. Permission does not exist
       3. Overwritting an already-granted single-holder permission
     */
@@ -95,7 +95,7 @@ contract PermissionedTest {
 			permission1, address(this)))) return "Transfering a permission to an account already holding the permission should revert";
 
     /* revokePermission
-      1. Fails pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
+      1. Fails pre_requiresPermission(ROLE_ID_OBJECT_ADMIN)
       2. Permission does not exist
       3. Permission is not revocable
       4. Permission is not held by specified account
@@ -107,7 +107,7 @@ contract PermissionedTest {
 		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
 			permission2, address(this)))) return "Revoking a non-revocable permission should revert";
 		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
-			object1.ROLE_ID_PERMISSION_ADMIN(), address(this)))) return "Revoking the admin permission from the only holder should revert";
+			object1.ROLE_ID_OBJECT_ADMIN(), address(this)))) return "Revoking the admin permission from the only holder should revert";
 		if (address(object1).call(abi.encodeWithSignature(functionSigRevokePermission,
 			permission1, msg.sender))) return "Revoking a permission from an account that doesn't hold the permission should revert";
 
@@ -122,9 +122,9 @@ contract PermissionedTest {
 		if (!object1.hasPermission(permission1, msg.sender)) return "msg.sender should have had permission1 on object1 transfered to them";
 		if (object1.hasPermission(permission1, address(this))) return "Test contract should have had permission1 on object1 transfered from them";
 
-		// Test transfer of permission admin role
-		object1.transferPermission(object1.ROLE_ID_PERMISSION_ADMIN(), msg.sender);
-		if (!object1.hasPermission(object1.ROLE_ID_PERMISSION_ADMIN(), msg.sender)) return "The msg.sender should be the admin after transfer from test contract";
+		// Test transfer of object admin role
+		object1.transferPermission(object1.ROLE_ID_OBJECT_ADMIN(), msg.sender);
+		if (!object1.hasPermission(object1.ROLE_ID_OBJECT_ADMIN(), msg.sender)) return "The msg.sender should be the admin after transfer from test contract";
 
 		return SUCCESS;
 	}
@@ -136,7 +136,7 @@ contract PermissionedObject is AbstractPermissioned {
 	address creator;
 
 	constructor(address _creator) AbstractPermissioned() public {
-		initializeAdministrator(_creator);
+		initializeObjectAdministrator(_creator);
 		creator = _creator;
 	}
 

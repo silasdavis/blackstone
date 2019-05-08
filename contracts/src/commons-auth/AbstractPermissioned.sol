@@ -12,7 +12,7 @@ contract AbstractPermissioned is Permissioned {
 
     using ArrayUtilsLib for address[];
 
-    bytes32 public constant ROLE_ID_PERMISSION_ADMIN = keccak256(abi.encodePacked("permission.administrator"));
+    bytes32 public constant ROLE_ID_OBJECT_ADMIN = keccak256(abi.encodePacked("object.administrator"));
 
     struct Permission {
         address[] holders;
@@ -38,34 +38,35 @@ contract AbstractPermissioned is Permissioned {
 
     /**
      * @dev Sets the administator permission holder to the specified address. This is a convenience function to provide flexibility around
-     * initializing the permission administrator, e.g. outside of the constructor.
-     * If the given address is empty, the msg.sender will be set as the permission admin.
+     * initializing the object administrator, e.g. outside of the constructor.
+     * Note that this is a public function and once the role is set, it cannot be changed. Call this function immediately after object creation.
+     * If the given address is empty, the msg.sender will be set as the object admin.
      * REVERTS if:
-     * - the ROLE_ID_PERMISSION_ADMIN permission has already been set
+     * - the ROLE_ID_OBJECT_ADMIN permission has already been set
      */
-    function initializeAdministrator(address _admin) internal {
-        ErrorsLib.revertIf(permissions[ROLE_ID_PERMISSION_ADMIN].exists,
-            ErrorsLib.OVERWRITE_NOT_ALLOWED(), "AbstractPermissioned.initializeAdministrator", "The permission admin has already been set and cannot be overwritten");
-        permissions[ROLE_ID_PERMISSION_ADMIN].holders.push(_admin == address(0) ? msg.sender : _admin);
-        permissions[ROLE_ID_PERMISSION_ADMIN].multiHolder = true;
-        permissions[ROLE_ID_PERMISSION_ADMIN].revocable = false;
-        permissions[ROLE_ID_PERMISSION_ADMIN].transferable = true;
-        permissions[ROLE_ID_PERMISSION_ADMIN].exists = true;
+    function initializeObjectAdministrator(address _admin) public {
+        ErrorsLib.revertIf(permissions[ROLE_ID_OBJECT_ADMIN].exists,
+            ErrorsLib.OVERWRITE_NOT_ALLOWED(), "AbstractPermissioned.initializeObjectAdministrator", "The object admin has already been set and cannot be overwritten");
+        permissions[ROLE_ID_OBJECT_ADMIN].holders.push(_admin == address(0) ? msg.sender : _admin);
+        permissions[ROLE_ID_OBJECT_ADMIN].multiHolder = true;
+        permissions[ROLE_ID_OBJECT_ADMIN].revocable = false;
+        permissions[ROLE_ID_OBJECT_ADMIN].transferable = true;
+        permissions[ROLE_ID_OBJECT_ADMIN].exists = true;
     }
 
     /**
      * @dev Creates a new permission with the specified identifier and attributes
      * REVERTS if:
-     * - the caller does not hold ROLE_ID_PERMISSION_ADMIN permission
+     * - the caller does not hold ROLE_ID_OBJECT_ADMIN permission
      * - a permission with the same identifier already exists
      * @param _permission the permission identifier
      * @param _multiHolder determines whether the permission can be granted to multiple people at the same time
-     * @param _revocable determines whether the permission can be revoked by the permission administrator
+     * @param _revocable determines whether the permission can be revoked by the object administrator
      * @param _transferable determines whether holders of the permission are allowed to transfer their grant to someone else
      */
     function createPermission(bytes32 _permission, bool _multiHolder, bool _revocable, bool _transferable)
         external
-        pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
+        pre_requiresPermission(ROLE_ID_OBJECT_ADMIN)
     {
         ErrorsLib.revertIf(permissions[_permission].exists,
             ErrorsLib.RESOURCE_ALREADY_EXISTS(), "AbstractPermissioned.createPermission", "A permission with the identifier name already exists");
@@ -81,7 +82,7 @@ contract AbstractPermissioned is Permissioned {
      * For a non-multiHolder permission, the permission is only granted if it hadn't been set before, i.e. a previous holder will not be overwritten.
      * In this case the existing holder must relinquish the permission via the transferPermission(...) function.
      * REVERTS if:
-     * - the caller does not hold ROLE_ID_PERMISSION_ADMIN permission
+     * - the caller does not hold ROLE_ID_OBJECT_ADMIN permission
      * - the specified permission does not exist
      * - the specified permission is a non-multiHolder permission and has already been set
      * @param _permission the permission identifier
@@ -89,7 +90,7 @@ contract AbstractPermissioned is Permissioned {
      */
     function grantPermission(bytes32 _permission, address _newHolder)
         external
-        pre_requiresPermission(ROLE_ID_PERMISSION_ADMIN)
+        pre_requiresPermission(ROLE_ID_OBJECT_ADMIN)
     {
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.grantPermission", "The specified permission does not exist. Create it first.");
@@ -142,7 +143,7 @@ contract AbstractPermissioned is Permissioned {
     /**
      * @dev Revokes the specified permission from the given holder.
      * REVERTS if:
-     * - the caller is removing another account's permission and does not hold ROLE_ID_PERMISSION_ADMIN permission
+     * - the caller is removing another account's permission and does not hold ROLE_ID_OBJECT_ADMIN permission
      * - the specified permission does not exist
      * - the specified permission id not revocable
      * - the only admin permission holder is being removed
@@ -153,13 +154,13 @@ contract AbstractPermissioned is Permissioned {
     function revokePermission(bytes32 _permission, address _holder)
         external
     {
-        ErrorsLib.revertIf(msg.sender != _holder && !hasPermission(ROLE_ID_PERMISSION_ADMIN, msg.sender),
+        ErrorsLib.revertIf(msg.sender != _holder && !hasPermission(ROLE_ID_OBJECT_ADMIN, msg.sender),
           ErrorsLib.UNAUTHORIZED(), "AbstractPermissioned.revokePermission", "The msg.sender does not have the required permission");
         ErrorsLib.revertIf(!permissions[_permission].exists,
             ErrorsLib.RESOURCE_NOT_FOUND(), "AbstractPermissioned.revokePermission", "The specified permission does not exist. Create it first.");
         ErrorsLib.revertIf(!permissions[_permission].revocable,
             ErrorsLib.INVALID_STATE(), "AbstractPermissioned.revokePermission", "The specified permission is not revocable");
-        ErrorsLib.revertIf(_permission == ROLE_ID_PERMISSION_ADMIN && permissions[ROLE_ID_PERMISSION_ADMIN].holders.length == 1,
+        ErrorsLib.revertIf(_permission == ROLE_ID_OBJECT_ADMIN && permissions[ROLE_ID_OBJECT_ADMIN].holders.length == 1,
           ErrorsLib.INVALID_STATE(), "AbstractPermissioned.revokePermission", "Admin permission holders cannot be left empty");
         bool removed;
         for (uint i=0; i<permissions[_permission].holders.length; i++) {

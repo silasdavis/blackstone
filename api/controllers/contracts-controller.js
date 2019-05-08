@@ -541,6 +541,17 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
       });
 });
 
+const initializeObjectAdministrator = agreementAddress => new Promise((resolve, reject) => {
+  log.trace(`Initializing agreement admin role for agreement: ${agreementAddress}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.initializeObjectAdministrator(serverAccount, (error) => {
+    if (error) {
+      return reject(boomify(error, `Failed to initialize object admin for agreement ${agreementAddress}`));
+    }
+    return resolve();
+  });
+});
+
 const setMaxNumberOfAttachments = (agreementAddress, maxNumberOfAttachments) => new Promise((resolve, reject) => {
   log.trace(`Setting max number of events to ${maxNumberOfAttachments} for agreement at ${agreementAddress}`);
   appManager
@@ -1368,6 +1379,7 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
+  initializeObjectAdministrator,
   setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,
   updateAgreementFileReference,

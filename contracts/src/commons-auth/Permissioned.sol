@@ -8,6 +8,8 @@ contract Permissioned {
 
     //TODO events?
 
+    function initializeObjectAdministrator(address _admin) public;
+
     function createPermission(bytes32 _permission, bool _multiHolder, bool _revocable, bool _transferable) external;
 
     function grantPermission(bytes32 _permission, address _holder) external;
