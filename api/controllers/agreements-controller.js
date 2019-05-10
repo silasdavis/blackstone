@@ -338,6 +338,45 @@ const addArchetypeToPackage = asyncMiddleware(async (req, res, next) => {
   return next();
 });
 
+const validateAgreementParameterValue = (param) => {
+  /* eslint-disable no-param-reassign */
+  const err = new Error();
+  err.status = 400;
+  if (param.type === PARAM_TYPE.BOOLEAN && typeof param.value !== 'boolean') {
+    err.message = 'Invalid boolean value';
+    throw err;
+  } else if (param.type === PARAM_TYPE.STRING && typeof param.value !== 'string') {
+    err.message = 'Invalid string value';
+    throw err;
+  } else if (param.type === PARAM_TYPE.NUMBER || param.type === PARAM_TYPE.DATE || param.type === PARAM_TYPE.DATETIME) {
+    if (typeof param.value !== 'number') {
+      err.message = 'Number, Date, and Datetime values must be integers';
+      throw err;
+    }
+    param.value = Math.round(param.value);
+  } else if (param.type === PARAM_TYPE.MONETARY_AMOUNT) {
+    if (typeof param.value !== 'number') {
+      err.message = 'Monetary value must be a number';
+    }
+    param.value = Math.round(param.value * 100);
+  } else if (param.type === PARAM_TYPE.USER_ORGANIZATION ||
+    param.type === PARAM_TYPE.CONTRACT_ADDRESS ||
+    param.type === PARAM_TYPE.SIGNING_PARTY) {
+    if (typeof param.value !== 'string' || !param.value.match(/^[0-9A-Fa-f]{40}$/)) {
+      err.message = 'Accounts must be 40-digit hexadecimals';
+      throw err;
+    }
+  } else if (param.type === PARAM_TYPE.POSITIVE_NUMBER) {
+    if (typeof param.value !== 'number' || param.value < 0) {
+      err.message = 'Positive number value must be positive number';
+      throw err;
+    }
+    param.value = Math.round(param.value);
+  }
+  return param;
+  /* eslint-enable no-param-reassign */
+};
+
 const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agreementParams) => {
   const promises = [];
   const invalidParams = [];
@@ -348,8 +387,7 @@ const _generateParamSetterPromises = (agreementAddr, archetypeParamDetails, agre
       const setterFunction = dataStorage.agreementDataSetters[`${matchingParam.parameterType}`];
       if (setterFunction) {
         log.debug('Setting value: %s for parameter %s with type %d in agremeement %s', param.value, matchingParam.name, matchingParam.parameterType, agreementAddr);
-        const formattedParam = format('Parameter Value', { parameterType: matchingParam.parameterType, value: param.value });
-        promises.push(setterFunction(agreementAddr, matchingParam.name, formattedParam.value));
+        promises.push(setterFunction(agreementAddr, matchingParam.name, param.value));
       } else {
         throw boom.badImplementation(`No setter function found for parameter name ${matchingParam.name} with parameter type ${matchingParam.parameterType}`);
       }
@@ -382,6 +420,7 @@ const createAgreement = asyncMiddleware(async (req, res, next) => {
   const { parameters, newUsers } = await createOrFindAccountsWithEmails(_parameters, 'type');
   const parties = req.body.parties || [];
   parameters.forEach((param) => {
+    validateAgreementParameterValue(param);
     if (parseInt(param.type, 10) === PARAM_TYPE.SIGNING_PARTY) parties.push(param.value);
   });
   let agreement = {
@@ -464,7 +503,7 @@ const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
     privateParams.forEach(({ name, value, type }) => {
       parameters[name] = { name, value, type };
     });
-    return Object.values(parameters);
+    return Object.values(parameters).map(param => format('Parameter Value', param));
   } catch (err) {
     if (err.isBoom) throw err;
     throw boom.badImplementation(`Failed to get agreement parameters: ${err.stack}`);
