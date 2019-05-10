@@ -61,7 +61,6 @@ const dependencies = {
    */
   format: (type, obj) => {
     const element = Object.assign({}, obj);
-    const err = new Error();
     switch (type) {
       case 'Access Point':
         element.accessPointId = hexToString(element.accessPointId);
@@ -131,53 +130,8 @@ const dependencies = {
         element.label = hexToString(element.label || '');
         break;
       case 'Parameter Value': {
-        err.status = 400;
-        const paramTypeInt = parseInt(element.parameterType, 10);
-        if (paramTypeInt === PARAMETER_TYPES.BOOLEAN) {
-          if (element.value === 'false' || element.value === '0' || !element.value) {
-            element.value = 0;
-          } else if (element.value === '1' || element.value === true || element.value === 'true') {
-            element.value = 1;
-          } else {
-            err.message = 'Invalid boolean value';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.STRING && typeof element.value !== 'string') {
-          element.value = JSON.stringify(element.value);
-        } else if (paramTypeInt === PARAMETER_TYPES.NUMBER) {
-          if (typeof element.value === 'string') {
-            element.value = parseFloat(element.value, 10);
-          }
-          if (!Number.isInteger(element.value)) {
-            err.message = 'Number values must be integers';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.DATE || paramTypeInt === PARAMETER_TYPES.DATETIME) {
-          if (typeof element.value === 'string') {
-            element.value = new Date(element.value).getTime();
-            if (Number.isNaN(parseInt(element.value, 10))) {
-              err.message = 'Date format not readable';
-              throw err;
-            }
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.MONETARY_AMOUNT) {
-          if (typeof element.value === 'string') {
-            element.value = parseFloat(element.value, 10);
-          }
-          element.value = Math.round(element.value * 100);
-        } else if (paramTypeInt === PARAMETER_TYPES.USER_ORGANIZATION ||
-          paramTypeInt === PARAMETER_TYPES.CONTRACT_ADDRESS ||
-          paramTypeInt === PARAMETER_TYPES.SIGNING_PARTY) {
-          if (typeof element.value !== 'string' || !element.value.match(/^[0-9A-Fa-f]{40}$/)) {
-            err.message = 'Accounts must be 40-digit hexadecimals';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.POSITIVE_NUMBER) {
-          if (typeof element.value === 'string') element.value = Number(element.value);
-          if (element.value < 0) {
-            err.message = 'Value must be positive';
-            throw err;
-          }
+        if (element.type === PARAMETER_TYPES.MONETARY_AMOUNT) {
+          element.value /= 100;
         }
         return element;
       }
