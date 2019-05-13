@@ -493,17 +493,23 @@ const getAgreementParameters = async (agreementAddr, parametersFileRef) => {
       throw boom.badRequest(`Given parameter name(s) do not exist in archetype: ${invalidParams}`);
     }
     const paramsFromChain = await Promise.all(promises);
-    const parameters = {};
+    const paramsObj = {};
     paramsFromChain.forEach(({ name, value }, i) => {
-      parameters[name] = { name, value, type: agreementParams[i].parameterType };
+      paramsObj[name] = { name, value, type: agreementParams[i].parameterType };
     });
     const privateParams = await _getPrivateAgreementParameters(parametersFileRef);
-    // paramsFromChain includes all parameters from archetype, so "private" ones will also be included with empty values
+    // paramsFromChain includes all paramsObj from archetype, so "private" ones will also be included with empty values
     // these empty values must be filled in with the private values retrieved from hoard
     privateParams.forEach(({ name, value, type }) => {
-      parameters[name] = { name, value, type };
+      paramsObj[name] = { name, value, type };
     });
-    return Object.values(parameters).map(param => format('Parameter Value', param));
+    const parameters = Object.values(paramsObj).map(param => format('Parameter Value', param));
+    const withNames = await getParticipantNames(parameters, 'value');
+    const withNamesObj = {};
+    withNames.forEach(({ value, displayName }) => {
+      if (displayName) withNamesObj[value] = { displayValue: displayName };
+    });
+    return parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
   } catch (err) {
     if (err.isBoom) throw err;
     throw boom.badImplementation(`Failed to get agreement parameters: ${err.stack}`);
@@ -526,13 +532,7 @@ const getAgreement = async (agrAddress, userAddress) => {
   if (!data) throw boom.notFound(`Agreement at ${agrAddress} not found or user has insufficient privileges`);
   data.parties = await sqlCache.getAgreementParties(agrAddress);
   data.documents = await sqlCache.getArchetypeDocuments(data.archetype);
-  const parameters = await getAgreementParameters(agrAddress, data.privateParametersFileReference);
-  const withNames = await getParticipantNames(parameters, 'value');
-  const withNamesObj = {};
-  withNames.forEach(({ value, displayName }) => {
-    if (displayName) withNamesObj[value] = { displayValue: displayName };
-  });
-  data.parameters = parameters.map(param => Object.assign(param, withNamesObj[param.value] || {}));
+  data.parameters = await getAgreementParameters(agrAddress, data.privateParametersFileReference);
   data.governingAgreements = await sqlCache.getGoverningAgreements(agrAddress);
   data = format('Agreement', data);
   return data;
