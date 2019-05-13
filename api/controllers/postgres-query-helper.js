@@ -135,7 +135,7 @@ const QUERIES = {
 
   getArchetypeJurisdictions: `SELECT country, encode(region::bytea, 'hex') AS region FROM ${chainDb}.archetype_jurisdictions WHERE archetype_address = $1`,
 
-  getArchetypeDocuments: `SELECT document_key AS name, document_reference AS "grant" FROM ${chainDb}.archetype_documents WHERE archetype_address = $1;`,
+  getArchetypeDocuments: `SELECT document_reference AS "grant" FROM ${chainDb}.archetype_documents WHERE archetype_address = $1;`,
 
   getPackagesOfArchetype: `SELECT UPPER(encode(ap.package_id::bytea, 'hex')) AS id, pd.name
     FROM ${chainDb}.archetype_to_package ap
