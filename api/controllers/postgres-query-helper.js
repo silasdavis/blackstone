@@ -155,7 +155,7 @@ const QUERIES = {
     WHERE ((is_private = FALSE AND active = TRUE) OR author = $1) AND 
     package_id = $2;`,
 
-  getArchetypesInPackage: `SELECT ad.name, a.archetype_address as address, a.active FROM ARCHETYPES a 
+  getArchetypesInPackage: `SELECT ad.name, a.archetype_address as address, a.active FROM ${chainDb}.archetypes a 
     JOIN ${chainDb}.archetype_to_package ap ON a.archetype_address = ap.archetype_address 
     JOIN ${appDb}.archetype_details ad ON a.archetype_address = ad.address 
     WHERE ap.package_id = $1`,
