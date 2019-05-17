@@ -569,7 +569,7 @@ const setAddressScopeForAgreementParameters = async (agreementAddr, parameters) 
   log.trace(`Adding scopes to agreement ${agreementAddr} parameters: ${JSON.stringify(parameters)}`);
   const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddr);
   const promises = parameters.map(({ name, value, scope }) => new Promise((resolve, reject) => {
-    agreement.setAddressScope(value, name, scope, '', '', '0x0', (error) => {
+    agreement.setAddressScope(value, global.stringToHex(name), scope, '', '', '0x0', (error) => {
       if (error) {
         return reject(boomify(error, `Failed to add scope ${scope} to address ${value} in context ${name}`));
       }
