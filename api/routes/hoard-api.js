@@ -14,26 +14,42 @@ module.exports = (app, customMiddleware) => {
    ************** */
 
   /**
-  * @api {get} /hoard Read Content Object
-  * @apiName ReadContent
-  * @apiGroup Content
-  *
-  * @apiExample {curl} Simple:
-  *     curl -i /hoard
-  *
-  */
+   * @swagger
+   *
+   * /hoard:
+   *   get:
+   *     tags:
+   *       - "Content"
+   *     description: Read Content Object
+   *     produces:
+   *       - text/plain
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: Read Content Object
+   *         schema:
+   *           type: string
+   * 
+   */
   app.get('/hoard', hoardGetApiHandler);
 
   /**
-  * @api {post} /hoard Read Content Object
-  * @apiName ReadContent
-  * @apiGroup Content
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX POST /hoard
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  */
+   * @swagger
+   *
+   * /hoard:
+   *   post:
+   *     tags:
+   *       - "Content"
+   *     description: Create Content Object
+   *     produces:
+   *       - text/plain
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: Create Content Object
+   *         schema:
+   *           type: string
+   * 
+   */
   app.post('/hoard', middleware, upload.any(), hoardPutApiHandler);
 };

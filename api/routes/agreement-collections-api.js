@@ -12,118 +12,187 @@ module.exports = (app, customMiddleware) => {
   // Use custom middleware if passed, otherwise use plain old middleware
   const middleware = customMiddleware || ensureAuth;
 
-  /* ***********
+  /* *********************
    * Agreement Collections
-   *********** */
+   ********************* */
+
   /**
- * @api {get} /agreement-collections Read Agreement Collections
- * @apiName ReadAgreementCollections
- * @apiGroup Agreements
- *
- * @apiDescription Retrieves Active Agreement Collection information where the author is the authenticated user,
- * or the organization the user is a member of.
- *
- * @apiExample {curl} Simple:
- *     curl -i /agreement-collections
- *
- * @apiSuccess {String} id Active Agreement Collection id
- * @apiSuccess {String} name Human readable name of the Active Agreement Collection
- * @apiSuccess {String} author Address of the creator (user account or org)
- * @apiSuccess {Number} collectionType Type of collection
- * @apiSuccess {String} packageId The packageId of the archetype package from which the collection was created.
- * @apiSuccessExample {json} Success Objects Array
-  [{
-    "id": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
-    "name": "Agreement Collection 1",
-    "author": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
-    "collectionType": 2,
-    "packageId": "7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD"
-  }]
-*
-* @apiUse NotLoggedIn
-* @apiUse AuthTokenRequired
-*
-*/
+   * @swagger
+   *
+   * /agreement-collections:
+   *   get:
+   *     tags:
+   *       - "Agreements"
+   *     description: >-
+   *       Get Active Agreement Collection information where the author is the
+   *       authenticated user, or the organization the user is a member of.
+   *     produces:
+   *       - application/json
+   *       - text/plain
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: object
+   *           properties:
+   *             id:
+   *               type: string
+   *               description: Active Agreement Collection id
+   *             name:
+   *               type: string
+   *               description: Human readable name of the Active Agreement Collection
+   *             author:
+   *               type: string
+   *               description: Address of the creator (user account or org)
+   *             collectionType:
+   *               type: number
+   *               description: Type of collection
+   *             packageId:
+   *               type: string
+   *               description: >-
+   *                 The packageId of the archetype package from which the collection
+   *                 was created.
+   *             agreements:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   name:
+   *                     type: string
+   *                   address:
+   *                     type: string
+   *                   archetype:
+   *                     type: string
+   * 
+   */
   app.get('/agreement-collections', middleware, getAgreementCollections, sendResponse);
 
   /**
- * @api {get} /agreement-collections/:id Read an Agreement Collection
- * @apiName ReadAgreementCollection
- * @apiGroup Agreements
- *
- * @apiDescription Retrieves information for a single Agreement Collection if the author is the authenticated user
- * or the organization the user is a member of.
- *
- * @apiExample {curl} Simple:
- *     curl -i /agreement-collections/7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD
- *
- * @apiSuccess {String} id Agreement Collection id
- * @apiSuccess {String} name Human readable name of the Agreement Collection
- * @apiSuccess {String} author Controller contract of the user or organization
- * @apiSuccess {Number} collectionType Type of collection
- * @apiSuccess {String} packageId The packageId of the archetype package from which the collection was created
- * @apiSuccess {Object[]} agreements Array of agreement objects included in the collection
- * @apiSuccessExample {json} Success Object
-  {
-    "id": "7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD",
-    "name": "Agreement Collection 1",
-    "author": "707791D3BBD4FDDE615D0EC4BB0EB3D909F66890",
-    "collectionType": 2,
-    "packageId": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF",
-    "agreements": [{
-      "name": "Agreement 1",
-      "address": "E615D0EC4BB0EDDE615D0EC4BB0EB3D909F66890",
-      "archetype": "42B7AC86A84DD3AA054F567BCF5D27D9622FCD0B"
-    }]
-  }
-*/
+   * @swagger
+   *
+   * /agreement-collections/{id}:
+   *   get:
+   *     tags:
+   *       - "Agreements"
+   *     description: >-
+   *       Get information for a single Agreement Collection if the author is the
+   *       authenticated user or the organization the user is a member of.
+   *     produces:
+   *       - application/json
+   *       - text/plain
+   *     parameters:
+   *       - name: id
+   *         description: agreement id
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: object
+   *           properties:
+   *             id:
+   *               type: string
+   *               description: Agreement Collection id
+   *             name:
+   *               type: string
+   *               description: Human readable name of the Agreement Collection
+   *             author:
+   *               type: string
+   *               description: Controller contract of the user or organization
+   *             collectionType:
+   *               type: number
+   *               description: Type of collection
+   *             packageId:
+   *               type: string
+   *               description: >-
+   *                 The packageId of the archetype package from which the collection
+   *                 was created
+   *             agreements:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   name:
+   *                     type: string
+   *                   address:
+   *                     type: string
+   *                   archetype:
+   *                     type: string
+   *               description: Array of agreement objects included in the collection
+   * 
+   */
   app.get('/agreement-collections/:id', middleware, getAgreementCollection, sendResponse);
 
   /**
- * @api {get} /agreement-collections Create a Agreement Collection
- * @apiName CreateAgreementCollection
- * @apiGroup Agreements
- *
- * @apiDescription Creates an Active Agreement Collection.
- *
- * @apiExample {curl} Simple:
- *     curl -iX POST /agreement-collections
- *
- * @apiSuccess {String} name Active Agreement Collection name
- * @apiSuccess {String} author Address of the creator (user account or org), logged in user address will be used if none supplied
- * @apiSuccess {Number} collectionType Type of collection
- * @apiSuccess {String} packageId The packageId of the archetype package from which the collection was created
- * @apiBodyParameterExample {json} Success Object
-    {
-      "name": "Rental Collection",
-      "collectionType": 2,
-      "packageId": "7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD",
-    }
-  *
- * @apiSuccessExample {json} Success Object
-  {
-    "id": "9FBC54D1E8224307DA7E74BC54D1E829764E2DE7AD0D8DF6EBC54D1E82ADBCFF"
-  }
-*
-* @apiUse NotLoggedIn
-* @apiUse AuthTokenRequired
-*
-*/
+   * @swagger
+   *
+   * /agreement-collections:
+   *   get:
+   *     tags:
+   *       - "Agreements"
+   *     description: Get an Active Agreement Collection.
+   *     produces:
+   *       - application/json
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: object
+   *           properties:
+   *             name:
+   *               type: string
+   *               description: Active Agreement Collection name
+   *             author:
+   *               type: string
+   *               description: >-
+   *                 Address of the creator (user account or org), logged in user
+   *                 address will be used if none supplied
+   *             collectionType:
+   *               type: number
+   *               description: Type of collection
+   *             packageId:
+   *               type: string
+   *               description: >-
+   *                 The packageId of the archetype package from which the collection
+   *                 was created
+   * 
+   */
   app.post('/agreement-collections', middleware, createAgreementCollection, sendResponse);
 
   /**
-   * @api {put} /agreement-collections Add an agreement to a collection
-   * @apiName AddAgreementToCollection
-   * @apiGroup Agreements
+   * @swagger
    *
-   * @apiExample {curl} Simple:
-   *     curl -iX PUT /agreement-collections/7F2CA849A318E7FA2473B3442B7AC86A84DD3AA054F567BCF5D27D9622FCD0BD
-   *
-   * @apiBodyParameter {String} agreement Address of the agreement to add
-   * @apiBodyParameter {String} collectionId Id of the collection to add to
-   *
-   * @apiUse NotLoggedIn
-   * @apiUse AuthTokenRequired
+   * /agreement-collections:
+   *   put:
+   *     tags:
+   *       - "Agreements"
+   *     description: Add an agreement to a collection
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: body
+   *         description: Add an agreement to a collection
+   *         in: body
+   *         required: true
+   *         schema:
+   *           type: object
+   *           properties:
+   *             agreement:
+   *               type: string
+   *               description: Address of the agreement to add
+   *             collectionId:
+   *               type: string
+   *               description: Id of the collection to add to
+   *     responses:
+   *       '200':
+   *         description: Add an agreement to a collection
+   *         schema:
+   *           type: string
+   * 
    */
   app.put('/agreement-collections', middleware, addAgreementToCollection, sendResponse);
 };
