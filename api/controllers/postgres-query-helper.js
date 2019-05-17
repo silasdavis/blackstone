@@ -209,7 +209,7 @@ const QUERIES = {
     CAST(version_major AS INTEGER) AS "versionMajor",
     CAST(version_minor AS INTEGER) AS "versionMinor",
     CAST(version_patch AS INTEGER) AS "versionPatch"
-    FROM ${chainDb}.process_models WHERE is_private = $1 OR author = $2';`,
+    FROM ${chainDb}.process_models WHERE is_private = $1 OR author = $2;`,
 
   getApplications: `SELECT (encode(a.application_id::bytea, 'hex')) AS id, a.application_type as "applicationType", a.location, encode(a.web_form::bytea, 'hex') as "webForm",
     encode(aap.access_point_id::bytea, 'hex') as "accessPointId", aap.data_type as "dataType", aap.direction
