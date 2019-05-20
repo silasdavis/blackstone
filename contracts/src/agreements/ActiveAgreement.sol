@@ -28,7 +28,7 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 		string eventLogFileReference
 	);
 
-	// v1.0.0 LogAgreementCreation event with added field 'owner' and modified parameters ordering
+	// v1.1.0 LogAgreementCreation event with added field 'owner' and modified parameters ordering
 	event LogAgreementCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address	agreementAddress,

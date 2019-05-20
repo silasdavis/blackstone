@@ -24,7 +24,7 @@ contract Archetype is VersionedArtifact, Permissioned {
 		address executionProcessDefinition
 	);
 
-	// v1.0.0 LogArchetypeCreation event with added field 'owner'
+	// v1.1.0 LogArchetypeCreation event with added field 'owner'
 	event LogArchetypeCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address archetypeAddress,
