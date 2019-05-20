@@ -101,3 +101,8 @@ build_ci_image:
 .PHONY: push_ci_image
 push_ci_image: build_ci_image
 	docker push ${CI_IMAGE}
+
+.PHONY: swaggerize
+swaggerize:
+	swagger-jsdoc -d swaggerDef.js api/routes/*
+	swagger validate swagger.json

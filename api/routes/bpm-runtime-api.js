@@ -29,290 +29,430 @@ module.exports = (app, customMiddleware) => {
   /* **************
    * BPM Runtime
    ************** */
+
   /**
-   * @api {get} /activity-instances Read Activities of a process instance
-   * @apiName ReadProcessInstanceActivities
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Read all activities of a process instance
-   * @apiParam {String} [processInstance] Optional Address of process instance to filter by
-   * @apiParam {String} [agreementAddress] Optional Address of process instance to filter by
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances?processInstance=150D431B160790B2462D8CC683C87FEA2F1C3C61
-   *
-   * @apiSuccessExample {json} Success Objects Array
-    [{
-      "processAddress": "A65B3111789E4355EA03E0F109FBDD0042133307",
-      "activityInstanceId": "A2A9736AEEC9B1DCAA274DEBF76248EA57ABA0727BDE343C2CDE663FC48E2BF4",
-      "activityId": "Task_0X7REW5",
-      "created": 1533736147000,
-      "completed": 0,
-      "performer": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
-      "completedBy": "0000000000000000000000000000000000000000",
-      "state": 4,
-      "agreementAddress": "391F69095A291E21079A78F0F67EE167D7628AE2",
-      "agreementName": "Agreement Name"
-      "processDefinitionAddress": "0506903B34830785168D840BB70D7D48D31A5C1F",
-      "processName": "Ship"
-    }]
-  *
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get all activities of a process instance
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: processInstance
+   *         description: Optional Address of process instance to filter by
+   *         in: query
+   *         type: string
+   *       - name: agreementAddress
+   *         description: Optional Address of process instance to filter by
+   *         in: query
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: array
+   *           items:
+   *             type: object
+   *             properties:
+   *               processAddress:
+   *                 type: string
+   *               activityInstanceId:
+   *                 type: string
+   *               activityId:
+   *                 type: string
+   *               created:
+   *                 type: string
+   *               completed:
+   *                 type: boolean
+   *               performer:
+   *                 type: string
+   *               completedBy:
+   *                 type: string
+   *               state:
+   *                 type: number
+   *               agreementAddress:
+   *                 type: string
+   *               agreementName:
+   *                 type: string
+   *               processDefinitionAddress:
+   *                 type: string
+   *               processName:
+   *                 type: string
+   * 
+   */
   app.get('/bpm/activity-instances', middleware, getActivityInstances, sendResponse);
 
   /**
-   * @api {get} /activity-instances/:id Read activity instance
-   * @apiName ReadActivityInstance
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Retrieve details of the specified activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances/41ED431B140790B2462D8CC683C87FEA2F1DE321
-   *
-   * @apiSuccess {Object} object Activity instance object
-   * @apiSuccessExample {json} Success Object
-    {
-      "state": 4,
-      "processAddress": "A65B3111789E4355EA03E0F109FBDD0042133307",
-      "activityInstanceId": "A2A9736AEEC9B1DCAA274DEBF76248EA57ABA0727BDE343C2CDE663FC48E2BF4",
-      "activityId": "Sign_Signing Task",
-      "created": 1533678582000,
-      "performer": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
-      "completed": 0,
-      "taskType": 1,
-      "application": "AgreementSignatureCheck",
-      "applicationType": 2,
-      "webForm": "DefaultSignAndCompleteForm",
-      "processName": "Lease Formation",
-      "processDefinitionAddress": "833E7452A7D1B02655889AC52F745FD1D5C50AAC",
-      "agreementAddress": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
-      "modelAuthor": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
-      "private": 0,
-      "agreementName": "Drone Lease Agreement",
-      "attachmentsFileReference": "eyJTcG...iVmVyc2lvbiI6MH0=",
-      "maxNumberOfAttachments": 10,
-      "data": [
-        {
-          "dataMappingId": "readName",
-          "dataPath": "name"
-          "dataStorageId": ""
-          "value": "John Doe",
-          "dataType": 2,
-          "parameterType": 1,
-          "direction": 0
-        },
-        {
-          "dataMappingId": "readApproved",
-          "dataPath": "approved"
-          "value": true,
-          "dataType": 1,
-          "parameterType": 0,
-          "direction": 0
-        },
-        {
-          "dataMappingId": "writeName",
-          "dataPath": "name"
-          "dataStorageId": ""
-          "dataType": 2,
-          "parameterType": 1,
-          "direction": 1
-        },
-        {
-          "dataMappingId": "writeApproved",
-          "dataPath": "approved"
-          "dataStorageId": ""
-          "dataType": 1,
-          "parameterType": 0,
-          "direction": 1
-        }
-      ]
-    }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances/{id}:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get details of the specified activity instance
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: id
+   *         description: activity instance ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: Activity instance object
+   *         schema:
+   *           type: object
+   *           properties:
+   *             state:
+   *               type: number
+   *             processAddress:
+   *               type: string
+   *             activityInstanceId:
+   *               type: string
+   *             created:
+   *               type: string
+   *             completed:
+   *               type: number
+   *             taskType:
+   *               type: number
+   *             application:
+   *               type: string
+   *             applicationType:
+   *               type: number
+   *             webForm:
+   *               type: string
+   *             processName:
+   *               type: string
+   *             processDefinitionAddress:
+   *               type: string
+   *             agreementAddress:
+   *               type: string
+   *             modelAuthor:
+   *               type: string
+   *             private:
+   *               type: number
+   *             agreementName:
+   *               type: string
+   *             attachmentsFileReference:
+   *               type: string
+   *             maxNumberOfAttachments:
+   *               type: number
+   *             data:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   dataMappingId:
+   *                     type: string
+   *                   dataPath:
+   *                     type: string
+   *                   dataStorageId:
+   *                     type: string
+   *                   value:
+   *                     type: boolean
+   *                   dataType:
+   *                     type: number
+   *                   parameterType:
+   *                     type: number
+   *                   direction:
+   *                     type: number
+   * 
+   */
   app.get('/bpm/activity-instances/:id', middleware, getActivityInstance, sendResponse);
 
   /**
-   * @api {get} /activity-instances/:activityInstanceId/data-mappings Read data mappings of activity instance
-   * @apiName ReadActivityInstanceDataMappings
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Retrieve details of the data mappings for the specified activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances/41ED431B140790B2462D8CC683C87FEA2F1DE321/data-mappings
-   *
-   * @apiSuccess {Object[]} object Array of data mapping objects
-   * @apiSuccessExample {json} Success Object
-    [{
-      "dataMappingId": "readApproved",
-      "dataPath": "approved"
-      "value": true,
-      "dataType": 1,
-      "parameterType": 0,
-      "direction": 0
-    }]
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances/{activityInstanceId}/data-mappings:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get details of the data mappings for the specified activity instance
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: activityInstanceId
+   *         description: activity instance ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: object
+   *           properties:
+   *             object:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   dataMappingId:
+   *                     type: string
+   *                   dataPath:
+   *                     type: string
+   *                   dataStorageId:
+   *                     type: string
+   *                   value:
+   *                     type: boolean
+   *                   dataType:
+   *                     type: number
+   *                   parameterType:
+   *                     type: number
+   *                   direction:
+   *                     type: number
+   *               description: Array of data mapping objects
+   * 
+   */
   app.get('/bpm/activity-instances/:activityInstanceId/data-mappings', middleware, getDataMappings, sendResponse);
 
   /**
-   * @api {get} /activity-instances/:activityInstanceId/data-mappings/:dataMappingId Read single data mapping of an activity instance
-   * @apiName ReadActivityInstanceDataMapping
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Retrieve details of the data mapping with the given ID for the specified activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances/150E9377C388CF1B76E508642646F6DFACA67D53B82A0C3F479C12610FA29BCB/data-mappings/readApproved
-   *
-   * @apiSuccess {Object} object Data mapping objects
-   * @apiSuccessExample {json} Success Object
-    {
-      "dataMappingId": "readApproved",
-      "dataPath": "approved"
-      "value": true,
-      "dataType": 1,
-      "parameterType": 0,
-      "direction": 0
-    }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances/{activityInstanceId}/data-mappings/{dataMappingId}:
+   *   get:
+   *     tags:
+   *       - BPM Runtime
+   *     description: >-
+   *       Get details of the data mapping with the given ID for the specified activity
+   *       instance.
+   *     produces:
+   *       - application/json
+   *       - text/plain
+   *     parameters:
+   *       - name: activityInstanceId
+   *         description: activity instance ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *       - name: dataMappingId
+   *         description: data mapping ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: object
+   *           properties:
+   *             dataMappingId:
+   *               type: string
+   *             dataPath:
+   *               type: string
+   *             dataStorageId:
+   *               type: string
+   *             value:
+   *               type: boolean
+   *             dataType:
+   *               type: number
+   *             parameterType:
+   *               type: number
+   *             direction:
+   *               type: number
+   * 
+   */
   app.get('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', middleware, getDataMappings, sendResponse);
 
   /**
-   * @api {get} /activity-instances/:activityInstanceId/data-mappings Write data mappings of activity instance
-   * @apiName WriteActivityInstanceDataMappings
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Write to data mappings for the specified activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances/150E9377C388CF1B76E508642646F6DFACA67D53B82A0C3F479C12610FA29BCB/data-mappings
-   *
-   * @apiParamExample {json} Sample request body with data mapping id/value pairs in an array
-    [{
-        "id": "writeApproved",
-        "value": true,
-        "dataType": 1
-      },
-      {
-        "id": "writeName",
-        "value": "John Doe",
-        "dataType": 2
-      }
-    ]
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances/{activityInstanceId}/data-mappings:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get data mappings for the specified activity instance.
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: body
+   *         description: Update User Profile of currently logged in user
+   *         in: body
+   *         required: true
+   *         schema:
+   *           type: object
+   *           properties:
+   *             id:
+   *               type: string
+   *             value:
+   *               type: boolean
+   *             dataType:
+   *               type: number
+   *       - name: activityInstanceId
+   *         description: activity instance ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: Write data mappings of activity instance
+   *         schema:
+   *           type: string
+   * 
+   */
   app.put('/bpm/activity-instances/:activityInstanceId/data-mappings', middleware, setDataMappings, sendResponse);
 
   /**
-   * @api {get} /activity-instances/:activityInstanceId/data-mappings/:dataMappingId Write single data mapping of an activity instance
-   * @apiName WriteActivityInstanceDataMapping
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Write to the data mapping with the given ID for the specified activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /activity-instances/150E9377C388CF1B76E508642646F6DFACA67D53B82A0C3F479C12610FA29BCB/data-mappings/writeApproved
-   *
-   * @apiParamExample {json} Sample request body with data mapping value
-    {
-      "value": true,
-      "dataType": 1
-    }
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /activity-instances/{activityInstanceId}/data-mappings/{dataMappingId}:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get the data mapping with the given ID for the specified activity instance.
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: body
+   *         description: Update User Profile of currently logged in user
+   *         in: body
+   *         required: true
+   *         schema:
+   *           type: object
+   *           properties:
+   *             value:
+   *               type: boolean
+   *             dataType:
+   *               type: number
+   *       - name: activityInstanceId
+   *         description: activity instance ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *       - name: dataMappingId
+   *         description: data mapping ID
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: Write single data mapping of an activity instance
+   *         schema:
+   *           type: string
+   * 
+   */
   app.put('/bpm/activity-instances/:activityInstanceId/data-mappings/:dataMappingId', middleware, setDataMappings, sendResponse);
 
   /**
-   * @api {get} /tasks Read Tasks
-   * @apiName ReadTasks
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Retrieves an array of tasks assigned to the logged in user
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /tasks
-   *
-   * @apiSuccess {Object[]} object Array of task objects
-   * @apiSuccessExample {json} Success Objects Array
-    [{
-      "state": 4,
-      "processAddress": "A65B3111789E4355EA03E0F109FBDD0042133307",
-      "activityInstanceId": "A2A9736AEEC9B1DCAA274DEBF76248EA57ABA0727BDE343C2CDE663FC48E2BF4",
-      "activityId": "Task_5ERV12I",
-      "created": 1533736147000,
-      "performer": "5860AF129980B0E932F3509432A0C43DEAB77B0B",
-      "processName": "Process Name",
-      "processDefinitionAddress": "833E7452A7D1B02655889AC52F745FD1D5C50AAC",
-      "agreementAddress": "AB3399395E9CAB5434022D1992D31BB3ACC2E3F1",
-      "agreementName": "Drone Purchase Agreement"
-    }]
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  *
-  */
+   * /tasks:
+   *   get:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: Get an array of tasks assigned to the logged in user.
+   *     produces:
+   *       - application/json
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: json
+   *         schema:
+   *           type: array
+   *           items:
+   *             type: object
+   *             properties:
+   *               processAddress:
+   *                 type: string
+   *               activityInstanceId:
+   *                 type: string
+   *               activityId:
+   *                 type: string
+   *               created:
+   *                 type: string
+   *               completed:
+   *                 type: boolean
+   *               performer:
+   *                 type: string
+   *               completedBy:
+   *                 type: string
+   *               state:
+   *                 type: number
+   *               agreementAddress:
+   *                 type: string
+   *               agreementName:
+   *                 type: string
+   *               processDefinitionAddress:
+   *                 type: string
+   *               processName:
+   *                 type: string
+   * 
+   */
   app.get('/tasks', middleware, getTasksForUser, sendResponse);
 
   /**
-   * @api {put} /tasks/:activityInstanceId/complete Complete task identified by the activityInstanceId
-   * @apiName CompleteTask
-   * @apiGroup BPMRuntime
+   * @swagger
    *
-   * @apiDescription Completes the activity identified by the activityInstanceId. Optionally accepts 'data' array to write.
-   *
-   * @apiParam {String} activityInstanceId The system generated id of the activity instance
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /task/:activityInstanceId/complete
-   *
-   * @apiParam {json} Optional request body with out data
-    {
-      data: [{
-        "id": "writeApproved",
-        "value": true,
-        "dataType": 1,
-      }]
-    }
-  *
-  */
+   * '/tasks/{activityInstanceId}/complete':
+   *   put:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: >-
+   *       Completes the activity identified by the activityInstanceId. Optionally accepts
+   *       'data' array to write.
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: body
+   *         description: Update User Profile of currently logged in user
+   *         in: body
+   *         required: false
+   *         schema:
+   *           type: object
+   *           properties:
+   *             id:
+   *               type: string
+   *             value:
+   *               type: boolean
+   *             dataType:
+   *               type: number
+   *       - name: activityInstanceId
+   *         description: The system generated id of the activity instance
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: Complete task identified by the activityInstanceId
+   *         schema:
+   *           type: string
+   * 
+   */
   app.put('/tasks/:activityInstanceId/complete', middleware, completeActivity, sendResponse);
 
   /**
-   * @api {put} /tasks/:activityInstanceId/complete/:agreementAddress/sign Sign the agreement and complete the activity
-   * @apiName CompleteTask
-   * @apiGroup Runtime
+   * @swagger
    *
-   * @apiDescription Signs the agreement at the given address and then completes the activity
-   * identified by the activityInstanceId.
-   *
-   * @apiParam {String} activityInstanceId The system generated id of the activity instance
-   * @apiParam {String} agreementAddress The address of the agreement
-   *
-   * @apiExample {curl} Simple:
-   *     curl -i /tasks/:activityInstanceId/complete/:agreementAddress/sign
-   *
+   * /tasks/{activityInstanceId}/complete/{agreementAddress}/sign:
+   *   put:
+   *     tags:
+   *       - "BPM Runtime"
+   *     description: |-
+   *       Create the agreement at the given address and then completes the activity
+   *       identified by the activityInstanceId.
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: activityInstanceId
+   *         description: The system generated id of the activity instance
+   *         in: path
+   *         required: true
+   *         type: string
+   *       - name: agreementAddress
+   *         description: The address of the agreement
+   *         in: path
+   *         required: true
+   *         type: string
+   *     responses:
+   *       '200':
+   *         description: Sign the agreement and complete the activity
+   *         schema:
+   *           type: string
+   * 
    */
   app.put('/tasks/:activityInstanceId/complete/:agreementAddress/sign', middleware, signAndCompleteActivity, sendResponse);
 };
