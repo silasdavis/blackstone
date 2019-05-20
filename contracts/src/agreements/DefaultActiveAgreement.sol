@@ -90,7 +90,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
     permissions[ROLE_ID_OWNER].transferable = true;
     permissions[ROLE_ID_OWNER].exists = true;
 
-		emit LogAgreementCreation(
+		emit LogAgreementCreation_v1_1_0(
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,

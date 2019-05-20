@@ -95,7 +95,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
     permissions[ROLE_ID_OWNER].exists = true;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogArchetypeCreation(
+		emit LogArchetypeCreation_v1_1_0(
 			EVENT_ID_ARCHETYPES,
 			address(this),
 			_price,
