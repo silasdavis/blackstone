@@ -11,7 +11,21 @@ import "commons-auth/Permissioned.sol";
  */
 contract Archetype is VersionedArtifact, Permissioned {
 
+	// original event definition
 	event LogArchetypeCreation(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		uint price,
+		address author,
+		bool active,
+		bool isPrivate,
+		address successor,
+		address formationProcessDefinition,
+		address executionProcessDefinition
+	);
+
+	// v1.0.0 LogArchetypeCreation event with added field 'owner'
+	event LogArchetypeCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address archetypeAddress,
 		uint price,

@@ -15,7 +15,21 @@ import "agreements/Agreements.sol";
  */
 contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, AddressScopes, Signable, EventEmitter {
 
+	// original event definition
 	event LogAgreementCreation(
+		bytes32 indexed eventId,
+		address	agreementAddress,
+		address	archetypeAddress,
+		address	creator,
+		bool isPrivate,
+		uint8 legalState,
+		uint32 maxEventCount,
+		string privateParametersFileReference,
+		string eventLogFileReference
+	);
+
+	// v1.0.0 LogAgreementCreation event with added field 'owner' and modified parameters ordering
+	event LogAgreementCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address	agreementAddress,
 		address	archetypeAddress,
