@@ -9,9 +9,9 @@ jobs:
       - run: npm config set unsafe-perm true
       - run: npm install swagger-jsdoc -g
       - run: make swaggerize
-      - run: | 
-          if [ ! -z "$(git status --porcelain)" ]; 
-          then 
+      - run: |
+          if [ ! -z "$(git status --porcelain)" ];
+          then
             echo "Uncommitted swagger changes.";
           fi
 
@@ -39,7 +39,6 @@ jobs:
       - run: make push_docs
 
 workflows:
-  version: 2
   test_and_deploy:
     jobs:
       - swagger
