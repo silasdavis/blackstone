@@ -4,7 +4,7 @@ process.env.API_LOG_LEVEL = process.env.API_LOG_LEVEL || 'DEBUG';
 
 log4js.addLayout('json', config => (_logEvent) => {
   const logEvent = Object.assign({}, _logEvent);
-  delete logEvent['level'];
+  logEvent.level = _logEvent.level.levelStr;
   delete logEvent['context'];
   delete logEvent['pid'];
   return JSON.stringify(logEvent);
