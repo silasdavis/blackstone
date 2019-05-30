@@ -1,5 +1,4 @@
 # default files
-.gitattributes
 .github
 .travis.yml
 **/rust_mozprofile*
