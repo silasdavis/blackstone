@@ -34,6 +34,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	}
 
 	uint price;
+	address author;
 	bool active;
 	bool privateFlag;
 	address successor;
@@ -50,12 +51,16 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	address[] governingArchetypes;
 
 	/**
-	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
+	 * @dev Initializes this DefaultArchetype with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
-	 * @param _author author
-	 * @param _owner owner
+	 * REVERTS if:
+	 * - the owner address is empty
+	 * - the list of governing archetypes has duplicate entries
+	 * @param _price a price indicator for creating agreements from this archetype
 	 * @param _isPrivate determines if this archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
+	 * @param _author author
+	 * @param _owner owner
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
 	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
 	 * @param _governingArchetypes array of governing archetype addresses (optional)
@@ -72,27 +77,28 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 		external
 		pre_post_initialize
 	{
+		ErrorsLib.revertIf(_author == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.initialize", "The provided author address must not be empty");
+		ErrorsLib.revertIf(_owner == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.initialize", "The provided owner address must not be empty");
 		ErrorsLib.revertIf(_governingArchetypes.hasDuplicates(),
 			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.initialize", "Governing archetypes must not contain duplicates");
 
 		price = _price;
 		privateFlag = _isPrivate;
 		active = _active;
+		author = _author;
 		formationProcessDefinition = _formationProcess;
 		executionProcessDefinition = _executionProcess;
 		governingArchetypes = _governingArchetypes;
 
-    permissions[ROLE_ID_AUTHOR].holders.push(_author);
-    permissions[ROLE_ID_AUTHOR].multiHolder = false;
-    permissions[ROLE_ID_AUTHOR].revocable = false;
-    permissions[ROLE_ID_AUTHOR].transferable = false;
-    permissions[ROLE_ID_AUTHOR].exists = true;
-
-    permissions[ROLE_ID_OWNER].holders.push(_owner);
-    permissions[ROLE_ID_OWNER].multiHolder = false;
-    permissions[ROLE_ID_OWNER].revocable = false;
-    permissions[ROLE_ID_OWNER].transferable = true;
-    permissions[ROLE_ID_OWNER].exists = true;
+		// create the built-in owner permission and set it
+		permissions[ROLE_ID_OWNER].multiHolder = false;
+		permissions[ROLE_ID_OWNER].revocable = false;
+		permissions[ROLE_ID_OWNER].transferable = true;
+		permissions[ROLE_ID_OWNER].exists = true;
+		permissions[ROLE_ID_OWNER].holders.length = 1;
+		permissions[ROLE_ID_OWNER].holders[0] = _owner;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
 		emit LogArchetypeCreation_v1_1_0(
@@ -251,7 +257,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address) {
-    return permissions[ROLE_ID_AUTHOR].holders[0];
+    	return author;
 	}
 
 	/**
@@ -259,7 +265,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	 * @return owner owner
 	 */
 	function getOwner() external view returns (address) {
-    return permissions[ROLE_ID_OWNER].holders[0];
+    	return permissions[ROLE_ID_OWNER].holders.length > 0 ? permissions[ROLE_ID_OWNER].holders[0] : address(0);
 	}
 
 	/**
@@ -419,13 +425,16 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 
 	/**
 	 * @dev Sets the successor this archetype. Setting a successor automatically deactivates this archetype.
-	 * Fails if given successor is the same address as itself. 
-	 * Fails if intended action will lead to two archetypes with their successors pointing to each other.
+	 * REVERTS if:
+	 * - given successor is the same address as itself. 
+	 * - intended action will lead to two archetypes with their successors pointing to each other.
 	 * @param _successor address of successor archetype
 	 */
 	function setSuccessor(address _successor) external {
-		ErrorsLib.revertIf(_successor == address(this), ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
-		ErrorsLib.revertIf(Archetype(_successor).getSuccessor() == address(this), ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
+		ErrorsLib.revertIf(_successor == address(this),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
+		ErrorsLib.revertIf(Archetype(_successor).getSuccessor() == address(this),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
 		active = false;
 		successor = _successor;
 		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, address(this), _successor);
@@ -454,5 +463,30 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	function deactivate() external {
 		active = false;
 		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
+	}
+
+	/**
+	 * @dev Creates the "owner" permission and sets the owner of the Archetype to the specified address.
+	 * This function is used to retrofit older (< v1.1.0) contracts that did not get the owner field set in their initialize() function
+	 * and emit an appropriate event that can be used to update external data systems
+ 	 * REVERTS if:
+	 * - The provided owner address is empty
+	 * - The owner is already set
+	 * @param _owner the owner of this Archetype
+	 */
+	function upgradeOwnerPermission(address _owner) external {
+		ErrorsLib.revertIf(_owner == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetype.upgradeOwnerPermission", "The provided address must not be empty");
+		ErrorsLib.revertIf(permissions[ROLE_ID_OWNER].exists,
+			ErrorsLib.INVALID_STATE(), "DefaultArchetype.upgradeOwnerPermission", "The owner permission already exists. This contract's storage might already have been upgraded");
+		permissions[ROLE_ID_OWNER].multiHolder = false;
+		permissions[ROLE_ID_OWNER].revocable = false;
+		permissions[ROLE_ID_OWNER].transferable = true;
+		permissions[ROLE_ID_OWNER].exists = true;
+		// Note: there currently is no code path that would lead to the permission marked as "exists" (see above) while a holder is already registered,
+		// so is is not explicitly checked if an existing holder is overwritten
+		permissions[ROLE_ID_OWNER].holders.length = 1;
+		permissions[ROLE_ID_OWNER].holders[0] = _owner;
+		emit LogArchetypeOwnerUpdate(EVENT_ID_ARCHETYPES, address(this), _owner);
 	}
 }

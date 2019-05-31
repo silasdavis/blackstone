@@ -105,7 +105,7 @@ contract AbstractPermissioned is Permissioned {
             revert(ErrorsLib.format(
               ErrorsLib.OVERWRITE_NOT_ALLOWED(),
               "AbstractPermissioned.grantPermission",
-              "Single-held permission that has already been granted cannot be overwritten here. Use transferPermission instead."
+              "Single-held permission that has already been granted cannot be overwritten by the permission admin. Use transferPermission instead."
             ));
         }
     }
