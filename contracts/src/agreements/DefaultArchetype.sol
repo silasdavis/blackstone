@@ -471,7 +471,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,1,0), AbstractDelegateT
 	 * and emit an appropriate event that can be used to update external data systems
  	 * REVERTS if:
 	 * - The provided owner address is empty
-	 * - The owner is already set
+	 * - The owner permission already exists (which indicates that the contract has been upgraded already)
 	 * @param _owner the owner of this Archetype
 	 */
 	function upgradeOwnerPermission(address _owner) external {

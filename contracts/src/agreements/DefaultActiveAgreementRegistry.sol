@@ -61,6 +61,11 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 
 	/**
 	 * @dev Creates an Active Agreement with the given parameters
+	 * REVERTS if:
+	 * - Archetype address is empty
+	 * - Duplicate governing agreements are passed
+	 * - Agreement address is already registered
+	 * - Given collectionId does not exist
 	 * @param _archetype archetype
 	 * @param _creator address
 	 * @param _owner address
@@ -70,11 +75,6 @@ contract DefaultActiveAgreementRegistry is AbstractVersionedArtifact(1,1,0), Abs
 	 * @param _collectionId id of agreement collection (optional)
 	 * @param _governingAgreements array of agreement addresses which govern this agreement (optional)
 	 * @return activeAgreement - the new ActiveAgreement's address, if successfully created, 0x0 otherwise
-	 * Reverts if:
-	 * 	Archetype address is empty
-	 * 	Duplicate governing agreements are passed
-	 * 	Agreement address is already registered
-	 * 	Given collectionId does not exist
 	 */
 	function createAgreement(
 		address _archetype,

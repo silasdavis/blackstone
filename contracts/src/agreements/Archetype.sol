@@ -85,7 +85,7 @@ contract Archetype is VersionedArtifact, Permissioned {
 	);
 
 	// LogArchetypeOwnerUpdate is used when retrofitting Archetype contracts < v1.1.0 with an owner value
-	// see also #setOwner(address)
+	// see also #upgradeOwnerPermission(address)
 	event LogArchetypeOwnerUpdate(
 		bytes32 indexed eventId,
 		address archetypeAddress,
@@ -164,13 +164,13 @@ contract Archetype is VersionedArtifact, Permissioned {
 	 * @dev Gets Author
 	 * @return author author
 	 */
-	function getAuthor() external view returns (address author);
+	function getAuthor() external view returns (address);
 
 	/**
 	 * @dev Gets Owner
 	 * @return owner owner
 	 */
-	function getOwner() external view returns (address owner);
+	function getOwner() external view returns (address);
 
 	/**
 	 * @dev Gets document reference with given key
