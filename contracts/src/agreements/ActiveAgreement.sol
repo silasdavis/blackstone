@@ -92,7 +92,7 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	// see also #upgradeOwnerPermission(address)
 	event LogAgreementOwnerUpdate(
 		bytes32 indexed eventId,
-		address archetypeAddress,
+		address agreementAddress,
 		address owner
 	);
 
