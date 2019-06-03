@@ -12,9 +12,12 @@ import "agreements/DefaultArchetype.sol";
 
 contract ActiveAgreementTest {
   
-  string constant SUCCESS = "success";
+  	string constant SUCCESS = "success";
 	string constant EMPTY_STRING = "";
 	bytes32 constant EMPTY = "";
+
+	string constant functionSigAgreementInitialize = "initialize(address,address,address,string,bool,address[],address[])";
+	string constant functionSigUpgradeOwnerPermission = "upgradeOwnerPermission(address)";
 
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
 	string dummyFileRef = "{find me}";
@@ -50,6 +53,24 @@ contract ActiveAgreementTest {
 
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
+
+		agreement = new DefaultActiveAgreement();
+		// test positive creation first to confirm working function signature
+		if (!address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating an agreement with valid parameters should succeed";
+		}
+		// test failures
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, address(0), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty archetype should revert";
+		}
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(0), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty creator should revert";
+		}
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(this), address(0), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty owner should revert";
+		}
+
+		// function testing
 		agreement = new DefaultActiveAgreement();
 		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setEventLogReference(dummyFileRef);
@@ -74,6 +95,33 @@ contract ActiveAgreementTest {
 		if (partiesArr[0] != address(signer1)) return "address[] retrieval via DATA_FIELD_AGREEMENT_PARTIES did not yield first element as expected";
 		if (bogusArr[0] != address(0xCcD5bA65282C3dafB69b19351C7D5B77b9fDDCA6)) return "address[] retrieval via regular ID did not yield first element as expected";
 		if (agreement.getArrayLength(DATA_FIELD_AGREEMENT_PARTIES) != agreement.getNumberOfParties()) return "Array size count via DATA_FIELD_AGREEMENT_PARTIES did not match the number of parties";
+
+		// test agreement upgrade scenarios < 1.1.0 to retrofit the owner permission
+		DefaultActiveAgreement_pre_v1_1_0 upgradeTestAgreement = new DefaultActiveAgreement_pre_v1_1_0();
+		upgradeTestAgreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		upgradeTestAgreement.downgrade();
+		bool permExists;
+		(permExists, , , , ) = upgradeTestAgreement.getPermissionDetails(upgradeTestAgreement.ROLE_ID_OWNER());
+		if (permExists) return "The upgrade test agreement should not have the owner permission";
+		// test positive permssission setting first to confirm a working function signature
+		if (!upgradeTestAgreement.call(abi.encodeWithSignature(functionSigUpgradeOwnerPermission, address(this)))) {
+			return "Upgrading the owner permission and setting it to the test contract should be successful";
+		}
+		(permExists, , , , ) = upgradeTestAgreement.getPermissionDetails(upgradeTestAgreement.ROLE_ID_OWNER());
+		if (!permExists) return "The owner permission should have been created in the upgrade";
+		if (upgradeTestAgreement.getHolder(upgradeTestAgreement.ROLE_ID_OWNER(), 0) != address(this)) return "The upgrade test agreement should show the test contract as the owner after the upgrade";
+
+		// test upgrade failures
+		if (upgradeTestAgreement.call(abi.encodeWithSignature(functionSigUpgradeOwnerPermission, address(this)))) {
+			return "Upgrading an already upgraded archetype should revert";
+		}
+		// create a fresh agreement to test failures
+		upgradeTestAgreement = new DefaultActiveAgreement_pre_v1_1_0();
+		upgradeTestAgreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		upgradeTestAgreement.downgrade();
+		if (archetype.call(abi.encodeWithSignature(functionSigUpgradeOwnerPermission, address(0)))) {
+			return "Upgrading the owner permission and setting it to 0x0 should revert";
+		}
 
 		return SUCCESS;
 	}
@@ -187,3 +235,13 @@ contract ActiveAgreementTest {
 
 }
 
+/**
+ * @dev This contract simulates the < v1.1.0 version of the contract which did not have the owner permission
+ */
+contract DefaultActiveAgreement_pre_v1_1_0 is DefaultActiveAgreement {
+
+	function downgrade() external {
+		delete permissions[ROLE_ID_OWNER];
+	}
+
+}
