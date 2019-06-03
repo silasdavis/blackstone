@@ -29,6 +29,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 	bytes32 constant fileKeySignatureLog = keccak256(abi.encodePacked("fileKey.signatureLog"));
 
 	address archetype;
+	address creator;
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
 	Agreements.LegalState legalState;
@@ -61,6 +62,10 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 		external
 		pre_post_initialize
 	{
+		ErrorsLib.revertIf(_creator == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.initialize", "The provided creator address must not be empty");
+		ErrorsLib.revertIf(_owner == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.initialize", "The provided owner address must not be empty");
 		ErrorsLib.revertIf(_archetype == address(0),
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.initialize", "Archetype address must not be empty");
 		ErrorsLib.revertIf(!Archetype(_archetype).isActive(),
@@ -69,6 +74,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
 
 		archetype = _archetype;
+		creator = _creator;
 		if (bytes(_privateParametersFileReference).length > 0) {
 			fileReferences.insertOrUpdate(fileKeyPrivateParameters, _privateParametersFileReference);
 		}
@@ -76,20 +82,15 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 		parties = _parties;
 		governingAgreements = _governingAgreements;
 		legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
-		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
 
-    permissions[ROLE_ID_CREATOR].holders.push(_creator);
-    permissions[ROLE_ID_CREATOR].multiHolder = false;
-    permissions[ROLE_ID_CREATOR].revocable = false;
-    permissions[ROLE_ID_CREATOR].transferable = false;
-    permissions[ROLE_ID_CREATOR].exists = true;
-
-    permissions[ROLE_ID_OWNER].holders.push(_owner);
     permissions[ROLE_ID_OWNER].multiHolder = false;
     permissions[ROLE_ID_OWNER].revocable = false;
     permissions[ROLE_ID_OWNER].transferable = true;
     permissions[ROLE_ID_OWNER].exists = true;
+		permissions[ROLE_ID_OWNER].holders.length = 1;
+		permissions[ROLE_ID_OWNER].holders[0] = _owner;
 
+		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
 		emit LogAgreementCreation_v1_1_0(
 			EVENT_ID_AGREEMENTS,
 			address(this),
@@ -246,7 +247,15 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 	 * @return the creator address
 	 */
 	function getCreator() external view returns (address) {
-    return permissions[ROLE_ID_CREATOR].holders[0];
+    return creator;
+	}
+
+	/**
+	 * @dev Returns the owner
+	 * @return the owner or an empty address
+	 */
+	function getOwner() external view returns (address) {
+    	return permissions[ROLE_ID_OWNER].holders.length > 0 ? permissions[ROLE_ID_OWNER].holders[0] : address(0);
 	}
 
 	/**
@@ -417,6 +426,31 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDel
 				}
 			}
 		}
+	}
+
+	/**
+	 * @dev Creates the "owner" permission and sets the owner of the ActiveAgreement to the specified address.
+	 * This function is used to retrofit older (< v1.1.0) contracts that did not get the owner field set in their initialize() function
+	 * and emit an appropriate event that can be used to update external data systems
+ 	 * REVERTS if:
+	 * - The provided owner address is empty
+	 * - The owner permission already exists (which indicates that the contract has been upgraded already)
+	 * @param _owner the owner of this ActiveAgreement
+	 */
+	function upgradeOwnerPermission(address _owner) external {
+		ErrorsLib.revertIf(_owner == address(0),
+			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.upgradeOwnerPermission", "The provided address must not be empty");
+		ErrorsLib.revertIf(permissions[ROLE_ID_OWNER].exists,
+			ErrorsLib.INVALID_STATE(), "DefaultActiveAgreement.upgradeOwnerPermission", "The owner permission already exists. This contract's storage might already have been upgraded");
+		permissions[ROLE_ID_OWNER].multiHolder = false;
+		permissions[ROLE_ID_OWNER].revocable = false;
+		permissions[ROLE_ID_OWNER].transferable = true;
+		permissions[ROLE_ID_OWNER].exists = true;
+		// Note: there currently is no code path that would lead to the permission marked as "exists" (see above) while a holder is already registered,
+		// so is is not explicitly checked if an existing holder is overwritten
+		permissions[ROLE_ID_OWNER].holders.length = 1;
+		permissions[ROLE_ID_OWNER].holders[0] = _owner;
+		emit LogAgreementOwnerUpdate(EVENT_ID_AGREEMENTS, address(this), _owner);
 	}
 
 }

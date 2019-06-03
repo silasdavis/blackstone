@@ -317,7 +317,7 @@ https://github.com/hyperledger/burrow/blob/master/docs/INSTALL.md
 On MacOS:
 ```
 brew install boost@1.60
-brew install https://raw.githubusercontent.com/ethereum/homebrew-ethereum/f26f126820e5f47c3ed7ec6d5e6e046707443d87/solidity.r
+brew install https://raw.githubusercontent.com/ethereum/homebrew-ethereum/f26f126820e5f47c3ed7ec6d5e6e046707443d87/solidity.rb
 ```
 
 If you already had `boost` installed in a higher version, you need to downgrade to the 1.60 version by running the following:

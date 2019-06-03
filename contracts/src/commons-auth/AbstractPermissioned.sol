@@ -105,7 +105,7 @@ contract AbstractPermissioned is Permissioned {
             revert(ErrorsLib.format(
               ErrorsLib.OVERWRITE_NOT_ALLOWED(),
               "AbstractPermissioned.grantPermission",
-              "Single-held permission that has already been granted cannot be overwritten here. Use transferPermission instead."
+              "Single-held permission that has already been granted cannot be overwritten by the permission admin. Use transferPermission instead."
             ));
         }
     }
@@ -132,7 +132,7 @@ contract AbstractPermissioned is Permissioned {
         // to transfer a permission, it does not matter whether it's multi-holder or not.
         for (uint i=0; i<permissions[_permission].holders.length; i++) {
             if (permissions[_permission].holders[i] == msg.sender) {
-                // we don't shift an entries in the array to fill the empty slot here, but instead try to re-use empty slots when permissions are granted
+                // we don't shift any entries in the array to fill the empty slot here, but instead try to re-use the slot of the previous holder
                 permissions[_permission].holders[i] = _newHolder;
                 return;
             }
@@ -181,7 +181,7 @@ contract AbstractPermissioned is Permissioned {
      * @dev Indicates whether the specified permission is held by the given holder.
      * @param _permission the permission identifier
      * @param _holder the address holding the permission
-     * @return true if the permission holders includes the given address
+     * @return true if the given address is included in the holders of the specified permission
      */
     function hasPermission(bytes32 _permission, address _holder) public view returns (bool result) {
         if (permissions[_permission].exists) {
@@ -190,6 +190,39 @@ contract AbstractPermissioned is Permissioned {
                 (permissions[_permission].holders.length > 0 &&
                  permissions[_permission].holders[0] == _holder);
         }
+    }
+
+    /**
+     * @dev Returns the holder address of the given permission at the specified index
+     * @param _permission the permission identifier
+     * @param _index the index in the list of holders (always 0 for single-holder permissions)
+     * @return the address of the holder at the given index position
+     */
+    function getHolder(bytes32 _permission, uint _index) external view returns (address) {
+        if (permissions[_permission].exists && permissions[_permission].holders.length > _index) {
+            return permissions[_permission].holders[_index];
+        }
+        return address(0);
+    }
+
+    /**
+     * @dev Returns detailed information about the specified permission
+     * @param _permission the permission identifier
+     * @return exists - whether the permission exists
+     * @return multiHolder - whether the permission allows multiple holders
+     * @return revocable - whether the permission is revocable
+     * @return transferable - whether the permission is transferable
+     * @return holderSize - the number of current holders of the permission
+     */
+    function getPermissionDetails(bytes32 _permission) external view returns (bool exists, bool multiHolder, bool revocable, bool transferable, uint holderSize) {
+        exists = permissions[_permission].exists;
+        if (exists) {
+            multiHolder = permissions[_permission].multiHolder;
+            revocable = permissions[_permission].revocable;
+            transferable = permissions[_permission].transferable;
+            holderSize = permissions[_permission].holders.length;
+        }
+        return (exists, multiHolder, revocable, transferable, holderSize);
     }
 
 }

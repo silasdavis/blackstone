@@ -88,6 +88,14 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 		address governingAgreementAddress
 	);
 
+	// LogAgreementOwnerUpdate is used when retrofitting Agreement contracts < v1.1.0 with an owner value
+	// see also #upgradeOwnerPermission(address)
+	event LogAgreementOwnerUpdate(
+		bytes32 indexed eventId,
+		address archetypeAddress,
+		address owner
+	);
+
 	bytes32 public constant EVENT_ID_AGREEMENTS = "AN://agreements";
 	bytes32 public constant EVENT_ID_AGREEMENT_PARTY_MAP = "AN://agreement-to-party";
 	bytes32 public constant EVENT_ID_GOVERNING_AGREEMENT = "AN://governing-agreements";
@@ -97,8 +105,7 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	// Internal EventListener event
 	bytes32 public constant EVENT_ID_STATE_CHANGED = "AGREEMENT_STATE_CHANGED";
 
-  bytes32 public constant ROLE_ID_CREATOR = keccak256(abi.encodePacked("agreement.creator"));
-  bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("agreement.owner"));
+ 	bytes32 public constant ROLE_ID_OWNER = keccak256(abi.encodePacked("agreement.owner"));
 
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
@@ -201,6 +208,12 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	function getCreator() external view returns (address);
 
 	/**
+	 * @dev Returns the owner
+	 * @return the owner
+	 */
+	function getOwner() external view returns (address);
+
+	/**
 	 * @dev Returns the private state
 	 * @return the private flag 
 	 */
@@ -260,5 +273,13 @@ contract ActiveAgreement is VersionedArtifact, Permissioned, DataStorage, Addres
 	 * This function should REVERT if the cancel operation could not be carried out successfully.
 	 */ 
 	function cancel() external;
+
+	/**
+	 * @dev Creates the "owner" permission and sets the owner of the ActiveAgreement to the specified address.
+	 * This function is used to retrofit older (< v1.1.0) contracts that did not get the owner field set in their initialize() function
+	 * and emit an appropriate event that can be used to update external data systems
+	 * @param _owner the owner of this ActiveAgreement
+	 */
+	function upgradeOwnerPermission(address _owner) external;
 
 }

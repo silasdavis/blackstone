@@ -24,17 +24,18 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractO
 	
 	/**
 	 * @dev Creates a new archetype
-	 * @param _author author
-	 * @param _owner owner
-	 * @param _price price
+	 * REVERTS if:
+	 * - if archetype initialization fails
+4	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
+	 * @param _author author
+	 * @param _owner owner
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
 	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
 	 * @param _packageId id of package this archetype is part of (optional)
 	 * @param _governingArchetypes array of archetype addresses which govern this archetype (optional)
 	 * @return archetype - the new archetype's address, if successfully created
-	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
 		uint _price, 
