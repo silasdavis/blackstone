@@ -21,7 +21,7 @@ class VentHelper {
       if (height > this.high_water) {
         this.high_water = height;
         this.emitter.emit('height', this.high_water);
-        log.debug(`Updated high_water to height: [ ${this.high_water} ]`);
+        log.trace(`Updated high_water to height: [ ${this.high_water} ]`);
       }
     }
   }
