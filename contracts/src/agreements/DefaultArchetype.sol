@@ -1,14 +1,6 @@
 pragma solidity ^0.4.25;
 
-import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
-import "commons-utils/ArrayUtilsLib.sol";
-import "commons-utils/TypeUtilsLib.sol";
-import "commons-utils/DataTypes.sol";
-import "commons-collections/Mappings.sol";
-import "commons-collections/MappingsLib.sol";
-import "documents-commons/Documents.sol";
-import "commons-management/AbstractDelegateTarget.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
 import "commons-auth/AbstractPermissioned.sol";
 
@@ -23,8 +15,24 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), DefaultArchetype_
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
+	 * param _price a price indicator for creating agreements from this archetype
+	 * param _isPrivate determines if this archetype's documents are encrypted
+	 * param _active determines if this archetype is active
+	 * param _author author
+	 * param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
+	 * param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
+	 * param _governingArchetypes array of governing archetype addresses (optional)
 	 */
-	function initialize(uint,bool,bool,address,address,address,address[]) external {
+	function initialize(
+		uint /*_price*/,
+		bool /*_isPrivate*/,
+		bool /*_active*/,
+		address /*_author*/,
+		address /*_formationProcess*/,
+		address /*_executionProcess*/,
+		address[] /*_governingArchetypes*/)
+		external
+	{
 		revert(ErrorsLib.format(ErrorsLib.INVALID_STATE(),
 		"DefaultArchetype.initialize(uint256,bool,bool,address,address,address,address[])",
 		"This version of initialize is no longer supported. Please use DefaultArchetype.initialize(uint256,bool,bool,address,address,address,address,address[])"));
