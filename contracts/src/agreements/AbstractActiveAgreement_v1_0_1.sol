@@ -15,7 +15,12 @@ import "agreements/AgreementsAPI.sol";
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement_v1_0_1.sol";
 
-contract DefaultActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement_v1_0_1 {
+/**
+ * @title Abstract ActiveAgreement v1.0.1
+ * @dev Legacy version of the DefaultActiveAgreement implementation that was separated out to secure backwards compatibility by versionizing a snapshot of the contract and allowing future versions to extend it.
+ * Note that this legacy version is an abstract contract due to not inheriting AbstractVersionedArtifact which must be inherited and initialized with a version at the current DefaultActiveAgreement contract.
+ */
+contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement_v1_0_1 {
 	
 	using ArrayUtilsLib for address[];
 	using TypeUtilsLib for bytes32;
@@ -74,7 +79,7 @@ contract DefaultActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataSt
 		governingAgreements = _governingAgreements;
 		legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogAgreementCreation_v1_0_1(
+		emit LogAgreementCreation(
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,

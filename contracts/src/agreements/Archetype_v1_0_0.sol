@@ -5,12 +5,12 @@ import "commons-management/VersionedArtifact.sol";
 
 
 /**
- * @title Archetype Interface
- * @dev API for interaction with an agreement archetype
+ * @title Archetype Interface v1.0.0
+ * @dev Legacy version of the Archetype interface that was separated out to secure backwards compatibility by versionizing a snapshot of the interface and allowing future versions to extend it.
  */
 contract Archetype_v1_0_0 is VersionedArtifact {
 
-	event LogArchetypeCreation_v1_0_0(
+	event LogArchetypeCreation(
 		bytes32 indexed eventId,
 		address archetypeAddress,
 		uint price,

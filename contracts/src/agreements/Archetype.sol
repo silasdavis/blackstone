@@ -6,12 +6,13 @@ import "agreements/Archetype_v1_0_0.sol";
 
 /**
  * @title Archetype Interface
- * @dev API for interaction with an agreement archetype
+ * @dev API for interaction with an Archetype. This contract represents the latest "version" of the interface by inheriting from past versions and guaranteeing
+ * the existence of past event and function signatures.
  */
 contract Archetype is Archetype_v1_0_0, Permissioned {
 
 	// v1.1.0 LogArchetypeCreation event with added field 'owner'
-	event LogArchetypeCreation(
+	event LogArchetypeCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address archetypeAddress,
 		uint price,
@@ -58,8 +59,8 @@ contract Archetype is Archetype_v1_0_0, Permissioned {
 		external;
 
 	/**
-	 * @dev Gets Owner
-	 * @return owner owner
+	 * @dev Returns the owner
+	 * @return the owner address
 	 */
 	function getOwner() external view returns (address);
 

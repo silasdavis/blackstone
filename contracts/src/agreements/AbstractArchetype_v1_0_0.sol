@@ -14,10 +14,11 @@ import "commons-management/AbstractVersionedArtifact.sol";
 import "agreements/Archetype_v1_0_0.sol";
 
 /**
- * @title DefaultArchetype
- * @dev Default agreements network archetype
+ * @title Abstract Archetype v1.0.0
+ * @dev Legacy version of the DefaultArchetype implementation that was separated out to secure backwards compatibility by versionizing a snapshot of the contract and allowing future versions to extend it.
+ * Note that this legacy version is an abstract contract due to not inheriting AbstractVersionedArtifact which must be inherited and initialized with a version at the current DefaultArchetype contract.
  */
-contract DefaultArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
+contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 
 	using ArrayUtilsLib for bytes32[];
 	using ArrayUtilsLib for address[];
@@ -88,7 +89,7 @@ contract DefaultArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 		governingArchetypes = _governingArchetypes;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogArchetypeCreation_v1_0_0(
+		emit LogArchetypeCreation(
 			EVENT_ID_ARCHETYPES,
 			address(this),
 			_price,

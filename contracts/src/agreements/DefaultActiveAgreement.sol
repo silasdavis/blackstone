@@ -6,9 +6,14 @@ import "commons-auth/AbstractPermissioned.sol";
 
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement.sol";
-import "agreements/DefaultActiveAgreement_v1_0_1.sol";
+import "agreements/AbstractActiveAgreement_v1_0_1.sol";
 
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), DefaultActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
+/**
+ * @title DefaultActiveAgreement
+ * @dev Default implementation of the ActiveAgreement interface. This contract represents the latest "version" of the artifact by inheriting from past versions to guarantee the order
+ * of storage variable declarations. It also inherits and instantiates AbstractVersionedArtifact.
+ */
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), AbstractActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
@@ -84,7 +89,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), DefaultActi
 		permissions[ROLE_ID_OWNER].holders[0] = _owner;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogAgreementCreation(
+		emit LogAgreementCreation_v1_1_0(
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,
@@ -106,7 +111,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), DefaultActi
 
 	/**
 	 * @dev Returns the owner
-	 * @return the owner or an empty address
+	 * @return the owner address or an empty address if not set
 	 */
 	function getOwner() external view returns (address) {
     	return permissions[ROLE_ID_OWNER].holders.length > 0 ? permissions[ROLE_ID_OWNER].holders[0] : address(0);

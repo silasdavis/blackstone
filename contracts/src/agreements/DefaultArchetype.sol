@@ -5,13 +5,14 @@ import "commons-management/AbstractVersionedArtifact.sol";
 import "commons-auth/AbstractPermissioned.sol";
 
 import "agreements/Archetype.sol";
-import "agreements/DefaultArchetype_v1_0_0.sol";
+import "agreements/AbstractArchetype_v1_0_0.sol";
 
 /**
  * @title DefaultArchetype
- * @dev Default agreements network archetype
+ * @dev Default implementation of the Archetype interface. This contract represents the latest "version" of the artifact by inheriting from past versions to guarantee the order
+ * of storage variable declarations. It also inherits and instantiates AbstractVersionedArtifact.
  */
-contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), DefaultArchetype_v1_0_0, AbstractPermissioned, Archetype {
+contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), AbstractArchetype_v1_0_0, AbstractPermissioned, Archetype {
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
@@ -90,7 +91,7 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), DefaultArchetype_
 		permissions[ROLE_ID_OWNER].holders[0] = _owner;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogArchetypeCreation(
+		emit LogArchetypeCreation_v1_1_0(
 			EVENT_ID_ARCHETYPES,
 			address(this),
 			_price,
@@ -112,8 +113,8 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), DefaultArchetype_
 	}
 
 	/**
-	 * @dev Gets Owner
-	 * @return owner owner
+	 * @dev Returns the owner
+	 * @return the owner address or an empty address if not set
 	 */
 	function getOwner() external view returns (address) {
     	return permissions[ROLE_ID_OWNER].holders.length > 0 ? permissions[ROLE_ID_OWNER].holders[0] : address(0);

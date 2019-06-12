@@ -6,12 +6,13 @@ import "agreements/ActiveAgreement_v1_0_1.sol";
 
 /**
  * @title ActiveAgreement Interface
- * @dev API for interaction with an Active Agreement
+ * @dev API for interaction with an ActiveAgreement. This contract represents the latest "version" of the interface by inheriting from past versions and guaranteeing
+ * the existence of past event and function signatures.
  */
 contract ActiveAgreement is ActiveAgreement_v1_0_1, Permissioned {
 
 	// v1.1.0 LogAgreementCreation event with added field 'owner' and modified parameters ordering
-	event LogAgreementCreation(
+	event LogAgreementCreation_v1_1_0(
 		bytes32 indexed eventId,
 		address	agreementAddress,
 		address	archetypeAddress,
@@ -57,7 +58,7 @@ contract ActiveAgreement is ActiveAgreement_v1_0_1, Permissioned {
 
 	/**
 	 * @dev Returns the owner
-	 * @return the owner
+	 * @return the owner address
 	 */
 	function getOwner() external view returns (address);
 

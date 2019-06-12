@@ -9,12 +9,12 @@ import "commons-management/VersionedArtifact.sol";
 import "agreements/Agreements.sol";
 
 /**
- * @title ActiveAgreement Interface
- * @dev API for interaction with an Active Agreement
+ * @title ActiveAgreement Interface v1.0.1
+ * @dev Legacy version of the ActiveAgreement interface that was separated out to secure backwards compatibility by versionizing a snapshot of the interface and allowing future versions to extend it.
  */
 contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes, Signable, EventEmitter {
 
-	event LogAgreementCreation_v1_0_1(
+	event LogAgreementCreation(
 		bytes32 indexed eventId,
 		address	agreementAddress,
 		address	archetypeAddress,
