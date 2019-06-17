@@ -90,8 +90,8 @@ ValidatorAddress = "0201EF325305ABD75E1FB8A8F539730F71547484"
   Moniker = "TestValidator0"
   TendermintRoot = ".burrow"
   AuthorizedPeers = ""
-  CreateEmptyBlocks = false
-  CreateEmptyBlocksInterval = 0
+  # CreateEmptyBlocks = "never"
+  # CreateEmptyBlocksInterval = 0
   TimeoutFactor = 0.1
 
 [Execution]
