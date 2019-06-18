@@ -14,7 +14,9 @@ const QUERIES = {
   insertUser: `INSERT INTO ${appDb}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
     VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;`,
 
-  insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2);`,
+  insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2) RETURNING id;`,
+
+  updateOrganization: `UPDATE ${appDb}.organizations SET address = $2, name = $3 WHERE id = $1 OR ($1 IS NULL AND address = $2);`,
 
   userIsOrganizationApprover: `SELECT (
       $1 IN (
@@ -336,7 +338,21 @@ const insertUserActivationCode = (userId, code) => runQuery(QUERIES.insertUserAc
   .catch((err) => { throw boom.badImplementation(`Failed to insert user activation code: ${err.stack}`); });
 
 const insertOrganization = (address, name) => runQuery(QUERIES.insertOrganization, [address, name])
-  .catch((err) => { throw boom.badImplementation(`Failed to insert organization in app db: ${err.stack}`); });
+  .then(rows => rows[0])
+  .catch((err) => {
+    if (err.code === '23505') {
+      throw boom.conflict(`Organization with name ${name} already exists`);
+    }
+    throw boom.badImplementation(`Failed to insert organization in app db: ${err.stack}`);
+  });
+
+const updateOrganization = (id, address, name) => runQuery(QUERIES.updateOrganization, [id, address, name])
+  .catch((err) => {
+    if (err.code === '23505') {
+      throw boom.conflict(`Organization with name ${name} already exists`);
+    }
+    throw boom.badImplementation(`Failed to update organization ${address}: ${err.stack}`);
+  });
 
 const getOrganizations = (queryParams) => {
   const query = where(queryParams);
@@ -1088,9 +1104,11 @@ const upgradeExternalUser = ({
   .catch((err) => { throw boom.badImplementation(`Failed to upgrade external user: ${err.stack}`); });
 
 module.exports = {
+  QUERIES,
   insertUser,
   insertUserActivationCode,
   insertOrganization,
+  updateOrganization,
   getOrganizations,
   getOrganization,
   userIsOrganizationApprover,

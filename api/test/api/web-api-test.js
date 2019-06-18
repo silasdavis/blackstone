@@ -297,6 +297,10 @@ describe('User Profile', () => {
       resAcme.should.exist;
     }).timeout(5000);
 
+    it('Should NOT allow duplicate organization names in POST', async () => {
+      await assert.isRejected(api.createOrganization(orgTestToken, acme));
+    }).timeout(5000);
+    
     it('PUT users Approver, Accountant, and Employee to organization', async () => {
       await api.addOrganizationUsers(orgTestToken, acme.address, [approver.address, accountant.address, employee.address]);
       // verify users on this organization
@@ -307,6 +311,26 @@ describe('User Profile', () => {
       users.find(({ address }) => address === accountant.address).should.not.be.undefined;
       users.find(({ address }) => address === employee.address).should.not.be.undefined;
     }).timeout(10000);
+
+    it('Should allow organization approver to change organization name', async () => {
+      await api.updateOrganization(orgTestToken, acme.address, { name: 'NEW NAME' });
+    }).timeout(5000);
+
+    it('Should NOT allow a non-approver to change organization name', async () => {
+      const accountantLogin = await api.loginUser(accountant);
+      await assert.isRejected(api.updateOrganization(accountantLogin.token, acme.address, { name: 'NEW NEW NAME' }));
+    }).timeout(5000);
+
+    it('Should NOT allow duplicate organization names in PUT', async () => {
+      await api.createOrganization(orgTestToken, { name: 'NEW NEW NAME' });
+      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, { name: 'NEW NEW NAME' }));
+    }).timeout(5000);
+
+    it('Should NOT allow update to empty name', async () => {
+      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, { name: '' }));
+      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, { name: null }));
+      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, {}));
+    }).timeout(5000);
 
     it('DELETE a User Employee from organization', async () => {
       await api.removeOrganizationUser(orgTestToken, acme.address, employee.address);
