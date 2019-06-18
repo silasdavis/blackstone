@@ -108,16 +108,16 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	/**
 	 * @dev Sets active to true for given archetype
 	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to activate)
+	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
 	 */
-	function activate(address _archetype, address _author) external;
+	function activate(address _archetype, address _user) external;
 
 	/**
 	 * @dev Sets active to false for given archetype
 	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to deactivate)
+	 * @param _user address of the user (must match the owner of the archetype i or be a member of the owner organizationn order to deactivate)
 	 */
-	function deactivate(address _archetype, address _author) external;
+	function deactivate(address _archetype, address _user) external;
 
 	/**
 	 * @dev Sets archetype successor

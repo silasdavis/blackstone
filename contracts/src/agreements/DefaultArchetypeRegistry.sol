@@ -153,16 +153,16 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	/**
 	 * @dev Sets active to true for given archetype
 	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to activate)
+	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
 	 */
-	function activate(address _archetype, address _author) external {
+	function activate(address _archetype, address _user) external {
 		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.activate", "Arcehtype address must be supplied");
 		ErrorsLib.revertIf(
-      _author != Archetype(_archetype).getOwner() && 
-          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_author, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
+      _user != Archetype(_archetype).getOwner() && 
+          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_user, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
       ErrorsLib.UNAUTHORIZED(),
       "DefaultArchetypeRegistry.activate",
-      "Given author address is not the owner or a member of the owner org and is not authorized to activate archetype"
+      "Given user address is not the owner or a member of the owner org and is not authorized to activate archetype"
     );
 		Archetype(_archetype).activate();
 	}
@@ -170,15 +170,15 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	/**
 	 * @dev Sets active to false for given archetype
 	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to deactivate)
+	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
 	 */
-	function deactivate(address _archetype, address _author) external {
+	function deactivate(address _archetype, address _user) external {
 		ErrorsLib.revertIf(
-      _author != Archetype(_archetype).getOwner() &&
-          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_author, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
+      _user != Archetype(_archetype).getOwner() &&
+          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_user, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
       ErrorsLib.UNAUTHORIZED(),
       "DefaultArchetypeRegistry.activate",
-      "Given author address is not the owner or a member of the owner org and is not authorized to deactivate archetype"
+      "Given user address is not the owner or a member of the owner org and is not authorized to deactivate archetype"
     );
 		Archetype(_archetype).deactivate();
 	}
