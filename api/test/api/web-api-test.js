@@ -245,8 +245,11 @@ describe('User Profile', () => {
   describe('Organizations', () => {
     // Variables for each entity
     const acme = {
-      name: 'ACME Corp',
+      name: `ACME Corp ${rid(10, 'aA0')}`,
     };
+    const newName1 = `NEW ACME ${rid(10, 'aA0')}`;
+    const newName2 = `NEW NEW ACME ${rid(10, 'aA0')}`;
+
     const accounting = {
       name: 'Accounting Department',
     };
@@ -313,17 +316,18 @@ describe('User Profile', () => {
     }).timeout(10000);
 
     it('Should allow organization approver to change organization name', async () => {
-      await api.updateOrganization(orgTestToken, acme.address, { name: 'NEW NAME' });
+      await api.updateOrganization(orgTestToken, acme.address, { name: newName1 });
     }).timeout(5000);
 
     it('Should NOT allow a non-approver to change organization name', async () => {
+      await api.activateUser(accountant);
       const accountantLogin = await api.loginUser(accountant);
-      await assert.isRejected(api.updateOrganization(accountantLogin.token, acme.address, { name: 'NEW NEW NAME' }));
+      await assert.isRejected(api.updateOrganization(accountantLogin.token, acme.address, { name: newName2 }));
     }).timeout(5000);
 
     it('Should NOT allow duplicate organization names in PUT', async () => {
-      await api.createOrganization(orgTestToken, { name: 'NEW NEW NAME' });
-      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, { name: 'NEW NEW NAME' }));
+      await api.createOrganization(orgTestToken, { name: newName2 });
+      await assert.isRejected(api.updateOrganization(orgTestToken, acme.address, { name: newName2 }));
     }).timeout(5000);
 
     it('Should NOT allow update to empty name', async () => {

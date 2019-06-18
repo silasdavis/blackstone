@@ -240,7 +240,7 @@ module.exports = (app, customMiddleware) => {
    *           type: string
    *
    */
-  app.post('/organizations/:address', middleware, updateOrganization, sendResponse);
+  app.put('/organizations/:address', middleware, updateOrganization, sendResponse);
 
   /**
    * @swagger
