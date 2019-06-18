@@ -15,12 +15,13 @@ import "agreements/ArchetypeRegistry.sol";
 import "agreements/ArchetypeRegistryDb.sol";
 import "agreements/DefaultArchetype.sol";
 import "agreements/Agreements.sol";
+import "commons-auth/Organization.sol";
 
 /**
  * @title DefaultArchetypeRegistry
  * @dev Creates and tracks archetypes
  */
-contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
+contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
 	
 	/**
 	 * @dev Creates a new archetype
@@ -156,7 +157,13 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractO
 	 */
 	function activate(address _archetype, address _author) external {
 		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.activate", "Arcehtype address must be supplied");
-		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given author address is not authorized to activate archetype");
+		ErrorsLib.revertIf(
+      _author != Archetype(_archetype).getOwner() && 
+          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_author, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
+      ErrorsLib.UNAUTHORIZED(),
+      "DefaultArchetypeRegistry.activate",
+      "Given author address is not the owner or a member of the owner org and is not authorized to activate archetype"
+    );
 		Archetype(_archetype).activate();
 	}
 
@@ -166,7 +173,13 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractO
 	 * @param _author address of author (must match the author of the archetype in order to deactivate)
 	 */
 	function deactivate(address _archetype, address _author) external {
-		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given address is not authorized to deactivate archetype");
+		ErrorsLib.revertIf(
+      _author != Archetype(_archetype).getOwner() &&
+          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_author, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
+      ErrorsLib.UNAUTHORIZED(),
+      "DefaultArchetypeRegistry.activate",
+      "Given author address is not the owner or a member of the owner org and is not authorized to deactivate archetype"
+    );
 		Archetype(_archetype).deactivate();
 	}
 
