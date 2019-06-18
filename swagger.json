@@ -2455,7 +2455,7 @@
         "parameters": [
           {
             "name": "approver",
-            "description": "If the optional query parameter is given causes a JOIN query  to retrieve only organizations where the specified user is an approver. Value of 'true' will do the above for the authenticated user.",
+            "description": "If the optional query parameter is given causes a JOIN query to retrieve only organizations where the specified user is an approver. Value of 'true' will do the above for the authenticated user.",
             "in": "query",
             "type": "boolean"
           }
@@ -2634,6 +2634,47 @@
                   }
                 }
               }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organizations"
+        ],
+        "description": "Updates an existing organization. Accepts a new name. Authorizes organization approvers.",
+        "produces": [
+          "text/plain"
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "description": "Organization's contract address",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "New organization details",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Organization's human readable name"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updates organization details",
+            "schema": {
+              "type": "string"
             }
           }
         }

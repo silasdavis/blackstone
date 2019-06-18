@@ -218,8 +218,13 @@ module.exports = (app, customMiddleware) => {
    *     produces:
    *       - text/plain
    *     parameters:
+   *       - name: address
+   *         description: Organization's contract address
+   *         in: path
+   *         required: true
+   *         type: string
    *       - name: body
-   *         description: Update an Organization
+   *         description: New organization details
    *         in: body
    *         required: true
    *         schema:
