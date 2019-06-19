@@ -12,7 +12,7 @@ import "agreements/AbstractArchetype_v1_0_0.sol";
  * @dev Default implementation of the Archetype interface. This contract represents the latest "version" of the artifact by inheriting from past versions to guarantee the order
  * of storage variable declarations. It also inherits and instantiates AbstractVersionedArtifact.
  */
-contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), AbstractArchetype_v1_0_0, AbstractPermissioned, Archetype {
+contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype_v1_0_0, AbstractPermissioned, Archetype {
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
