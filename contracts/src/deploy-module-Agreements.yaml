@@ -83,7 +83,7 @@ jobs:
 - name: ArchetypeRegistry
   deploy:
     contract: DefaultArchetypeRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils$:ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ArchetypeRegistryDb
   deploy:
@@ -215,7 +215,7 @@ jobs:
 - name: DefaultArchetypeImplementation
   deploy:
     contract: DefaultArchetype.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils$:ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: ObjectClassArchetype
   query-contract:
