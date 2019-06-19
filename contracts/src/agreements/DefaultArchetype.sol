@@ -3,6 +3,7 @@ pragma solidity ^0.4.25;
 import "commons-base/ErrorsLib.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
 import "commons-auth/AbstractPermissioned.sol";
+import "commons-standards/ERC165Utils.sol";
 
 import "agreements/Archetype.sol";
 import "agreements/AbstractArchetype_v1_0_0.sol";

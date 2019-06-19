@@ -32,13 +32,6 @@ jobs:
     function: lookup
     data: [MappingsLib]
 
-- name: ERC165Utils
-  query-contract:
-    destination: $DOUG
-    bin: DOUG
-    function: lookup
-    data: [ERC165Utils]
-
 #####
 # ArchetypeRegistry Upgrade
 #####
@@ -53,7 +46,7 @@ jobs:
 - name: NewArchetypeRegistry
   deploy:
     contract: DefaultArchetypeRegistry.bin
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
 
 - name: ChangeUpgradeOwnership
   call:
