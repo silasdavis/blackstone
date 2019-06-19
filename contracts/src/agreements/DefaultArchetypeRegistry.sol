@@ -15,7 +15,6 @@ import "agreements/ArchetypeRegistry.sol";
 import "agreements/ArchetypeRegistryDb.sol";
 import "agreements/DefaultArchetype.sol";
 import "agreements/Agreements.sol";
-import "commons-auth/Organization.sol";
 
 /**
  * @title DefaultArchetypeRegistry
