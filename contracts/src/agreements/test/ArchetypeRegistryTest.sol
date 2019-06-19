@@ -92,20 +92,20 @@ contract ArchetypeRegistryTest {
 			return "Creating archetype with empty owner should revert";
 		}
 
-		archetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		archetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (archetype == address(0)) return "Archetype address is empty after creation";
 
 		if (registry.getArchetypesSize() != 2) return "There should be 2 archetypes in the registry";
 		if (registry.getArchetypeAtIndex(1) != archetype) return "Archetype in registry at index 1 should match last created address";
 
-		registry.activate(archetype, falseAddress);
+		Archetype(archetype).activate();
 		if (!Archetype(archetype).isActive()) return "Archetype should be active";
 
-		registry.deactivate(archetype, falseAddress);
+		Archetype(archetype).deactivate();
 		if (Archetype(archetype).isActive()) return "Archetype should be deactivated";
 
 		if (Archetype(archetype).getAuthor() != falseAddress) return "Archetype author should be returned";
-		if (Archetype(archetype).getOwner() != falseAddress) return "Archetype owner should be returned";
+		if (Archetype(archetype).getOwner() != address(this)) return "Archetype owner should be returned";
 
 		// Parameter
 
@@ -208,18 +208,18 @@ contract ArchetypeRegistryTest {
 
 		address successor;
 
-		droneArchetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		droneArchetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == address(0)) return "droneArchetype address empty after creation";
 
 		droneArchetype2 = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype2 == address(0)) return "droneArchetype2 address empty after creation";
 
-		registry.setArchetypeSuccessor(droneArchetype, droneArchetype2, falseAddress);
+		Archetype(droneArchetype).setSuccessor(droneArchetype2);
 
 		successor = registry.getArchetypeSuccessor(droneArchetype);
 		if (successor != droneArchetype2) return "Successor of droneArchetype is not set to droneArchetype2";
 		if (Archetype(droneArchetype).isActive()) return "droneArchetype is still active even with successor set";
-		
+
 		return SUCCESS;
 	}
 

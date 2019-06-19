@@ -55,7 +55,7 @@ jobs:
   deploy:
     contract: ArchetypeRegistryTest.bin
     instance: ArchetypeRegistryTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
     data: [$IsoCountries]
 
 - name: testArchetypeCreation

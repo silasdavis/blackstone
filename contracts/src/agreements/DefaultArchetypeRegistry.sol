@@ -151,59 +151,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	}
 
 	/**
-	 * @dev Sets active to true for given archetype
-	 * @param _archetype address of archetype
-	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
-	 */
-	function activate(address _archetype, address _user) external {
-		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.activate", "Arcehtype address must be supplied");
-		ErrorsLib.revertIf(
-      _user != Archetype(_archetype).getOwner() && 
-          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_user, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
-      ErrorsLib.UNAUTHORIZED(),
-      "DefaultArchetypeRegistry.activate",
-      "Given user address is not the owner or a member of the owner org and is not authorized to activate archetype"
-    );
-		Archetype(_archetype).activate();
-	}
-
-	/**
-	 * @dev Sets active to false for given archetype
-	 * @param _archetype address of archetype
-	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
-	 */
-	function deactivate(address _archetype, address _user) external {
-		ErrorsLib.revertIf(
-      _user != Archetype(_archetype).getOwner() &&
-          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_user, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
-      ErrorsLib.UNAUTHORIZED(),
-      "DefaultArchetypeRegistry.activate",
-      "Given user address is not the owner or a member of the owner org and is not authorized to deactivate archetype"
-    );
-		Archetype(_archetype).deactivate();
-	}
-
-	/**
-	 * @dev Sets archetype successor
-	 * @param _archetype address of archetype
-	 * @param _successor address of successor
-	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
-	 */
-	function setArchetypeSuccessor(address _archetype, address _successor, address _user) external {
-		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Archetype address must be supplied");
-		// TODO the author should not be transmitted as a parameter and the check should move into the archetype.setSuccessor
-		ErrorsLib.revertIf(
-      _user != Archetype(_archetype).getOwner() && 
-          !Organization(Archetype(_archetype).getOwner()).authorizeUser(_user, Organization(Archetype(_archetype).getOwner()).getOrganizationKey()),
-      ErrorsLib.UNAUTHORIZED(),
-      "DefaultArchetypeRegistry.setArchetypeSuccessor",
-      "Given author address is not authorized to set successor"
-    );
-		ErrorsLib.revertIf(_successor != 0x0 && !ArchetypeRegistryDb(database).archetypeExists(_successor), ErrorsLib.INVALID_INPUT(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Successor archetype is not known in this registry");
-		Archetype(_archetype).setSuccessor(_successor);
-	}
-
-	/**
 	 * @dev Returns archetype successor
 	 * @param _archetype address of archetype
 	 * @return address address of successor

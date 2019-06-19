@@ -22,6 +22,13 @@ contract AddressScopes {
 
 	bytes32 public constant EVENT_ID_ENTITIES_ADDRESS_SCOPES = "AN://entities/address-scopes";
 
+  // The ERC165 ID only comprises the core Address Scopes functions
+	bytes4 public constant ERC165_ID_Address_Scopes = bytes4(keccak256(abi.encodePacked("setAddressScope(address _address, bytes32 _context, bytes32 _fixedScope, bytes32 _dataPath, bytes32 _dataStorageId, address _dataStorage)"))) ^
+													bytes4(keccak256(abi.encodePacked("resolveAddressScope(address _address, bytes32 _context, DataStorage _dataStorage)"))) ^
+													bytes4(keccak256(abi.encodePacked("getAddressScopeDetails(address _address, bytes32 _context)"))) ^
+													bytes4(keccak256(abi.encodePacked("getAddressScopeDetailsForKey(bytes32 _key)"))) ^
+													bytes4(keccak256(abi.encodePacked("getAddressScopeKeys()")));
+
 	/**
 	 * @dev Associates the given address with a scope qualifier for a given context.
 	 * The context can be used to bind the same address to different scenarios and different scopes.

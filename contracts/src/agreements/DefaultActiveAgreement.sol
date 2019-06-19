@@ -13,7 +13,7 @@ import "agreements/AbstractActiveAgreement_v1_0_1.sol";
  * @dev Default implementation of the ActiveAgreement interface. This contract represents the latest "version" of the artifact by inheriting from past versions to guarantee the order
  * of storage variable declarations. It also inherits and instantiates AbstractVersionedArtifact.
  */
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), AbstractActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,1), AbstractActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
@@ -70,6 +70,8 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,0), AbstractAct
 			ErrorsLib.INVALID_PARAMETER_STATE(), "DefaultActiveAgreement.initialize", "Archetype must be active");
 		
 		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
+
+    addInterfaceSupport(ERC165_ID_Address_Scopes);
 
 		archetype = _archetype;
 		creator = _creator;

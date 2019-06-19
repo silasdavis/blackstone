@@ -144,4 +144,43 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,0), AbstractArchetype
 		permissions[ROLE_ID_OWNER].holders[0] = _owner;
 		emit LogArchetypeOwnerUpdate(EVENT_ID_ARCHETYPES, address(this), _owner);
 	}
+
+	/**
+	 * @dev Sets the successor this archetype. Setting a successor automatically deactivates this archetype.
+	 * REVERTS if:
+	 * - msg.sender is not the owner or a member of the owner organization
+	 * - given successor is the same address as itself.
+	 * - intended action will lead to two archetypes with their successors pointing to each other.
+	 * @param _successor address of successor archetype
+	 */
+	function setSuccessor(address _successor) external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
+		ErrorsLib.revertIf(_successor == address(this),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
+		ErrorsLib.revertIf(Archetype_v1_0_0(_successor).getSuccessor() == address(this),
+			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
+		active = false;
+		successor = _successor;
+		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, address(this), _successor);
+	}
+
+	/**
+	 * @dev Activates this archetype
+   * REVERTS if:
+	 * - msg.sender is not the owner or a member of the owner organization
+	 */
+	function activate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
+		ErrorsLib.revertIf(successor != 0x0, ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
+		active = true;
+		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), true);
+	}
+
+	/**
+	 * @dev Deactivates this archetype
+   * REVERTS if:
+	 * - msg.sender is not the owner or a member of the owner organization
+	 */
+	function deactivate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
+		active = false;
+		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
+	}
 }

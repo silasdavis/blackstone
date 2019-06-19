@@ -106,28 +106,6 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	function addJurisdictions(address _archetype, bytes2[] _countries, bytes32[] _regions) external returns (uint error);
 
 	/**
-	 * @dev Sets active to true for given archetype
-	 * @param _archetype address of archetype
-	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
-	 */
-	function activate(address _archetype, address _user) external;
-
-	/**
-	 * @dev Sets active to false for given archetype
-	 * @param _archetype address of archetype
-	 * @param _user address of the user (must match the owner of the archetype i or be a member of the owner organizationn order to deactivate)
-	 */
-	function deactivate(address _archetype, address _user) external;
-
-	/**
-	 * @dev Sets archetype successor
-	 * @param _archetype address of archetype
-	 * @param _successor address of successor
-	 * @param _user address of the user (must match the owner of the archetype or be a member of the owner organization in order to activate)
-	 */
-	function setArchetypeSuccessor(address _archetype, address _successor, address _user) external;
-
-	/**
 	 * @dev Returns archetype successor
 	 * @param _archetype address of archetype
 	 * @return address address of successor

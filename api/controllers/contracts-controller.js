@@ -312,34 +312,43 @@ const getArchetypeAuthor = (archetypeAddress) => {
 
 const activateArchetype = (archetypeAddress, userAccount) => {
   log.debug(`REQUEST: Activate archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.activate(archetypeAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to activate archetype at ${archetypeAddress} by user ${userAccount}`));
-      log.info(`SUCCESS: Archetype at ${archetypeAddress} activated by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.activate.encode();
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Archetype at ${archetypeAddress} activated by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding activate request via acting user ${userAccount} to archetype ${archetypeAddress}! Error: ${error}`)));
   });
 };
 
 const deactivateArchetype = (archetypeAddress, userAccount) => {
   log.debug(`REQUEST: Deactivate archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.deactivate(archetypeAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to activate archetype at ${archetypeAddress} by user ${userAccount}`));
-      log.info(`SUCCESS: Archetype at ${archetypeAddress} deactivated by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.deactivate.encode();
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Archetype at ${archetypeAddress} deactivated by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding deactivate request via acting user ${userAccount} to archetype ${archetypeAddress}! Error: ${error}`)));
   });
 };
 
 const setArchetypeSuccessor = (archetypeAddress, successorAddress, userAccount) => {
   log.debug(`REQUEST: Set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.setArchetypeSuccessor(archetypeAddress, successorAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`));
-      log.info(`SUCCESS: Successfully set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.setArchetypeSuccessor.encode(successorAddress);
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Successor ${successorAddress} set for archetype at ${archetypeAddress} by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding setArchetypeSuccessor request via acting user ${userAccount} to archetype ${archetypeAddress} with successor ${successorAddress}! Error: ${error}`)));
   });
 };
 
