@@ -321,9 +321,10 @@ const runQuery = async (queryString, values = [], existingClient) => {
     log.trace('Running query by PG-Query-Helper: ');
     log.trace(queryString, values);
     const { rows } = await client.query(queryString, values);
+    if (!existingClient) client.release();
     return rows;
   } catch (err) {
-    client.release();
+    if (!existingClient) client.release();
     throw boom.badImplementation(err);
   }
 };
