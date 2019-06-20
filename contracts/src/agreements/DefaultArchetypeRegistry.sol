@@ -20,7 +20,7 @@ import "agreements/Agreements.sol";
  * @title DefaultArchetypeRegistry
  * @dev Creates and tracks archetypes
  */
-contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
+contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractObjectFactory, ArtifactsFinderEnabled, AbstractDbUpgradeable, ArchetypeRegistry {
 	
 	/**
 	 * @dev Creates a new archetype
@@ -147,41 +147,6 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,0), AbstractO
 				return;
 		}
 		return BaseErrors.NO_ERROR();
-	}
-
-	/**
-	 * @dev Sets active to true for given archetype
-	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to activate)
-	 */
-	function activate(address _archetype, address _author) external {
-		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.activate", "Arcehtype address must be supplied");
-		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given author address is not authorized to activate archetype");
-		Archetype(_archetype).activate();
-	}
-
-	/**
-	 * @dev Sets active to false for given archetype
-	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to deactivate)
-	 */
-	function deactivate(address _archetype, address _author) external {
-		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.activate", "Given address is not authorized to deactivate archetype");
-		Archetype(_archetype).deactivate();
-	}
-
-	/**
-	 * @dev Sets archetype successor
-	 * @param _archetype address of archetype
-	 * @param _successor address of successor
-	 * @param _author address of author (must match the author of the archetype in order to set successor)
-	 */
-	function setArchetypeSuccessor(address _archetype, address _successor, address _author) external {
-		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Archetype address must be supplied");
-		// TODO the author should not be transmitted as a parameter and the check should move into the archetype.setSuccessor
-		ErrorsLib.revertIf(_author != Archetype(_archetype).getAuthor(), ErrorsLib.UNAUTHORIZED(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Given author address is not authorized to set successor");
-		ErrorsLib.revertIf(_successor != 0x0 && !ArchetypeRegistryDb(database).archetypeExists(_successor), ErrorsLib.INVALID_INPUT(), "DefaultArchetypeRegistry.setArchetypeSuccessor", "Successor archetype is not known in this registry");
-		Archetype(_archetype).setSuccessor(_successor);
 	}
 
 	/**

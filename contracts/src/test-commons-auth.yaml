@@ -18,6 +18,14 @@ jobs:
     contract: MappingsLib.bin
     libraries: TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib
 
+- name: DataStorageUtils
+  deploy:
+    contract: DataStorageUtils.bin
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
+
+- name: ERC165Utils
+  deploy:
+    contract: ERC165Utils.bin
 
 ##########
 # SecureNativeAuthorizations Tests
@@ -157,7 +165,7 @@ jobs:
   deploy:
     contract: PermissionedTest.bin
     instance: PermissionedTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, DataStorageUtils:$DataStorageUtils, ERC165Utils:$ERC165Utils
 
 - name: testPermissions
   call:

@@ -39,6 +39,13 @@ jobs:
     function: lookup
     data: [MappingsLib]
 
+- name: ERC165Utils
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ERC165Utils]
+
 #####
 # Archetype Upgrade
 #####
@@ -71,7 +78,7 @@ jobs:
 - name: ArchetypeImplementationUpgrade
   deploy:
     contract: DefaultArchetype.bin
-    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, TypeUtilsLib:$TypeUtilsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
 
 - name: RegisterArchetypeObjectClass
   call:
