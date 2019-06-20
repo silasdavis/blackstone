@@ -113,16 +113,13 @@ const getOrganization = asyncMiddleware(async (req, res, next) => {
 
 const createOrganization = asyncMiddleware(async (req, res, next) => {
   const org = req.body;
+  log.info(`Request to create new organization: ${org.name}`);
   if (!org.name) throw boom.badRequest('Organization name is required');
   if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { id } = (await client.query({
-      text: db.QUERIES.insertOrganization,
-      values: [null, org.name],
-    })).rows[0];
-    log.info(`Request to create new organization: ${org.name}`);
+    const { id } = await db.insertOrganization(null, org.name, client);
     if (!org.approvers || org.approvers.length === 0) {
       log.debug(`No approvers provided for new organization. Setting current user ${req.user.address} as approver.`);
       org.approvers = [req.user.address];
@@ -130,14 +127,12 @@ const createOrganization = asyncMiddleware(async (req, res, next) => {
     const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
     org.defaultDepartmentId = defDepId;
     const address = await contracts.createOrganization(org);
-    await client.query({
-      text: db.QUERIES.updateOrganization,
-      values: [id, address, org.name],
-    });
-    await client.query({
-      text: db.QUERIES.insertDepartmentDetails,
-      values: [address, defDepId, org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID],
-    });
+    await db.updateOrganization(id, address, org.name, client);
+    await db.insertDepartmentDetails({
+      organizationAddress: address,
+      id: defDepId,
+      name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID,
+    }, client);
     await client.query('COMMIT');
     client.release();
     log.info('Added organization name and address to postgres');
