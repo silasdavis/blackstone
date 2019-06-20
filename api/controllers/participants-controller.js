@@ -134,17 +134,16 @@ const createOrganization = asyncMiddleware(async (req, res, next) => {
       name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID,
     }, client);
     await client.query('COMMIT');
-    client.release();
     log.info('Added organization name and address to postgres');
     res.locals.data = { address, name: org.name };
     res.status(200);
     return next();
   } catch (err) {
     await client.query('ROLLBACK');
-    client.release();
-    if (err.code === '23505') throw boom.conflict(`Organization with name ${org.name} already exists`);
     if (boom.isBoom(err)) throw err;
     throw boom.badImplementation(err);
+  } finally {
+    client.release();
   }
 });
 
