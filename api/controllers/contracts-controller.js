@@ -310,6 +310,7 @@ const getArchetypeAuthor = (archetypeAddress) => {
   });
 };
 
+
 const activateArchetype = (archetypeAddress, userAccount) => {
   log.debug(`REQUEST: Activate archetype at ${archetypeAddress} by user at ${userAccount}`);
   const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
@@ -342,7 +343,7 @@ const setArchetypeSuccessor = (archetypeAddress, successorAddress, userAccount) 
   log.debug(`REQUEST: Set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`);
   const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    const payload = archetype.setArchetypeSuccessor.encode(successorAddress);
+    const payload = archetype.setSuccessor.encode(successorAddress);
     callOnBehalfOf(userAccount, archetypeAddress, payload, true)
       .then(() => {
         log.info(`SUCCESS: Successor ${successorAddress} set for archetype at ${archetypeAddress} by user at ${userAccount}`);
