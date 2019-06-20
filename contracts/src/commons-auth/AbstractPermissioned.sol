@@ -45,7 +45,7 @@ contract AbstractPermissioned is Permissioned {
     /**
      * @dev Modifier to guard functions that should be invoked by a msg.sender with a given permission.
      * Checks if the msg.sender holds the permission, or if the permission holder is an organization, checks if the msg.sender belongs to the organization.
-     * If the permission object implements address scopes, checks if the msg.sender belongs to the scope existing under the given context.
+     * If the permission object implements address scopes and the permission holder is an organization, checks if the msg.sender belongs to the scope (ie department) existing under the given context.
      * REVERTS if:
      * - the msg.sender does not hold the specfied permission
      * @param _permission the permission for which to check

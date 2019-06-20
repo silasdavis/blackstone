@@ -64,7 +64,7 @@ contract PermissionedTest {
 		if (!multiHolder) return "Details for permission2 should show multiHolder==true";
 		if (!revocable) return "Details for permission2 should show revocable==true";
 		if (!transferable) return "Details for permission2 should show transferable==true";
-		if (holderSize != 2) return "Details for permission2 should show holderSize==1";
+		if (holderSize != 2) return "Details for permission2 should show holderSize==2";
 		if (object3.getHolder(permission2, 0) != msg.sender) return "Holder at idx 0 for permission2 should be msg.sender";
 		if (object3.getHolder(permission2, 1) != address(this)) return "Holder at idx 1 for permission2 should be test contract";
 		if (object3.getHolder(permission2, 3) != address(0)) return "Holder at idx 2 for permission2 with non-existent index should return 0x0";
