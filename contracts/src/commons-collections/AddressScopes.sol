@@ -24,7 +24,7 @@ contract AddressScopes {
 
   // The ERC165 ID only comprises the core Address Scopes functions
 	bytes4 public constant ERC165_ID_Address_Scopes = bytes4(keccak256(abi.encodePacked("setAddressScope(address,bytes32,bytes32,bytes32,bytes32,address)"))) ^
-													bytes4(keccak256(abi.encodePacked("resolveAddressScope(address,bytes32,DataStorage)"))) ^
+													bytes4(keccak256(abi.encodePacked("resolveAddressScope(address,bytes32,address)"))) ^
 													bytes4(keccak256(abi.encodePacked("getAddressScopeDetails(address,bytes32)"))) ^
 													bytes4(keccak256(abi.encodePacked("getAddressScopeDetailsForKey(bytes32)"))) ^
 													bytes4(keccak256(abi.encodePacked("getAddressScopeKeys()")));
