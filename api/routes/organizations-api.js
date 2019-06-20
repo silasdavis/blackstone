@@ -2,6 +2,7 @@ const {
   getOrganizations,
   getOrganization,
   createOrganization,
+  updateOrganization,
   createOrganizationUserAssociations,
   deleteOrganizationUserAssociation,
   addApproversToOrganization,
@@ -47,7 +48,7 @@ module.exports = (app, customMiddleware) => {
    *     parameters:
    *       - name: approver
    *         description: >-
-   *           If the optional query parameter is given causes a JOIN query 
+   *           If the optional query parameter is given causes a JOIN query
    *           to retrieve only organizations where the specified
    *           user is an approver. Value of 'true' will do the above for the authenticated user.
    *         in: query
@@ -69,7 +70,7 @@ module.exports = (app, customMiddleware) => {
    *             name:
    *               type: string
    *               description: Organization's human readable name
-   * 
+   *
    */
   app.get('/organizations', middleware, getOrganizations, sendResponse);
 
@@ -141,7 +142,7 @@ module.exports = (app, customMiddleware) => {
    *                     type: array
    *                     items:
    *                       type: string
-   * 
+   *
    */
   app.get('/organizations/:address', middleware, getOrganization, sendResponse);
 
@@ -179,16 +180,16 @@ module.exports = (app, customMiddleware) => {
    *               description: >-
    *                 Organization's approvers are the adminsistrators of that
    *                 organization
-   * 
+   *
    *                 and may approve the addition of new users into the organization,
    *                 set the roles of users within the
-   * 
+   *
    *                 organization, as well as remove users from the organization.
    *                 This array is optional.
-   * 
+   *
    *                 If no approvers are passed, the currently logged-in user's
    *                 address is used as the single
-   * 
+   *
    *                 approver of for the new organization.
    *     responses:
    *       '200':
@@ -201,9 +202,45 @@ module.exports = (app, customMiddleware) => {
    *               description: address of the created Organization
    *             name:
    *               type: string
-   * 
+   *
    */
   app.post('/organizations', middleware, createOrganization, sendResponse);
+
+  /**
+   * @swagger
+   *
+   * /organizations/{address}:
+   *   put:
+   *     tags:
+   *       - "Organizations"
+   *     description: >-
+   *       Updates an existing organization. Accepts a new name. Authorizes organization approvers.
+   *     produces:
+   *       - text/plain
+   *     parameters:
+   *       - name: address
+   *         description: Organization's contract address
+   *         in: path
+   *         required: true
+   *         type: string
+   *       - name: body
+   *         description: New organization details
+   *         in: body
+   *         required: true
+   *         schema:
+   *           type: object
+   *           properties:
+   *             name:
+   *               type: string
+   *               description: Organization's human readable name
+   *     responses:
+   *       '200':
+   *         description: Updates organization details
+   *         schema:
+   *           type: string
+   *
+   */
+  app.put('/organizations/:address', middleware, updateOrganization, sendResponse);
 
   /**
    * @swagger
@@ -242,7 +279,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Adds users to Organization
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.put(
     '/organizations/:address/users', middleware,
@@ -276,7 +313,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Removes a user from Organization
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.delete(
     '/organizations/:address/users/:userAddress', middleware,
@@ -321,7 +358,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Adds approvers to Organization
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.put(
     '/organizations/:address/approvers', middleware,
@@ -355,7 +392,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Removes an approver from Organization
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.delete(
     '/organizations/:address/approvers/:userAddress', middleware,
@@ -391,7 +428,7 @@ module.exports = (app, customMiddleware) => {
    *                 type: string
    *               description: >-
    *                 Addresses of the members to add to the Department
-   * 
+   *
    *                 If not given, department will be created with no members and
    *                 members can be added later
    *       - name: address
@@ -415,7 +452,7 @@ module.exports = (app, customMiddleware) => {
    *               type: array
    *               items:
    *                 type: string
-   * 
+   *
    */
   app.put('/organizations/:address/departments', middleware, createDepartment, sendResponse);
 
@@ -445,7 +482,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Remove a Department
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.delete('/organizations/:address/departments/:id', middleware, removeDepartment, sendResponse);
 
@@ -488,7 +525,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Add Users to a Department
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.put('/organizations/:address/departments/:id/users', middleware, addDepartmentUsers, sendResponse);
 
@@ -523,7 +560,7 @@ module.exports = (app, customMiddleware) => {
    *         description: Remove User from a Department
    *         schema:
    *           type: string
-   * 
+   *
    */
   app.delete('/organizations/:address/departments/:id/users/:userAddress', middleware, removeDepartmentUser, sendResponse);
 };

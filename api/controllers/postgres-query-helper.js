@@ -14,7 +14,9 @@ const QUERIES = {
   insertUser: `INSERT INTO ${appDb}.users(address, username, first_name, last_name, email, password_digest, is_producer) 
     VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;`,
 
-  insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2);`,
+  insertOrganization: `INSERT INTO ${appDb}.organizations(address, name) VALUES($1, $2) RETURNING id;`,
+
+  updateOrganization: `UPDATE ${appDb}.organizations SET address = $2, name = $3 WHERE id = $1 OR ($1 IS NULL AND address = $2);`,
 
   userIsOrganizationApprover: `SELECT (
       $1 IN (
@@ -313,17 +315,19 @@ const QUERIES = {
     RETURNING id, address;`,
 };
 
-const runQuery = (queryString, values = []) => pool
-  .connect()
-  .then(client => client.query(queryString, values).then((res) => {
+const runQuery = async (queryString, values = [], existingClient) => {
+  const client = existingClient || await pool.connect();
+  try {
     log.trace('Running query by PG-Query-Helper: ');
     log.trace(queryString, values);
-    client.release();
-    return res.rows;
-  }).catch((err) => {
-    client.release();
+    const { rows } = await client.query(queryString, values);
+    if (!existingClient) client.release();
+    return rows;
+  } catch (err) {
+    if (!existingClient) client.release();
     throw boom.badImplementation(err);
-  }));
+  }
+};
 
 const insertUser = (address, username, firstName, lastName, email, passwordHash, isProducer) => runQuery(
   QUERIES.insertUser,
@@ -335,8 +339,22 @@ const insertUser = (address, username, firstName, lastName, email, passwordHash,
 const insertUserActivationCode = (userId, code) => runQuery(QUERIES.insertUserActivationCode, [userId, code])
   .catch((err) => { throw boom.badImplementation(`Failed to insert user activation code: ${err.stack}`); });
 
-const insertOrganization = (address, name) => runQuery(QUERIES.insertOrganization, [address, name])
-  .catch((err) => { throw boom.badImplementation(`Failed to insert organization in app db: ${err.stack}`); });
+const insertOrganization = (address, name, client) => runQuery(QUERIES.insertOrganization, [address, name], client)
+  .then(rows => rows[0])
+  .catch((err) => {
+    if (err.code === '23505') {
+      throw boom.conflict(`Organization with name ${name} already exists`);
+    }
+    throw boom.badImplementation(`Failed to insert organization in app db: ${err.stack}`);
+  });
+
+const updateOrganization = (id, address, name, client) => runQuery(QUERIES.updateOrganization, [id, address, name], client)
+  .catch((err) => {
+    if (err.code === '23505') {
+      throw boom.conflict(`Organization with name ${name} already exists`);
+    }
+    throw boom.badImplementation(`Failed to update organization ${address}: ${err.stack}`);
+  });
 
 const getOrganizations = (queryParams) => {
   const query = where(queryParams);
@@ -1045,7 +1063,7 @@ const insertPackageDetails = ({ id, name, description }) => runQuery(QUERIES.ins
 const insertCollectionDetails = ({ id, name }) => runQuery(QUERIES.insertCollectionDetails, [id, name])
   .catch((err) => { throw boom.badImplementation(`Failed to insert collection details: ${err.stack}`); });
 
-const insertDepartmentDetails = ({ organizationAddress, id, name }) => runQuery(QUERIES.insertDepartmentDetails, [organizationAddress, id, name])
+const insertDepartmentDetails = ({ organizationAddress, id, name }, client) => runQuery(QUERIES.insertDepartmentDetails, [organizationAddress, id, name], client)
   .catch((err) => { throw boom.badImplementation(`Failed to insert department details: ${err.stack}`); });
 
 const removeDepartmentDetails = ({ organizationAddress, id }) => runQuery(QUERIES.removeDepartmentDetails, [organizationAddress, id])
@@ -1088,9 +1106,11 @@ const upgradeExternalUser = ({
   .catch((err) => { throw boom.badImplementation(`Failed to upgrade external user: ${err.stack}`); });
 
 module.exports = {
+  QUERIES,
   insertUser,
   insertUserActivationCode,
   insertOrganization,
+  updateOrganization,
   getOrganizations,
   getOrganization,
   userIsOrganizationApprover,

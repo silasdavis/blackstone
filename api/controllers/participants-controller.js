@@ -113,21 +113,47 @@ const getOrganization = asyncMiddleware(async (req, res, next) => {
 
 const createOrganization = asyncMiddleware(async (req, res, next) => {
   const org = req.body;
+  log.info(`Request to create new organization: ${org.name}`);
   if (!org.name) throw boom.badRequest('Organization name is required');
   if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
-  log.info(`Request to create new organization: ${org.name}`);
-  if (!org.approvers || org.approvers.length === 0) {
-    log.debug(`No approvers provided for new organization. Setting current user ${req.user.address} as approver.`);
-    org.approvers = [req.user.address];
-  }
-  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
-  org.defaultDepartmentId = defDepId;
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    const { id } = await db.insertOrganization(null, org.name, client);
+    if (!org.approvers || org.approvers.length === 0) {
+      log.debug(`No approvers provided for new organization. Setting current user ${req.user.address} as approver.`);
+      org.approvers = [req.user.address];
+    }
+    const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
+    org.defaultDepartmentId = defDepId;
     const address = await contracts.createOrganization(org);
-    await db.insertOrganization(address, org.name);
-    await db.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
+    await db.updateOrganization(id, address, org.name, client);
+    await db.insertDepartmentDetails({
+      organizationAddress: address,
+      id: defDepId,
+      name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID,
+    }, client);
+    await client.query('COMMIT');
     log.info('Added organization name and address to postgres');
     res.locals.data = { address, name: org.name };
+    res.status(200);
+    return next();
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (boom.isBoom(err)) throw err;
+    throw boom.badImplementation(err);
+  } finally {
+    client.release();
+  }
+});
+
+const updateOrganization = asyncMiddleware(async (req, res, next) => {
+  try {
+    if (!req.body.name) throw boom.badRequest('Organization name is required.');
+    if (req.body.name.length > 255) throw boom.badRequest('Organization name cannot be longer than 255 characters.');
+    const isApprover = await db.userIsOrganizationApprover(req.params.address, req.user.address);
+    if (!isApprover) throw boom.forbidden(`User ${req.user.address} does not have sufficient privileges to update organization ${req.params.address}`);
+    await db.updateOrganization(null, req.params.address, req.body.name);
     res.status(200);
     return next();
   } catch (err) {
@@ -488,6 +514,7 @@ const editProfile = asyncMiddleware(async (req, res, next) => {
     res.status(200);
     return next();
   } catch (err) {
+    client.query('ROLLBACK');
     client.release();
     if (err.isBoom) return next(err);
     return next(boom.badImplementation(`Error editing profile: ${err}`));
@@ -577,6 +604,7 @@ module.exports = {
   getOrganizations,
   getOrganization,
   createOrganization,
+  updateOrganization,
   createOrganizationUserAssociations,
   deleteOrganizationUserAssociation,
   addApproversToOrganization,

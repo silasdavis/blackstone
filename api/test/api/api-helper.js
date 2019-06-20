@@ -565,6 +565,19 @@ module.exports = (server) => {
       });
     }),
 
+    updateOrganization: (token, address, body) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .put(`/organizations/${address}`)
+      .send(body)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('put organization NOT OK'));
+        return resolve();
+      });
+    }),
+
     getOrganizations: (token) => new Promise((resolve, reject) => {
       chai
       .request(server)
