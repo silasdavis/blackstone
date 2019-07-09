@@ -7,7 +7,6 @@ class VentHelper {
   constructor(connectionString, maxWaitTime) {
     this.connectionString = connectionString;
     this.maxWaitTime = maxWaitTime || 3000;
-    this.client = new Client({ connectionString });
     this.high_water = 0;
     this.emitter = new EventEmitter();
   }
@@ -67,7 +66,16 @@ class VentHelper {
   }
 
   listen() {
+    this.client = new Client({ connectionString: this.connectionString });
     this.client.connect();
+    this.client.on('error', (err) => {
+      log.error(`Encountered VentHelper pg client error: ${err.stack}`);
+    });
+    this.client.on('end', () => {
+      // Emitted when the client disconnects from the PostgreSQL server
+      log.info('VentHelper pg client disconnected. Creating a new client and resuming listening for height notifications...');
+      this.listen();
+    });
     this.client.on('notification', msg => this.handleHeight(msg));
     this.client.query('LISTEN height');
   }
