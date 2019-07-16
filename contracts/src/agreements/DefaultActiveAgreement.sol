@@ -13,7 +13,7 @@ import "agreements/AbstractActiveAgreement_v1_0_1.sol";
  * @dev Default implementation of the ActiveAgreement interface. This contract represents the latest "version" of the artifact by inheriting from past versions to guarantee the order
  * of storage variable declarations. It also inherits and instantiates AbstractVersionedArtifact.
  */
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,1), AbstractActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractActiveAgreement_v1_0_1, AbstractPermissioned, ActiveAgreement {
 
 	/**
 	 * @dev Legacy initialize function that is not supported anymore in this version of DefaultArchetype and will always revert.
@@ -71,7 +71,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,1), AbstractAct
 		
 		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
 
-    addInterfaceSupport(ERC165_ID_Address_Scopes);
+    	addInterfaceSupport(ERC165_ID_Address_Scopes);
 
 		archetype = _archetype;
 		creator = _creator;
@@ -89,6 +89,11 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,1), AbstractAct
 		permissions[ROLE_ID_OWNER].exists = true;
 		permissions[ROLE_ID_OWNER].holders.length = 1;
 		permissions[ROLE_ID_OWNER].holders[0] = _owner;
+
+		permissions[ROLE_ID_LEGAL_STATE_CONTROLLER].multiHolder = false;
+		permissions[ROLE_ID_LEGAL_STATE_CONTROLLER].revocable = true;
+		permissions[ROLE_ID_LEGAL_STATE_CONTROLLER].transferable = true;
+		permissions[ROLE_ID_LEGAL_STATE_CONTROLLER].exists = true;
 
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
 		emit LogAgreementCreation_v1_1_0(
@@ -112,36 +117,61 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,2,1), AbstractAct
 	}
 
 	/**
+	 * @dev Applies the msg.sender or tx.origin as a signature to this agreement, if it can be authorized as a valid signee.
+	 * The timestamp of an already existing signature is not overwritten in case the agreement is signed again by the
+	 * same signatory!
+	 * Once the agreement is fully signed (all signatures applied), its legal state automatically switches to EXECUTED,
+	 * unless an external controller (see permissions[ROLE_ID_LEGAL_STATE_CONTROLLER]) is set.
+	 * REVERTS if:
+	 * - the caller could not be authorized (see AgreementsAPI.authorizePartyActor())
+	 */
+	function sign() external {
+
+		address signee;
+		address party;
+
+		(signee, party) = AgreementsAPI.authorizePartyActor(address(this));
+
+		// if the signee is empty at this point, the authorization is regarded as failed
+		ErrorsLib.revertIf(signee == 0x0, ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
+
+		// the signature is only applied, if no previous signature for the party exists
+		if (signatures[party].timestamp == 0) {
+			signatures[party].signee = signee;
+			signatures[party].timestamp = block.timestamp;
+			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
+			// if the legal state is not controlled externally and the agreement is executed, change the legal state here
+			if (AgreementsAPI.isFullyExecuted(address(this)) &&
+			   permissions[ROLE_ID_LEGAL_STATE_CONTROLLER].holders.length == 0) {
+				legalState = Agreements.LegalState.EXECUTED;
+				emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
+			}
+		}
+	}
+
+	/**
+	 * @dev Sets the legal state of this agreement
+	 * Note: The modifier pre_validateNextLegalState is currently not applied on this function to allow
+	 * the ROLE_ID_LEGAL_STATE_CONTROLLER to jump to any legal state in order to support importing legacy
+	 * agreements into the system.
+	 * REVERTS if:
+	 * - the msg.sender does not have the ROLE_ID_LEGAL_STATE_CONTROLLER permission
+	 * @param _legalState the Agreements.LegalState
+	 */
+	function setLegalState(Agreements.LegalState _legalState)
+		pre_requiresPermission(ROLE_ID_LEGAL_STATE_CONTROLLER)
+		external
+	{
+		legalState = _legalState;
+		emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
+	}
+
+	/**
 	 * @dev Returns the owner
 	 * @return the owner address or an empty address if not set
 	 */
 	function getOwner() external view returns (address) {
     	return permissions[ROLE_ID_OWNER].holders.length > 0 ? permissions[ROLE_ID_OWNER].holders[0] : address(0);
-	}
-
-	/**
-	 * @dev Creates the "owner" permission and sets the owner of the ActiveAgreement to the specified address.
-	 * This function is used to retrofit older (< v1.1.0) contracts that did not get the owner field set in their initialize() function
-	 * and emit an appropriate event that can be used to update external data systems
- 	 * REVERTS if:
-	 * - The provided owner address is empty
-	 * - The owner permission already exists (which indicates that the contract has been upgraded already)
-	 * @param _owner the owner of this ActiveAgreement
-	 */
-	function upgradeOwnerPermission(address _owner) external {
-		ErrorsLib.revertIf(_owner == address(0),
-			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreement.upgradeOwnerPermission", "The provided address must not be empty");
-		ErrorsLib.revertIf(permissions[ROLE_ID_OWNER].exists,
-			ErrorsLib.INVALID_STATE(), "DefaultActiveAgreement.upgradeOwnerPermission", "The owner permission already exists. This contract's storage might already have been upgraded");
-		permissions[ROLE_ID_OWNER].multiHolder = false;
-		permissions[ROLE_ID_OWNER].revocable = false;
-		permissions[ROLE_ID_OWNER].transferable = true;
-		permissions[ROLE_ID_OWNER].exists = true;
-		// Note: there currently is no code path that would lead to the permission marked as "exists" (see above) while a holder is already registered,
-		// so is is not explicitly checked if an existing holder is overwritten
-		permissions[ROLE_ID_OWNER].holders.length = 1;
-		permissions[ROLE_ID_OWNER].holders[0] = _owner;
-		emit LogAgreementOwnerUpdate(EVENT_ID_AGREEMENTS, address(this), _owner);
 	}
 
 }

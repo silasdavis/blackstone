@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const EventEmitter = require('events');
 const util = require('util');
 const boom = require('boom');
@@ -407,7 +405,7 @@ const addArchetypeParameters = (address, parameters) => new Promise((resolve, re
       if (parseInt(data.raw[0], 10) !== 1) {
         return reject(boom.badImplementation(`Error code adding parameter to archetype at ${address}: ${data.raw[0]}`));
       }
-      log.info(`SUCCESS: Added parameters ${paramNames} to archetype at ${address}`);
+      log.info(`SUCCESS: Added parameters ${parameters.map(({ name }) => name)} to archetype at ${address}`);
       return resolve();
     });
 });
@@ -556,6 +554,36 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
         log.info(`SUCCESS: Created agreement by ${creator} at address ${data.raw[0]}`);
         return resolve(data.raw[0]);
       });
+});
+
+const grantLegalStateControllerPermission = agreementAddress => new Promise((resolve, reject) => {
+  log.debug(`REQUEST: Grant legal state controller permission for agreement ${agreementAddress}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.ROLE_ID_LEGAL_STATE_CONTROLLER((permIdError, data) => {
+    if (permIdError || !data.raw) {
+      return reject(boomify(permIdError, `Failed to get legal state controller permission id for agreement ${agreementAddress}`));
+    }
+    const permissionId = data.raw[0];
+    return agreement.grantPermission(permissionId, serverAccount, (permGrantError) => {
+      if (permGrantError) {
+        return reject(boomify(permGrantError, `Failed to grant legal state controller permission for agreement ${agreementAddress}`));
+      }
+      log.info(`SUCCESS: Granted legal state controller permission for agreement ${agreementAddress}`);
+      return resolve();
+    });
+  });
+});
+
+const setLegalState = (agreementAddress, legalState) => new Promise((resolve, reject) => {
+  log.debug(`REQUEST: Set legal state of agreement ${agreementAddress} to ${legalState}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.setLegalState(legalState, (error) => {
+    if (error) {
+      return reject(boomify(error, `Failed to set legal state of agreement ${agreementAddress} to ${legalState}`));
+    }
+    log.info(`SUCCESS: Set legal state of agreement ${agreementAddress} to ${legalState}`);
+    return resolve();
+  });
 });
 
 const initializeObjectAdministrator = agreementAddress => new Promise((resolve, reject) => {
@@ -1424,6 +1452,8 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
+  grantLegalStateControllerPermission,
+  setLegalState,
   initializeObjectAdministrator,
   setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,

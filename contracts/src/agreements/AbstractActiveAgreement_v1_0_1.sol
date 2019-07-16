@@ -43,6 +43,44 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	address[] governingAgreements;
 
 	/**
+	 * @dev Checks the valid state transitions according to the below rules.
+	 * The modifer will simply return if the current state already equals the new state.
+	 * It is allowed to "jump" to any legal state, if the current state is UNDEFINED.
+	 * 
+	 * Allowed legal state changes:
+	 * UNDEFINED -> *ANY*
+	 * DRAFT <-> FORMULATED
+	 * FORMULATED -> EXECUTED
+	 * EXECUTED -> FULFILLED | DEFAULT
+	 * DRAFT | FORMULATED | EXECUTED -> CANCELED
+
+	 * REVERTS if:
+	 * - the transition from the current state to the new state is not valid
+	 * @param _newState the target legal state
+	 */
+	modifier pre_validateNextLegalState(Agreements.LegalState _newState) {
+		if (legalState == _newState) {
+			return;
+		}
+		if (legalState == Agreements.LegalState.UNDEFINED
+			|| (legalState == Agreements.LegalState.DRAFT &&
+			  (_newState == Agreements.LegalState.FORMULATED || _newState == Agreements.LegalState.CANCELED))
+			|| (legalState == Agreements.LegalState.FORMULATED &&
+			  (_newState == Agreements.LegalState.EXECUTED || _newState == Agreements.LegalState.DRAFT || _newState == Agreements.LegalState.CANCELED))
+			|| (legalState == Agreements.LegalState.EXECUTED &&
+			  (_newState == Agreements.LegalState.FULFILLED || _newState == Agreements.LegalState.DEFAULT || _newState == Agreements.LegalState.CANCELED))
+		) {
+			_;
+		}
+		else {
+			revert(ErrorsLib.format(
+				ErrorsLib.INVALID_PARAMETER_STATE(),
+				"DefaultActiveAgreement.pre_isValidNextLegalState",
+				"The transition from the current legal state to the target legal state is not valid"));
+		}
+	}
+
+	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
@@ -246,34 +284,6 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	}
 
 	/**
-	 * @dev Applies the msg.sender or tx.origin as a signature to this agreement, if it can be authorized as a valid signee.
-	 * The timestamp of an already existing signature is not overwritten in case the agreement is signed again!
-	 * REVERTS if:
-	 * - the caller could not be authorized (see AgreementsAPI.authorizePartyActor())
-	 */
-	function sign() external {
-
-		address signee;
-		address party;
-
-		(signee, party) = AgreementsAPI.authorizePartyActor(address(this));
-
-		// if the signee is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(signee == 0x0, ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
-
-		// the signature is only applied, if no previous signature for the party exists
-		if (signatures[party].timestamp == 0) {
-			signatures[party].signee = signee;
-			signatures[party].timestamp = block.timestamp;
-			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, signee, block.timestamp);
-			if (AgreementsAPI.isFullyExecuted(address(this))) {
-				legalState = Agreements.LegalState.EXECUTED;
-				emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
-			}
-		}
-	}
-
-	/**
 	 * @dev Returns the signee of the signature of the given party.
 	 * @param _party the signing party
 	 * @return the address of the signee (if the party authorized a signee other than itself)
@@ -352,13 +362,12 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	}
 
 	/**
-	 * @dev Sets the legal state of this agreement to Agreements.LegalState.FULFILLED.
-	 * Note: All other legal states are set by internal logic.
+     * @dev Sets the legal state of this agreement to Agreements.LegalState.FULFILLED.
+	 * !deprecated! use #setLegalState(Agreements.LegalState) instead 
 	 */
 	function setFulfilled() external {
-		// TODO this must only be allowed by an authorized account, e.g. SystemOwner which could be the registry
-		legalState = Agreements.LegalState.FULFILLED;
-		emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
+        legalState = Agreements.LegalState.FULFILLED;
+        emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
 	}
 
 	/**
