@@ -12,7 +12,7 @@ chai.use(chaiAsPromised)
 const should = chai.should()
 const expect = chai.expect
 const assert = chai.assert
-const monax = require('@monax/burrow')
+const burrow = require('@monax/burrow')
 const crypto = require('crypto');
 
 global.__appDir = path.resolve()
@@ -25,28 +25,25 @@ global.__controllers = path.resolve(__appDir, 'controllers')
 global.__data = path.resolve(__appDir, 'data')
 global.__lib = path.resolve(__appDir, 'lib')
 
-const logger = require(__common + '/monax-logger')
+const logger = require(__common + '/logger')
 const eventEmitter = new events.EventEmitter()
 const eventsConsts = { STARTED: 'started' }
-const log = logger.getLogger('Test.Harness')
+const log = logger.getLogger('tests.Harness')
 
-const configFilePath = process.env.MONAX_CONFIG || __config + '/settings.toml'
 global.__settings = (() => {
-  let settings = toml.parse(fs.readFileSync(configFilePath))
-  if (process.env.MONAX_HOARD) _.set(settings, 'monax.hoard', process.env.MONAX_HOARD)
-  if (process.env.MONAX_ANALYTICS_ID) _.set(settings, 'monax.analyticsID', process.env.MONAX_ANALYTICS_ID)
-  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'monax.chain.url', process.env.CHAIN_URL_GRPC);
-  if (process.env.MONAX_ACCOUNTS_SERVER_KEY) _.set(settings, 'monax.accounts.server', process.env.MONAX_ACCOUNTS_SERVER_KEY)
-  if (process.env.MONAX_CONTRACTS_LOAD) _.set(settings, 'monax.contracts.load', process.env.MONAX_CONTRACTS_LOAD)
-  if (process.env.MONAX_BUNDLES_PATH) _.set(settings, 'monax.bundles.bundles_path', process.env.MONAX_BUNDLES_PATH)
+  let settings = toml.parse(fs.readFileSync(`${global.__config}/settings.toml`))
+  if (process.env.HOARD) _.set(settings, 'hoard', process.env.HOARD)
+  if (process.env.ANALYTICS_ID) _.set(settings, 'analyticsID', process.env.ANALYTICS_ID)
+  if (process.env.CHAIN_URL_GRPC) _.set(settings, 'chain.url', process.env.CHAIN_URL_GRPC);
+  if (process.env.ACCOUNTS_SERVER_KEY) _.set(settings, 'accounts.server', process.env.ACCOUNTS_SERVER_KEY)
   return settings
 })();
 
-global.__monax_bundles = require(path.join(__common, 'monax-constants')).MONAX_BUNDLES
-global.__monax_constants = require(path.join(__common, 'monax-constants'));
+global.__bundles = require(path.join(__common, 'constants')).BUNDLES
+global.__constants = require(path.join(__common, 'constants'));
 const sqlCache = require(path.join(__controllers, 'postgres-query-helper'))
 const contracts = require(path.join(__controllers, 'contracts-controller'))
-const { chain_db_pool } = require(`${global.__common}/postgres-db`);
+const pool = require(`${global.__common}/postgres-db`);
 
 const { hexToString, stringToHex } = require(`${global.__common}/controller-dependencies`);
 global.hexToString = hexToString;
@@ -329,7 +326,7 @@ describe('CONTRACTS', () => {
   }).timeout(10000)
 
   it('Should get the process model from cache', done => {
-    chain_db_pool.query('select * from process_models;', [], (err, { rows }) => {
+    pool.query(`select * from ${global.db.schema.chain}.process_models;`, [], (err, { rows }) => {
       expect(rows.length).to.be.greaterThan(0)
       let model = rows.filter(item => {
         return item.model_address === pmAddress

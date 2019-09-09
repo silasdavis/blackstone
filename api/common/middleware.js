@@ -1,4 +1,5 @@
 const passport = require('passport');
+const boom = require('boom');
 
 /**
  * Middleware that authenticates the request with jwt
@@ -6,16 +7,24 @@ const passport = require('passport');
  */
 const ensureAuth = (req, res, next) => {
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
-    if (err) return res.status(500).send(`Failed to authenticate: ${err}`);
+    if (err) {
+      return next(boom.badImplementation(`Failed to authenticate: ${err}`));
+    }
     if (!user) {
-      if (info.message === 'No auth token') return res.status(401).send('No auth token found. Sign in to receive token');
-      if (info && info.name === 'TokenExpiredError') return res.status(401).send(`Unauthorized: ${info.message}`);
-      if (info && info.name === 'JsonWebTokenError') return res.status(401).send(`JsonWebToken Error: ${info.message}`);
-      return res.status(500).send(`Token Verification Failed: ${info.message}`);
+      if (info.message === 'No auth token') {
+        return next(boom.unauthorized('No auth token found. Sign in to receive token'));
+      }
+      if (info && info.name === 'TokenExpiredError') {
+        return next(boom.unauthorized(`Unauthorized: ${info.message}`));
+      }
+      if (info && info.name === 'JsonWebTokenError') {
+        return next(boom.unauthorized(`JsonWebToken Error: ${info.message}`));
+      }
+      return next(boom.badImplementation(`Token Verification Failed: ${info.message}`));
     }
     if (!req.user) {
       return req.login(user, (loginErr) => {
-        if (err) res.status(500).send(`Failed to login user: ${loginErr.stack}`);
+        if (loginErr) return next(boom.badImplementation(`Failed to login user: ${loginErr.stack}`));
         return next();
       });
     }

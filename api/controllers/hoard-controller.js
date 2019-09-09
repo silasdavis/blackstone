@@ -5,7 +5,7 @@ const {
 } = require(`${global.__common}/controller-dependencies`);
 const boom = require('boom');
 const Hoard = require('@monax/hoard');
-const hoard = new Hoard.Client(global.__settings.monax.hoard);
+const hoard = new Hoard.Client(global.__settings.hoard);
 
 const hoardPut = (metadata, data) => new Promise((resolve, reject) => {
   const plaintext = {

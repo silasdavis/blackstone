@@ -1,14 +1,12 @@
 const crypto = require('crypto');
 const _ = require('lodash');
 const boom = require('boom');
-
-const logger = require(`${global.__common}/monax-logger`);
-const log = logger.getLogger('monax.controllers');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
+const logger = require(`${global.__common}/logger`);
+const log = logger.getLogger('controllers.dependencies');
 const {
   DATA_TYPES,
   PARAMETER_TYPES,
-} = global.__monax_constants;
+} = global.__constants;
 
 const trimBufferPadding = (buf) => {
   let lo = 0;
@@ -23,6 +21,19 @@ const trimBufferPadding = (buf) => {
 };
 const hexToString = (hex = '') => trimBufferPadding(Buffer.from(hex, 'hex')).toString('utf8');
 const stringToHex = (str = '') => Buffer.from(str, 'utf8').toString('hex');
+
+/**
+ * Wrapper for async route handlers to catch promise rejections
+ * and pass them to express error handler
+ */
+const asyncMiddleware = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    if (!err.isBoom) {
+      return next(boom.badImplementation(err));
+    }
+    return next(err);
+  });
+};
 
 const dependencies = {
   rightPad: (hex, len) => {
@@ -50,7 +61,6 @@ const dependencies = {
    */
   format: (type, obj) => {
     const element = Object.assign({}, obj);
-    const err = new Error();
     switch (type) {
       case 'Access Point':
         element.accessPointId = hexToString(element.accessPointId);
@@ -120,53 +130,8 @@ const dependencies = {
         element.label = hexToString(element.label || '');
         break;
       case 'Parameter Value': {
-        err.status = 400;
-        const paramTypeInt = parseInt(element.parameterType, 10);
-        if (paramTypeInt === PARAMETER_TYPES.BOOLEAN) {
-          if (element.value === 'false' || element.value === '0' || !element.value) {
-            element.value = 0;
-          } else if (element.value === '1' || element.value === true || element.value === 'true') {
-            element.value = 1;
-          } else {
-            err.message = 'Invalid boolean value';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.STRING && typeof element.value !== 'string') {
-          element.value = JSON.stringify(element.value);
-        } else if (paramTypeInt === PARAMETER_TYPES.NUMBER) {
-          if (typeof element.value === 'string') {
-            element.value = parseFloat(element.value, 10);
-          }
-          if (!Number.isInteger(element.value)) {
-            err.message = 'Number values must be integers';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.DATE || paramTypeInt === PARAMETER_TYPES.DATETIME) {
-          if (typeof element.value === 'string') {
-            element.value = new Date(element.value).getTime();
-            if (Number.isNaN(parseInt(element.value, 10))) {
-              err.message = 'Date format not readable';
-              throw err;
-            }
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.MONETARY_AMOUNT) {
-          if (typeof element.value === 'string') {
-            element.value = parseFloat(element.value, 10);
-          }
-          element.value = Math.round(element.value * 100);
-        } else if (paramTypeInt === PARAMETER_TYPES.USER_ORGANIZATION ||
-          paramTypeInt === PARAMETER_TYPES.CONTRACT_ADDRESS ||
-          paramTypeInt === PARAMETER_TYPES.SIGNING_PARTY) {
-          if (typeof element.value !== 'string' || !element.value.match(/^[0-9A-Fa-f]{40}$/)) {
-            err.message = 'Accounts must be 40-digit hexadecimals';
-            throw err;
-          }
-        } else if (paramTypeInt === PARAMETER_TYPES.POSITIVE_NUMBER) {
-          if (typeof element.value === 'string') element.value = Number(element.value);
-          if (element.value < 0) {
-            err.message = 'Value must be positive';
-            throw err;
-          }
+        if (element.type === PARAMETER_TYPES.MONETARY_AMOUNT) {
+          element.value /= 100;
         }
         return element;
       }
@@ -253,42 +218,6 @@ const dependencies = {
     };
   },
 
-  getParticipantNames: async (participants, addressKey = 'address') => {
-    const text = `SELECT address, COALESCE(username, name) AS "displayName"
-    FROM (
-      SELECT username, NULL AS name, address FROM users
-      UNION
-      SELECT NULL AS username, name, address FROM organizations
-    ) accounts
-    WHERE address = ANY($1);`;
-    try {
-      const { rows: withNames } = await app_db_pool.query({
-        text,
-        values: [participants.map(({ [addressKey]: address }) => address)],
-      });
-      const names = {};
-      withNames.forEach(({ address, displayName }) => {
-        names[address] = { displayName };
-      });
-      return participants.map(account => Object.assign({}, account, names[account[addressKey]] || {}));
-    } catch (err) {
-      throw boom.badImplementation(err);
-    }
-  },
-
-  /**
-   * Wrapper for async route handlers to catch promise rejections
-   * and pass them to express error handler
-   */
-  asyncMiddleware: fn => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch((err) => {
-      if (!err.isBoom) {
-        return next(boom.badImplementation(err));
-      }
-      return next(err);
-    });
-  },
-
   byteLength: string => string.split('').reduce((acc, el) => {
     const newSum = acc + Buffer.byteLength(el, 'utf8');
     return newSum;
@@ -307,15 +236,29 @@ const dependencies = {
   prependHttps: (host) => {
     if (!String(host).startsWith('http')) {
       // eslint-disable-next-line no-param-reassign
-      host = process.env.MONAX_ENV === 'local' ? `http://${host}` : `https://${host}`;
+      host = process.env.APP_ENV === 'local' ? `http://${host}` : `https://${host}`;
       return host;
     }
     return host;
   },
 
+  sendResponse: asyncMiddleware((req, res, next) => {
+    if (res.statusCode === 302) {
+      if (!res.locals.data || typeof res.locals.data !== 'string') throw boom.badImplementation('Bad or empty url. Cannot redirect');
+      res.redirect(res.locals.data);
+    } else if (typeof res.locals.data === 'string') {
+      res.json(res.locals.data);
+    } else {
+      // `.send` will detect Arrays and Objects and use `.json` under the hood
+      res.send(res.locals.data);
+    }
+    return next();
+  }),
+
   trimBufferPadding,
   hexToString,
   stringToHex,
+  asyncMiddleware,
 };
 
 module.exports = dependencies;

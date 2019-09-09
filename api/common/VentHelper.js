@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 const EventEmitter = require('events');
-const logger = require('./monax-logger');
-const log = logger.getLogger('VENT-HELPER');
+const logger = require('./logger');
+const log = logger.getLogger('vent-helper');
 
 class VentHelper {
   constructor(connectionString, maxWaitTime) {
@@ -40,15 +40,16 @@ class VentHelper {
         let resolved = false;
         log.debug(`Created result promise for target height [ ${target} ]`);
         const callback = (height) => {
-          // If the height has been reached, and resolve promise
+          // If the height has been reached, remove event listener and resolve promise
           if (height >= target) {
+            self.emitter.removeListener('height', callback);
             log.debug(`Resolving result promise for target height [ ${target} ]`);
             resolved = true;
             resolve(result);
           }
         };
         log.debug(`Current high_water in promise: ${self.high_water}`);
-        self.emitter.once('height', callback);
+        self.emitter.on('height', callback);
         setTimeout(() => {
           if (!resolved) {
             log.warn(`>>>>>>> WARNING <<<<<<< ${new Date()}: Target height [ ${target} ] notification not received after ${self.maxWaitTime}ms, resolving promise anyway`);

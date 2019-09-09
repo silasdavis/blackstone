@@ -2,13 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
 const util = require('util');
-const logger = require(`${global.__common}/monax-logger`);
+const logger = require(`${global.__common}/logger`);
 
-/**
- * Module to handle Monax SDK-specific functionality.
- */
 (function bootstrapApp() {
-  const log = logger.getLogger('monax.app');
+  const log = logger.getLogger('burrow');
 
   // EventEmitter
   function AppEvents() {

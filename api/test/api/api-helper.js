@@ -1,15 +1,16 @@
+/* eslint-disable */
 const chai = require('chai');
 const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
-const logger = require(__common + '/monax-logger');
-const log = logger.getLogger('agreements.tests.api.helper');
-const { app_db_pool } = require(`${__common}/postgres-db`);
+const logger = require(__common + '/logger');
+const log = logger.getLogger('tests.api.helper');
+const pool = require(`${__common}/postgres-db`);
 
 module.exports = (server) => {
   return {
-    activateUser: user => app_db_pool.connect()
-      .then(async (client) => await client.query('UPDATE users SET activated = true WHERE username = $1', [user.username]))
+    activateUser: user => pool.connect()
+      .then(async (client) => await client.query(`UPDATE ${global.db.schema.app}.users SET activated = true WHERE username = $1`, [user.username]))
       .catch((err) => {
         log.error(`Failed to activate user ${JSON.stringify(user)}: ${err.stack}`);
         throw err;
@@ -94,13 +95,13 @@ module.exports = (server) => {
       });
     },
 
-    createArchetypePackage: (package, token) => {
+    createArchetypePackage: (pkg, token) => {
       return new Promise((resolve, reject) => {
         chai
         .request(server)
           .post('/archetype-packages')
           .set('Cookie', [`access_token=${token}`])
-          .send(package)
+          .send(pkg)
           .end((err, res) => {
             if (err) return reject(err);
             if (res.status !== 200) return reject(new Error('archetype package creation NOT OK'));
@@ -511,6 +512,143 @@ module.exports = (server) => {
         if (err) return reject(err);
         if (res.status !== 200) return reject(new Error('get from hoard NOT OK'));
         return resolve(res.text);
+      });
+    }),
+
+    getUsers: (token) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get('/users')
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get users NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    getProfile: (token) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get('/users/profile')
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get profile NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    updateProfile: (token, profile) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .put('/users/profile')
+      .send(profile)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('put profile NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    createOrganization: (token, org) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .post('/organizations')
+      .send(org)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('post organization NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    getOrganizations: (token) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get('/organizations')
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get organizations NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    getOrganization: (token, address) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .get(`/organizations/${address}`)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('get organization NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    addOrganizationUsers: (token, address, users) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .put(`/organizations/${address}/users`)
+      .send({ users })
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('put organization users NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    removeOrganizationUser: (token, address, user) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .delete(`/organizations/${address}/users/${user}`)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('delete organization users NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    addOrganizationDepartment: (token, address, department) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .put(`/organizations/${address}/departments`)
+      .send(department)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('put organization departments NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    addOrganizationApprovers: (token, address, users) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .put(`/organizations/${address}/approvers`)
+      .send({ users })
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('put organization approvers NOT OK'));
+        return resolve(res.body);
+      });
+    }),
+
+    removeOrganizationApprover: (token, address, user) => new Promise((resolve, reject) => {
+      chai
+      .request(server)
+      .delete(`/organizations/${address}/approvers/${user}`)
+      .set('Cookie', [`access_token=${token}`])
+      .end((err, res) => {
+        if (err) return reject(err);
+        if (res.status !== 200) return reject(new Error('delete organization approvers NOT OK'));
+        return resolve(res.body);
       });
     }),
   }

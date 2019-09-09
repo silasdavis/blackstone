@@ -6,53 +6,62 @@ const {
 const sqlCache = require('./postgres-query-helper');
 
 module.exports = {
-  getCountries: asyncMiddleware(async (req, res) => {
+  getCountries: asyncMiddleware(async (req, res, next) => {
     const countries = [];
     const data = await sqlCache.getCountries();
     data.forEach((elem) => {
       countries.push(format('Country', elem));
     });
-    return res.status(200).json(countries);
+    res.locals.data = countries;
+    res.status(200);
+    return next();
   }),
 
-  getAlpha2Countries: asyncMiddleware(async (req, res) => {
+  getAlpha2Countries: asyncMiddleware(async (req, res, next) => {
     if (!req.params.alpha2) throw boom.badRequest('Country alpha2 identifier required');
     const { alpha2 } = req.params;
     const data = await sqlCache.getCountryByAlpha2Code(alpha2);
-    return res.status(200).json(format('Country', data));
+    res.locals.data = format('Country', data);
+    res.status(200);
+    return next();
   }),
 
-  getAlpha2CountryRegions: asyncMiddleware(async (req, res) => {
+  getAlpha2CountryRegions: asyncMiddleware(async (req, res, next) => {
     if (!req.params.alpha2) throw boom.badRequest('Country alpha2 identifier required');
     const { alpha2 } = req.params;
-    const data = await sqlCache.getRegionsOfCountry(alpha2);
-    return res.status(200).json(data);
+    res.locals.data = await sqlCache.getRegionsOfCountry(alpha2);
+    res.status(200);
+    return next();
   }),
 
-  getCurrencies: asyncMiddleware(async (req, res) => {
-    const data = await sqlCache.getCurrencies();
-    return res.status(200).json(data);
+  getCurrencies: asyncMiddleware(async (req, res, next) => {
+    res.locals.data = await sqlCache.getCurrencies();
+    res.status(200);
+    return next();
   }),
 
-  getAlpha3Currencies: asyncMiddleware(async (req, res) => {
+  getAlpha3Currencies: asyncMiddleware(async (req, res, next) => {
     if (!req.params.alpha3) throw boom.badRequest('Currency alpha3 identifier required');
     const { alpha3 } = req.params;
-    const data = await sqlCache.getCurrencyByAlpha3Code(alpha3);
-    return res.status(200).json(data);
+    res.locals.data = await sqlCache.getCurrencyByAlpha3Code(alpha3);
+    res.status(200);
+    return next();
   }),
 
-  getParameterType: asyncMiddleware(async (req, res) => {
+  getParameterType: asyncMiddleware(async (req, res, next) => {
     if (!req.params.id) throw boom.badRequest('Parameter id is required');
-    const data = await sqlCache.getParameterType(req.params.id);
-    return res.status(200).json(data);
+    res.locals.data = await sqlCache.getParameterType(req.params.id);
+    res.status(200);
+    return next();
   }),
 
-  getParameterTypes: asyncMiddleware(async (req, res) => {
-    const data = await sqlCache.getParameterTypes();
-    return res.status(200).json(data);
+  getParameterTypes: asyncMiddleware(async (req, res, next) => {
+    res.locals.data = await sqlCache.getParameterTypes();
+    res.status(200);
+    return next();
   }),
 
-  getCollectionTypes: asyncMiddleware((req, res) => {
+  getCollectionTypes: asyncMiddleware((req, res, next) => {
     const collectionTypes = [{
       collectionType: 0,
       label: 'Case',
@@ -82,7 +91,9 @@ module.exports = {
       label: 'Project',
     },
     ];
-    return res.status(200).json(collectionTypes);
+    res.locals.data = collectionTypes;
+    res.status(200);
+    return next();
   }),
 
 };

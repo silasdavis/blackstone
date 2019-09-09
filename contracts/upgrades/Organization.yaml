@@ -1,0 +1,93 @@
+jobs:
+
+#####
+# Retrieve DOUG
+#####
+- name: DOUG
+  query-name:
+      name: DOUG
+      field: data
+
+#####
+# Retrieve Library Addresses
+#####
+- name: ErrorsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ErrorsLib]
+
+- name: ArrayUtilsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ArrayUtilsLib]
+
+- name: MappingsLib
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [MappingsLib]
+
+#####
+# Organization Upgrade
+#####
+- name: ParticipantsManager
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [ParticipantsManager]
+
+- name: ObjectClassOrganization
+  query-contract:
+    destination: $ParticipantsManager
+    bin: ParticipantsManager
+    function: OBJECT_CLASS_ORGANIZATION
+
+- name: OrganizationImplementationCurrentLookup
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [$ObjectClassOrganization]
+
+- name: OrganizationVersionBeforeUpgrade
+  query-contract:
+    destination: $OrganizationImplementationCurrentLookup
+    bin: Organization
+    function: getArtifactVersion
+
+- name: OrganizationImplementationUpgrade
+  deploy:
+    contract: DefaultOrganization.bin
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, MappingsLib:$MappingsLib
+
+- name: RegisterOrganizationObjectClass
+  call:
+    destination: $DOUG
+    bin: DOUG
+    function: register
+    data: [$ObjectClassOrganization, $OrganizationImplementationUpgrade]
+
+- name: OrganizationImplementationUpgradeLookup
+  query-contract:
+    destination: $DOUG
+    bin: DOUG
+    function: lookup
+    data: [$ObjectClassOrganization]
+
+- name: OrganizationVersionAfterUpgrade
+  query-contract:
+    destination: $OrganizationImplementationUpgradeLookup
+    bin: Organization
+    function: getArtifactVersion
+
+- name: AssertOrganizationUpgradeRegistered
+  assert:
+    key: $OrganizationImplementationUpgradeLookup
+    relation: eq
+    val: $OrganizationImplementationUpgrade

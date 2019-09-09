@@ -10,13 +10,14 @@ import "commons-collections/AbstractAddressScopes.sol";
 import "commons-events/DefaultEventEmitter.sol";
 import "commons-management/AbstractDelegateTarget.sol";
 import "commons-management/AbstractVersionedArtifact.sol";
+import "commons-auth/AbstractPermissioned.sol";
 
 import "agreements/Agreements.sol";
 import "agreements/AgreementsAPI.sol";
 import "agreements/Archetype.sol";
 import "agreements/ActiveAgreement.sol";
 
-contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDelegateTarget, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
+contract DefaultActiveAgreement is AbstractVersionedArtifact(1,1,0), AbstractDelegateTarget, AbstractPermissioned, AbstractDataStorage, AbstractAddressScopes, DefaultEventEmitter, ActiveAgreement {
 	
 	using ArrayUtilsLib for address[];
 	using TypeUtilsLib for bytes32;
@@ -28,7 +29,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	bytes32 constant fileKeySignatureLog = keccak256(abi.encodePacked("fileKey.signatureLog"));
 
 	address archetype;
-	address creator;
 	bool privateFlag;
 	uint32 maxNumberOfEvents;
 	Agreements.LegalState legalState;
@@ -44,6 +44,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
 	 * @param _archetype archetype address
 	 * @param _creator the account that created this agreement
+	 * @param _owner the account that owns this agreement
 	 * @param _privateParametersFileReference the file reference to the private parameters (optional)
 	 * @param _isPrivate if agreement is private
 	 * @param _parties the signing parties to the agreement
@@ -52,6 +53,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	function initialize(
 		address _archetype, 
 		address _creator, 
+		address _owner, 
 		string _privateParametersFileReference, 
 		bool _isPrivate, 
 		address[] _parties, 
@@ -67,7 +69,6 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 		validateGoverningAgreements(_governingAgreements, Archetype(_archetype).getGoverningArchetypes());
 
 		archetype = _archetype;
-		creator = _creator;
 		if (bytes(_privateParametersFileReference).length > 0) {
 			fileReferences.insertOrUpdate(fileKeyPrivateParameters, _privateParametersFileReference);
 		}
@@ -76,16 +77,30 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 		governingAgreements = _governingAgreements;
 		legalState = Agreements.LegalState.FORMULATED; //TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 		// NOTE: some of the parameters for the event must be read from storage, otherwise "stack too deep" compilation errors occur
-		emit LogAgreementCreation(
+
+    permissions[ROLE_ID_CREATOR].holders.push(_creator);
+    permissions[ROLE_ID_CREATOR].multiHolder = false;
+    permissions[ROLE_ID_CREATOR].revocable = false;
+    permissions[ROLE_ID_CREATOR].transferable = false;
+    permissions[ROLE_ID_CREATOR].exists = true;
+
+    permissions[ROLE_ID_OWNER].holders.push(_owner);
+    permissions[ROLE_ID_OWNER].multiHolder = false;
+    permissions[ROLE_ID_OWNER].revocable = false;
+    permissions[ROLE_ID_OWNER].transferable = true;
+    permissions[ROLE_ID_OWNER].exists = true;
+
+		emit LogAgreementCreation_v1_1_0(
 			EVENT_ID_AGREEMENTS,
 			address(this),
 			_archetype,
 			_creator,
+      _owner,
+			_privateParametersFileReference,
+			"",
 			_isPrivate,
 			uint8(legalState),
-			maxNumberOfEvents,
-			_privateParametersFileReference,
-			""
+			maxNumberOfEvents
 		);
 		for (uint i = 0; i < _parties.length; i++) {
 			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
@@ -231,7 +246,7 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,0,1), AbstractDel
 	 * @return the creator address
 	 */
 	function getCreator() external view returns (address) {
-		return creator;
+    return permissions[ROLE_ID_CREATOR].holders[0];
 	}
 
 	/**

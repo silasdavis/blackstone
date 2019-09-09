@@ -11,10 +11,10 @@ const _ = require('lodash');
 const crypto = require('crypto');
 
 const app = require('../../app')();
-const server = require(__common + '/aa-web-api')();
-const logger = require(__common + '/monax-logger');
-const log = logger.getLogger('agreements.tests');
-const { app_db_pool, chain_db_pool } = require(__common + '/postgres-db');
+const server = require(__common + '/aa-web-api');
+const logger = require(__common + '/logger');
+const log = logger.getLogger('tests');
+const pool = require(__common + '/postgres-db');
 const contracts = require(`${global.__controllers}/contracts-controller`);
 
 const api = require('./api-helper')(server);
@@ -205,13 +205,13 @@ describe(':: FORMATION - EXECUTION for Incorporation Signing and Fulfilment ::',
     const executionProcess = await api.getProcessDefinition(execution.process.address, signer.token);
     expect(formationProcess.processName).to.equal(formation.process.processName);
     expect(executionProcess.processName).to.equal(execution.process.processName);
-    let formCacheReponse = await app_db_pool.query({
-      text: 'SELECT process_name FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2',
+    let formCacheReponse = await pool.query({
+      text: `SELECT process_name FROM ${global.db.schema.app}.process_details WHERE model_id = $1 AND process_id = $2`,
       values: [formation.id, formation.process.processDefinitionId]
     });
     expect(formCacheReponse.rows[0].process_name).to.equal(formation.process.processName);
-    let execCacheReponse = await app_db_pool.query({
-      text: 'SELECT process_name FROM PROCESS_DETAILS WHERE model_id = $1 AND process_id = $2',
+    let execCacheReponse = await pool.query({
+      text: `SELECT process_name FROM ${global.db.schema.app}.process_details WHERE model_id = $1 AND process_id = $2`,
       values: [execution.id, execution.process.processDefinitionId]
     });
     expect(execCacheReponse.rows[0].process_name).to.equal(execution.process.processName);
@@ -387,8 +387,8 @@ describe(':: FORMATION - EXECUTION for Sale of Goods User Tasks ::', () => {
     archetype1.executionProcessDefinition = process2.address;
     expect(String(archetype1.formationProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype1.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-    let modelDataResults = await chain_db_pool.query({
-      text: 'SELECT data_id, data_path, parameter_type FROM PROCESS_MODEL_DATA WHERE model_address = $1',
+    let modelDataResults = await pool.query({
+      text: `SELECT data_id, data_path, parameter_type FROM ${global.db.schema.chain}.process_model_data WHERE model_address = $1`,
       values: [model.address]
     });
     // merely checks the number of created data definitions in the table
@@ -595,8 +595,8 @@ describe(':: DATA MAPPING TEST ::', function () {
     archetype.executionProcessDefinition = execution.process.address;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
     expect(String(archetype.executionProcessDefinition).match(/[0-9A-Fa-f]{40}/)).to.exist;
-    let dataMappingResults = await chain_db_pool.query({
-      text: 'SELECT data_path, data_storage_id, data_storage, direction FROM DATA_MAPPINGS WHERE process_definition_address = $1',
+    let dataMappingResults = await pool.query({
+      text: `SELECT data_path, data_storage_id, data_storage, direction FROM ${global.db.schema.chain}.data_mappings WHERE process_definition_address = $1`,
       values: [archetype.executionProcessDefinition]
     });
     // merely checks the number of data mappings to be created for the execution model

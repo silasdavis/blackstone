@@ -7,34 +7,49 @@ const { ensureAuth } = require(`${global.__common}/middleware`);
 // APIs defined according to specification found here -> http://apidocjs.com
 module.exports = (app, customMiddleware) => {
   // Use custom middleware if passed, otherwise use plain old ensureAuth
-  let middleware = [];
-  middleware = middleware.concat(customMiddleware.length ? customMiddleware : [ensureAuth]);
+  const middleware = customMiddleware || ensureAuth;
 
   /* **************
    * Content
    ************** */
 
   /**
-  * @api {get} /hoard Read Content Object
-  * @apiName ReadContent
-  * @apiGroup Content
-  *
-  * @apiExample {curl} Simple:
-  *     curl -i /hoard
-  *
-  */
+   * @swagger
+   *
+   * /hoard:
+   *   get:
+   *     tags:
+   *       - "Content"
+   *     description: Read Content Object
+   *     produces:
+   *       - text/plain
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: Read Content Object
+   *         schema:
+   *           type: string
+   * 
+   */
   app.get('/hoard', hoardGetApiHandler);
 
   /**
-  * @api {post} /hoard Read Content Object
-  * @apiName ReadContent
-  * @apiGroup Content
-  *
-  * @apiExample {curl} Simple:
-  *     curl -iX POST /hoard
-  *
-  * @apiUse NotLoggedIn
-  * @apiUse AuthTokenRequired
-  */
+   * @swagger
+   *
+   * /hoard:
+   *   post:
+   *     tags:
+   *       - "Content"
+   *     description: Create Content Object
+   *     produces:
+   *       - text/plain
+   *     parameters: []
+   *     responses:
+   *       '200':
+   *         description: Create Content Object
+   *         schema:
+   *           type: string
+   * 
+   */
   app.post('/hoard', middleware, upload.any(), hoardPutApiHandler);
 };

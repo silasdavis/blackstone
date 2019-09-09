@@ -1,16 +1,17 @@
 const log4js = require('log4js');
 const fs = require('fs');
+process.env.API_LOG_LEVEL = process.env.API_LOG_LEVEL || 'DEBUG';
 
 log4js.addLayout('json', config => (_logEvent) => {
   const logEvent = Object.assign({}, _logEvent);
-  delete logEvent['level'];
+  logEvent.level = _logEvent.level.levelStr;
   delete logEvent['context'];
   delete logEvent['pid'];
   return JSON.stringify(logEvent);
 });
 
 (function bootstrapLogger() {
-  const initLogger = log4js.getLogger();
+  const initLogger = log4js.getLogger('log4js');
   initLogger.info('Initializing LOG4JS ...');
 
   if (!fs.existsSync('logs')) {
@@ -18,14 +19,9 @@ log4js.addLayout('json', config => (_logEvent) => {
     fs.mkdirSync('logs');
   }
 
-  const config = require(`${global.__config}/log4js.json`);
-  config.reloadSecs = 300;
+  const configFile = String(process.env.NODE_ENV).startsWith('dev') ? 'development-log4js.js' : 'production-log4js.js';
+  const config = require(`../config/${configFile}`);
   log4js.configure(config);
-
-  config.loggers.forEach((logger) => {
-    initLogger.info(`Configuring logger for category: ${(logger.category || 'default')}, level: ${(logger.level || 'default')}`);
-    const log = log4js.getLogger(logger.category);
-  });
 
   module.exports = log4js;
 }());

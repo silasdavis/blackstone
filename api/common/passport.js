@@ -2,7 +2,6 @@ const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const passportJwt = require('passport-jwt');
 const bcrypt = require('bcryptjs');
-const { app_db_pool } = require(`${global.__common}/postgres-db`);
 const JwtStrategy = passportJwt.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const contracts = require(`${global.__controllers}/contracts-controller`);
@@ -32,11 +31,11 @@ module.exports = (passport) => {
 
   const jwtOpts = {
     jwtFromRequest: cookieExtractor,
-    secretOrKey: global.__settings.monax.jwt.secret,
-    issuer: global.__settings.monax.jwt.issuer,
+    secretOrKey: global.__settings.jwt.secret,
+    issuer: global.__settings.jwt.issuer,
     passReqToCallback: true,
     jsonWebTokenOptions: {
-      expiresIn: global.__settings.monax.jwt.expiresIn,
+      expiresIn: global.__settings.jwt.expiresIn,
     },
   };
 
@@ -71,21 +70,17 @@ module.exports = (passport) => {
   Return success
   */
   const authenticate = async (usernameOrEmail, idType, password, done) => {
-    const text = `SELECT username, email, address, password_digest, created_at, activated FROM users WHERE LOWER(${idType}) = LOWER($1)`;
     try {
-      const { rows } = await app_db_pool.query({
-        text,
-        values: [usernameOrEmail],
-      });
-      if (!rows[0]) {
+      const user = await sqlCache.getUserByIdType({ idType, id: usernameOrEmail });
+      if (!user) {
         return done(null, false, { message: `Invalid login credentials - no user found in customers.users with ${idType} [ ${usernameOrEmail} ]` });
       }
-      if (!rows[0].activated) {
+      if (!user.activated) {
         return done(null, false, { message: 'User account not yet activated' });
       }
       const {
-        username, password_digest: pwDigest, address: addressFromPg, created_at: createdAt,
-      } = rows[0];
+        username, passwordDigest: pwDigest, address: addressFromPg, createdAt,
+      } = user;
 
       // The following section is an additional security measure.
       // The UserAccount address for the user logging in is retrieved from the the Ecosystem smart contract
@@ -104,11 +99,11 @@ module.exports = (passport) => {
               address: addressFromChain,
               username,
             },
-            global.__settings.monax.jwt.secret,
+            global.__settings.jwt.secret,
             {
-              expiresIn: global.__settings.monax.jwt.expiresIn,
+              expiresIn: global.__settings.jwt.expiresIn,
               subject: username,
-              issuer: global.__settings.monax.jwt.issuer,
+              issuer: global.__settings.jwt.issuer,
             },
           );
           return done(null, {

@@ -19,7 +19,7 @@ contract ActiveAgreementRegistryTest {
 
 	string constant SUCCESS = "success";
 	bytes32 EMPTY = "";
-	string constant functionRegistryCreateAgreement = "createAgreement(address,address,string,bool,address[],bytes32,address[])";
+	string constant functionRegistryCreateAgreement = "createAgreement(address,address,address,string,bool,address[],bytes32,address[])";
 	string constant functionRegistryAddAgreementToCollection = "addAgreementToCollection(bytes32,address)";
 	string constant functionRegistryAddArchetypeToPackage = "addArchetypeToPackage(bytes32,address)";
 	
@@ -100,14 +100,14 @@ contract ActiveAgreementRegistryTest {
 
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 
-    	archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+    	archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 
 		if (address(agreementRegistry).call(functionRegistryCreateAgreement, 
 			address(0), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray)) {
 				return "Expected error NULL_PARAM_NOT_ALLOWED for empty archetype address";
 		}
 
-		activeAgreement = agreementRegistry.createAgreement(archetypeAddr, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
+		activeAgreement = agreementRegistry.createAgreement(archetypeAddr, address(this), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		if (activeAgreement == address(0)) return "Agreement creation returned empty address";
 
 		if (agreementRegistry.getActiveAgreementAtIndex(0) != activeAgreement) return "ActiveAgreement at index 0 not as expected";
@@ -140,10 +140,10 @@ contract ActiveAgreementRegistryTest {
 
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 	
-		archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		archetypeAddr = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 		if (archetypeAddr == address(0)) return "Archetype creation returned empty address";
 
-		activeAgreement = agreementRegistry.createAgreement(archetypeAddr, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
+		activeAgreement = agreementRegistry.createAgreement(archetypeAddr, address(this), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		if (activeAgreement == address(0)) return "Agreement creation returned empty address";
 
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryAddAgreementToCollection, fakeCollectionId, activeAgreement))) {
@@ -187,7 +187,7 @@ contract ActiveAgreementRegistryTest {
 		
 		if (agreementRegistry.getNumberOfAgreementCollections() != 2) return "Registry should have 2 collections";
 
-		activeAgreement2 = agreementRegistry.createAgreement(archetypeAddr, address(this), dummyPrivateParametersFileRef, false, parties, leaseCollectionId2, emptyArray);
+		activeAgreement2 = agreementRegistry.createAgreement(archetypeAddr, address(this), address(this), dummyPrivateParametersFileRef, false, parties, leaseCollectionId2, emptyArray);
 		if (activeAgreement2 == address(0)) return "Failed to create a second agreement to put into lease collection 2";
 
 		if (agreementRegistry.getNumberOfAgreementsInCollection(leaseCollectionId2) != 2) return "Lease collection 2 should now have 2 agreements";
@@ -200,11 +200,11 @@ contract ActiveAgreementRegistryTest {
 		
 		ActiveAgreementRegistry agreementRegistry = createNewAgreementRegistry();
 
-		employmentArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		employmentArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
 
 		// trying to create a ndaAgreement with a governing employmentAgreement when the ndaArchetype does not have a governing employmentArchetype should fail
-		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
-		employmentAgreement = agreementRegistry.createAgreement(employmentArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
+		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		employmentAgreement = agreementRegistry.createAgreement(employmentArchetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		governingAgreements.push(employmentAgreement);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,
 			ndaArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements))) {
@@ -214,15 +214,15 @@ contract ActiveAgreementRegistryTest {
 		// trying to create a ndaAgreement with no governing employmentAgreement when the ndaArchetype has a governing employmentArchetype should fail
 		governingArchetypes.push(employmentArchetype);
 		governingAgreements.length = 0;
-		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, governingArchetypes);
+		ndaArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, governingArchetypes);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,
 			ndaArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements))) {
 				return "Expected failure when creating agreement with governing agreements when its archetype has no governing archetypes";
 		}
 
 		// trying to create a ndaAgreement with a unrelated governing agreement when the ndaArchetype has a governing employmentArchetype should fail
-		benefitsArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
-		benefitsAgreement = agreementRegistry.createAgreement(benefitsArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
+		benefitsArchetype = archetypeRegistry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray);
+		benefitsAgreement = agreementRegistry.createAgreement(benefitsArchetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, emptyArray);
 		governingAgreements.push(benefitsAgreement);
 		if (address(agreementRegistry).call(abi.encodeWithSignature(functionRegistryCreateAgreement,
 			ndaArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements))) {
@@ -232,7 +232,7 @@ contract ActiveAgreementRegistryTest {
 		// trying to create a ndaAgreement with a governing employmentAgreement when the ndaArchetype has a governing employmentArchetype should pass
 		governingAgreements.length = 0;
 		governingAgreements.push(employmentAgreement);
-		ndaAgreement = agreementRegistry.createAgreement(ndaArchetype, address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements);
+		ndaAgreement = agreementRegistry.createAgreement(ndaArchetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, EMPTY, governingAgreements);
 		if (ndaAgreement == address(0)) return "Failed to create ndaAgreement with expected governing agreement employmentAgreement";
 		
 		return SUCCESS;
