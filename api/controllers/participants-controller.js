@@ -1,6 +1,6 @@
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const bcrypt = require('bcryptjs');
-const Joi = require('joi');
+const Joi = require('@hapi/joi');
 const _ = require('lodash');
 const crypto = require('crypto');
 const sendgrid = require('@sendgrid/mail');
@@ -21,6 +21,55 @@ const { DEFAULT_DEPARTMENT_ID } = require(`${global.__common}/constants`);
 const userSchema = require(`${global.__schemas}/user`);
 const userProfileSchema = require(`${global.__schemas}/userProfile`);
 const { PARAMETER_TYPES: PARAM_TYPE } = global.__constants;
+
+const participantHelpers = {};
+
+participantHelpers.createOrganization = async (organization, userAddress) => {
+  const org = Object.assign({}, organization);
+  log.info(`Request to create new organization: ${org.name}`);
+  if (!org.name) throw boom.badRequest('Organization name is required');
+  if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { id } = await db.insertOrganization(null, org.name, client);
+    if (!org.approvers || org.approvers.length === 0) {
+      log.debug(`No approvers provided for new organization. Setting current user ${userAddress} as approver.`);
+      org.approvers = [userAddress];
+    }
+    const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
+    org.defaultDepartmentId = defDepId;
+    const address = await contracts.createOrganization(org);
+    await db.updateOrganization(id, address, org.name, client);
+    await db.insertDepartmentDetails({
+      organizationAddress: address,
+      id: defDepId,
+      name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID,
+    }, client);
+    await client.query('COMMIT');
+    log.info('Added organization name and address to postgres');
+    return { address, name: org.name };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (boom.isBoom(err)) throw err;
+    throw boom.badImplementation(err);
+  } finally {
+    client.release();
+  }
+};
+
+participantHelpers.addDepartmentUsers = async (orgAddress, depId, users, userAddress) => {
+  const authorized = await db.userIsOrganizationApprover(orgAddress, userAddress);
+  if (!authorized) {
+    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
+  }
+  const addUserPromises = users.map(user => contracts.addDepartmentUser(orgAddress, depId, user, userAddress));
+  await Promise.all(addUserPromises)
+    .catch((err) => {
+      if (boom.isBoom(err)) throw err;
+      throw boom.badImplementation(err);
+    });
+};
 
 const getParticipantNames = async (participants, addressKey = 'address') => {
   try {
@@ -112,22 +161,18 @@ const getOrganization = asyncMiddleware(async (req, res, next) => {
 });
 
 const createOrganization = asyncMiddleware(async (req, res, next) => {
-  const org = req.body;
-  if (!org.name) throw boom.badRequest('Organization name is required');
-  if (org.name > 255) throw boom.badRequest('Organization name length cannot exceed 255 characters');
-  log.info(`Request to create new organization: ${org.name}`);
-  if (!org.approvers || org.approvers.length === 0) {
-    log.debug(`No approvers provided for new organization. Setting current user ${req.user.address} as approver.`);
-    org.approvers = [req.user.address];
-  }
-  const defDepId = getSHA256Hash(DEFAULT_DEPARTMENT_ID);
-  org.defaultDepartmentId = defDepId;
+  res.locals.data = await participantHelpers.createOrganization(req.body, req.user.address);
+  res.status(200);
+  next();
+});
+
+const updateOrganization = asyncMiddleware(async (req, res, next) => {
   try {
-    const address = await contracts.createOrganization(org);
-    await db.insertOrganization(address, org.name);
-    await db.insertDepartmentDetails({ organizationAddress: address, id: defDepId, name: org.defaultDepartmentName || DEFAULT_DEPARTMENT_ID });
-    log.info('Added organization name and address to postgres');
-    res.locals.data = { address, name: org.name };
+    if (!req.body.name) throw boom.badRequest('Organization name is required.');
+    if (req.body.name.length > 255) throw boom.badRequest('Organization name cannot be longer than 255 characters.');
+    const isApprover = await db.userIsOrganizationApprover(req.params.address, req.user.address);
+    if (!isApprover) throw boom.forbidden(`User ${req.user.address} does not have sufficient privileges to update organization ${req.params.address}`);
+    await db.updateOrganization(null, req.params.address, req.body.name);
     res.status(200);
     return next();
   } catch (err) {
@@ -213,21 +258,9 @@ const removeDepartment = asyncMiddleware(async (req, res, next) => {
 });
 
 const addDepartmentUsers = asyncMiddleware(async (req, res, next) => {
-  const { address, id } = req.params;
-  const authorized = await db.userIsOrganizationApprover(address, req.user.address);
-  if (!authorized) {
-    throw boom.forbidden('User is not an approver of the organization and not authorized to remove users');
-  }
-  const { users } = req.body;
-  const addUserPromises = users.map(user => contracts.addDepartmentUser(address, id, user, req.user.address));
-  await Promise.all(addUserPromises)
-    .then(() => {
-      res.status(200);
-      return next();
-    }).catch((err) => {
-      if (boom.isBoom(err)) throw err;
-      throw boom.badImplementation(err);
-    });
+  await participantHelpers.addDepartmentUsers(req.params.address, req.params.id, req.body.users, req.user.address);
+  res.status(200);
+  next();
 });
 
 const removeDepartmentUser = asyncMiddleware(async (req, res, next) => {
@@ -488,6 +521,7 @@ const editProfile = asyncMiddleware(async (req, res, next) => {
     res.status(200);
     return next();
   } catch (err) {
+    client.query('ROLLBACK');
     client.release();
     if (err.isBoom) return next(err);
     return next(boom.badImplementation(`Error editing profile: ${err}`));
@@ -495,74 +529,65 @@ const editProfile = asyncMiddleware(async (req, res, next) => {
 });
 
 const createOrFindAccountsWithEmails = async (params, typeKey) => {
-  const newParams = {
-    notAccountOrEmail: [],
-    withEmail: [],
-    forExistingUser: [],
-    forNewUser: [],
-  };
-  params.forEach((param) => {
-    if (param[typeKey] !== PARAM_TYPE.USER_ORGANIZATION && param[typeKey] !== PARAM_TYPE.SIGNING_PARTY) {
-      // Ignore non-account parameters
-      newParams.notAccountOrEmail.push({ ...param });
-    } else if (/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)) {
-      // Select parameters with email values
-      newParams.withEmail.push({ ...param });
-    } else {
-      // Ignore parameters with non-email values
-      newParams.notAccountOrEmail.push({ ...param });
+  const newParams = [];
+  const withEmail = [];
+  const forNewUser = {};
+  params.forEach((param, index) => {
+    newParams[index] = { ...param };
+    if (
+      (param[typeKey] === PARAM_TYPE.USER_ORGANIZATION || param[typeKey] === PARAM_TYPE.SIGNING_PARTY)
+      && /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(param.value)
+    ) {
+      // Need to get user address from email
+      withEmail.push({ ...param, index });
     }
   });
+  if (!withEmail.length) return { parameters: newParams, newUsers: [] };
   const client = await pool.connect();
   try {
-    let newUsers;
-    if (newParams.withEmail.length) {
-      const { rows } = await client.query({
-        text: `SELECT LOWER(email) AS email, address FROM ${global.db.schema.app}.users WHERE LOWER(email) IN (${newParams.withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
-        values: newParams.withEmail.map(({ value }) => value),
-      });
-      newParams.forNewUser = {};
-      newParams.withEmail.forEach((param) => {
-        const emailAddr = param.value.toLowerCase();
-        const existingUser = rows.find(({ email }) => emailAddr === email);
-        if (existingUser) {
-          // Use existing accounts info if email already registered
-          newParams.forExistingUser.push({ ...param, value: existingUser.address });
-        } else if (newParams.forNewUser[emailAddr]) {
-          // Consolidate users that need to be registered into obj in case the same email was entered for multiple parameters
-          // Also save the parameters that each email was used for
-          newParams.forNewUser[emailAddr].push(param);
-        } else {
-          newParams.forNewUser[emailAddr] = [param];
-        }
-      });
-      const createNewUserPromises = (Object.keys(newParams.forNewUser)).map(async (email) => {
-        // Create user on chain
-        const address = await contracts.createUser({ username: getSHA256Hash(email) });
-        const password = crypto.randomBytes(32).toString('hex');
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash(password, salt);
-        // Create user in db
-        const queryString = `INSERT INTO ${global.db.schema.app}.users(
-          address, username, email, password_digest, is_producer, external_user
-          ) VALUES(
-            $1, $2, $3, $4, $5, $6
-            );`;
-        await client.query({ text: queryString, values: [address, email, email, hash, false, true] });
-        return { email, address };
-      });
-      newUsers = await Promise.all(createNewUserPromises);
-      newParams.forNewUser = Object.keys(newParams.forNewUser).reduce((acc, emailAddr) => {
-        const { address } = newUsers.find(({ email }) => email === emailAddr);
-        const newUserParams = newParams.forNewUser[emailAddr].map(param => ({ ...param, value: address }));
-        return acc.concat(newUserParams);
-      }, []);
-    }
+    const { rows } = await client.query({
+      text: `SELECT LOWER(email) AS email, address FROM ${global.db.schema.app}.users WHERE LOWER(email) IN (${withEmail.map((param, i) => `LOWER($${i + 1})`)});`,
+      values: withEmail.map(({ value }) => value),
+    });
+    withEmail.forEach((param) => {
+      const emailAddr = param.value.toLowerCase();
+      const existingUser = rows.find(({ email }) => emailAddr === email);
+      if (existingUser) {
+        // Use existing accounts info if email already registered
+        newParams[param.index].value = existingUser.address;
+      } else if (forNewUser[emailAddr]) {
+        // Consolidate users that need to be registered into obj in case the same email was entered for multiple parameters
+        // Also save the parameters that each email was used for
+        forNewUser[emailAddr].push(param);
+      } else {
+        forNewUser[emailAddr] = [param];
+      }
+    });
+    const createNewUserPromises = (Object.keys(forNewUser)).map(async (email) => {
+      // Create user on chain
+      const address = await contracts.createUser({ username: getSHA256Hash(email) });
+      const password = crypto.randomBytes(32).toString('hex');
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password, salt);
+      // Create user in db
+      const queryString = `INSERT INTO ${global.db.schema.app}.users(
+        address, username, email, password_digest, is_producer, external_user
+        ) VALUES(
+          $1, $2, $3, $4, $5, $6
+          );`;
+      await client.query({ text: queryString, values: [address, email, email, hash, false, true] });
+      return { email, address };
+    });
+    const newUsers = await Promise.all(createNewUserPromises);
+    Object.keys(forNewUser).forEach((emailAddr) => {
+      const { address } = newUsers.find(({ email }) => email === emailAddr);
+      forNewUser[emailAddr].forEach((param) => { newParams[param.index].value = address; });
+    });
     // Release client
     client.release();
     // Return all parameters
     return {
-      parameters: newParams.notAccountOrEmail.concat(newParams.forExistingUser).concat(newParams.forNewUser),
+      parameters: newParams,
       newUsers,
     };
   } catch (err) {
@@ -573,10 +598,12 @@ const createOrFindAccountsWithEmails = async (params, typeKey) => {
 };
 
 module.exports = {
+  participantHelpers,
   getParticipantNames,
   getOrganizations,
   getOrganization,
   createOrganization,
+  updateOrganization,
   createOrganizationUserAssociations,
   deleteOrganizationUserAssociation,
   addApproversToOrganization,

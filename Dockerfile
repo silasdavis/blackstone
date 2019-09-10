@@ -1,12 +1,13 @@
 ARG SOLC_VERSION=0.4.25
-ARG BURROW_VERSION=0.25.0
+ARG BURROW_REPO=hyperledger/burrow
+ARG BURROW_VERSION=0.26.2
 # This container provides the test environment from which the various test scripts
 # can be run
 # For solc binary
 FROM ethereum/solc:$SOLC_VERSION as solc-builder
 # Burrow version on which Blackstone is tested
-FROM hyperledger/burrow:$BURROW_VERSION as burrow-builder
-#FROM quay.io/monax/burrow:0.24.1-dev-2019-02-28-0b9bc4e9 as burrow-builder
+FROM $BURROW_REPO:$BURROW_VERSION as burrow-builder
+
 # Testing image
 FROM alpine:3.9
 

@@ -131,6 +131,8 @@ contract ActiveAgreementRegistryTest {
 		(addr, timestamp) = agreementRegistry.getPartyByActiveAgreementData(activeAgreement, falseAddress);
 		if (timestamp != 0) return "Party data signature timestamp for false address expected to be 0";
 
+		// test legacy contr
+
 		return SUCCESS;
 	}
 

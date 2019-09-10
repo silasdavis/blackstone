@@ -1,8 +1,6 @@
-const fs = require('fs');
-const path = require('path');
 const EventEmitter = require('events');
 const util = require('util');
-const boom = require('boom');
+const boom = require('@hapi/boom');
 
 const logger = require(`${global.__common}/logger`);
 const utils = require(`${global.__common}/utils`);
@@ -310,36 +308,46 @@ const getArchetypeAuthor = (archetypeAddress) => {
   });
 };
 
+
 const activateArchetype = (archetypeAddress, userAccount) => {
   log.debug(`REQUEST: Activate archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.activate(archetypeAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to activate archetype at ${archetypeAddress} by user ${userAccount}`));
-      log.info(`SUCCESS: Archetype at ${archetypeAddress} activated by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.activate.encode();
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Archetype at ${archetypeAddress} activated by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding activate request via acting user ${userAccount} to archetype ${archetypeAddress}! Error: ${error}`)));
   });
 };
 
 const deactivateArchetype = (archetypeAddress, userAccount) => {
   log.debug(`REQUEST: Deactivate archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.deactivate(archetypeAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to activate archetype at ${archetypeAddress} by user ${userAccount}`));
-      log.info(`SUCCESS: Archetype at ${archetypeAddress} deactivated by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.deactivate.encode();
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Archetype at ${archetypeAddress} deactivated by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding deactivate request via acting user ${userAccount} to archetype ${archetypeAddress}! Error: ${error}`)));
   });
 };
 
 const setArchetypeSuccessor = (archetypeAddress, successorAddress, userAccount) => {
   log.debug(`REQUEST: Set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`);
+  const archetype = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ARCHETYPE, archetypeAddress);
   return new Promise((resolve, reject) => {
-    appManager.contracts['ArchetypeRegistry'].factory.setArchetypeSuccessor(archetypeAddress, successorAddress, userAccount, (err) => {
-      if (err) return reject(boomify(err, `Failed to set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`));
-      log.info(`SUCCESS: Successfully set successor to ${successorAddress} for archetype at ${archetypeAddress} by user at ${userAccount}`);
-      return resolve();
-    });
+    const payload = archetype.setSuccessor.encode(successorAddress);
+    callOnBehalfOf(userAccount, archetypeAddress, payload, true)
+      .then(() => {
+        log.info(`SUCCESS: Successor ${successorAddress} set for archetype at ${archetypeAddress} by user at ${userAccount}`);
+        resolve();
+      })
+      .catch(error => reject(boom.badImplementation(`Error forwarding setArchetypeSuccessor request via acting user ${userAccount} to archetype ${archetypeAddress} with successor ${successorAddress}! Error: ${error}`)));
   });
 };
 
@@ -397,7 +405,7 @@ const addArchetypeParameters = (address, parameters) => new Promise((resolve, re
       if (parseInt(data.raw[0], 10) !== 1) {
         return reject(boom.badImplementation(`Error code adding parameter to archetype at ${address}: ${data.raw[0]}`));
       }
-      log.info(`SUCCESS: Added parameters ${paramNames} to archetype at ${address}`);
+      log.info(`SUCCESS: Added parameters ${parameters.map(({ name }) => name)} to archetype at ${address}`);
       return resolve();
     });
 });
@@ -406,7 +414,7 @@ const addArchetypeDocument = (address, fileReference) => new Promise((resolve, r
   log.debug('REQUEST: Add document to archetype at %s', address);
   appManager
     .contracts['ArchetypeRegistry']
-    .factory.addDocument(address, fileReference, (error, data) => {
+    .factory.addDocument(address, fileReference, (error) => {
       if (error) {
         return reject(boomify(error, `Failed to add document to archetype ${address}`));
       }
@@ -546,6 +554,36 @@ const createAgreement = agreement => new Promise((resolve, reject) => {
         log.info(`SUCCESS: Created agreement by ${creator} at address ${data.raw[0]}`);
         return resolve(data.raw[0]);
       });
+});
+
+const grantLegalStateControllerPermission = agreementAddress => new Promise((resolve, reject) => {
+  log.debug(`REQUEST: Grant legal state controller permission for agreement ${agreementAddress}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.ROLE_ID_LEGAL_STATE_CONTROLLER((permIdError, data) => {
+    if (permIdError || !data.raw) {
+      return reject(boomify(permIdError, `Failed to get legal state controller permission id for agreement ${agreementAddress}`));
+    }
+    const permissionId = data.raw[0];
+    return agreement.grantPermission(permissionId, serverAccount, (permGrantError) => {
+      if (permGrantError) {
+        return reject(boomify(permGrantError, `Failed to grant legal state controller permission for agreement ${agreementAddress}`));
+      }
+      log.info(`SUCCESS: Granted legal state controller permission for agreement ${agreementAddress}`);
+      return resolve();
+    });
+  });
+});
+
+const setLegalState = (agreementAddress, legalState) => new Promise((resolve, reject) => {
+  log.debug(`REQUEST: Set legal state of agreement ${agreementAddress} to ${legalState}`);
+  const agreement = getContract(global.__abi, global.__bundles.AGREEMENTS.contracts.ACTIVE_AGREEMENT, agreementAddress);
+  agreement.setLegalState(legalState, (error) => {
+    if (error) {
+      return reject(boomify(error, `Failed to set legal state of agreement ${agreementAddress} to ${legalState}`));
+    }
+    log.info(`SUCCESS: Set legal state of agreement ${agreementAddress} to ${legalState}`);
+    return resolve();
+  });
 });
 
 const initializeObjectAdministrator = agreementAddress => new Promise((resolve, reject) => {
@@ -1414,6 +1452,8 @@ module.exports = {
   deactivateArchetypePackage,
   addArchetypeToPackage,
   createAgreement,
+  grantLegalStateControllerPermission,
+  setLegalState,
   initializeObjectAdministrator,
   setMaxNumberOfAttachments,
   setAddressScopeForAgreementParameters,

@@ -40,17 +40,16 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 
 	/**
 	 * @dev Creates a new archetype
-	 * @param _author author
-	 * @param _owner owner
 	 * @param _price price
 	 * @param _isPrivate determines if the archetype's documents are encrypted
 	 * @param _active determines if this archetype is active
+	 * @param _author author
+	 * @param _owner owner
 	 * @param _formationProcess the address of a ProcessDefinition that orchestrates the agreement formation
 	 * @param _executionProcess the address of a ProcessDefinition that orchestrates the agreement execution
 	 * @param _packageId id of package this archetype is part of (optional)
 	 * @param _governingArchetypes array of archetype addresses which govern this archetype (optional)
 	 * @return archetype - the new archetype's address, if successfully created
-	 * Reverts if archetype address is already registered
 	 */
 	function createArchetype(
 		uint _price, 
@@ -66,7 +65,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 
 	/**
 	 * @dev Adds archetype to package
-	* @param _packageId the bytes32 package id
+	 * @param _packageId the bytes32 package id
 	 * @param _archetype the archetype address
 	 * Reverts if package is not found
 	 */
@@ -105,28 +104,6 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @return a return code indicating success or failure
 	 */
 	function addJurisdictions(address _archetype, bytes2[] _countries, bytes32[] _regions) external returns (uint error);
-
-	/**
-	 * @dev Sets active to true for given archetype
-	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to activate)
-	 */
-	function activate(address _archetype, address _author) external;
-
-	/**
-	 * @dev Sets active to false for given archetype
-	 * @param _archetype address of archetype
-	 * @param _author address of author (must match the author of the archetype in order to deactivate)
-	 */
-	function deactivate(address _archetype, address _author) external;
-
-	/**
-	 * @dev Sets archetype successor
-	 * @param _archetype address of archetype
-	 * @param _successor address of successor
-	 * @param _author address of author (must match the author of the archetype in order to set successor)
-	 */
-	function setArchetypeSuccessor(address _archetype, address _successor, address _author) external;
 
 	/**
 	 * @dev Returns archetype successor

@@ -18,9 +18,10 @@ contract ArchetypeRegistryTest {
 	string constant SUCCESS = "success";
 	bytes32 EMPTY = "";
 	string constant functionRegistryAddArchetypeToPackage = "addArchetypeToPackage(bytes32,address)";
-	string constant functionRegistryCreateArchetype = "createArchetype(uint,bool,bool,address,address,address,address,bytes32,address[])";
+	string constant functionRegistryCreateArchetype = "createArchetype(uint256,bool,bool,address,address,address,address,bytes32,address[])";
 	string constant functionRegistryCreateArchetypePackage = "createArchetypePackage(address,bool,bool)";
 	string constant functionRegistryAddDocument = "addDocument(address,string)";
+	string constant functionUpgradeOwnerPermission = "upgradeOwnerPermission(address)";
 
 	IsoCountries100 isoCountries;
 
@@ -79,26 +80,32 @@ contract ArchetypeRegistryTest {
 		address archetype;
 		uint error;
 
-		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype,
-			0, false, true, address(0), address(0), address(0), address(0), EMPTY, addrArrayWithDupes)))
-		{
-			return "Creating archetype with empty author expected to fail";
+		// test positive creation first to confirm working function signature
+		if (!address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray))) {
+			return "Creating an archetype with valid parameters should succeed";
+		}
+		// test failures
+		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, address(0), falseAddress, falseAddress, falseAddress, EMPTY, emptyArray))) {
+			return "Creating archetype with empty author should revert";
+		}
+		if (address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, 0, false, true, falseAddress, address(0), falseAddress, falseAddress, EMPTY, emptyArray))) {
+			return "Creating archetype with empty owner should revert";
 		}
 
-		archetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		archetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (archetype == address(0)) return "Archetype address is empty after creation";
 
-		if (registry.getArchetypesSize() != 1) return "Exp. 1";
-		if (registry.getArchetypeAtIndex(0) != archetype) return "Exp. archetype";
+		if (registry.getArchetypesSize() != 2) return "There should be 2 archetypes in the registry";
+		if (registry.getArchetypeAtIndex(1) != archetype) return "Archetype in registry at index 1 should match last created address";
 
-		registry.activate(archetype, falseAddress);
+		Archetype(archetype).activate();
 		if (!Archetype(archetype).isActive()) return "Archetype should be active";
 
-		registry.deactivate(archetype, falseAddress);
+		Archetype(archetype).deactivate();
 		if (Archetype(archetype).isActive()) return "Archetype should be deactivated";
 
 		if (Archetype(archetype).getAuthor() != falseAddress) return "Archetype author should be returned";
-		if (Archetype(archetype).getOwner() != falseAddress) return "Archetype owner should be returned";
+		if (Archetype(archetype).getOwner() != address(this)) return "Archetype owner should be returned";
 
 		// Parameter
 
@@ -163,7 +170,34 @@ contract ArchetypeRegistryTest {
 
 		if (registry.getNumberOfJurisdictionsForArchetype(archetype) != 2) return "Jurisdictions on archetype exptected to be 2 after country overwrite";
 		if (registry.getJurisdictionAtIndexForArchetype(archetype, 2) != "") return "jurisdiction key at index 2 should return empty after country overwrite";		
-		if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("CA"))) return "jurisdiction key at index 1 should return country hash after country overwrite";		
+		if (registry.getJurisdictionAtIndexForArchetype(archetype, 1) != keccak256(abi.encodePacked("CA"))) return "jurisdiction key at index 1 should return country hash after country overwrite";
+
+		// test archetype upgrade scenarios < 1.1.0 to retrofit the owner permission
+		DefaultArchetype_pre_v1_1_0 upgradeTestArchetype = new DefaultArchetype_pre_v1_1_0();
+		upgradeTestArchetype.initialize(99, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
+		upgradeTestArchetype.downgrade();
+		bool permExists;
+		(permExists, , , , ) = upgradeTestArchetype.getPermissionDetails(upgradeTestArchetype.ROLE_ID_OWNER());
+		if (permExists) return "The upgrade test archetype should not have the owner permission";
+		// test positive permssission setting first to confirm a working function signature
+		if (!address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)))) {
+			return "Upgrading the owner permission and setting it to the test contract should be successful";
+		}
+		(permExists, , , , ) = upgradeTestArchetype.getPermissionDetails(upgradeTestArchetype.ROLE_ID_OWNER());
+		if (!permExists) return "The owner permission should have been created in the upgrade";
+		if (upgradeTestArchetype.getHolder(upgradeTestArchetype.ROLE_ID_OWNER(), 0) != address(this)) return "The upgrade test archetype should show the test contract as the owner after the upgrade";
+
+		// test upgrade failures
+		if (address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)))) {
+			return "Upgrading an already upgraded archetype should revert";
+		}
+		// create a fresh archetype
+		upgradeTestArchetype = new DefaultArchetype_pre_v1_1_0();
+		upgradeTestArchetype.initialize(99, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
+		upgradeTestArchetype.downgrade();
+		if (address(archetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(0)))) {
+			return "Upgrading the owner permission and setting it to 0x0 should revert";
+		}
 
 		return SUCCESS;
 	}
@@ -174,18 +208,18 @@ contract ArchetypeRegistryTest {
 
 		address successor;
 
-		droneArchetype = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
+		droneArchetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype == address(0)) return "droneArchetype address empty after creation";
 
 		droneArchetype2 = registry.createArchetype(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
 		if (droneArchetype2 == address(0)) return "droneArchetype2 address empty after creation";
 
-		registry.setArchetypeSuccessor(droneArchetype, droneArchetype2, falseAddress);
+		Archetype(droneArchetype).setSuccessor(droneArchetype2);
 
 		successor = registry.getArchetypeSuccessor(droneArchetype);
 		if (successor != droneArchetype2) return "Successor of droneArchetype is not set to droneArchetype2";
 		if (Archetype(droneArchetype).isActive()) return "droneArchetype is still active even with successor set";
-		
+
 		return SUCCESS;
 	}
 
@@ -281,4 +315,15 @@ contract ArchetypeRegistryTest {
 		
 		return SUCCESS;
 	}
+}
+
+/**
+ * @dev This contract simulates the < v1.1.0 version of the contract which did not have the owner permission
+ */
+contract DefaultArchetype_pre_v1_1_0 is DefaultArchetype {
+
+	function downgrade() external {
+		delete permissions[ROLE_ID_OWNER];
+	}
+
 }

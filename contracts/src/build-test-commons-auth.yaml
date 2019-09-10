@@ -11,6 +11,12 @@ jobs:
   - name: MappingsLib
     build:
       contract: commons-collections/MappingsLib.sol
+  - name: DataStorageUtils
+    build:
+      contract: commons-collections/DataStorageUtils.sol
+  - name: ERC165Utils
+    build:
+      contract: commons-standards/ERC165Utils.sol
   - name: DOUG
     build:
       contract: commons-management/DefaultDoug.sol

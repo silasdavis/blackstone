@@ -12,9 +12,16 @@ import "agreements/DefaultArchetype.sol";
 
 contract ActiveAgreementTest {
   
-  string constant SUCCESS = "success";
+  	string constant SUCCESS = "success";
 	string constant EMPTY_STRING = "";
 	bytes32 constant EMPTY = "";
+
+	string constant functionSigAgreementInitialize = "initialize(address,address,address,string,bool,address[],address[])";
+	string constant functionSigAgreementSign = "sign()";
+	string constant functionSigAgreementCancel = "cancel()";
+	string constant functionSigAgreementSetLegalState = "setLegalState(uint8)";
+	string constant functionSigAgreementTestLegalState = "testLegalState(uint8)";
+	string constant functionSigUpgradeOwnerPermission = "upgradeOwnerPermission(address)";
 
 	address falseAddress = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
 	string dummyFileRef = "{find me}";
@@ -50,6 +57,24 @@ contract ActiveAgreementTest {
 
 		archetype = new DefaultArchetype();
 		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
+
+		agreement = new DefaultActiveAgreement();
+		// test positive creation first to confirm working function signature
+		if (!address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating an agreement with valid parameters should succeed";
+		}
+		// test failures
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, address(0), address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty archetype should revert";
+		}
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(0), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty creator should revert";
+		}
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementInitialize, archetype, address(this), address(0), dummyPrivateParametersFileRef, false, parties, emptyArray))) {
+			return "Creating archetype with empty owner should revert";
+		}
+
+		// function testing
 		agreement = new DefaultActiveAgreement();
 		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 		agreement.setEventLogReference(dummyFileRef);
@@ -74,6 +99,78 @@ contract ActiveAgreementTest {
 		if (partiesArr[0] != address(signer1)) return "address[] retrieval via DATA_FIELD_AGREEMENT_PARTIES did not yield first element as expected";
 		if (bogusArr[0] != address(0xCcD5bA65282C3dafB69b19351C7D5B77b9fDDCA6)) return "address[] retrieval via regular ID did not yield first element as expected";
 		if (agreement.getArrayLength(DATA_FIELD_AGREEMENT_PARTIES) != agreement.getNumberOfParties()) return "Array size count via DATA_FIELD_AGREEMENT_PARTIES did not match the number of parties";
+
+		return SUCCESS;
+	}
+
+	/**
+	 * @dev Tests the legal state change modifier
+	 */
+	function testLegalStateChangeValidation() external returns (string) {
+		LegalStateEnforcedAgreement agreement;
+		Archetype archetype;
+		signer1 = new DefaultUserAccount();
+		signer1.initialize(this, address(0));
+		signer2 = new DefaultUserAccount();
+		signer2.initialize(this, address(0));
+
+		// set up the parties.
+		delete parties;
+		parties.push(address(signer1));
+		parties.push(address(signer2));
+
+		archetype = new DefaultArchetype();
+		archetype.initialize(10, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
+
+		agreement = new LegalStateEnforcedAgreement();
+		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.resetLegalState();
+
+		if (agreement.getLegalState() != uint8(Agreements.LegalState.UNDEFINED))
+			return "The legal state of the agreement should be UNDEFINED at the beginning of the test";
+		// confirm function signature is working correctly first
+		if (!address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.EXECUTED))))
+			return "It should be possible to set the legal state to EXECUTED, if it was previously UNDEFINED";
+		if (agreement.getLegalState() != uint8(Agreements.LegalState.EXECUTED))
+			return "The legal state of the agreement should be EXECUTED after first setting";
+		if (!address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FULFILLED))))
+			return "It should be possible to set the legal state to FULFILLED, if it was previously EXECUTED";
+		if (agreement.getLegalState() != uint8(Agreements.LegalState.FULFILLED))
+			return "The legal state of the agreement should be FULFILLED after second setting";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.DRAFT))))
+			return "It should not be possible to switch to DRAFT when agreement was previously FULFILLED";
+
+		// run through a typical lifecycle and test illegal changes along the way
+		agreement.resetLegalState();
+		if (!agreement.testLegalState(Agreements.LegalState.FORMULATED)) return "UNDEFINED -> FORMULATED should be valid";
+		if (!agreement.testLegalState(Agreements.LegalState.DRAFT)) return "FORMULATED -> DRAFT should be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FULFILLED))))
+			return "DRAFT -> FULFILLED should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.DEFAULT))))
+			return "DRAFT -> DEFAULT should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.EXECUTED))))
+			return "DRAFT -> EXECUTED should not be valid";
+		if (!agreement.testLegalState(Agreements.LegalState.FORMULATED)) return "DRAFT -> FORMULATED should be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FULFILLED))))
+			return "FORMULATED -> FULFILLED should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.DEFAULT))))
+			return "FORMULATED -> DEFAULT should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.UNDEFINED))))
+			return "FORMULATED -> UNDEFINED should not be valid";
+		if (!agreement.testLegalState(Agreements.LegalState.EXECUTED)) return "FORMULATED -> EXECUTED should be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FORMULATED))))
+			return "EXECUTED -> FORMULATED should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.DRAFT))))
+			return "EXECUTED -> DRAFT should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.UNDEFINED))))
+			return "EXECUTED -> UNDEFINED should not be valid";
+		if (!agreement.testLegalState(Agreements.LegalState.DEFAULT)) return "EXECUTED -> DEFAULT should be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.EXECUTED))))
+			return "DEFAULT -> EXECUTED should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FORMULATED))))
+			return "DEFAULT -> FORMULATED should not be valid";
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementTestLegalState, uint8(Agreements.LegalState.FULFILLED))))
+			return "DEFAULT -> FULFILLED should not be valid";
 
 		return SUCCESS;
 	}
@@ -109,7 +206,7 @@ contract ActiveAgreementTest {
 		// test signing
 		address signee;
 		uint timestamp;
-		if (address(agreement).call(bytes4(keccak256(abi.encodePacked("sign()")))))
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementSign)))
 			return "Signing from test address should REVERT due to invalid actor";
 		(signee, timestamp) = agreement.getSignatureDetails(signer1);
 		if (timestamp != 0) return "Signature timestamp for signer1 should be 0 before signing";
@@ -117,7 +214,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED";
 
 		// Signing with Signer1 as party
-		signer1.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		signer1.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer1";
 		(signee, timestamp) = agreement.getSignatureDetails(signer1);
 		if (signee != address(signer1)) return "Signee for signer1 should be signer1";
@@ -126,7 +223,7 @@ contract ActiveAgreementTest {
 		if (agreement.getLegalState() == uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should NOT be EXECUTED after signer1";
 
 		// Signing with Signer2 via the organization
-		signer2.forwardCall(address(agreement), abi.encodeWithSignature("sign()"));
+		signer2.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
 		if (!agreement.isSignedBy(signer1)) return "Agreement should be signed by signer2";
 		if (agreement.isSignedBy(org1)) return "Agreement should NOT be signed by org1";
 		(signee, timestamp) = agreement.getSignatureDetails(org1);
@@ -134,6 +231,21 @@ contract ActiveAgreementTest {
 		if (timestamp == 0) return "Signature timestamp for org1 should be set after signing";
 		if (!AgreementsAPI.isFullyExecuted(agreement)) return "AgreementsAPI.isFullyExecuted should be true after signer2";
 		if (agreement.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should be EXECUTED after signer2";
+
+		// test external legal state control in combination with signing
+		agreement = new DefaultActiveAgreement();
+		agreement.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
+		agreement.initializeObjectAdministrator(address(this));
+		agreement.grantPermission(agreement.ROLE_ID_LEGAL_STATE_CONTROLLER(), address(signer1));
+		signer1.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
+		signer2.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSign));
+		if (!AgreementsAPI.isFullyExecuted(agreement)) return "AgreementsAPI.isFullyExecuted should be true after both signatures were applied even with external legal state control";
+		if (agreement.getLegalState() != uint8(Agreements.LegalState.FORMULATED)) return "Agreement legal state should still be FORMULATED with external legal state control";
+		// externally change the legal state
+		if (address(agreement).call(abi.encodeWithSignature(functionSigAgreementSetLegalState, uint8(Agreements.LegalState.EXECUTED))))
+			return "The test contract should not be allowed to change the legal state of the agreement";
+		signer1.forwardCall(address(agreement), abi.encodeWithSignature(functionSigAgreementSetLegalState, uint8(Agreements.LegalState.EXECUTED)));
+		if (agreement.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement legal state should be EXECUTED after legal state controller changed it";
 
 		return SUCCESS;
 	}
@@ -164,26 +276,46 @@ contract ActiveAgreementTest {
 		agreement2.initialize(archetype, address(this), address(this), dummyPrivateParametersFileRef, false, parties, emptyArray);
 
 		// test invalid cancellation and states
-		if (address(agreement1).call(bytes4(keccak256(abi.encodePacked("cancel()")))))
+		if (address(agreement1).call(abi.encodePacked(functionSigAgreementCancel)))
 			return "Canceling from test address should REVERT due to invalid actor";
 		if (agreement1.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should NOT be CANCELED";
 		if (agreement2.getLegalState() == uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should NOT be CANCELED";
 
 		// Agreement1 is canceled during formation
-		signer2.forwardCall(address(agreement1), abi.encodeWithSignature("cancel()"));
+		signer2.forwardCall(address(agreement1), abi.encodeWithSignature(functionSigAgreementCancel));
 		if (agreement1.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement1 legal state should be CANCELED after unilateral cancellation in formation";
 
 		// Agreement2 is canceled during execution
-		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
-		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("sign()"));
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature(functionSigAgreementSign));
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature(functionSigAgreementSign));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreemen2 legal state should be EXECUTED after parties signed";
-		signer1.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
+		signer1.forwardCall(address(agreement2), abi.encodeWithSignature(functionSigAgreementCancel));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.EXECUTED)) return "Agreement2 legal state should still be EXECUTED after unilateral cancellation";
-		signer2.forwardCall(address(agreement2), abi.encodeWithSignature("cancel()"));
+		signer2.forwardCall(address(agreement2), abi.encodeWithSignature(functionSigAgreementCancel));
 		if (agreement2.getLegalState() != uint8(Agreements.LegalState.CANCELED)) return "Agreement2 legal state should be CANCELED after bilateral cancellation";
 
 		return SUCCESS;
 	}
-
 }
 
+/**
+ * Helper contract to test the pre_validateNextLegalState modifier which is currently
+ * not yet used in the DefaultActiveAgreement
+ */
+contract LegalStateEnforcedAgreement is DefaultActiveAgreement {
+
+	function resetLegalState()
+		external
+	{
+		legalState = Agreements.LegalState.UNDEFINED;
+	}
+
+	function testLegalState(Agreements.LegalState _legalState)
+		pre_validateNextLegalState(_legalState)
+		external
+		returns (bool)
+	{
+		legalState = _legalState;
+		return true;
+	}
+}

@@ -55,7 +55,7 @@ jobs:
   deploy:
     contract: ArchetypeRegistryTest.bin
     instance: ArchetypeRegistryTest
-    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib
+    libraries: ErrorsLib:$ErrorsLib, ArrayUtilsLib:$ArrayUtilsLib, TypeUtilsLib:$TypeUtilsLib, MappingsLib:$MappingsLib, ERC165Utils:$ERC165Utils
     data: [$IsoCountries]
 
 - name: testArchetypeCreation
@@ -123,6 +123,18 @@ jobs:
 - name: assertActiveAgreementSetup
   assert:
     key: $testActiveAgreementSetup
+    relation: eq
+    val: success
+
+- name: testLegalStateChangeValidation
+  call:
+    destination: $ActiveAgreementTest
+    bin: ActiveAgreementTest
+    function: testLegalStateChangeValidation
+
+- name: assertLegalStateChangeValidation
+  assert:
+    key: $testLegalStateChangeValidation
     relation: eq
     val: success
 
