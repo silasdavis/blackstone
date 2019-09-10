@@ -43,8 +43,8 @@ workflows:
     jobs:
       - swagger
       - test
-      - deploy_docs:
-          filters:
-            branches:
-              only:
-                - master
+      # - deploy_docs:
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
