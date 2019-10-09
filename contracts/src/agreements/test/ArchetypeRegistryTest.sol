@@ -82,13 +82,13 @@ contract ArchetypeRegistryTest {
 		bool success;
 
 		// test positive creation first to confirm working function signature
-		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray)));
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, falseAddress, falseAddress, falseAddress, EMPTY, emptyArray));
 		if (!success) return "Creating an archetype with valid parameters should succeed";
 
 		// test failures
-		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, address(0), falseAddress, falseAddress, falseAddress, EMPTY, emptyArray)));
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, address(0), falseAddress, falseAddress, falseAddress, EMPTY, emptyArray));
 		if (success) return "Creating archetype with empty author should revert";
-		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, address(0), falseAddress, falseAddress, EMPTY, emptyArray)));
+		(success, ) = address(registry).call(abi.encodeWithSignature(functionRegistryCreateArchetype, uint256(0), false, true, falseAddress, address(0), falseAddress, falseAddress, EMPTY, emptyArray));
 		if (success) return "Creating archetype with empty owner should revert";
 
 		archetype = registry.createArchetype(10, false, true, falseAddress, address(this), falseAddress, falseAddress, EMPTY, addrArrayWithDupes);
@@ -182,24 +182,23 @@ contract ArchetypeRegistryTest {
 		(permExists, , , , ) = upgradeTestArchetype.getPermissionDetails(upgradeTestArchetype.ROLE_ID_OWNER());
 		if (permExists) return "The upgrade test archetype should not have the owner permission";
 		// test positive permssission setting first to confirm a working function signature
-		if (!address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)))) {
-			return "Upgrading the owner permission and setting it to the test contract should be successful";
-		}
+		(success, ) = address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)));
+		if (!success) return "Upgrading the owner permission and setting it to the test contract should be successful";
+
 		(permExists, , , , ) = upgradeTestArchetype.getPermissionDetails(upgradeTestArchetype.ROLE_ID_OWNER());
 		if (!permExists) return "The owner permission should have been created in the upgrade";
 		if (upgradeTestArchetype.getHolder(upgradeTestArchetype.ROLE_ID_OWNER(), 0) != address(this)) return "The upgrade test archetype should show the test contract as the owner after the upgrade";
 
 		// test upgrade failures
-		if (address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)))) {
-			return "Upgrading an already upgraded archetype should revert";
-		}
+		(success, ) = address(upgradeTestArchetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(this)));
+		if (success) return "Upgrading an already upgraded archetype should revert";
+
 		// create a fresh archetype
 		upgradeTestArchetype = new DefaultArchetype_pre_v1_1_0();
 		upgradeTestArchetype.initialize(99, false, true, falseAddress, falseAddress, falseAddress, falseAddress, emptyArray);
 		upgradeTestArchetype.downgrade();
-		if (address(archetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(0)))) {
-			return "Upgrading the owner permission and setting it to 0x0 should revert";
-		}
+		(success, ) = address(archetype).call(abi.encodeWithSignature(functionUpgradeOwnerPermission, address(0)));
+		if (success) return "Upgrading the owner permission and setting it to 0x0 should revert";
 
 		return SUCCESS;
 	}

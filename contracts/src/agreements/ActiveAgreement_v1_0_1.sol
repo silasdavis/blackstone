@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-collections/DataStorage.sol";
 import "commons-collections/AddressScopes.sol";

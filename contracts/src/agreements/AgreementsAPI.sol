@@ -36,7 +36,7 @@ library AgreementsAPI {
      * @return party - the agreement party associated with the identified actor. This is typically the same as the actor, but can also contain
      * an Organization address if an Organization was registered as a party. 0x0 if authorization failed
      */
-    function authorizePartyActor(ActiveAgreement _agreement) public returns (address actor, address party) {
+    function authorizePartyActor(address _agreementAddress) public returns (address actor, address party) {
 
         ActiveAgreement agreement = ActiveAgreement(_agreementAddress);
         address current;

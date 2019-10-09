@@ -153,7 +153,10 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 	 * - intended action will lead to two archetypes with their successors pointing to each other.
 	 * @param _successor address of successor archetype
 	 */
-	function setSuccessor(address _successor) external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
+	function setSuccessor(address _successor)
+		external
+		pre_requiresPermissionWithContext(ROLE_ID_OWNER, "")
+	{
 		ErrorsLib.revertIf(_successor == address(this),
 			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
 		ErrorsLib.revertIf(Archetype_v1_0_0(_successor).getSuccessor() == address(this),
@@ -168,8 +171,11 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
    	 * REVERTS if:
 	 * - msg.sender is not the owner or a member of the owner organization
 	 */
-	function activate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
-		ErrorsLib.revertIf(successor != 0x0, ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
+	function activate()
+		external
+		pre_requiresPermissionWithContext(ROLE_ID_OWNER, "")
+	{
+		ErrorsLib.revertIf(successor != address(0), ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
 		active = true;
 		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), true);
 	}
@@ -179,7 +185,10 @@ contract DefaultArchetype is AbstractVersionedArtifact(1,2,1), AbstractArchetype
 	 * REVERTS if:
 	 * - msg.sender is not the owner or a member of the owner organization
 	 */
-	function deactivate() external pre_requiresPermissionWithContext(ROLE_ID_OWNER, "") {
+	function deactivate()
+		external
+		pre_requiresPermissionWithContext(ROLE_ID_OWNER, "")
+	{
 		active = false;
 		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
 	}

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-utils/ArrayUtilsLib.sol";
@@ -128,7 +128,8 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 			_privateParametersFileReference,
 			""
 		);
-		for (uint i = 0; i < _parties.length; i++) {
+		uint i;
+		for (i = 0; i < _parties.length; i++) {
 			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
@@ -331,7 +332,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @param _id the bytes32 ID of an address array
 	 * @return the address array
 	 */
-	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[]) {
+	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[] memory) {
 		if (_id == DATA_FIELD_AGREEMENT_PARTIES) {
 			return parties;
 		}
@@ -385,7 +386,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 		(actor, party) = AgreementsAPI.authorizePartyActor(address(this));
 
 		// if the actor is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(actor == 0x0,
+		ErrorsLib.revertIf(actor == address(0),
 			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.cancel()", "The caller is not authorized to cancel");
 
 		if (legalState == Agreements.LegalState.DRAFT ||
@@ -394,7 +395,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 			legalState = Agreements.LegalState.CANCELED;
 			emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 			emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
-			emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
+			emitEvent(EVENT_ID_STATE_CHANGED, address(this)); // for cancellations we need to inform the registry
 		}
 		else if (legalState == Agreements.LegalState.EXECUTED) {
 			// multilateral cancellation
@@ -409,7 +410,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 					if (i == parties.length-1) {
 						legalState = Agreements.LegalState.CANCELED;
 						emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
-						emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
+						emitEvent(EVENT_ID_STATE_CHANGED, address(this)); // for cancellations we need to inform the registry
 					}
 				}
 			}

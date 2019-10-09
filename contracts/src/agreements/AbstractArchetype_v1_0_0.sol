@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.8;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
@@ -71,7 +71,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 		address _author,
 		address _formationProcess,
 		address _executionProcess,
-		address[] _governingArchetypes)
+		address[] calldata _governingArchetypes)
 		external
 		pre_post_initialize
 	{
@@ -244,15 +244,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address) {
-    return permissions[ROLE_ID_AUTHOR].holders[0];
-	}
-
-	/**
-	 * @dev Gets Owner
-	 * @return owner owner
-	 */
-	function getOwner() external view returns (address) {
-    return permissions[ROLE_ID_OWNER].holders[0];
+		return author;
 	}
 
 	/**
@@ -411,45 +403,11 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	}
 
 	/**
-	 * @dev Sets the successor this archetype. Setting a successor automatically deactivates this archetype.
-	 * REVERTS if:
-	 * - given successor is the same address as itself. 
-	 * - intended action will lead to two archetypes with their successors pointing to each other.
-	 * @param _successor address of successor archetype
-	 */
-	function setSuccessor(address _successor) external {
-		ErrorsLib.revertIf(_successor == address(this),
-			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
-		ErrorsLib.revertIf(Archetype_v1_0_0(_successor).getSuccessor() == address(this),
-			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
-		active = false;
-		successor = _successor;
-		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, address(this), _successor);
-	}
-
-	/**
 	 * @dev Returns the successor of this archetype
 	 * @return address of successor archetype
 	 */
 	function getSuccessor() external view returns (address) {
 		return successor;
-	}
-
-	/**
-	 * @dev Activates this archetype
-	 */
-	function activate() external {
-		ErrorsLib.revertIf(successor != 0x0, ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
-		active = true;
-		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), true);
-	}
-
-	/**
-	 * @dev Deactivates this archetype
-	 */
-	function deactivate() external {
-		active = false;
-		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
 	}
 
 }

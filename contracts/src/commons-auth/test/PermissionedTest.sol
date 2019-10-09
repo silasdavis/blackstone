@@ -144,105 +144,93 @@ contract PermissionedTest {
 		object1.transferPermission(object1.ROLE_ID_OBJECT_ADMIN(), msg.sender);
 		if (!object1.hasPermission(object1.ROLE_ID_OBJECT_ADMIN(), msg.sender)) return "The msg.sender should be the admin after transfer from test contract";
 
-    // Test pre_requiresPermissionWithContext
+		// Test pre_requiresPermissionWithContext
 
-    // Should allow MSG.SENDER with the SINGLE-holder permission to call guarded function
-    ScopedPermissionedObject object4 = new ScopedPermissionedObject(address(0));
-    object4.createPermission(permission1, false, true, false);
-    object4.grantPermission(permission1, address(this));
-    if (
-      !address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction with single-holder permission should work in call() by msg.sender";
-    object4.revokePermission(permission1, address(this));
-    // Should NOT allow MSG.SENDER without the SINGLE-holder permission to call guarded function
-    if (
-      address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender does not hold the single-holder permission";
+		// Should allow MSG.SENDER with the SINGLE-holder permission to call guarded function
+		ScopedPermissionedObject object4 = new ScopedPermissionedObject(address(0));
+		object4.createPermission(permission1, false, true, false);
+		object4.grantPermission(permission1, address(this));
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction with single-holder permission should work in call() by msg.sender";
+		object4.revokePermission(permission1, address(this));
+		// Should NOT allow MSG.SENDER without the SINGLE-holder permission to call guarded function
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender does not hold the single-holder permission";
 
-    // Should allow MSG.SENDER with the MULTI-holder permission to call guarded function
-    object4 = new ScopedPermissionedObject(address(0));
-    object4.createPermission(permission1, true, true, false);
-    object4.grantPermission(permission1, address(object4));
-    object4.grantPermission(permission1, address(this));
+		// Should allow MSG.SENDER with the MULTI-holder permission to call guarded function
+		object4 = new ScopedPermissionedObject(address(0));
+		object4.createPermission(permission1, true, true, false);
+		object4.grantPermission(permission1, address(object4));
+		object4.grantPermission(permission1, address(this));
 
-    if (
-      !address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction with multi-holder permission should work in call() by msg.sender";
-    object4.revokePermission(permission1, address(this));
-    // Should NOT allow MSG.SENDER without the MULTI-holder permission to call guarded function
-    if (
-      address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender does not hold the multi-holder permission";
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction with multi-holder permission should work in call() by msg.sender";
+		object4.revokePermission(permission1, address(this));
+		// Should NOT allow MSG.SENDER without the MULTI-holder permission to call guarded function
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender does not hold the multi-holder permission";
 
-    // Test organization, and scopes setup
-    address[] memory emptyAddressArray;
-    Organization org1 = new DefaultOrganization();
-    org1.initialize(emptyAddressArray, empty);
-    org1.addUser(address(this));
-    bytes32 empty = "";
-    bytes32 context = "context";
+		// Test organization, and scopes setup
+		bytes32 empty = "";
+		bytes32 context = "context";
+		address[] memory emptyAddressArray;
+		Organization org1 = new DefaultOrganization();
+		org1.initialize(emptyAddressArray, empty);
+		org1.addUser(address(this));
 
-    // Should allow ORGANIZATION MEMBER with the SINGLE-holder permission to call guarded function of a NON-SCOPED object
-    PermissionedObject object5 = new PermissionedObject(address(0));
-    object5.createPermission(permission1, false, true, false);
-    object5.grantPermission(permission1, address(org1));
-    if (
-      !address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction should work in call() by member of the permission-holder organization";
-    // Remove user from organization to cause revert
-    org1.removeUser(address(this));
-    if (
-      address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender is not in the permission-holder organization";
+		// Should allow ORGANIZATION MEMBER with the SINGLE-holder permission to call guarded function of a NON-SCOPED object
+		PermissionedObject object5 = new PermissionedObject(address(0));
+		object5.createPermission(permission1, false, true, false);
+		object5.grantPermission(permission1, address(org1));
+		(success, ) = address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction should work in call() by member of the permission-holder organization";
+		// Remove user from organization to cause revert
+		org1.removeUser(address(this));
+		(success, ) = address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender is not in the permission-holder organization";
 
-    // Should allow ORGANIZATION MEMBER with the MULTI-holder permission to call guarded function of a NON-SCOPED object
-    org1.addUser(address(this));
-    object5 = new PermissionedObject(address(0));
-    object5.createPermission(permission1, true, true, false);
-    object5.grantPermission(permission1, address(object4));
-    object5.grantPermission(permission1, address(org1));
-    if (
-      !address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction should work in call() by member of a permission-holder organization";
-    // Remove user from organization to cause revert
-    org1.removeUser(address(this));
-    if (
-      address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender is not in a permission-holder organization";
+		// Should allow ORGANIZATION MEMBER with the MULTI-holder permission to call guarded function of a NON-SCOPED object
+		org1.addUser(address(this));
+		object5 = new PermissionedObject(address(0));
+		object5.createPermission(permission1, true, true, false);
+		object5.grantPermission(permission1, address(object4));
+		object5.grantPermission(permission1, address(org1));
+		(success, ) = address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction should work in call() by member of a permission-holder organization";
+		// Remove user from organization to cause revert
+		org1.removeUser(address(this));
+		(success, ) = address(object5).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender is not in a permission-holder organization";
 
 
-    // Should allow ORGANIZATION MEMBER with the SINGLE-holder permission to call guarded function of a SCOPED object
-    org1.addUser(address(this));
-    object4 = new ScopedPermissionedObject(address(0));
-    object4.createPermission(permission1, false, true, false);
-    object4.grantPermission(permission1, address(org1));
-    object4.setAddressScope(address(org1), context, org1.getOrganizationKey(), empty, empty, address(0));
-    if (
-      !address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction should work in call() by member of the permission-holder organization and department defined by scope";
-    org1.addDepartment(context);
-    object4.setAddressScope(address(org1), context, context, empty, empty, address(0));
-    if (
-      address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender is not in the permission-holder organization and department defined by scope";
+		// Should allow ORGANIZATION MEMBER with the SINGLE-holder permission to call guarded function of a SCOPED object
+		org1.addUser(address(this));
+		object4 = new ScopedPermissionedObject(address(0));
+		object4.createPermission(permission1, false, true, false);
+		object4.grantPermission(permission1, address(org1));
+		object4.setAddressScope(address(org1), context, org1.getOrganizationKey(), empty, empty, address(0));
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction should work in call() by member of the permission-holder organization and department defined by scope";
+		org1.addDepartment(context);
+		object4.setAddressScope(address(org1), context, context, empty, empty, address(0));
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender is not in the permission-holder organization and department defined by scope";
 
-    // Should allow ORGANIZATION MEMBER with the MULTI-holder permission to call guarded function of a SCOPED object
-    object4 = new ScopedPermissionedObject(address(0));
-    object4.createPermission(permission1, true, true, false);
-    object4.grantPermission(permission1, address(object5));
-    object4.grantPermission(permission1, address(org1));
-    object4.setAddressScope(address(org1), context, org1.getOrganizationKey(), empty, empty, address(0));
-    if (
-      !address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "permissionedFunction should work in call() by member of a permission-holder organization and department defined by scope";
-    // Change department defined in scope to cause revert
-    object4.setAddressScope(address(org1), context, context, empty, empty, address(0));
-    if (
-      address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction))
-    ) return "Calling guarded permissionedFunction should revert if msg.sender is not in a permission-holder organization and department defined by scope";
+		// Should allow ORGANIZATION MEMBER with the MULTI-holder permission to call guarded function of a SCOPED object
+		object4 = new ScopedPermissionedObject(address(0));
+		object4.createPermission(permission1, true, true, false);
+		object4.grantPermission(permission1, address(object5));
+		object4.grantPermission(permission1, address(org1));
+		object4.setAddressScope(address(org1), context, org1.getOrganizationKey(), empty, empty, address(0));
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (!success) return "permissionedFunction should work in call() by member of a permission-holder organization and department defined by scope";
+		// Change department defined in scope to cause revert
+		object4.setAddressScope(address(org1), context, context, empty, empty, address(0));
+		(success, ) = address(object4).call(abi.encodeWithSignature(functionSigPermissionedFunction));
+		if (success) return "Calling guarded permissionedFunction should revert if msg.sender is not in a permission-holder organization and department defined by scope";
 
-    return SUCCESS;
-  }
+		return SUCCESS;
+	}
 }
 
 contract PermissionedObject is AbstractPermissioned {

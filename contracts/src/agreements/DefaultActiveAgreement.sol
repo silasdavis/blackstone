@@ -134,7 +134,8 @@ contract DefaultActiveAgreement is AbstractVersionedArtifact(1,3,0), AbstractAct
 		(signee, party) = AgreementsAPI.authorizePartyActor(address(this));
 
 		// if the signee is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(signee == address(0), ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
+		ErrorsLib.revertIf(signee == address(0),
+			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.sign()", "The caller is not authorized to sign");
 
 		// the signature is only applied, if no previous signature for the party exists
 		if (signatures[party].timestamp == 0) {
