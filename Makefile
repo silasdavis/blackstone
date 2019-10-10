@@ -18,7 +18,7 @@ build_contracts:
 
 .PHONY: deploy_contracts
 deploy_contracts:
-	cd contracts/src && burrow deploy --chain=$(CHAIN_URL_GRPC) --address=$(CONTRACTS_DEPLOYMENT_ADDRESS) $(if $(tgt),deploy-$(tgt).yaml,deploy.yaml)
+	cd contracts/src && burrow deploy --timeout 60 --chain=$(CHAIN_URL_GRPC) --address=$(CONTRACTS_DEPLOYMENT_ADDRESS) $(if $(tgt),deploy-$(tgt).yaml,deploy.yaml)
 
 .PHONY: test_contracts
 test_contracts:
