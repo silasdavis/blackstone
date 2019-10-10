@@ -25,7 +25,7 @@ contract AuthorizationsManager {
 
     /// @dev Constructor
     constructor() public {
-        repositories.insert(REPOSITORY_CHAIN_AUTHORIZATIONS, new ChainAuthorizations());
+        repositories.insert(REPOSITORY_CHAIN_AUTHORIZATIONS, address(new ChainAuthorizations()));
     }
 
     /**

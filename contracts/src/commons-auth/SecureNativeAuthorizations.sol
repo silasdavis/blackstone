@@ -16,7 +16,7 @@ interface SecureNativeAuthorizations {
     * @param _role role name
     * @return result whether role was added
     */
-    function addRole(address _account, bytes32 _role) public returns (bool result);
+    function addRole(address _account, bytes32 _role) external returns (bool result);
 
     /**
     * @dev Removes a role from an account
@@ -24,7 +24,7 @@ interface SecureNativeAuthorizations {
     * @param _role role name
     * @return result whether role was removed
     */
-    function removeRole(address _account, bytes32 _role) public returns (bool result);
+    function removeRole(address _account, bytes32 _role) external returns (bool result);
 
     /**
     * @dev Indicates whether an account has a role
@@ -32,7 +32,7 @@ interface SecureNativeAuthorizations {
     * @param _role role name
     * @return result whether account has role
     */
-    function hasRole(address _account, bytes32 _role) public view returns (bool result);
+    function hasRole(address _account, bytes32 _role) external view returns (bool result);
 
     /**
     * @dev Sets the permission flags for an account. Makes them explicitly set (on or off).
@@ -41,7 +41,7 @@ interface SecureNativeAuthorizations {
     * @param _set whether to set or unset the permissions flags at the account level
     * @return result the effective permissions flags on the account after the call
     */
-    function setBase(address _account, uint64 _permission, bool _set) public returns (uint64 result);
+    function setBase(address _account, uint64 _permission, bool _set) external returns (uint64 result);
 
     /**
     * @dev Unsets the permissions flags for an account. Causes permissions being unset to fall through to global permissions.
@@ -49,7 +49,7 @@ interface SecureNativeAuthorizations {
     * @param _permission the permissions flags to unset for the account
     * @return result the effective permissions flags on the account after the call
     */
-    function unsetBase(address _account, uint64 _permission) public returns (uint64 result);
+    function unsetBase(address _account, uint64 _permission) external returns (uint64 result);
 
     /**
     * @dev Indicates whether an account has a subset of permissions set
@@ -57,7 +57,7 @@ interface SecureNativeAuthorizations {
     * @param _permission the permissions flags (mask) to check whether enabled against base permissions for the account
     * @return result whether account has the passed permissions flags set
     */
-    function hasBase(address _account, uint64 _permission) public view returns (uint64 result);
+    function hasBase(address _account, uint64 _permission) external view returns (uint64 result);
 
     /**
     * @dev Sets the global (default) permissions flags for the entire chain
@@ -65,5 +65,5 @@ interface SecureNativeAuthorizations {
     * @param _set whether to set (or unset) the permissions flags
     * @return result the global permissions flags after the call
     */
-    function setGlobal(uint64 _permission, bool _set) public returns (uint64 result);
+    function setGlobal(uint64 _permission, bool _set) external returns (uint64 result);
 }

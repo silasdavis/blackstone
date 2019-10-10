@@ -17,7 +17,7 @@ contract ChainAuthorizations is Owned, AuthorizationsRepository {
     // Constructor
     constructor() public {
         owner = msg.sender;
-        sNativeAuthorizations = SecureNativeAuthorizations(address(keccak256(abi.encodePacked("Permissions"))));
+        sNativeAuthorizations = SecureNativeAuthorizations(address(uint256(keccak256("Permissions"))));
     }
 
     /**
