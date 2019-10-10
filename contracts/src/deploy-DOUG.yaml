@@ -88,13 +88,6 @@ jobs:
     libraries: ErrorsLib:$ErrorsLib
     data: [$DefaultDoug]
 
-- name: SetProxiedDoug
-  call:
-    destination: $DOUG
-    bin: DougProxy
-    function: setProxiedDoug
-    data: [$DefaultDoug]
-
 - name: ChangeArtifactsRegistrySystemOwnerShip
   call:
     destination: $ArtifactsRegistry
