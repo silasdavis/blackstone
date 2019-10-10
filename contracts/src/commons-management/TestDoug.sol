@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/DOUG.sol";
 import "commons-management/ArtifactsRegistry.sol";
@@ -24,12 +24,12 @@ contract TestDoug is DOUG {
 	 * @param _address the contract address
 	 * @return always true
 	 */
-    function deploy(string _id, address _address) external returns (bool success) {
+    function deploy(string calldata _id, address _address) external returns (bool success) {
 		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 		success = true;
 	}
 
-    function register(string _id, address _address) external returns (uint8[3]) {
+    function register(string calldata _id, address _address) external returns (uint8[3] memory) {
 		artifactsRegistry.registerArtifact(_id, _address, [0,0,0], true);
 	}
 
@@ -38,7 +38,7 @@ contract TestDoug is DOUG {
 	 * @param _id the key to use for lookup
 	 * @return the contract address or 0x0
 	 */
-    function lookup(string _id) external view returns (address contractAddress) {
+    function lookup(string calldata _id) external view returns (address contractAddress) {
 		(contractAddress, ) = artifactsRegistry.getArtifact(_id);
 	}
 

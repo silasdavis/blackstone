@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/SystemOwned.sol";
 import "commons-base/BaseErrors.sol";
@@ -19,13 +19,14 @@ contract ProcessModelRepositoryDb is SystemOwned {
     systemOwner = msg.sender;
   }
 
-  function addModel(bytes32 _id, uint8[3] _version, address _address) external pre_onlyBySystemOwner returns (uint error) {
+  function addModel(bytes32 _id, uint8[3] calldata _version, address _address) external pre_onlyBySystemOwner returns (uint error) {
     error = models[_id].insert(keccak256(abi.encodePacked(_version)), _address);
-    if (error != BaseErrors.NO_ERROR()) return;
-    modelAddresses.push(_address);
+    if (error == BaseErrors.NO_ERROR()) {
+      modelAddresses.push(_address);
+    }
   }
 
-  function getModel(bytes32 _id, uint8[3] _version) external view returns (address) {
+  function getModel(bytes32 _id, uint8[3] calldata _version) external view returns (address) {
     return models[_id].get(keccak256(abi.encodePacked(_version)));
   }
 

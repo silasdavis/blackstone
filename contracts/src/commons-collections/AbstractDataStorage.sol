@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-utils/DataTypes.sol";
 
@@ -71,9 +71,11 @@ contract AbstractDataStorage is DataStorage {
     emit LogDataStorageUpdateBool(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
-  function getDataValueAsBoolArray (bytes32 _id) external view returns (bool[]) { return dataStorageMap.get(_id).boolArrayValue; }
+  function getDataValueAsBoolArray (bytes32 _id) external view returns (bool[] memory) {
+    return dataStorageMap.get(_id).boolArrayValue;
+  }
 
-  function setDataValueAsBoolArray (bytes32 _id, bool[] _value) external {
+  function setDataValueAsBoolArray (bytes32 _id, bool[] calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.dataType = DataTypes.BOOLARRAY();
@@ -85,9 +87,11 @@ contract AbstractDataStorage is DataStorage {
   /**
    * STRING
    */
-  function getDataValueAsString (bytes32 _id) external view returns (string) { return dataStorageMap.get(_id).stringValue; }
+  function getDataValueAsString (bytes32 _id) external view returns (string memory) {
+    return dataStorageMap.get(_id).stringValue;
+  }
 
-  function setDataValueAsString (bytes32 _id, string _value) external {
+  function setDataValueAsString (bytes32 _id, string calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.dataType = DataTypes.STRING();
@@ -100,7 +104,7 @@ contract AbstractDataStorage is DataStorage {
 
   // function getDataValueAsStringArray (bytes32 _id) external view returns (string[]) { return dataStorageMap.get(_id).stringArrayValue; }
 
-  // function setDataValueAsStringArray (bytes32 _id, string[] _value) external {
+  // function setDataValueAsStringArray (bytes32 _id, string[] memory _value) external {
   //   DataStorageUtils.Data memory data;
   //   data.id = _id;
   //   data.stringArrayValue = _value;
@@ -112,7 +116,9 @@ contract AbstractDataStorage is DataStorage {
   /**
    * UINT
    */
-  function getDataValueAsUint (bytes32 _id) external view returns (uint) { return dataStorageMap.get(_id).uintValue; }
+  function getDataValueAsUint (bytes32 _id) external view returns (uint) {
+    return dataStorageMap.get(_id).uintValue;
+  }
 
   function setDataValueAsUint (bytes32 _id, uint _value) external {
     DataStorageUtils.Data memory data;
@@ -123,9 +129,11 @@ contract AbstractDataStorage is DataStorage {
     emit LogDataStorageUpdateUint(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
   
-  function getDataValueAsUintArray (bytes32 _id) external view returns (uint[]) { return dataStorageMap.get(_id).uint256ArrayValue; }
+  function getDataValueAsUintArray (bytes32 _id) external view returns (uint[] memory) {
+    return dataStorageMap.get(_id).uint256ArrayValue;
+  }
 
-  function setDataValueAsUintArray (bytes32 _id, uint[] _value) external {
+  function setDataValueAsUintArray (bytes32 _id, uint[] calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.uint256ArrayValue = _value;
@@ -148,9 +156,11 @@ contract AbstractDataStorage is DataStorage {
     emit LogDataStorageUpdateInt(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
-  function getDataValueAsIntArray (bytes32 _id) external view returns (int[]) { return dataStorageMap.get(_id).int256ArrayValue; }
+  function getDataValueAsIntArray (bytes32 _id) external view returns (int[] memory) {
+    return dataStorageMap.get(_id).int256ArrayValue;
+  }
 
-  function setDataValueAsIntArray (bytes32 _id, int[] _value) external {
+  function setDataValueAsIntArray (bytes32 _id, int[] calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.int256ArrayValue = _value;
@@ -162,7 +172,9 @@ contract AbstractDataStorage is DataStorage {
   /**
    * ADDRESS
    */
-  function getDataValueAsAddress (bytes32 _id) external view returns (address) { return dataStorageMap.get(_id).addressValue; }
+  function getDataValueAsAddress (bytes32 _id) external view returns (address) {
+    return dataStorageMap.get(_id).addressValue;
+  }
 
   function setDataValueAsAddress (bytes32 _id, address _value) external {
     DataStorageUtils.Data memory data;
@@ -173,9 +185,11 @@ contract AbstractDataStorage is DataStorage {
     emit LogDataStorageUpdateAddress(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
-  function getDataValueAsAddressArray (bytes32 _id) external view returns (address[]) { return dataStorageMap.get(_id).addressArrayValue; }
+  function getDataValueAsAddressArray (bytes32 _id) external view returns (address[] memory) {
+    return dataStorageMap.get(_id).addressArrayValue;
+  }
 
-  function setDataValueAsAddressArray (bytes32 _id, address[] _value) external {
+  function setDataValueAsAddressArray (bytes32 _id, address[] calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.addressArrayValue = _value;
@@ -187,7 +201,9 @@ contract AbstractDataStorage is DataStorage {
   /**
    * BYTES32
    */
-  function getDataValueAsBytes32 (bytes32 _id) external view returns (bytes32) { return dataStorageMap.get(_id).bytes32Value; }
+  function getDataValueAsBytes32 (bytes32 _id) external view returns (bytes32) {
+    return dataStorageMap.get(_id).bytes32Value;
+  }
 
   function setDataValueAsBytes32 (bytes32 _id, bytes32 _value) external {
     DataStorageUtils.Data memory data;
@@ -198,9 +214,11 @@ contract AbstractDataStorage is DataStorage {
     emit LogDataStorageUpdateBytes32(EVENT_ID_DATA_STORAGE, address(this), _id, _value);
   }
 
-  function getDataValueAsBytes32Array (bytes32 _id) external view returns (bytes32[]) { return dataStorageMap.get(_id).bytes32ArrayValue; }
+  function getDataValueAsBytes32Array (bytes32 _id) external view returns (bytes32[] memory) {
+    return dataStorageMap.get(_id).bytes32ArrayValue;
+  }
 
-  function setDataValueAsBytes32Array (bytes32 _id, bytes32[] _value) external {
+  function setDataValueAsBytes32Array (bytes32 _id, bytes32[] calldata _value) external {
     DataStorageUtils.Data memory data;
     data.id = _id;
     data.bytes32ArrayValue = _value;

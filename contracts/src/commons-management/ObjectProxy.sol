@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 
@@ -62,7 +62,7 @@ contract ObjectProxy is AbstractDelegateProxy {
         }
     }
 
-    function getObjectClass() internal view returns (string objectClass) {
+    function getObjectClass() internal view returns (string memory objectClass) {
         bytes32 classLengthPos = storagePositionObjectClassLength;
         bytes32 classValuePos = storagePositionObjectClassValue;
         assembly {

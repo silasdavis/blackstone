@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/DOUG.sol";
 import "commons-management/DefaultDoug.sol";
@@ -20,44 +20,48 @@ contract DougTest {
     string constant keyService2 = "agreements-network/services/TestService2";
     string constant keyService3 = "agreements-network/services/TestService3";
 
-    function testRegistration() external returns (string) {
+    function testRegistration() external returns (string memory) {
 
         uint8[3] memory version;
         address location;
+        bool success;
 
         ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
         DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 
         DefaultDoug doug = new DefaultDoug();
-        artifactsRegistry.transferSystemOwnership(doug);
+        artifactsRegistry.transferSystemOwnership(address(doug));
         doug.setArtifactsRegistry(address(artifactsRegistry));
 
         TestObjectFactory f1 = new TestObjectFactory(keyObject1);
-        doug.deploy("BananaFactory", f1); // Deploying through Doug should inject the ArtifactsFinder for these factories
+        doug.deploy("BananaFactory", address(f1)); // Deploying through Doug should inject the ArtifactsFinder for these factories
         TestObjectFactory f2 = new TestObjectFactory(keyObject2);
-        doug.deploy("AppleFactory", f2);
+        doug.deploy("AppleFactory", address(f2));
 
         // test NULL failures
-        if (address(doug).call(abi.encodeWithSignature("register", EMPTY, address(this)))) return "Registering an empty ID should revert";
-        if (address(doug).call(abi.encodeWithSignature("register", keyObject2, address(0)))) return "Registering an empty address should revert";
+        (success, ) = address(doug).call(abi.encodeWithSignature("register", EMPTY, address(this)));
+        if (success) return "Registering an empty ID should revert";
+        (success, ) = address(doug).call(abi.encodeWithSignature("register", keyObject2, address(0)));
+        if (success) return "Registering an empty address should revert";
 
         // register object classes and test versioning behavior
         VersionedObject o1 = new VersionedObject([1,0,0]);
-        doug.register(keyObject1, o1);
+        doug.register(keyObject1, address(o1));
         if (doug.lookup(keyObject1) != address(o1)) return "address for banana should be o1";
         if (doug.lookupVersion(keyObject1, [1,0,0]) != address(o1)) return "address for banana and version 1.0.0 should be o1";
         if (f1.getCurrentObjectRef() != address(o1)) return "ObjectFactory1 should point to o1";
 
         SimpleObject o2 = new SimpleObject();
-        doug.register(keyObject2, o2);
+        doug.register(keyObject2, address(o2));
         (location, version) = artifactsRegistry.getArtifact(keyObject2);
         if (location != address(o2)) return "o2 should should be in the registry as apple";
         if (!isSameVersion(version, [0,0,0])) return "o2 version should be 0.0.0";
         if (f2.getCurrentObjectRef() != address(o2)) return "ObjectFactory2 should point to o2";
 
         // test overwrite failures
-        doug.register(keyObject2, o2); // registering the same address and version should be ignored
-        if (address(doug).call(abi.encodeWithSignature("register", keyObject2, address(this)))) return "Registering an existing ID and version should revert";
+        doug.register(keyObject2, address(o2)); // registering the same address and version should be ignored
+        (success, ) = address(doug).call(abi.encodeWithSignature("register", keyObject2, address(this)));
+        if (success) return "Registering an existing ID and version should revert";
 
         // registering a higher version should automatically activate it
         doug.registerVersion(keyObject2, address(this), [0,2,4]);
@@ -66,7 +70,7 @@ contract DougTest {
 
         // registering a lower version is possible, but it should not be the active version
         VersionedObject o3 = new VersionedObject([0,9,9]);
-        doug.register(keyObject1, o3);
+        doug.register(keyObject1, address(o3));
         if (doug.lookup(keyObject1) != address(o1)) return "The latest version of banana should still be o1";
         if (artifactsRegistry.getArtifactByVersion(keyObject1, [0,9,9]) != address(o3)) return "Apple version 0.9.9 should've been registered";
         if (f1.getCurrentObjectRef() != address(o1)) return "ObjectFactory1 should point still point to o1";
@@ -74,16 +78,17 @@ contract DougTest {
         return SUCCESS;
     }
 
-    function testDeployment() external returns (string) {
+    function testDeployment() external returns (string memory) {
 
         uint8[3] memory version;
         address location;
+        bool success;
 
         ArtifactsRegistry artifactsRegistry = new DefaultArtifactsRegistry();
         DefaultArtifactsRegistry(address(artifactsRegistry)).initialize();
 
         DefaultDoug doug = new DefaultDoug();
-        artifactsRegistry.transferSystemOwnership(doug);
+        artifactsRegistry.transferSystemOwnership(address(doug));
         doug.setArtifactsRegistry(address(artifactsRegistry));
 
         if (!doug.deploy("blabla", address(this))) return "Deploying any contract with an unused ID should succeed";
@@ -95,16 +100,19 @@ contract DougTest {
         TestService s3 = new TestService([3,0,0], keyService2); // service3 depends on service2
 
         // test for NULL failures and ownership failure
-        if (address(doug).call(abi.encodeWithSignature("deploy", EMPTY, address(this)))) return "Deploying an empty ID should revert";
-        if (address(doug).call(abi.encodeWithSignature("deploy", keyService1, address(0)))) return "Deploying an empty address should revert";
-        if (address(doug).call(abi.encodeWithSignature("deploy", keyService1, address(s1)))) return "Deploying an upgradeable service that is not upgradeOwned by DOUG should revert";
+        (success, ) = address(doug).call(abi.encodeWithSignature("deploy", EMPTY, address(this)));
+        if (success) return "Deploying an empty ID should revert";
+        (success, ) = address(doug).call(abi.encodeWithSignature("deploy", keyService1, address(0)));
+        if (success) return "Deploying an empty address should revert";
+        (success, ) = address(doug).call(abi.encodeWithSignature("deploy", keyService1, address(s1)));
+        if (success) return "Deploying an upgradeable service that is not upgradeOwned by DOUG should revert";
 
-        s1.transferUpgradeOwnership(doug);
-        s2.transferUpgradeOwnership(doug);
-        s3.transferUpgradeOwnership(doug);
-        if (!doug.deploy(keyService1, s1)) return "Deployment of TestService1 should succeed";
-        if (!doug.deploy(keyService2, s2)) return "Deployment of TestService2 should succeed";
-        if (!doug.deploy(keyService3, s3)) return "Deployment of TestService3 should succeed";
+        s1.transferUpgradeOwnership(address(doug));
+        s2.transferUpgradeOwnership(address(doug));
+        s3.transferUpgradeOwnership(address(doug));
+        if (!doug.deploy(keyService1, address(s1))) return "Deployment of TestService1 should succeed";
+        if (!doug.deploy(keyService2, address(s2))) return "Deployment of TestService2 should succeed";
+        if (!doug.deploy(keyService3, address(s3))) return "Deployment of TestService3 should succeed";
 
         (location, version) = artifactsRegistry.getArtifact(keyService1);
         if (location != address(s1)) return "Service1 location should be in the registry";
@@ -114,21 +122,21 @@ contract DougTest {
         if (location != address(s2)) return "Service2 location should be in the registry";
         if (!isSameVersion(version, [2,0,0])) return "Service2 version should be in the registry";
 
-        if (s1.dependencyService() != 0x0) return "TestService1 should have no dependency";
+        if (s1.dependencyService() != address(0)) return "TestService1 should have no dependency";
         if (s2.dependencyService() != address(s1)) return "TestService2 should have s1 as dependency";
         if (s3.dependencyService() != address(s2)) return "TestService3 should have s2 as dependency";
 
         // test deploying a lower version
         TestService s2_lower = new TestService([1,0,5], keyService1);
-        s2_lower.transferUpgradeOwnership(doug);
-        if (!doug.deploy(keyService2, s2_lower)) return "Deployment of TestService2_lower should succeed despite lower version than the active service";
+        s2_lower.transferUpgradeOwnership(address(doug));
+        if (!doug.deploy(keyService2, address(s2_lower))) return "Deployment of TestService2_lower should succeed despite lower version than the active service";
         if (doug.lookup(keyService2) != address(s2)) return "Active version and location for service 2 should still be s2";
         if (artifactsRegistry.getArtifactByVersion(keyService2, [1,0,5]) != address(s2_lower)) return "s2_lower should have been registered even with lower version";
 
         // test upgrading services and verify dependency changes
         TestService s2_1 = new TestService([2,2,1], keyService1);
-        s2_1.transferUpgradeOwnership(doug);
-        if (!doug.deploy(keyService2, s2_1)) return "Deployment of TestService2_1 should succeed";
+        s2_1.transferUpgradeOwnership(address(doug));
+        if (!doug.deploy(keyService2, address(s2_1))) return "Deployment of TestService2_1 should succeed";
         if (doug.lookup(keyService2) != address(s2_1)) return "Active version and location for service 2 should now be s2_1";
         if (s2_1.dependencyService() != address(s1)) return "TestService2_1 should still have s1 as dependency after upgrade due to not actively refreshing";
         if (s3.dependencyService() != address(s2)) return "TestService3 should still have s2 as dependency before refresh";
@@ -138,7 +146,7 @@ contract DougTest {
         return SUCCESS;
     }
 
-    function isSameVersion(uint8[3] _v1, uint8[3] _v2) private pure returns (bool) {
+    function isSameVersion(uint8[3] memory _v1, uint8[3] memory _v2) private pure returns (bool) {
         return _v1[0] == _v2[0] && _v1[1] == _v2[1] && _v1[2] == _v2[2];
     }
 
@@ -150,7 +158,7 @@ contract SimpleObject {
 
 contract VersionedObject is AbstractVersionedArtifact {
 
-    constructor(uint8[3] _v) AbstractVersionedArtifact(_v[0],_v[1],_v[2]) public {
+    constructor(uint8[3] memory _v) AbstractVersionedArtifact(_v[0],_v[1],_v[2]) public {
 
     }
 
@@ -161,7 +169,7 @@ contract TestObjectFactory is AbstractObjectFactory, ArtifactsFinderEnabled {
 
     string objectKey;
 
-    constructor(string _objectKey) public {
+    constructor(string memory _objectKey) public {
         objectKey = _objectKey;
     }
 

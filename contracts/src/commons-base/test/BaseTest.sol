@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/NamedElement.sol";
 import "commons-base/AbstractNamedElement.sol";
@@ -8,7 +8,7 @@ import "commons-base/AbstractNamedElement.sol";
  */
 contract TestElement is AbstractNamedElement {
 	
-	constructor(bytes32 _id, string _name) public {
+	constructor(bytes32 _id, string memory _name) public {
 		id = _id;
 		name = _name;
 	}
@@ -18,7 +18,7 @@ contract BaseTest {
 
 	string name = "MyName";
 	
-	function testNamedElement() external returns (string) {
+	function testNamedElement() external returns (string memory) {
 		
 		NamedElement element = new TestElement("MyId", name);
 		if (element.getId() != "MyId") return "ID not set correctly.";

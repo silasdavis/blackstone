@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/DataTypes.sol";
@@ -56,7 +56,7 @@ contract DataStorageTest {
 	
 	uint error;
 
-	function testPrimitivesDataStorageAndRetrieval() external returns (string) {
+	function testPrimitivesDataStorageAndRetrieval() external returns (string memory) {
 		
 		myStorage = new TestDataStorage();
 
@@ -94,7 +94,7 @@ contract DataStorageTest {
 		return SUCCESS;
 	}
 
-	function testArraysDataStorageAndRetrieval() external returns (string) {
+	function testArraysDataStorageAndRetrieval() external returns (string memory) {
 
 		myStorage = new TestDataStorage();
 
@@ -146,7 +146,7 @@ contract DataStorageTest {
 		return SUCCESS;
 	}
 
-	function testDataRemoval () external returns (string) {
+	function testDataRemoval () external returns (string memory) {
 
 		myStorage = new TestDataStorage();
 		delete u256Arr;
@@ -155,7 +155,7 @@ contract DataStorageTest {
 		u256Arr.push(237);
 		u256Arr.push(88);
 	
-		myStorage.setDataValueAsAddress("key1", this);
+		myStorage.setDataValueAsAddress("key1", address(this));
 		myStorage.setDataValueAsBool("key2", true);
 		myStorage.setDataValueAsBytes32("key3", "bla");
 		myStorage.setDataValueAsUintArray(i256ArrId, u256Arr);
@@ -174,13 +174,13 @@ contract DataStorageTest {
 		return SUCCESS;
 	}
 
-	function testDataComparison() external returns (string) {
+	function testDataComparison() external returns (string memory) {
 
 		myStorage = new TestDataStorage();
 		mySubDataStorage = new TestDataStorage();
 		bool result;
 
-		myStorage.setDataValueAsAddress(subStorageId, mySubDataStorage);
+		myStorage.setDataValueAsAddress(subStorageId, address(mySubDataStorage));
 		
 		// compare uints
 		myStorage.setDataValueAsUint(num10, tenVal);
@@ -244,25 +244,29 @@ contract DataStorageTest {
 	/**
 	 * @dev Tests functions specific to AddressScopes
 	 */
-	function testAddressScopedDataStorage() external returns (string) {
+	function testAddressScopedDataStorage() external returns (string memory) {
 
 		ScopedStorage testStorage = new ScopedStorage();
 
 		testStorage.setDataValueAsAddress("Buyer", address(this));
 		testStorage.setDataValueAsAddress("Seller", msg.sender);
-		if (address(testStorage).call(bytes4(keccak256(abi.encodePacked("setAddressScope(address,bytes32,bytes32,bytes32,bytes32,address)"))), address(0), "context1", "Scope1", EMPTY, EMPTY, 0x0))
+		bool success;
+		(success, ) = address(testStorage).call(abi.encodeWithSignature("setAddressScope(address,bytes32,bytes32,bytes32,bytes32,address)", address(0), "context1", "Scope1", EMPTY, EMPTY, address(0)));
+		if (success)
 			return "Setting a scope on an empty address should revert";
-		if (address(testStorage).call(bytes4(keccak256(abi.encodePacked("setAddressScope(address,bytes32,bytes32,bytes32,bytes32,address)"))), address(this), EMPTY, EMPTY, EMPTY, EMPTY, 0x0))
+		(success, ) = address(testStorage).call(abi.encodeWithSignature("setAddressScope(address,bytes32,bytes32,bytes32,bytes32,address)", address(this), EMPTY, EMPTY, EMPTY, EMPTY, address(0)));
+		if (success)
 			return "Setting a scope with no fixed or conditional scope information should revert";
 
-		testStorage.setAddressScope(address(this), EMPTY, "testScope", EMPTY, EMPTY, 0x0);
+		testStorage.setAddressScope(address(this), EMPTY, "testScope", EMPTY, EMPTY, address(0));
 		testStorage.setDataValueAsBytes32("ConditionalScope", "senderScope");
 		// set the second scope twice to test overwriting and length expectations
-		testStorage.setAddressScope(msg.sender, "context1", EMPTY, "fakeCondition", EMPTY, 0x0);
-		testStorage.setAddressScope(msg.sender, "context1", EMPTY, "ConditionalScope", EMPTY, 0x0);
+		testStorage.setAddressScope(msg.sender, "context1", EMPTY, "fakeCondition", EMPTY, address(0));
+		testStorage.setAddressScope(msg.sender, "context1", EMPTY, "ConditionalScope", EMPTY, address(0));
 
-		if (testStorage.resolveAddressScope(address(this), EMPTY, DataStorage(0x0)) != "testScope") return "Scope for address(this)/EMPTY not resolved correctly";
-		if (address(testStorage).call(bytes4(keccak256(abi.encodePacked("resolveAddressScope(address,bytes32,DataStorage)"))), msg.sender, "context1", DataStorage(0x0)))
+		if (testStorage.resolveAddressScope(address(this), EMPTY, DataStorage(address(0))) != "testScope") return "Scope for address(this)/EMPTY not resolved correctly";
+		(success, ) = address(testStorage).call(abi.encodeWithSignature("resolveAddressScope(address,bytes32,DataStorage)", msg.sender, "context1", DataStorage(address(0))));
+		if (success)
 			return "Retrieving a scope defined by ConditionalData should revert if no DataStorage is passed";
 		if (testStorage.resolveAddressScope(msg.sender, "context1", testStorage) != "senderScope") return "Scope for msg.sender/context1 not resolved correctly";
 		bytes32 fixedScope;
@@ -275,7 +279,7 @@ contract DataStorageTest {
 		if (fixedScope != "") return "fixedScope via scope details for msg.sender/context1 not returned correctly";
 		if (dataPath != "ConditionalScope") return "dataPath via scope details for msg.sender/context1 not returned correctly";
 		if (dataStorageId != "") return "dataStorageId via scope details for msg.sender/context1 not returned correctly";
-		if (dataStorage != 0x0) return "dataStorage via scope details for msg.sender/context1 not returned correctly";
+		if (dataStorage != address(0)) return "dataStorage via scope details for msg.sender/context1 not returned correctly";
 
 		return SUCCESS;
 	}

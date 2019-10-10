@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
@@ -50,6 +50,11 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 
 	address[] governingArchetypes;
 
+    /**
+     * @dev non-public constructor
+     */
+    constructor() internal {}
+
 	/**
 	 * @dev Initializes this DefaultArchetype with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
@@ -71,7 +76,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 		address _author,
 		address _formationProcess,
 		address _executionProcess,
-		address[] _governingArchetypes)
+		address[] calldata _governingArchetypes)
 		external
 		pre_post_initialize
 	{
@@ -116,7 +121,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @param _fileReference the external reference to the document
 	 */
 	// TODO: determine access (presumably only author should be able to add documents)
-	function addDocument(string _fileReference) external {
+	function addDocument(string calldata _fileReference) external {
 		bytes32 docKey = keccak256(abi.encodePacked(_fileReference));
 		ErrorsLib.revertIf(documents.exists(docKey),
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultArchetype.addDocument", "A document with the same file reference already exists");
@@ -244,7 +249,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @return author author
 	 */
 	function getAuthor() external view returns (address) {
-    	return author;
+		return author;
 	}
 
 	/**
@@ -254,7 +259,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @param _key the document key
 	 * @return fileReference - the reference to the external document
 	 */
-	function getDocument(bytes32 _key) external view returns (string fileReference) {
+	function getDocument(bytes32 _key) external view returns (string memory fileReference) {
 		ErrorsLib.revertIf(!documents.exists(_key),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetype.getDocument", "A document reference for the given key does not exist");
 		fileReference = documents.get(_key);
@@ -374,7 +379,7 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	 * @dev Returns all governing archetype address for this archetype
 	 * @return the address array containing all governing archetypes
 	 */
-	function getGoverningArchetypes() external view returns (address[]) {
+	function getGoverningArchetypes() external view returns (address[] memory) {
 		return governingArchetypes;
 	}
 
@@ -403,45 +408,11 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 	}
 
 	/**
-	 * @dev Sets the successor this archetype. Setting a successor automatically deactivates this archetype.
-	 * REVERTS if:
-	 * - given successor is the same address as itself. 
-	 * - intended action will lead to two archetypes with their successors pointing to each other.
-	 * @param _successor address of successor archetype
-	 */
-	function setSuccessor(address _successor) external {
-		ErrorsLib.revertIf(_successor == address(this),
-			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Archetype cannot be its own successor");
-		ErrorsLib.revertIf(Archetype_v1_0_0(_successor).getSuccessor() == address(this),
-			ErrorsLib.INVALID_INPUT(), "DefaultArchetype.setSuccessor", "Successor circular dependency not allowed");
-		active = false;
-		successor = _successor;
-		emit LogArchetypeSuccessorUpdate(EVENT_ID_ARCHETYPES, address(this), _successor);
-	}
-
-	/**
 	 * @dev Returns the successor of this archetype
 	 * @return address of successor archetype
 	 */
 	function getSuccessor() external view returns (address) {
 		return successor;
-	}
-
-	/**
-	 * @dev Activates this archetype
-	 */
-	function activate() external {
-		ErrorsLib.revertIf(successor != 0x0, ErrorsLib.INVALID_STATE(), "DefaultArchetype.activate", "Archetype with a successor cannot be activated");
-		active = true;
-		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), true);
-	}
-
-	/**
-	 * @dev Deactivates this archetype
-	 */
-	function deactivate() external {
-		active = false;
-		emit LogArchetypeActivation(EVENT_ID_ARCHETYPES, address(this), false);
 	}
 
 }

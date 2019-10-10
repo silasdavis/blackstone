@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/ObjectFactory.sol";
 import "commons-management/Upgradeable.sol";
@@ -60,7 +60,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
-		address[] _governingArchetypes) 
+		address[] calldata _governingArchetypes) 
 		external returns (address archetype);
 
 	/**
@@ -85,7 +85,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @param _parameterNames parameter names array
 	 * @return a return code indicating success or failure
 	 */
-	function addParameters(address _archetype, DataTypes.ParameterType[] _parameterTypes, bytes32[] _parameterNames) external returns (uint error);
+	function addParameters(address _archetype, DataTypes.ParameterType[] calldata _parameterTypes, bytes32[] calldata _parameterNames) external returns (uint error);
 
 	/**
 	 * @dev Adds the given jurisdiction in the form of a country code and region identifier to this archetype.
@@ -103,7 +103,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @param _regions an array of region identifiers from a IsoCountries contract
 	 * @return a return code indicating success or failure
 	 */
-	function addJurisdictions(address _archetype, bytes2[] _countries, bytes32[] _regions) external returns (uint error);
+	function addJurisdictions(address _archetype, bytes2[] calldata _countries, bytes32[] calldata _regions) external returns (uint error);
 
 	/**
 	 * @dev Returns archetype successor
@@ -153,7 +153,7 @@ contract ArchetypeRegistry is ObjectFactory, Upgradeable {
 	 * @param _archetype archetype
 	 * @param _fileReference the external reference to the document
 	 */
-	function addDocument(address _archetype, string _fileReference) external;
+	function addDocument(address _archetype, string calldata _fileReference) external;
 
 	/**
 	 * @dev Sets price of given archetype

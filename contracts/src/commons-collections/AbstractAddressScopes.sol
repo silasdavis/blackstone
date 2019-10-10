@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-collections/AbstractDataStorage.sol";
@@ -157,7 +157,7 @@ contract AbstractAddressScopes is AddressScopes {
 	 */
 	function getAddressScopeKeys()
 		external view
-		returns (bytes32[])
+		returns (bytes32[] memory)
 	{
 		return scopeKeys;
 	}

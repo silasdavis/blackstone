@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-management/AbstractObjectFactory.sol";
@@ -24,10 +24,10 @@ contract DefaultEcosystemRegistry is AbstractVersionedArtifact(1,0,0), AbstractO
      * @param _name the name under which to register the Ecosystem
      * @return the address of the new Ecosystem
      */
-    function createEcosystem(string _name) external returns (address ecosystemAddress) {
+    function createEcosystem(string calldata _name) external returns (address ecosystemAddress) {
         ErrorsLib.revertIf(EcosystemRegistryDb(database).ecosystemExists(_name),
             ErrorsLib.OVERWRITE_NOT_ALLOWED(), "DefaultEcosystemRegistry.registerEcosystem", "An ecosystem with the same name is already registered");
-        ecosystemAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ECOSYSTEM);
+        ecosystemAddress = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_ECOSYSTEM));
         Ecosystem(ecosystemAddress).initialize();
         Ecosystem(ecosystemAddress).transferOwnership(msg.sender);
         EcosystemRegistryDb(database).addEcosystem(_name, ecosystemAddress);

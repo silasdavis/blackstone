@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-collections/VersionLinkedAppendOnly.sol";
 
@@ -42,7 +42,7 @@ contract IsoCountriesTest {
   bytes2 USA = "US";
   bytes32 USA_NY = keccak256(abi.encodePacked(USA, "NY"));
 
-  function testIsoCountries() external returns (string) {
+  function testIsoCountries() external returns (string memory) {
 
     IsoCountries100 c100 = new IsoCountries100();
     TestCountries2 c200 = new TestCountries2();

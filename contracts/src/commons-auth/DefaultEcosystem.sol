@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-auth/Ecosystem.sol";
@@ -63,7 +63,7 @@ contract DefaultEcosystem is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
             "User ID cannot be empty"
         );
         ErrorsLib.revertIf(
-            (_userAccount == 0x0), 
+            (_userAccount == address(0)), 
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(),
             "DefaultEcosystem.addUserAccount",
             "User account address cannot be empty"
@@ -90,7 +90,7 @@ contract DefaultEcosystem is AbstractVersionedArtifact(1,0,0), AbstractDelegateT
     {
         userAccount = userAccounts.get(_id);
         ErrorsLib.revertIf(
-            userAccount == 0x0,
+            userAccount == address(0),
             ErrorsLib.RESOURCE_NOT_FOUND(),
             "DefaultEcosystem.getUserAccount",
             "User account with given Id does not exist"
