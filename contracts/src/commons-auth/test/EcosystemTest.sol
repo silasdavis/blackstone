@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-auth/Ecosystem.sol";
 import "commons-auth/DefaultEcosystem.sol";

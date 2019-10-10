@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 // Tested Contracts
 import "commons-auth/SecureNativeAuthorizations.sol";

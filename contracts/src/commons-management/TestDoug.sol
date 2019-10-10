@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-management/DOUG.sol";
 import "commons-management/ArtifactsRegistry.sol";

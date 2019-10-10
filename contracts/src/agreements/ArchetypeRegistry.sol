@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-management/ObjectFactory.sol";
 import "commons-management/Upgradeable.sol";

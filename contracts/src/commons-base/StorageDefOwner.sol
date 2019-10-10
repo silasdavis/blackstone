@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 /**
  * @dev Defines the storage layout for owned contracts.

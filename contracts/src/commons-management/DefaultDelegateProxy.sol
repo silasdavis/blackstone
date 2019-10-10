@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-management/StorageDefProxied.sol";
 import "commons-management/AbstractDelegateProxy.sol";

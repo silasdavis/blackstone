@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 /**
  * @dev Provides the storage layout for a wrapped registry contract.

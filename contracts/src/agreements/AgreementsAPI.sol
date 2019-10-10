@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-standards/ERC165Utils.sol";
 import "commons-auth/Governance.sol";

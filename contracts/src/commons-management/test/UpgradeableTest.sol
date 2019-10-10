@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-management/AbstractUpgradeable.sol";
 import "commons-management/AbstractVersionedArtifact.sol";

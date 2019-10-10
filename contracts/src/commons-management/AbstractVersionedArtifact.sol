@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import "commons-standards/AbstractERC165.sol";
 import "commons-management/VersionedArtifact.sol";
