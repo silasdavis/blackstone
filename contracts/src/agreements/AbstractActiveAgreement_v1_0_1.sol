@@ -80,6 +80,11 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 		}
 	}
 
+    /**
+     * @dev non-public constructor
+     */
+    constructor() internal {}
+
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.

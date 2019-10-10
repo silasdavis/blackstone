@@ -50,6 +50,11 @@ contract AbstractArchetype_v1_0_0 is AbstractDelegateTarget, Archetype_v1_0_0 {
 
 	address[] governingArchetypes;
 
+    /**
+     * @dev non-public constructor
+     */
+    constructor() internal {}
+
 	/**
 	 * @dev Initializes this DefaultArchetype with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
