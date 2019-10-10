@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-collections/VersionLinkedAppendOnly.sol";
 
@@ -55,7 +55,7 @@ contract IsoCountries is VersionLinkedAppendOnly {
 		return countryKeys[_index];
 	}
 
-	function getCountryData(bytes2 _key) external view returns (bytes2 alpha2, bytes3 alpha3, bytes3 m49, string name) {
+	function getCountryData(bytes2 _key) external view returns (bytes2 alpha2, bytes3 alpha3, bytes3 m49, string memory name) {
 		alpha2 = countries[_key].alpha2;
 		alpha3 = countries[_key].alpha3;
 		m49 = countries[_key].m49;
@@ -74,7 +74,7 @@ contract IsoCountries is VersionLinkedAppendOnly {
 		return countries[_country].regionKeys[_index];
 	}
 
-	function getRegionData(bytes2 _country, bytes32 _key) external view returns (bytes2 alpha2, bytes2 code2, bytes3 code3, string name) {
+	function getRegionData(bytes2 _country, bytes32 _key) external view returns (bytes2 alpha2, bytes2 code2, bytes3 code3, string memory name) {
 		alpha2 = countries[_country].regions[_key].country;
 		code2 = countries[_country].regions[_key].code2;
 		code3 = countries[_country].regions[_key].code3;

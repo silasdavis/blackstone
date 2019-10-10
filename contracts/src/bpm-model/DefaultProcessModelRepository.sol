@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-utils/ArrayUtilsLib.sol";
@@ -37,8 +37,8 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 	 * @param _isPrivate indicates if the model is private
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress) {
-		modelAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_PROCESS_MODEL);
+	function createProcessModel(bytes32 _id, uint8[3] calldata _version, address _author, bool _isPrivate, string calldata _modelFileReference) external returns (uint error, address modelAddress) {
+		modelAddress = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_PROCESS_MODEL));
 		ProcessModel(modelAddress).initialize(_id, _version, _author, _isPrivate, _modelFileReference);
 		error = ProcessModelRepositoryDb(database).addModel(_id, _version, modelAddress);
 		ErrorsLib.revertIf(error != BaseErrors.NO_ERROR(),
@@ -60,7 +60,7 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The ProcessModel address must not be empty");
 		ErrorsLib.revertIf(_processDefinitionId == "",
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultProcessModelRepository.createProcessDefinition", "The process definition ID address must not be empty");
-		newAddress = ProcessModel(_processModelAddress).createProcessDefinition(_processDefinitionId, artifactsFinder);
+		newAddress = ProcessModel(_processModelAddress).createProcessDefinition(_processDefinitionId, address(artifactsFinder));
 	}
 
 	/**
@@ -74,15 +74,15 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 	function activateModel(ProcessModel _model) external returns (uint error) {
 		// check if there is an address registered for the model ID and version
 		address addr = ProcessModelRepositoryDb(database).getModel(_model.getId(), _model.getVersion());
-		ErrorsLib.revertIf(addr == 0x0,
+		ErrorsLib.revertIf(addr == address(0),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultProcessModelRepository.activateModel", "No registered model found that matches the model ID and version");
 		ErrorsLib.revertIf(addr != address(_model),
 			ErrorsLib.INVALID_INPUT(), "DefaultProcessModelRepository.activateModel", "Another ProcessModel address is already registered with the same model ID and version");
 		// re-use the addr field to lookup a previously activated model with the same ID
 		addr = ProcessModelRepositoryDb(database).getActiveModel(_model.getId());
-		ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), _model);
+		ProcessModelRepositoryDb(database).registerActiveModel(_model.getId(), address(_model));
 		emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(_model), true);
-		if (addr != 0x0 && addr != address(_model)) {
+		if (addr != address(0) && addr != address(_model)) {
 			// previously activated model detected that should be updated
 			emit LogProcessModelActivation(_model.EVENT_ID_PROCESS_MODELS(), address(addr), false);
 		}
@@ -104,9 +104,9 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 	 * @param _version the model version
 	 * @return the model address, if found
 	 */	
-	function getModelByVersion(bytes32 _id, uint8[3] _version) external view returns (uint error, address modelAddress) {
+	function getModelByVersion(bytes32 _id, uint8[3] calldata _version) external view returns (uint error, address modelAddress) {
 		modelAddress = ProcessModelRepositoryDb(database).getModel(_id, _version);
-		error = (modelAddress == 0x0) ? BaseErrors.RESOURCE_NOT_FOUND() : BaseErrors.NO_ERROR();
+		error = (modelAddress == address(0)) ? BaseErrors.RESOURCE_NOT_FOUND() : BaseErrors.NO_ERROR();
 	}
 	
 	/**
@@ -134,10 +134,10 @@ contract DefaultProcessModelRepository is AbstractVersionedArtifact(1,0,0), Abst
 	 */
 	function getProcessDefinition (bytes32 _modelId, bytes32 _processId) external view returns (address) {
 		address modelAddress = ProcessModelRepositoryDb(database).getActiveModel(_modelId);
-		if (modelAddress != 0x0) {
+		if (modelAddress != address(0)) {
 			return ProcessModel(modelAddress).getProcessDefinition(_processId);
 		} else {
-			return 0x0;
+			return address(0);
 		}
 	}
 

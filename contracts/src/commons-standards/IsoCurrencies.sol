@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-collections/VersionLinkedAppendOnly.sol";
 
@@ -35,7 +35,7 @@ contract IsoCurrencies is VersionLinkedAppendOnly {
 		return currencyKeys[_index];
 	}
 
-	function getCurrencyData(bytes3 _key) external view returns (bytes3 alpha3, bytes3 m49, string name) {
+	function getCurrencyData(bytes3 _key) external view returns (bytes3 alpha3, bytes3 m49, string memory name) {
 		alpha3 = currencies[_key].alpha3;
 		m49 = currencies[_key].m49;
 		name = currencies[_key].name;

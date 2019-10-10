@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-utils/TypeUtilsLib.sol";
 import "commons-base/SystemOwned.sol";
@@ -18,6 +18,9 @@ import "commons-auth/DefaultOrganization.sol";
 contract ParticipantsManagerTest {
 
     string constant SUCCESS = "success";
+    string constant functionSigUserAccountForwardCall = "forwardCall(address,bytes)";
+    string constant functionSigAddApprover = "addApprover(address)";
+    string constant functionSigRemoveApprover = "removeApprover(address)";
 
     uint error;
     address addr;
@@ -45,18 +48,18 @@ contract ParticipantsManagerTest {
      */
     function createNewParticipantsManager() internal returns (ParticipantsManager manager) {
 		manager =  new DefaultParticipantsManager();
-        ArtifactsFinderEnabled(manager).setArtifactsFinder(artifactsRegistry);
-        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_ORGANIZATION(), defaultOrganizationImpl, defaultOrganizationImpl.getArtifactVersion(), true);
-        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_USER_ACCOUNT(), defaultUserAccountImpl, defaultUserAccountImpl.getArtifactVersion(), true);
+        ArtifactsFinderEnabled(address(manager)).setArtifactsFinder(address(artifactsRegistry));
+        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_ORGANIZATION(), address(defaultOrganizationImpl), defaultOrganizationImpl.getArtifactVersion(), true);
+        artifactsRegistry.registerArtifact(manager.OBJECT_CLASS_USER_ACCOUNT(), address(defaultUserAccountImpl), defaultUserAccountImpl.getArtifactVersion(), true);
 		ParticipantsManagerDb database = new ParticipantsManagerDb();
-		SystemOwned(database).transferSystemOwnership(manager);
-		AbstractDbUpgradeable(manager).acceptDatabase(database);
+		SystemOwned(database).transferSystemOwnership(address(manager));
+		AbstractDbUpgradeable(address(manager)).acceptDatabase(address(database));
 	}
 
     /**
      * @dev Tests UserAccount/Owner/Ecosystem relationships and authorizing transactions.
      */
-    function testUserAccountSecurity() external returns (string) {
+    function testUserAccountSecurity() external returns (string memory) {
 
         ExternalCaller ownerCaller = new ExternalCaller();
         ExternalCaller ecosystemCaller = new ExternalCaller();
@@ -67,10 +70,12 @@ contract ParticipantsManagerTest {
 
         TestUserAccount user1 = new TestUserAccount();
         user1.initialize(address(ownerCaller), address(myEcosystem));
-        myEcosystem.addUserAccount("user1", user1);
+        myEcosystem.addUserAccount("user1", address(user1));
 
         // first test failure
-        if (address(user1).call(bytes4(keccak256(abi.encodePacked("authorizedCall()")))))
+        bool success;
+        (success, ) = address(user1).call(abi.encodeWithSignature("authorizedCall()"));
+        if (success)
             return "It should not be possible to call a protected function on a UserAccount from an unautorized address";
         // test success
         if (!ownerCaller.performExternalCall(user1))
@@ -81,7 +86,7 @@ contract ParticipantsManagerTest {
         return SUCCESS;
     }
 
-    function testParticipantsManager() external returns (string) {
+    function testParticipantsManager() external returns (string memory) {
 
         participantsManager = createNewParticipantsManager();
 
@@ -101,16 +106,18 @@ contract ParticipantsManagerTest {
 
         uint oldSize = participantsManager.getUserAccountsSize();
 
-        address account1 = participantsManager.createUserAccount(acc1Id, 0x0, myEcosystem);
-        address account2 = participantsManager.createUserAccount(acc2Id, 0x0, myEcosystem);
+        address account1 = participantsManager.createUserAccount(acc1Id, address(0), address(myEcosystem));
+        address account2 = participantsManager.createUserAccount(acc2Id, address(0), address(myEcosystem));
 
         if (participantsManager.getUserAccountsSize() != oldSize + 2) return "Expected accounts size to be +2";
 
         address account3;
         uint departmentUserSize;
 
-        if (address(participantsManager).call(bytes4(keccak256(abi.encodePacked("createUserAccount(bytes32,address,address)"))), acc2Id, 0x0, myEcosystem)) {
-            return "Expected error when creating new account with existing user id in same ecosystem.";
+        bool success;
+        (success, ) = address(participantsManager).call(abi.encodeWithSignature("createUserAccount(bytes32,address,address)", acc2Id, address(0), myEcosystem));
+        if (success) {
+            return "Creating a new account with existing user id in same ecosystem should revert.";
         }
 
         // test adding users
@@ -120,9 +127,9 @@ contract ParticipantsManagerTest {
         oldSize = participantsManager.getUserAccountsSize();
 
         // test creating user accounts via ParticipantsManager
-        account3 = participantsManager.createUserAccount(acc3Id, this, myEcosystem);
+        account3 = participantsManager.createUserAccount(acc3Id, address(this), address(myEcosystem));
         addr = myEcosystem.getUserAccount(acc3Id);
-        if (addr == 0x0) return "Exp. non-0x0 address";
+        if (addr == address(0)) return "Exp. non-0x0 address";
         if (addr != account3) return "account3 address mismatch";
         // if (UserAccount(addr).getId() != keccak256(abi.encodePacked(acc3Id))) return "UserAccount addr id mismatch";
         if (UserAccount(addr).getOwner() != address(this)) return "Exp. this";
@@ -178,7 +185,7 @@ contract ParticipantsManagerTest {
         return SUCCESS;
     }
 
-    function testOrganizationsManagement() external returns (string) {
+    function testOrganizationsManagement() external returns (string memory) {
 		
         participantsManager = createNewParticipantsManager();
 
@@ -194,9 +201,9 @@ contract ParticipantsManagerTest {
         Organization org1 = Organization(addr);
 
         UserAccount user1 = new DefaultUserAccount();
-        user1.initialize(participantsManager, 0x0);
+        user1.initialize(address(participantsManager), address(0));
         UserAccount user2 = new DefaultUserAccount();
-        user2.initialize(participantsManager, 0x0);
+        user2.initialize(address(participantsManager), address(0));
 		
         // Test special handling of the default department in the organization
         if (!org1.departmentExists(org1.getDefaultDepartmentId()))
@@ -223,19 +230,19 @@ contract ParticipantsManagerTest {
 		if (retUserCount != 1) return "Expected number of approvers for orgAddr to be 1";
 
         // department users
-        if (!org1.addUserToDepartment(user1, dep1Id)) return "Failed to add user1 to dep1";
-        if (!org1.addUserToDepartment(user2, dep1Id)) return "Failed to add user2 to dep1";
+        if (!org1.addUserToDepartment(address(user1), dep1Id)) return "Failed to add user1 to dep1";
+        if (!org1.addUserToDepartment(address(user2), dep1Id)) return "Failed to add user2 to dep1";
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 2) return "Expected 2 department users in dep1";
         if (org1.getDepartmentUserAtIndex(dep1Id, 0) != address(user1)) return "Expected department user at idx 0 to be user1";
         if (org1.getDepartmentUserAtIndex(dep1Id, 1) != address(user2)) return "Expected department user at idx 1 to be user2";
-        if (!org1.removeUserFromDepartment(user1, dep1Id)) return "Failed removing user1 from dep1";
+        if (!org1.removeUserFromDepartment(address(user1), dep1Id)) return "Failed removing user1 from dep1";
         if (org1.getDepartmentUserAtIndex(dep1Id, 0) != address(user2)) return "Expected department user at idx 0 to be user2 after removing user1";        
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected 1 department user in dep1 after removing user1";
-        if (org1.addUserToDepartment(user2, dep1Id) != true) return "Expected attempt to re-add user2 to dep1 to return true";
+        if (org1.addUserToDepartment(address(user2), dep1Id) != true) return "Expected attempt to re-add user2 to dep1 to return true";
         if (org1.getNumberOfDepartmentUsers(dep1Id) != 1) return "Expected re-adding user2 to dep1 to not change number of department users";
 
 		// 0x0 address for non-existent index
-		if (participantsManager.getOrganizationAtIndex(1) != 0x0) return "Expected 0x0";
+		if (participantsManager.getOrganizationAtIndex(1) != address(0)) return "Expected 0x0 for non-existent organization at index 0";
 
 		// 2. Create organization with known admins
 
@@ -272,7 +279,7 @@ contract ParticipantsManagerTest {
     /**
      * @dev Tests the variations of the organization's authorizeUser function
      */
-    function testOrganizationAuthorization() external returns (string) {
+    function testOrganizationAuthorization() external returns (string memory) {
 
 		address[] memory emptyAdmins;
 
@@ -281,19 +288,19 @@ contract ParticipantsManagerTest {
         bytes32 dep1Id = "department";
 
         UserAccount user1 = new DefaultUserAccount();
-        user1.initialize(participantsManager, 0x0);
+        user1.initialize(address(participantsManager), address(0));
         UserAccount user2 = new DefaultUserAccount();
-        user2.initialize(participantsManager, 0x0);
+        user2.initialize(address(participantsManager), address(0));
         UserAccount user3 = new DefaultUserAccount();
-        user3.initialize(participantsManager, 0x0);
+        user3.initialize(address(participantsManager), address(0));
 
         // User1 -> default department
         // User2 -> Department 1
         // User3 -> Organization only 
         if (!org.addDepartment(dep1Id)) return "Adding department1 to org1 should be successful";
-        if (!org.addUserToDepartment(user1, EMPTY)) return "Failed to add user1 to default department";
-        if (!org.addUserToDepartment(user2, dep1Id)) return "Failed to add user2 to department1";
-        if (!org.addUser(user3)) return "Failed to add user3 to organization";
+        if (!org.addUserToDepartment(address(user1), EMPTY)) return "Failed to add user1 to default department";
+        if (!org.addUserToDepartment(address(user2), dep1Id)) return "Failed to add user2 to department1";
+        if (!org.addUser(address(user3))) return "Failed to add user3 to organization";
 
         if (org.getNumberOfDepartmentUsers(dep1Id) != 1) return "There should be 1 user in department 1";
         // auth failure
@@ -313,66 +320,71 @@ contract ParticipantsManagerTest {
     /**
      * @dev Tests the removal/addition of organization approvers
      */
-    function testOrganizationApproverUpdates() external returns (string) {
+    function testOrganizationApproverUpdates() external returns (string memory) {
 
-        string memory functionSig = "";
-        string memory forwardSig = "forwardCall(address,bytes)";
-		    bytes memory payload;
+        bool success;
+        bytes memory payload;
 
         UserAccount user1 = new DefaultUserAccount();
-        user1.initialize(this, address(myEcosystem));
+        user1.initialize(address(this), address(myEcosystem));
         UserAccount user2 = new DefaultUserAccount();
-        user2.initialize(this, address(myEcosystem));
+        user2.initialize(address(this), address(myEcosystem));
         UserAccount user3 = new DefaultUserAccount();
-        user3.initialize(this, address(myEcosystem));
+        user3.initialize(address(this), address(myEcosystem));
         UserAccount user4 = new DefaultUserAccount();
-        user4.initialize(this, address(myEcosystem));
+        user4.initialize(address(this), address(myEcosystem));
 
         Organization org = new DefaultOrganization();
         address[] memory admins = new address[](1);
-		    admins[0] = address(user1);
+		admins[0] = address(user1);
         org.initialize(admins, EMPTY);
 
-        functionSig = "addApprover(address)";
         // Test for successful add
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (!address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user2));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (!success)
           return "Should NOT fail to add approver";
         if (org.getNumberOfApprovers() != 2) return "Failed to add approver";
         if (org.getApproverAtIndex(0) != address(user1)) return "Failed to keep existing approvers after adding approver";
         if (org.getApproverAtIndex(1) != address(user2)) return "Failed to add correct address to approvers";
         // Test for failed add
-        payload = abi.encodeWithSignature(functionSig, address(user4));
-        if (address(user3).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user4));
+        (success, ) = address(user3).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if non-approver attempting to add another approver";
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user2));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if adding same approver more than once";
-        payload = abi.encodeWithSignature(functionSig, 0x0);
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(0));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if adding an empty address";
-        payload = abi.encodeWithSignature(functionSig, address(user3));
+        payload = abi.encodeWithSignature(functionSigAddApprover, address(user3));
         user1.forwardCall(address(org), payload);
 
-        functionSig = "removeApprover(address)";
         // Test for successful remove
-        payload = abi.encodeWithSignature(functionSig, address(user3));
-        if (!address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user3));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (!success)
           return "Should NOT fail to remove approver";
         if (org.getNumberOfApprovers() != 2) return "Failed to remove approver";
         if (org.getApproverAtIndex(0) != address(user1)) return "Failed to remove correct address from approvers- user1 not found";
         if (org.getApproverAtIndex(1) != address(user2)) return "Failed to remove correct address from approvers- user2 not found";
         // Test for failed remove
-        payload = abi.encodeWithSignature(functionSig, address(user2));
-        if (address(user3).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user2));
+        (success, ) = address(user3).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if non-approver attempting to remove another approver";
-        payload = abi.encodeWithSignature(functionSig, address(user3));
-        if (address(user2).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user3));
+        (success, ) = address(user2).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if user to remove is not an approver";
-        payload = abi.encodeWithSignature(functionSig, address(user2));
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user2));
         user1.forwardCall(address(org), payload);
-        payload = abi.encodeWithSignature(functionSig, address(user1));
-        if (address(user1).call(abi.encodeWithSignature(forwardSig, address(org), payload)))
+        payload = abi.encodeWithSignature(functionSigRemoveApprover, address(user1));
+        (success, ) = address(user1).call(abi.encodeWithSignature(functionSigUserAccountForwardCall, address(org), payload));
+        if (success)
           return "Should REVERT if removing last remaining approver";
 
         return SUCCESS;

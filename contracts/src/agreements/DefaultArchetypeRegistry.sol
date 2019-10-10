@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
@@ -46,13 +46,13 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 		address _formationProcess, 
 		address _executionProcess, 
 		bytes32 _packageId, 
-		address[] _governingArchetypes) 
+		address[] calldata _governingArchetypes) 
 		external
 		returns (address archetype)
 	{
-		ErrorsLib.revertIf(_author == 0x0,
+		ErrorsLib.revertIf(_author == address(0),
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetype", "Archetype author address must not be empty");
-		archetype = new ObjectProxy(artifactsFinder, OBJECT_CLASS_ARCHETYPE);
+		archetype = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_ARCHETYPE));
 		Archetype(archetype).initialize(_price, _isPrivate, _active, _author, _owner, _formationProcess, _executionProcess, _governingArchetypes);
 		// since this is a newly created archetype address, we can safely ignore the return value of the DB.addArchetype() function
 		ArchetypeRegistryDb(database).addArchetype(archetype);
@@ -102,13 +102,13 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	 * @return BaseErrors.RESOURCE_NOT_FOUND() if archetype is not found
 	 * @return BaseErrors.INVALID_PARAM_STATE() if the lengths of the two arrays don't match
 	 */
-	function addParameters(address _archetype, DataTypes.ParameterType[] _parameterTypes, bytes32[] _parameterNames) external returns (uint error) {
+	function addParameters(address _archetype, DataTypes.ParameterType[] calldata _parameterTypes, bytes32[] calldata _parameterNames) external returns (uint error) {
 		if (_parameterTypes.length != _parameterNames.length)
 			return BaseErrors.INVALID_PARAM_STATE();
 		for (uint i=0; i<_parameterTypes.length; i++) {
 			error = addParameter(_archetype, _parameterTypes[i], _parameterNames[i]);
 			if (error != BaseErrors.NO_ERROR())
-				return;
+				return (error);
 		}
 		return BaseErrors.NO_ERROR();
 	}
@@ -138,13 +138,13 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	 * @return BaseErrors.RESOURCE_NOT_FOUND() if archetype is not found
 	 * @return BaseErrors.INVALID_PARAM_STATE() if the lengths of the two arrays don't match
 	 */
-	function addJurisdictions(address _archetype, bytes2[] _countries, bytes32[] _regions) external returns (uint error) {
+	function addJurisdictions(address _archetype, bytes2[] calldata _countries, bytes32[] calldata _regions) external returns (uint error) {
 		if (_countries.length != _regions.length)
 			return BaseErrors.INVALID_PARAM_STATE();
 		for (uint i=0; i<_countries.length; i++) {
 			error = addJurisdiction(_archetype, _countries[i], _regions[i]);
 			if (error != BaseErrors.NO_ERROR())
-				return;
+				return (error);
 		}
 		return BaseErrors.NO_ERROR();
 	}
@@ -155,7 +155,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	 * @return address address of successor
 	 */
 	function getArchetypeSuccessor(address _archetype) external view returns (address) {
-		ErrorsLib.revertIf(_archetype == 0x0, ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.getArchetypeSuccessor", "Archetype address must be supplied");
+		ErrorsLib.revertIf(_archetype == address(0), ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.getArchetypeSuccessor", "Archetype address must be supplied");
 		return Archetype(_archetype).getSuccessor();
 	}
 
@@ -217,7 +217,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	 * @param _archetype archetype
 	 * @param _fileReference the external reference to the document
 	 */
-	function addDocument(address _archetype, string _fileReference) external {
+	function addDocument(address _archetype, string calldata _fileReference) external {
 		ErrorsLib.revertIf(!ArchetypeRegistryDb(database).archetypeExists(_archetype),
 			ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultArchetypeRegistry.addDocument", "The specified archetype address is not known to this ArchetypeRegistry");
 		Archetype(_archetype).addDocument(_fileReference);
@@ -241,7 +241,7 @@ contract DefaultArchetypeRegistry is AbstractVersionedArtifact(1,1,1), AbstractO
 	 * @return id bytes32 id of package
 	 */
 	function createArchetypePackage(address _author, bool _isPrivate, bool _active) external returns (uint error, bytes32 id) {
-		ErrorsLib.revertIf(_author == 0x0,
+		ErrorsLib.revertIf(_author == address(0),
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultArchetypeRegistry.createArchetypePackage", "Package author must not be empty");
 		id = keccak256(abi.encodePacked(ArchetypeRegistryDb(database).getNumberOfPackages(), _author, block.timestamp));
 		error = ArchetypeRegistryDb(database).createPackage(id, _author, _isPrivate, _active);

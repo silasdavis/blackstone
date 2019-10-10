@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "bpm-runtime/Application.sol";
 import "bpm-runtime/ProcessInstance.sol";
@@ -19,7 +19,7 @@ contract AgreementSignatureCheck is Application {
      */
     function complete(address _piAddress, bytes32 _activityInstanceId, bytes32, address _txPerformer) public {
         address agreement = ProcessInstance(_piAddress).getActivityInDataAsAddress(_activityInstanceId, "agreement");
-        require(agreement != 0x0, "Unable to locate an ActiveAgreement.");
+        require(agreement != address(0), "Unable to locate an ActiveAgreement.");
         require(ActiveAgreement(agreement).isSignedBy(_txPerformer), "ActiveAgreement is not signed by the performing user. Reverting ...");
     }
 

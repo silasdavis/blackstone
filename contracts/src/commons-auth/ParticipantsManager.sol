@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/Upgradeable.sol";
 import "commons-management/ObjectFactory.sol";
@@ -27,7 +27,7 @@ contract ParticipantsManager is ObjectFactory, Upgradeable {
 	 * @param _defaultDepartmentId an optional custom name/label for the default department of this organization.
 	 * @return error code and the address of the newly created organization, if successful
 	 */
-    function createOrganization(address[] _initialApprovers, bytes32 _defaultDepartmentId) external returns (uint, address);
+    function createOrganization(address[] calldata _initialApprovers, bytes32 _defaultDepartmentId) external returns (uint, address);
 
     /**
      * @dev Indicates whether the specified UserAccount exists in this ParticipantsManager

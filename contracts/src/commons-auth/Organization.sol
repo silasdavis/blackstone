@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/VersionedArtifact.sol";
 
@@ -92,7 +92,7 @@ contract Organization is VersionedArtifact {
 	 * @param _initialApprovers an array of addresses that should be registered as approvers for this Organization
 	 * @param _defaultDepartmentId an optional ID for the default department of this organization
 	 */
-	function initialize(address[] _initialApprovers, bytes32 _defaultDepartmentId) external;
+	function initialize(address[] calldata _initialApprovers, bytes32 _defaultDepartmentId) external;
 
 	/**
 	 * @dev Adds the department with the specified ID to this Organization.

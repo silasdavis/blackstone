@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/Owned.sol";
@@ -17,7 +17,7 @@ contract ChainAuthorizations is Owned, AuthorizationsRepository {
     // Constructor
     constructor() public {
         owner = msg.sender;
-        sNativeAuthorizations = SecureNativeAuthorizations(address(keccak256(abi.encodePacked("Permissions"))));
+        sNativeAuthorizations = SecureNativeAuthorizations(address(uint256(keccak256("Permissions"))));
     }
 
     /**

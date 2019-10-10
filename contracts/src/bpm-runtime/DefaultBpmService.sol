@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-auth/ParticipantsManager.sol";
@@ -39,7 +39,7 @@ contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFa
 	 * @param _serviceIdProcessModelRepository the ID with which to resolve the ArchetypeRegistry dependency
 	 * @param _serviceIdApplicationRegistry the ID with which to resolve the BpmService dependency
 	 */
-	constructor (string _serviceIdProcessModelRepository, string _serviceIdApplicationRegistry) public {
+	constructor (string memory _serviceIdProcessModelRepository, string memory _serviceIdApplicationRegistry) public {
 		ErrorsLib.revertIf(bytes(_serviceIdProcessModelRepository).length == 0,
 			ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultActiveAgreementRegistry.constructor", "_serviceIdProcessModelRepository parameter must not be empty");
 		ErrorsLib.revertIf(bytes(_serviceIdApplicationRegistry).length == 0,
@@ -61,7 +61,7 @@ contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFa
     {
         ProcessInstance pi = createDefaultProcessInstance(_processDefinition, msg.sender, _activityInstanceId);
         error = startProcessInstance(pi);
-        return (error, pi);
+        return (error, address(pi));
     }
 
     /**
@@ -83,7 +83,7 @@ contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFa
 		ErrorsLib.revertIf(repoAddress == address(0),
 			ErrorsLib.DEPENDENCY_NOT_FOUND(), "DefaultBpmService.startProcessFromRepository", "ProcessModelRepository dependency not found in ArtifactsFinder");
         address pd = ProcessModelRepository(repoAddress).getProcessDefinition(_modelId, _processDefinitionId);
-        ErrorsLib.revertIf(pd == 0x0,
+        ErrorsLib.revertIf(pd == address(0),
             ErrorsLib.RESOURCE_NOT_FOUND(), "DefaultBpmService.startProcessFromRepository", "Unable to find a ProcessDefinition for the given ID");
         return startProcess(pd, _activityInstanceId);
     }
@@ -98,7 +98,7 @@ contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFa
         returns (uint error)
     {
         _pi.initRuntime();
-        BpmServiceDb(database).addProcessInstance(_pi);
+        BpmServiceDb(database).addProcessInstance(address(_pi));
         error = _pi.execute(this);
     }
 
@@ -116,14 +116,14 @@ contract DefaultBpmService is AbstractVersionedArtifact(1,0,0), AbstractObjectFa
         public
         returns (ProcessInstance processInstance)
     {
-        ErrorsLib.revertIf(_processDefinition == 0x0,
+        ErrorsLib.revertIf(_processDefinition == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultBpmService.createDefaultProcessInstance", "ProcessDefinition is NULL");
-        address piAddress = new ObjectProxy(artifactsFinder, OBJECT_CLASS_PROCESS_INSTANCE);
+        address piAddress = address(new ObjectProxy(address(artifactsFinder), OBJECT_CLASS_PROCESS_INSTANCE));
         processInstance = ProcessInstance(piAddress);
-        processInstance.initialize(ProcessDefinition(_processDefinition), (_startedBy == 0x0) ? msg.sender : _startedBy, _activityInstanceId);
+        processInstance.initialize(_processDefinition, (_startedBy == address(0)) ? msg.sender : _startedBy, _activityInstanceId);
         processInstance.transferOwnership(msg.sender);
-        ErrorsLib.revertIf(address(processInstance) == 0x0,
-                ErrorsLib.INVALID_STATE(), "DefaultBpmService.createDefaultProcessInstance", "Process Instance address empty");
+        ErrorsLib.revertIf(address(processInstance) == address(0),
+            ErrorsLib.INVALID_STATE(), "DefaultBpmService.createDefaultProcessInstance", "Process Instance address empty");
     }
 
 	/**

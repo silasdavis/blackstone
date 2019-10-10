@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 /**
  * @title Errors Library
@@ -8,49 +8,49 @@ library ErrorsLib {
 
     event LogError(bytes32 indexed eventId, string code, string location, string message);
 
-    function DELIMITER() internal pure returns (string) {
+    function DELIMITER() internal pure returns (string memory) {
         return "::";
     }
 
     // HTTP-error-inspired error codes (400-600 range)
-    function UNAUTHORIZED() internal pure returns (string) {
+    function UNAUTHORIZED() internal pure returns (string memory) {
         return "ERR403";
     }
 
-    function RESOURCE_NOT_FOUND() internal pure returns (string) {
+    function RESOURCE_NOT_FOUND() internal pure returns (string memory) {
         return "ERR404";
     }
 
-    function RESOURCE_ALREADY_EXISTS() internal pure returns (string) {
+    function RESOURCE_ALREADY_EXISTS() internal pure returns (string memory) {
         return "ERR409";
     }
 
-    function INVALID_INPUT() internal pure returns (string) {
+    function INVALID_INPUT() internal pure returns (string memory) {
         return "ERR422";
     }
 
-    function RUNTIME_ERROR() internal pure returns (string) {
+    function RUNTIME_ERROR() internal pure returns (string memory) {
         return "ERR500";
     }
 
     // Data- / State-related errors (600-700 range)
-    function INVALID_STATE() internal pure returns (string) {
+    function INVALID_STATE() internal pure returns (string memory) {
         return "ERR600";
     }
 
-    function INVALID_PARAMETER_STATE() internal pure returns (string) {
+    function INVALID_PARAMETER_STATE() internal pure returns (string memory) {
         return "ERR601";
     }
 
-    function OVERWRITE_NOT_ALLOWED() internal pure returns (string) {
+    function OVERWRITE_NOT_ALLOWED() internal pure returns (string memory) {
         return "ERR610";
     }
 
-    function NULL_PARAMETER_NOT_ALLOWED() internal pure returns (string) {
+    function NULL_PARAMETER_NOT_ALLOWED() internal pure returns (string memory) {
         return "ERR611";
     }
 
-    function DEPENDENCY_NOT_FOUND() internal pure returns (string) {
+    function DEPENDENCY_NOT_FOUND() internal pure returns (string memory) {
         return "ERR704";
     }
 
@@ -61,7 +61,7 @@ library ErrorsLib {
      * @param _message an error message
      * @return a concatenated string consisting of the three parameters delimited by the DELIMITER()
      */
-    function format(string _code, string _location, string _message) public pure returns (string) {
+    function format(string memory _code, string memory _location, string memory _message) public pure returns (string memory) {
         if (bytes(_code).length == 0) {
             _code = RUNTIME_ERROR();
         }
@@ -75,7 +75,7 @@ library ErrorsLib {
      * @param _location a string identifying to origin of the error
      * @param _message an error message
      */
-    function revertIf(bool _condition, string _code, string _location, string _message) public pure {
+    function revertIf(bool _condition, string memory _code, string memory _location, string memory _message) public pure {
         if (_condition) {
             // logError("AN://transaction-rollback", _code, _location, _message);
             revert(format(_code, _location, _message));
@@ -89,7 +89,7 @@ library ErrorsLib {
      * @param _location a string identifying to origin of the error
      * @param _message an error message
      */
-    function logError(bytes32 _eventId, string _code, string _location, string _message) public {
+    function logError(bytes32 _eventId, string memory _code, string memory _location, string memory _message) public {
         emit LogError(_eventId, _code, _location, _message);
     }
 }

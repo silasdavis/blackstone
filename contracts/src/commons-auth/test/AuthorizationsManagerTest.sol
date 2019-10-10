@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 
@@ -34,7 +34,7 @@ contract AuthorizationsManagerTest {
      * @dev Tests `AuthorizationsManager` functions
      * @return bytes32 result
      */
-    function testFunctions() external returns (string) {
+    function testFunctions() external returns (string memory) {
         // Test `hasRole`
         if (authorizationsManager.hasRole(account, ROLE)) return "Expected hasRole: false";
 

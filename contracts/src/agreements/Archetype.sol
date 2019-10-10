@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-auth/Permissioned.sol";
 
@@ -55,7 +55,7 @@ contract Archetype is Archetype_v1_0_0, Permissioned {
 		address _owner,
 		address _formationProcess,
 		address _executionProcess,
-		address[] _governingArchetypes)
+		address[] calldata _governingArchetypes)
 		external;
 
 	/**

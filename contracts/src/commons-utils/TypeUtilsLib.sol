@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 /**
  * @title TypeUtils Library
@@ -15,25 +15,25 @@ library TypeUtilsLib {
      */
     function contentLength(bytes32 self) public pure returns (uint) {
         uint ret;
-        if (self == 0)
+        if (uint(self) == 0)
             return 0;
-        if (self & 0xffffffffffffffffffffffffffffffff == 0) {
+        if (uint(self) & 0xffffffffffffffffffffffffffffffff == 0) {
             ret += 16;
             self = bytes32(uint(self) / 0x100000000000000000000000000000000);
         }
-        if (self & 0xffffffffffffffff == 0) {
+        if (uint(self) & 0xffffffffffffffff == 0) {
             ret += 8;
             self = bytes32(uint(self) / 0x10000000000000000);
         }
-        if (self & 0xffffffff == 0) {
+        if (uint(self) & 0xffffffff == 0) {
             ret += 4;
             self = bytes32(uint(self) / 0x100000000);
         }
-        if (self & 0xffff == 0) {
+        if (uint(self) & 0xffff == 0) {
             ret += 2;
             self = bytes32(uint(self) / 0x10000);
         }
-        if (self & 0xff == 0) {
+        if (uint(self) & 0xff == 0) {
             ret += 1;
         }
         return 32 - ret;
@@ -74,10 +74,11 @@ library TypeUtilsLib {
      * @param x bytes32
      * @return the string representation
      */
-    function toString (bytes32 x) public pure returns (string) {
+    function toString (bytes32 x) public pure returns (string memory) {
 	    bytes memory bytesString = new bytes(32);
 	    uint charCount = 0;
-	    for (uint j = 0; j < 32; j++) {
+        uint j;
+	    for (j = 0; j < 32; j++) {
 	        byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
 	        if (char != 0) {
 	            bytesString[charCount] = char;
@@ -97,7 +98,7 @@ library TypeUtilsLib {
      * @param s a string
      * @return the bytes32 representation
      */
-    function toBytes32(string s) public pure returns (bytes32 result) {
+    function toBytes32(string memory s) public pure returns (bytes32 result) {
 	    assembly {
     	    result := mload(add(s, 32))
     	}
@@ -109,7 +110,7 @@ library TypeUtilsLib {
      * @param b a byte[]
      * @return the bytes32 representation
      */
-    function toBytes32(bytes b) public pure returns (bytes32 result) {
+    function toBytes32(bytes memory b) public pure returns (bytes32 result) {
 	    assembly {
     	    result := mload(add(b, 32))
     	}
@@ -120,9 +121,9 @@ library TypeUtilsLib {
      * @param b a byte[]
      * @return the uint representation
      */
-	function toUint(bytes b) public pure returns (uint256 number) {
+	function toUint(bytes memory b) public pure returns (uint256 number) {
         for (uint i=0; i<b.length; i++) {
-            number = number + uint(b[i])*(2**(8*(b.length-(i+1))));
+            number = number + uint256(uint8(b[i]))*(2**(8*(b.length-(i+1))));
         }
     }
 

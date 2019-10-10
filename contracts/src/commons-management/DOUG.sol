@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 /**
  * @title DOUG - Decentralized Organization Upgrade Guy
@@ -16,7 +16,7 @@ contract DOUG {
      * @param _address the address of the contract
      * @return true if successful, false otherwise
      */
-    function deploy(string _id, address _address) external returns (bool success);
+    function deploy(string calldata _id, address _address) external returns (bool success);
 
 	/**
      * @dev Attempts to register the contract with the given address under the specified ID and version
@@ -26,7 +26,7 @@ contract DOUG {
      * @param _address the address of the contract
      * @return true if successful, false otherwise
 	 */
-    function deployVersion(string _id, address _address, uint8[3] _version) public returns (bool success);
+    function deployVersion(string memory _id, address _address, uint8[3] memory _version) public returns (bool success);
 
     /**
      * @dev Registers the contract with the given address under the specified ID.
@@ -34,7 +34,7 @@ contract DOUG {
      * @param _address the address of the contract
      * @return true if successful, false otherwise
      */
-    function register(string _id, address _address) external returns (uint8[3] version);
+    function register(string calldata _id, address _address) external returns (uint8[3] memory version);
 
     /**
      * @dev Registers the contract with the given address under the specified ID and version.
@@ -42,20 +42,20 @@ contract DOUG {
      * @param _address the address of the contract
 	 * @return version - the version under which the contract was registered.
      */
-    function registerVersion(string _id, address _address, uint8[3] _version) public returns (uint8[3] version);
+    function registerVersion(string memory _id, address _address, uint8[3] memory _version) public returns (uint8[3] memory version);
 
     /**
      * @dev Returns the address of a contract registered under the given ID.
      * @param _id the ID under which the contract is registered
      * @return the contract's address
      */
-    function lookup(string _id) external view returns (address contractAddress);
+    function lookup(string calldata _id) external view returns (address contractAddress);
 
     /**
      * @dev Returns the address of the specified version of a contract registered under the given ID.
      * @param _id the ID under which the contract is registered
      * @return the contract's address of 0x0 if the given ID and version cannot be found.
      */
-    function lookupVersion(string _id, uint8[3] _version) external view returns (address contractAddress);
+    function lookupVersion(string calldata _id, uint8[3] calldata _version) external view returns (address contractAddress);
 
 }

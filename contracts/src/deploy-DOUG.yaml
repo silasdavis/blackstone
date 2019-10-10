@@ -86,12 +86,6 @@ jobs:
   deploy:
     contract: DougProxy.bin
     libraries: ErrorsLib:$ErrorsLib
-
-- name: SetProxiedDoug
-  call:
-    destination: $DOUG
-    bin: DougProxy
-    function: setProxiedDoug
     data: [$DefaultDoug]
 
 - name: ChangeArtifactsRegistrySystemOwnerShip
