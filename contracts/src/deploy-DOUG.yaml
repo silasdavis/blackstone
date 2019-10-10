@@ -86,6 +86,7 @@ jobs:
   deploy:
     contract: DougProxy.bin
     libraries: ErrorsLib:$ErrorsLib
+    data: [$DefaultDoug]
 
 - name: SetProxiedDoug
   call:
