@@ -234,7 +234,7 @@ contract ActiveAgreement_v1_0_1 is VersionedArtifact, DataStorage, AddressScopes
 
 	/**
 	 * @dev Sets the legal state of this agreement to Agreements.LegalState.FULFILLED.
-	 * Note: All other legal states are set by internal logic.
+	 * !deprecated! use #setLegalState(Agreements.LegalState) instead
 	 */
 	function setFulfilled() external;
 

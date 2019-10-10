@@ -138,12 +138,6 @@ contract Archetype_v1_0_0 is VersionedArtifact {
 	function getAuthor() external view returns (address author);
 
 	/**
-	 * @dev Gets Owner
-	 * @return owner owner
-	 */
-	function getOwner() external view returns (address owner);
-
-	/**
 	 * @dev Gets document reference with given key
 	 * @param _key document key
 	 * @return fileReference - the reference to the external document
