@@ -13,7 +13,21 @@
 
 ## <a name="v0.9.1">Release 0.9.1</a>
 
-This is a patch release to upgrade the Hoard document system to version 6.
+This is a patch release to upgrade the Hoard document system to version 6 and make all smart contracts compatible with Solidity 0.5.x.
+
+### Compatibility
+
+This release was tested with the following software and versions:
+
+|                    |        |
+| :----------------- | :----- |
+| Hyperledger Burrow | 0.28.2 |
+| Solc               | 0.5.12 |
+
+### Features / Bug Fixes
+
+- Added support for Hyperledger Burrow's Hoard version 6.
+- Migrated all smart contracts to be compatible with Solidity version 0.5.x
 
 
 ## <a name="v0.9.0">Release 0.9.0</a>
