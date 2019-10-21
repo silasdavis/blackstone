@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/Owned.sol";
@@ -22,7 +22,7 @@ contract AbstractDocument is Document, Owned {
     /**
      * @dev Creates a new document with the given name
      */
-    constructor(string _name) public {
+    constructor(string memory _name) public {
         owner = msg.sender;
         name = _name;
     }
@@ -30,7 +30,7 @@ contract AbstractDocument is Document, Owned {
     /**
      * @dev Returns the document's name
      */
-    function getName() external view returns (string) {
+    function getName() external view returns (string memory) {
         return name;
     }
 
@@ -41,9 +41,9 @@ contract AbstractDocument is Document, Owned {
      * @return BaseErrors.NO_ERROR, BaseErrors.INSUFFICIENT_PRIVILEGES (as determined by calling canAddVersion(),
      * or BaseErrors.RESOURCE_ALREADY_EXISTS if the version has been added before.
      */
-    function addVersion(string _hash) external returns (uint) {
+    function addVersion(string calldata _hash) external returns (uint) {
         if (!canAddVersion()) return BaseErrors.INSUFFICIENT_PRIVILEGES();
-        if (versions[keccak256(abi.encodePacked(_hash))].creator != 0x0) {
+        if (versions[keccak256(abi.encodePacked(_hash))].creator != address(0)) {
             return BaseErrors.RESOURCE_ALREADY_EXISTS();
         }
         bytes32 key = keccak256(abi.encodePacked(_hash));
@@ -57,7 +57,7 @@ contract AbstractDocument is Document, Owned {
      * @param _hash the desired version hash
      * @return the creator address, or 0x0 if the version does not exist
      */
-    function getVersionCreator(string _hash) external view returns (address) {
+    function getVersionCreator(string calldata _hash) external view returns (address) {
         return versions[keccak256(abi.encodePacked(_hash))].creator;
     }
 
@@ -66,7 +66,7 @@ contract AbstractDocument is Document, Owned {
      * @param _hash the desired version hash
      * @return the creation date, or 0 if the version does not exist
      */
-    function getVersionCreated(string _hash) external view returns (uint) {
+    function getVersionCreated(string calldata _hash) external view returns (uint) {
         return versions[keccak256(abi.encodePacked(_hash))].created;
     }
 

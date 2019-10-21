@@ -1,4 +1,4 @@
-ARG SOLC_VERSION=0.4.25
+ARG SOLC_VERSION=0.5.12
 ARG BURROW_REPO=hyperledger/burrow
 ARG BURROW_VERSION=0.26.2
 # This container provides the test environment from which the various test scripts

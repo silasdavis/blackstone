@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-collections/DataStorageUtils.sol";
@@ -128,7 +128,7 @@ library BpmModelLib {
     function resolveRightHandValueAsString(BpmModel.TransitionCondition storage _condition, address _dataStorage)
         public view
         pre_rightHandConditionExists(_condition)
-        returns (string)
+        returns (string memory)
     {
         if (_condition.rhPrimitive.exists) {
             return _condition.rhPrimitive.stringValue;

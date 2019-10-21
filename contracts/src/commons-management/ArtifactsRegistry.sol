@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/SystemOwnerTransferable.sol";
 
@@ -22,14 +22,14 @@ contract ArtifactsRegistry is ArtifactsFinder, SystemOwnerTransferable {
      * @param _version the semantic version of the artifact
      * @param _activeVersion whether this version of the artifact should be tracked as the active version
      */
-    function registerArtifact(string _artifactId, address _artifactAddress, uint8[3] _version, bool _activeVersion) external;
+    function registerArtifact(string calldata _artifactId, address _artifactAddress, uint8[3] calldata _version, bool _activeVersion) external;
 
     /**
      * @dev Sets the specified artifact and version to be tracked as the active version
      * @param _artifactId the ID of the artifact
      * @param _version the semantic version of the artifact
      */
-    function setActiveVersion(string _artifactId, uint8[3] _version) external;
+    function setActiveVersion(string calldata _artifactId, uint8[3] calldata _version) external;
 
     /**
      * @dev Returns the number of artifacts registered in this ArtifactsRegistry irrespective of how many version of an artifact exist.

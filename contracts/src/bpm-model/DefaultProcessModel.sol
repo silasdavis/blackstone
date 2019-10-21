@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/ErrorsLib.sol";
@@ -41,7 +41,7 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 * @param _isPrivate indicates if model is visible only to creator
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function initialize(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference)
+	function initialize(bytes32 _id, uint8[3] calldata _version, address _author, bool _isPrivate, string calldata _modelFileReference)
 		external
 		pre_post_initialize
 	{
@@ -76,7 +76,7 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	function createProcessDefinition(bytes32 _processDefinitionId, address _artifactsFinder) external returns (address newAddress) {
 		ErrorsLib.revertIf(processDefinitions.exists(_processDefinitionId),
 			ErrorsLib.RESOURCE_ALREADY_EXISTS(), "DefaultProcessModel.createProcessDefinition", "A ProcessDefinition with the same ID already exists in this ProcessModel");
-		newAddress = new ObjectProxy(_artifactsFinder, OBJECT_CLASS_PROCESS_DEFINITION);
+		newAddress = address(new ObjectProxy(_artifactsFinder, OBJECT_CLASS_PROCESS_DEFINITION));
 		ProcessDefinition(newAddress).initialize(_processDefinitionId, address(this));
 		ErrorsLib.revertIf(processDefinitions.insert(_processDefinitionId, newAddress) != BaseErrors.NO_ERROR(),
 			ErrorsLib.INVALID_STATE(), "DefaultProcessModel.createProcessDefinition", "Unable to add the new ProcessDefinition to the collection");
@@ -95,7 +95,7 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 	 * @dev Returns the file reference for the model file
 	 * @return the external file reference
 	 */
-	function getModelFileReference() external view returns (string) {
+	function getModelFileReference() external view returns (string memory) {
 		return modelFileReference;
 	}
 
@@ -151,14 +151,14 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 		}
 		// 1. single participant and conditional participant configs are mutually exclusive
 		// 2. conditional participant must have a dataPath set
-		if ((_account != 0x0 && (_dataStorage != 0x0 || _dataStorageId != "")) ||
-			(_account == 0x0 && _dataPath == "")) {
+		if ((_account != address(0) && (_dataStorage != address(0) || _dataStorageId != "")) ||
+			(_account == address(0) && _dataPath == "")) {
 			return BaseErrors.INVALID_PARAM_VALUE();
 		}
 
 		participants.rows[_id].keyIdx = participants.keys.push(_id);
 		participants.rows[_id].value.id = _id;
-		if (_account != 0x0) {
+		if (_account != address(0)) {
 			participants.rows[_id].value.account = _account;
 		} else {
 			participants.rows[_id].value.conditionalPerformer = DataStorageUtils.ConditionalData({dataStorage: _dataStorage, dataStorageId: _dataStorageId, dataPath: _dataPath, exists: true});
@@ -181,7 +181,7 @@ contract DefaultProcessModel is AbstractVersionedArtifact(1,0,0), AbstractDelega
 				participants.rows[participants.keys[i]].value.conditionalPerformer.dataPath == _dataPath &&
 			    ((participants.rows[participants.keys[i]].value.conditionalPerformer.dataStorageId != "" &&
 			      participants.rows[participants.keys[i]].value.conditionalPerformer.dataStorageId == _dataStorageId) ||
-			     (participants.rows[participants.keys[i]].value.conditionalPerformer.dataStorage != 0x0 &&
+			     (participants.rows[participants.keys[i]].value.conditionalPerformer.dataStorage != address(0) &&
 			      participants.rows[participants.keys[i]].value.conditionalPerformer.dataStorage == _dataStorage))) {
 					  
 					return participants.rows[participants.keys[i]].value.id;

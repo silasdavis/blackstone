@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/Upgradeable.sol";
 import "commons-management/ObjectFactory.sol";
@@ -16,5 +16,5 @@ contract EcosystemRegistry is ObjectFactory, Upgradeable {
      * @param _name the name under which to register the Ecosystem
      * @return the address of the new Ecosystem
      */
-    function createEcosystem(string _name) external returns (address);
+    function createEcosystem(string calldata _name) external returns (address);
 }

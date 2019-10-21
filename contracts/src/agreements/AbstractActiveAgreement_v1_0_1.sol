@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-utils/ArrayUtilsLib.sol";
@@ -80,6 +80,11 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 		}
 	}
 
+    /**
+     * @dev non-public constructor
+     */
+    constructor() internal {}
+
 	/**
 	 * @dev Initializes this ActiveAgreement with the provided parameters. This function replaces the
 	 * contract constructor, so it can be used as the delegate target for an ObjectProxy.
@@ -93,10 +98,10 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	function initialize(
 		address _archetype, 
 		address _creator, 
-		string _privateParametersFileReference, 
+		string calldata _privateParametersFileReference, 
 		bool _isPrivate, 
-		address[] _parties, 
-		address[] _governingAgreements)
+		address[] calldata _parties, 
+		address[] calldata _governingAgreements)
 		external
 		pre_post_initialize
 	{
@@ -128,7 +133,8 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 			_privateParametersFileReference,
 			""
 		);
-		for (uint i = 0; i < _parties.length; i++) {
+		uint i;
+		for (i = 0; i < _parties.length; i++) {
 			emit LogActiveAgreementToPartySignaturesUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), _parties[i], address(0), uint(0));
 		}
 		for (i = 0; i < _governingAgreements.length; i++) {
@@ -141,7 +147,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * governing agreement's archetype corresponds to one of the governing archetypes.
 	 * This function makes sure that all governing agreements that are required were passed.
 	 */
-	function validateGoverningAgreements(address[] memory _governingAgreements, address[] _governingArchetypes) internal view {
+	function validateGoverningAgreements(address[] memory _governingAgreements, address[] memory _governingArchetypes) internal view {
 	
 		// _governingAgreements length must match governingArchetypes length. This is a shortcut verification to avoid expensive looping
 		ErrorsLib.revertIf(_governingAgreements.length != _governingArchetypes.length,
@@ -213,7 +219,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference to the private parameters of this ActiveAgreement
 	 * @return the reference to an external document containing private parameters
 	 */
-	function getPrivateParametersReference() external view returns (string){
+	function getPrivateParametersReference() external view returns (string memory){
 		return fileReferences.get(fileKeyPrivateParameters);
 	}
 
@@ -229,7 +235,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Updates the file reference for the event log of this agreement
 	 * @param _eventLogFileReference the file reference to the event log
 	 */
-	function setEventLogReference(string _eventLogFileReference) external {
+	function setEventLogReference(string calldata _eventLogFileReference) external {
 		fileReferences.insertOrUpdate(fileKeyEventLog, _eventLogFileReference);
 		emit LogAgreementEventLogReference(EVENT_ID_AGREEMENTS, address(this), _eventLogFileReference);
 	}
@@ -238,7 +244,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference for the event log of this ActiveAgreement
 	 * @return the reference to an external document containing the event log
 	 */
-	function getEventLogReference() external view returns (string) {
+	function getEventLogReference() external view returns (string memory) {
 		return fileReferences.get(fileKeyEventLog);
 	}
 
@@ -246,7 +252,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Updates the file reference for the signature log of this agreement
 	 * @param _signatureLogFileReference the file reference to the signature log
 	 */
-	function setSignatureLogReference(string _signatureLogFileReference) external {
+	function setSignatureLogReference(string calldata _signatureLogFileReference) external {
 		fileReferences.insertOrUpdate(fileKeySignatureLog, _signatureLogFileReference);
 		emit LogAgreementSignatureLogReference(EVENT_ID_AGREEMENTS, address(this), _signatureLogFileReference);
 	}
@@ -255,7 +261,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @dev Returns the reference for the signature log of this ActiveAgreement
 	 * @return the reference to an external document containing the signature log
 	 */
-	function getSignatureLogReference() external view returns (string) {
+	function getSignatureLogReference() external view returns (string memory) {
 		return fileReferences.get(fileKeySignatureLog);
 	}
 
@@ -331,7 +337,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 	 * @param _id the bytes32 ID of an address array
 	 * @return the address array
 	 */
-	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[]) {
+	function getDataValueAsAddressArray(bytes32 _id) external view returns (address[] memory) {
 		if (_id == DATA_FIELD_AGREEMENT_PARTIES) {
 			return parties;
 		}
@@ -385,7 +391,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 		(actor, party) = AgreementsAPI.authorizePartyActor(address(this));
 
 		// if the actor is empty at this point, the authorization is regarded as failed
-		ErrorsLib.revertIf(actor == 0x0,
+		ErrorsLib.revertIf(actor == address(0),
 			ErrorsLib.UNAUTHORIZED(), "DefaultActiveAgreement.cancel()", "The caller is not authorized to cancel");
 
 		if (legalState == Agreements.LegalState.DRAFT ||
@@ -394,7 +400,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 			legalState = Agreements.LegalState.CANCELED;
 			emit LogActiveAgreementToPartyCancelationsUpdate(EVENT_ID_AGREEMENT_PARTY_MAP, address(this), party, actor, block.timestamp);
 			emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
-			emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
+			emitEvent(EVENT_ID_STATE_CHANGED, address(this)); // for cancellations we need to inform the registry
 		}
 		else if (legalState == Agreements.LegalState.EXECUTED) {
 			// multilateral cancellation
@@ -409,7 +415,7 @@ contract AbstractActiveAgreement_v1_0_1 is AbstractDelegateTarget, AbstractDataS
 					if (i == parties.length-1) {
 						legalState = Agreements.LegalState.CANCELED;
 						emit LogAgreementLegalStateUpdate(EVENT_ID_AGREEMENTS, address(this), uint8(legalState));
-						emitEvent(EVENT_ID_STATE_CHANGED, this); // for cancellations we need to inform the registry
+						emitEvent(EVENT_ID_STATE_CHANGED, address(this)); // for cancellations we need to inform the registry
 					}
 				}
 			}

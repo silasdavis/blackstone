@@ -42,12 +42,6 @@ jobs:
     binpath: ../../docs/docdev/commons-base
     instance: all
 
-- name: Destructible
-  build:
-    contract: commons-base/Destructible.sol
-    binpath: ../../docs/docdev/commons-base
-    instance: all
-
 - name: Named
   build:
     contract: commons-base/Named.sol

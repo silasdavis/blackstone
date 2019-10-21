@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-collections/Mappings.sol";
@@ -78,10 +78,10 @@ contract DefaultUserAccount is AbstractVersionedArtifact(1,0,0), AbstractDelegat
      * - the target address is empty (0x0)
      * - the target contract threw an exception (reverted). In this case this function will revert using the same reason
      */
-    function forwardCall(address _target, bytes _payload)
+    function forwardCall(address _target, bytes calldata _payload)
         external
         pre_onlyAuthorizedCallers
-        returns (bytes returnData)
+        returns (bytes memory returnData)
     {
         ErrorsLib.revertIf(_target == address(0),
             ErrorsLib.NULL_PARAMETER_NOT_ALLOWED(), "DefaultUserAccount.forwardCall", "Target address must not be empty");

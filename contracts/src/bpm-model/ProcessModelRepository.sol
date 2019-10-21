@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-management/Upgradeable.sol";
 import "commons-management/ObjectFactory.sol";
@@ -29,7 +29,7 @@ contract ProcessModelRepository is ObjectFactory, Upgradeable {
 	 * @param _isPrivate indicates if the model is private
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function createProcessModel(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external returns (uint error, address modelAddress);
+	function createProcessModel(bytes32 _id, uint8[3] calldata _version, address _author, bool _isPrivate, string calldata _modelFileReference) external returns (uint error, address modelAddress);
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in the provided ProcessModel.
@@ -59,7 +59,7 @@ contract ProcessModelRepository is ObjectFactory, Upgradeable {
 	 * @param _version the model version
 	 * @return the model address, if found
 	 */	
-	function getModelByVersion(bytes32 _id, uint8[3] _version) external view returns (uint error, address modelAddress);
+	function getModelByVersion(bytes32 _id, uint8[3] calldata _version) external view returns (uint error, address modelAddress);
 
 	/**
 	 * @dev Returns the number of models in this repository.
