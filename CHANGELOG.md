@@ -2,6 +2,7 @@
 
 ## Release History
 
+- Version [0.9.1](#v0.9.1)
 - Version [0.9.0](#v0.9.0)
 - Version [0.8.0](#v0.8.0)
 - Version [0.7.0](#v0.7.0)
@@ -10,7 +11,12 @@
 - Version [0.5.2](#v0.5.2)
 - Version [0.5.1](#v0.5.1)
 
-## <a name="v0.9.0">Release v0.9.0</a>
+## <a name="v0.9.1">Release 0.9.1</a>
+
+This is a patch release to upgrade the Hoard document system to version 6.
+
+
+## <a name="v0.9.0">Release 0.9.0</a>
 
 This release fixes a critical bug of Release 0.8.0 which affected existing deployments < 0.8.0 resulting in an incompatibility in contract storage for Agreement and Archetype contracts. A feature was added to allow an agreement's legal state to be controlled from an external address.
 
@@ -40,7 +46,7 @@ This release was tested with the following software and versions:
 - Added .gitattributes file for sol syntax highlighting on github
 
 
-## <a name="v0.8.0">Release v0.8.0</a>
+## <a name="v0.8.0">Release 0.8.0</a>
 
 This release adds improvements on Agreement smart contracts to handle arbitrary numbers of file reference as well as the introduction of the AbstractPermissioned contract to manage bytes32 based permissions on objects. Wet signatures are now recorded via the API, referenced in an external file, and hashed into the Agreement smart contract. Also, approvers of an Organization can now add other approvers.
 
@@ -69,7 +75,7 @@ This release was tested with the following software and versions:
 - Added support for an arbitrary number of agreement attachments. A single file is referenced in the smart contract containing an array of raw text entries or references to other files.
 
 
-## <a name="v0.7.0">Release v0.7.0</a>
+## <a name="v0.7.0">Release 0.7.0</a>
 
 This release introduces breaking changes around the management of contracts via the DOUG contract and a major refactoring of all "object"-type contracts for which the storage and implementation have been separated using an "unstructured delegate proxy" approach to make them upgradeable.
 
@@ -100,7 +106,7 @@ This release was tested with the following software and versions:
 - Bug fixed in API layer which caused boolean-based transition conditions that used a `= false` condition to be recorded as `= true`.
 
 
-## <a name="v0.6.1">Release v0.6.1</a>
+## <a name="v0.6.1">Release 0.6.1</a>
 
 Release 0.6.1 is a patch release on top of the 0.6.0 release to add address the following issues:
 
@@ -110,7 +116,7 @@ Release 0.6.1 is a patch release on top of the 0.6.0 release to add address the 
 - locked all Node dependency versions in package.json
 
 
-## <a name="v0.6.0">Release v0.6.0</a>
+## <a name="v0.6.0">Release 0.6.0</a>
 
 This release contains larger changes around data mappings and process model parameters. Process models using the `NUMBER` parameter type must be upgraded under certain conditions (see Breaking Changes below).
 
@@ -145,7 +151,7 @@ This release was tested with the following software and versions:
 - Upgraded `bpm-model/DefaultProcessModelRepository.sol` to version 1.1.0 in order to support an upgrade to changed contracts `DefaultProcessModel` and `DefaultProcessDefinition` which adds events for data-mapping information that populates the new Vent table `DATA_MAPPINGS`. An upgrade script for existing deployments `contracts/upgrade/ProcessModelRepository-1.1.0.yaml` was added.
 
 
-## <a name="v0.5.2">Release v0.5.2</a>
+## <a name="v0.5.2">Release 0.5.2</a>
 
 ### Compatibility
 
@@ -167,7 +173,7 @@ Agreements without a formation process who want to run an execution process must
 - User activation via email for new user accounts has been added. A new user signing up via the API is by default "deactivated" and has to click on the activation link in an email before being able to login for the first time. This serves to validate the user's email account used for notifications, etc.
 
 
-## <a name="v0.5.1">Release v0.5.1</a>
+## <a name="v0.5.1">Release 0.5.1</a>
 
 ### Compatibility
 
