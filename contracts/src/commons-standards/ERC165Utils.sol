@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-standards/ERC165.sol";
 
@@ -33,10 +33,9 @@ library ERC165Utils {
      * @param _interfaceId the signature of the interface for which to test
      * @return true if the contract implements the interface, false otherwise
      */
-    function implementsInterface(address _contract, bytes4 _interfaceId) public view returns (bool) {
-        if (_contract.call(getERC165Id(), 0x0)) {
-            return ERC165(_contract).supportsInterface(_interfaceId);
-        }
+    function implementsInterface(address _contract, bytes4 _interfaceId) public returns (bool) {
+        (bool isERC165, ) = _contract.call(abi.encodeWithSelector(getERC165Id(), getERC165Id()));
+        return isERC165 && ERC165(_contract).supportsInterface(_interfaceId);
     }
 
     // function implementsInterface(address _contract, bytes4 _interfaceId) public view returns (bool) {

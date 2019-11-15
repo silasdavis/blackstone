@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 // Libraries
 import "commons-base/BaseErrors.sol";
@@ -25,7 +25,7 @@ contract AuthorizationsManager {
 
     /// @dev Constructor
     constructor() public {
-        repositories.insert(REPOSITORY_CHAIN_AUTHORIZATIONS, new ChainAuthorizations());
+        repositories.insert(REPOSITORY_CHAIN_AUTHORIZATIONS, address(new ChainAuthorizations()));
     }
 
     /**

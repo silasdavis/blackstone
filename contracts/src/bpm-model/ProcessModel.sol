@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/Versioned.sol";
 import "commons-base/Bytes32Identifiable.sol";
@@ -48,7 +48,7 @@ contract ProcessModel is VersionedArtifact, Versioned, Bytes32Identifiable {
 	 * @param _isPrivate indicates if model is visible only to creator
 	 * @param _modelFileReference the reference to the external model file from which this ProcessModel originated
 	 */
-	function initialize(bytes32 _id, uint8[3] _version, address _author, bool _isPrivate, string _modelFileReference) external;
+	function initialize(bytes32 _id, uint8[3] calldata _version, address _author, bool _isPrivate, string calldata _modelFileReference) external;
 
 	/**
 	 * @dev Creates a new process definition with the given parameters in this ProcessModel
@@ -69,7 +69,7 @@ contract ProcessModel is VersionedArtifact, Versioned, Bytes32Identifiable {
 	 * @dev Returns the file reference for the model file
 	 * @return the external file reference
 	 */
-	function getModelFileReference() external view returns (string);
+	function getModelFileReference() external view returns (string memory);
 
 	/**
 	 * @dev Returns model author address

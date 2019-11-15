@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/BaseErrors.sol";
 import "commons-base/SystemOwned.sol";
@@ -106,8 +106,8 @@ contract ActiveAgreementWorkflowTest {
 		// BpmService
 		BpmServiceDb bpmServiceDb = new BpmServiceDb();
 		bpmService = new DefaultBpmService(serviceIdModelRepository, serviceIdApplicationRegistry);
-		bpmServiceDb.transferSystemOwnership(bpmService);
-		require(AbstractDbUpgradeable(bpmService).acceptDatabase(bpmServiceDb), "BpmServiceDb not set");
+		bpmServiceDb.transferSystemOwnership(address(bpmService));
+		require(AbstractDbUpgradeable(address(bpmService)).acceptDatabase(address(bpmServiceDb)), "BpmServiceDb not set");
 
 		// ArchetypeRegistry
 		// ArchetypeRegistryDb archRegistryDb = new ArchetypeRegistryDb();
@@ -119,8 +119,8 @@ contract ActiveAgreementWorkflowTest {
 		// ProcessModelRegistry
 		ProcessModelRepositoryDb modelDb = new ProcessModelRepositoryDb();
 		processModelRepository = new DefaultProcessModelRepository();
-		modelDb.transferSystemOwnership(processModelRepository);
-		require(AbstractDbUpgradeable(processModelRepository).acceptDatabase(modelDb), "ProcessModelRepositoryDb not set");
+		modelDb.transferSystemOwnership(address(processModelRepository));
+		require(AbstractDbUpgradeable(address(processModelRepository)).acceptDatabase(address(modelDb)), "ProcessModelRepositoryDb not set");
 
 		// ApplicatonRegistry
 		// ApplicationRegistryDb appDb = new ApplicationRegistryDb();
@@ -140,9 +140,9 @@ contract ActiveAgreementWorkflowTest {
         artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_MODEL(), address(defaultProcessModelImpl), defaultProcessModelImpl.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(processModelRepository.OBJECT_CLASS_PROCESS_DEFINITION(), address(defaultProcessDefinitionImpl), defaultProcessDefinitionImpl.getArtifactVersion(), true);
         artifactsRegistry.registerArtifact(bpmService.OBJECT_CLASS_PROCESS_INSTANCE(), address(defaultProcessInstanceImpl), defaultProcessInstanceImpl.getArtifactVersion(), true);
-		ArtifactsFinderEnabled(processModelRepository).setArtifactsFinder(artifactsRegistry);
-		ArtifactsFinderEnabled(archetypeRegistry).setArtifactsFinder(artifactsRegistry);
-		ArtifactsFinderEnabled(bpmService).setArtifactsFinder(artifactsRegistry);
+		ArtifactsFinderEnabled(address(processModelRepository)).setArtifactsFinder(address(artifactsRegistry));
+		ArtifactsFinderEnabled(address(archetypeRegistry)).setArtifactsFinder(address(artifactsRegistry));
+		ArtifactsFinderEnabled(address(bpmService)).setArtifactsFinder(address(artifactsRegistry));
 	}
 
 	/**
@@ -152,9 +152,9 @@ contract ActiveAgreementWorkflowTest {
 	function createNewAgreementRegistry() internal returns (TestRegistry) {
 		TestRegistry newRegistry = new TestRegistry(serviceIdArchetypeRegistry, serviceIdBpmService);
 		ActiveAgreementRegistryDb agreementRegistryDb = new ActiveAgreementRegistryDb();
-		SystemOwned(agreementRegistryDb).transferSystemOwnership(newRegistry);
-		AbstractDbUpgradeable(newRegistry).acceptDatabase(agreementRegistryDb);
-		ArtifactsFinderEnabled(newRegistry).setArtifactsFinder(artifactsRegistry);
+		SystemOwned(agreementRegistryDb).transferSystemOwnership(address(newRegistry));
+		AbstractDbUpgradeable(newRegistry).acceptDatabase(address(agreementRegistryDb));
+		ArtifactsFinderEnabled(newRegistry).setArtifactsFinder(address(artifactsRegistry));
         artifactsRegistry.registerArtifact(newRegistry.OBJECT_CLASS_AGREEMENT(), address(defaultAgreementImpl), defaultAgreementImpl.getArtifactVersion(), true);
 		// check that dependencies are wired correctly
 		require (address(newRegistry.getArchetypeRegistry()) != address(0), "ArchetypeRegistry in new ActiveAgreementRegistry not found");
@@ -167,7 +167,7 @@ contract ActiveAgreementWorkflowTest {
 	/**
 	 * @dev Tests the DefaultActiveAgreementRegistry.transferAddressScopes function
 	 */
-	function testAddressScopeTransfer() external returns (string) {
+	function testAddressScopeTransfer() external returns (string memory) {
 
 		// re-usable variables for return values
 		uint error;
@@ -183,18 +183,18 @@ contract ActiveAgreementWorkflowTest {
 		// Adding two scopes to the agreement:
 		// 1. Buyer context: a fixed scope for the msg.sender
 		// 2. Seller context: a conditional scope for this test address
-		agreement.setAddressScope(msg.sender, "Buyer", "BuyerRole", EMPTY, EMPTY, 0x0);
-		agreement.setAddressScope(address(this), "Seller", EMPTY, "AgreementRoleField43", EMPTY, 0x0);
+		agreement.setAddressScope(msg.sender, "Buyer", "BuyerRole", EMPTY, EMPTY, address(0));
+		agreement.setAddressScope(address(this), "Seller", EMPTY, "AgreementRoleField43", EMPTY, address(0));
 
 		// make a model with participants that point to fields on the agreement
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", [1,0,0], this, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		(error, addr) = processModelRepository.createProcessModel("RoleQualifiers", [1,0,0], address(this), false, dummyModelFileReference);
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
-		pm.addParticipant(participantId1, 0x0, "Buyer", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
-		pm.addParticipant(participantId2, 0x0, "Seller", agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
+		pm.addParticipant(participantId1, address(0), "Buyer", agreementRegistry.DATA_ID_AGREEMENT(), address(0));
+		pm.addParticipant(participantId2, address(0), "Seller", agreementRegistry.DATA_ID_AGREEMENT(), address(0));
 		// make a ProcessDefinition with activities that use the participants
-		addr = pm.createProcessDefinition("RoleQualifierProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("RoleQualifierProcess", address(artifactsRegistry));
 		ProcessDefinition pd = ProcessDefinition(addr);
 		error = pd.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, false, EMPTY, EMPTY, EMPTY);
 		error = pd.createActivityDefinition(activityId2, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
@@ -206,7 +206,7 @@ contract ActiveAgreementWorkflowTest {
 
 		// create a PI with agreement
 		ProcessInstance pi = new DefaultProcessInstance();
-		pi.initialize(pd, this, EMPTY);
+		pi.initialize(address(pd), address(this), EMPTY);
 		pi.setDataValueAsAddress(agreementRegistry.DATA_ID_AGREEMENT(), address(agreement));
 
 		// function under test
@@ -226,7 +226,7 @@ contract ActiveAgreementWorkflowTest {
 	/**
 	 * @dev Tests the handling of combinations of formation and execution processes, i.e. the lack of processes, in the ActiveAgreementRegistry.startProcessLifecycle function
 	 */
-	function testAgreementProcessLifecycle() external returns (string) {
+	function testAgreementProcessLifecycle() external returns (string memory) {
 
 		uint error;
 		address addr;
@@ -242,18 +242,18 @@ contract ActiveAgreementWorkflowTest {
 		// the parties to the agreement are: one user, one org, and one org with department scope
 		parties.push(address(this));
 
-		(error, addr) = processModelRepository.createProcessModel("FormationExecution", [1,0,0], userAccount1, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		(error, addr) = processModelRepository.createProcessModel("FormationExecution", [1,0,0], address(userAccount1), false, dummyModelFileReference);
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
-		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("FormationProcess", address(artifactsRegistry));
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for formation process definition";
 		(success, errorMsg) = formationPD.validate();
 		if (!success) return errorMsg.toString();
 		// Execution Process
-		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("ExecutionProcess", address(artifactsRegistry));
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
@@ -265,8 +265,8 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 1: Formation, but no execution
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, address(0), EMPTY, governingArchetypes);
-		if (addr == 0x0) return "Error creating Combo1Archetype, address is empty";
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(formationPD), address(0), EMPTY, governingArchetypes);
+		if (addr == address(0)) return "Error creating Combo1Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting formation / no execution combo";
@@ -276,11 +276,13 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// COMBO 2: Execution, but no formation
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), executionPD, EMPTY, governingArchetypes);
-		if (addr == 0x0) return "Error creating Combo2Archetype, address is empty";
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), address(executionPD), EMPTY, governingArchetypes);
+		if (addr == address(0)) return "Error creating Combo2Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements));
 		// First try fail, because agreement is not executed
-		if (address(agreementRegistry).call(abi.encodeWithSignature("startProcessLifecycle(address)", address(agreement)))) return "Starting no formation / execution combo with a non-executed agreement should fail ";
+		(success, ) = address(agreementRegistry).call(abi.encodeWithSignature("startProcessLifecycle(address)", address(agreement)));
+		if (success)
+			return "Starting no formation / execution combo with a non-executed agreement should fail ";
 		agreement.sign();
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting no formation / execution combo";
@@ -291,7 +293,7 @@ contract ActiveAgreementWorkflowTest {
 		// COMBO 1: No formation, no execution
 		//
 		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(0), address(0), EMPTY, governingArchetypes);
-		if (addr == 0x0) return "Error creating Combo3Archetype, address is empty";
+		if (addr == address(0)) return "Error creating Combo3Archetype, address is empty";
 		agreement = ActiveAgreement(agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements));
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement));
 		if (error != 0) return "Expected empty error code starting no formation / no execution combo";
@@ -303,7 +305,7 @@ contract ActiveAgreementWorkflowTest {
 	/**
 	 * Tests a typical AN workflow with a multi-instance signing activity that produces an executed agreement
 	 */
-	function testExecutedAgreementWorkflow() external returns (string) {
+	function testExecutedAgreementWorkflow() external returns (string memory) {
 
 		// re-usable variables for return values
 		uint error;
@@ -320,28 +322,28 @@ contract ActiveAgreementWorkflowTest {
 		agreementRegistry = createNewAgreementRegistry();
 
 		TestSignatureCheck signatureCheckApp = new TestSignatureCheck();
-		applicationRegistry.addApplication("AgreementSignatureCheck", BpmModel.ApplicationType.WEB, signatureCheckApp, bytes4(EMPTY), EMPTY);
+		applicationRegistry.addApplication("AgreementSignatureCheck", BpmModel.ApplicationType.WEB, address(signatureCheckApp), bytes4(EMPTY), EMPTY);
 
 		//
 		// ORGS/USERS
 		//
 		// create additional users via constructor
 		userAccount1 = new DefaultUserAccount();
-		userAccount1.initialize(this, address(0));
+		userAccount1.initialize(address(this), address(0));
 		userAccount2 = new DefaultUserAccount();
-		userAccount2.initialize(this, address(0));
+		userAccount2.initialize(address(this), address(0));
 		userAccount3 = new DefaultUserAccount();
-		userAccount3.initialize(this, address(0));
+		userAccount3.initialize(address(this), address(0));
 		nonPartyAccount = new DefaultUserAccount();
-		nonPartyAccount.initialize(this, address(0));
+		nonPartyAccount.initialize(address(this), address(0));
 
 		org1 = new DefaultOrganization();
 		org1.initialize(approvers, EMPTY);
 		org2 = new DefaultOrganization();
 		org2.initialize(approvers, EMPTY);
-		org1.addUserToDepartment(userAccount2, EMPTY);
+		org1.addUserToDepartment(address(userAccount2), EMPTY);
 		org2.addDepartment(departmentId1);
-		if (!org2.addUserToDepartment(userAccount3, departmentId1)) return "Failed to add user3 to department1";
+		if (!org2.addUserToDepartment(address(userAccount3), departmentId1)) return "Failed to add user3 to department1";
 
 		delete parties;
 		// the parties to the agreement are: one user, one org, and one org with department scope
@@ -353,20 +355,20 @@ contract ActiveAgreementWorkflowTest {
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("AN-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		(error, addr) = processModelRepository.createProcessModel("AN-Model", [1,0,0], address(userAccount1), false, dummyModelFileReference);
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
-		pm.addParticipant(participantId1, 0x0, DATA_FIELD_AGREEMENT_PARTIES, agreementRegistry.DATA_ID_AGREEMENT(), 0x0);
+		pm.addParticipant(participantId1, address(0), DATA_FIELD_AGREEMENT_PARTIES, agreementRegistry.DATA_ID_AGREEMENT(), address(0));
 		// Formation Process
-		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("FormationProcess", address(artifactsRegistry));
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.USER, BpmModel.TaskBehavior.SENDRECEIVE, participantId1, true, appIdSignatureCheck, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating USER task for formation process definition";
-		formationPD.createDataMapping(activityId1, BpmModel.Direction.IN, "agreement", "agreement", EMPTY, 0x0);
+		formationPD.createDataMapping(activityId1, BpmModel.Direction.IN, "agreement", "agreement", EMPTY, address(0));
 		(success, errorMsg) = formationPD.validate();
 		if (!success) return errorMsg.toString();
 		// Execution Process
-		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("ExecutionProcess", address(artifactsRegistry));
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.SEND, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for execution process definition";
@@ -376,15 +378,15 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, executionPD, EMPTY, governingArchetypes);
-		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(formationPD), address(executionPD), EMPTY, governingArchetypes);
+		if (addr == address(0)) return "Error creating TestArchetype, address is empty";
 
 		//
 		// AGREEMENT
 		//
 		address agreement = agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements);
 		// Org2 has a department, so we're setting the additional context on the agreement
-		ActiveAgreement(agreement).setAddressScope(address(org2), DATA_FIELD_AGREEMENT_PARTIES, departmentId1, EMPTY, EMPTY, 0x0);
+		ActiveAgreement(agreement).setAddressScope(address(org2), DATA_FIELD_AGREEMENT_PARTIES, departmentId1, EMPTY, EMPTY, address(0));
 		//TODO we currently don't support a negotiation phase in the AN, so the agreement's prose contract is already formulated when the agreement is created.
 		if (ActiveAgreement(agreement).getLegalState() != uint8(Agreements.LegalState.FORMULATED)) return "The agreement should be in FORMULATED state";
 
@@ -407,16 +409,19 @@ contract ActiveAgreementWorkflowTest {
 		if (addr != address(userAccount1)) return "userAccount1 should be the performer of activity1";
 
 		// the agreement should NOT be available as IN data via the application at this point since the user is still the performer!
-		if (address(signatureCheckApp).call(abi.encodeWithSignature("getInDataAgreement(bytes32)", pi.getActivityInstanceAtIndex(0))))
+		(success, ) = address(signatureCheckApp).call(abi.encodeWithSignature("getInDataAgreement(bytes32)", pi.getActivityInstanceAtIndex(0)));
+		if (success)
 			return "Retrieving IN data via the application should REVERT while the user is still the performer";
 
 		// test fail on invalid user
 		returnData = nonPartyAccount.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		// TODO use solidity 0.5 decode
 		if (returnData.toUint() != BaseErrors.INVALID_ACTOR()) return "Attempting to complete the Sign activity with an unassigned user should fail.";
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after wrong user attempt";
 		// test fail on unsigned agreement
 		returnData = userAccount1.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(0), bpmService));
+		// TODO use solidity 0.5 decode
 		if (returnData.toUint() != BaseErrors.RUNTIME_ERROR()) return "Attempting to complete the Sign activity without signing the agreement should fail";
 		( , , , addr, , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(0));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.SUSPENDED)) return "Activity1 in Formation Process should still be suspended after completion attempt without signing";
@@ -443,7 +448,7 @@ contract ActiveAgreementWorkflowTest {
 		if (addr != address(org2)) return "ActivityInstance3 should have org2 as performer";
 		if (pi.resolveAddressScope(address(org2), activityId1, pi) != departmentId1) return "Org2 in context of activity1 should show the additional department scope";
 		// check upfront if the user/org/department context is authorized which is used in the following activity completion
-		if (!org2.authorizeUser(userAccount3, departmentId1)) return "User3 should be authorized for dep1 in org2";
+		if (!org2.authorizeUser(address(userAccount3), departmentId1)) return "User3 should be authorized for dep1 in org2";
 		userAccount3.forwardCall(address(pi), abi.encodeWithSignature("completeActivity(bytes32,address)", pi.getActivityInstanceAtIndex(2), bpmService));
 		( , , , , , state) = pi.getActivityInstanceData(pi.getActivityInstanceAtIndex(2));
 		if (state != uint8(BpmRuntime.ActivityInstanceState.COMPLETED)) return "ActivityInstance 3 in Formation Process should be completed";
@@ -461,7 +466,7 @@ contract ActiveAgreementWorkflowTest {
 	/**
 	 * Tests workflow handling where the agreement gets cancelled during formation as well as execution.
 	 */
-	function testCanceledAgreementWorkflow() external returns (string) {
+	function testCanceledAgreementWorkflow() external returns (string memory) {
 
 		// re-usable variables for return values
 		uint error;
@@ -475,29 +480,29 @@ contract ActiveAgreementWorkflowTest {
 		agreementRegistry = createNewAgreementRegistry();
 
 		userAccount1 = new DefaultUserAccount();
-		userAccount1.initialize(this, address(0));
+		userAccount1.initialize(address(this), address(0));
 		userAccount2 = new DefaultUserAccount();
-		userAccount2.initialize(this, address(0));
+		userAccount2.initialize(address(this), address(0));
 		delete parties;
-		parties.push(userAccount1);
-		parties.push(userAccount2);
+		parties.push(address(userAccount1));
+		parties.push(address(userAccount2));
 
 		//
 		// BPM
 		//
 		ProcessModel pm;
-		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", [1,0,0], userAccount1, false, dummyModelFileReference);
-		if (addr == 0x0) return "Unable to create a ProcessModel";
+		(error, addr) = processModelRepository.createProcessModel("Cancellation-Model", [1,0,0], address(userAccount1), false, dummyModelFileReference);
+		if (addr == address(0)) return "Unable to create a ProcessModel";
 		pm = ProcessModel(addr);
 		// Formation Process
-		addr = pm.createProcessDefinition("FormationProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("FormationProcess", address(artifactsRegistry));
 		formationPD = ProcessDefinition(addr);
 		error = formationPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating NONE task for formation process definition";
 		(valid, errorMsg) = formationPD.validate();
 		if (!valid) return errorMsg.toString();
 		// Execution Process
-		addr = pm.createProcessDefinition("ExecutionProcess", artifactsRegistry);
+		addr = pm.createProcessDefinition("ExecutionProcess", address(artifactsRegistry));
 		executionPD = ProcessDefinition(addr);
 		error = executionPD.createActivityDefinition(activityId1, BpmModel.ActivityType.TASK, BpmModel.TaskType.NONE, BpmModel.TaskBehavior.RECEIVE, EMPTY, false, EMPTY, EMPTY, EMPTY);
 		if (error != BaseErrors.NO_ERROR()) return "Error creating SERVICE task for execution process definition";
@@ -507,8 +512,8 @@ contract ActiveAgreementWorkflowTest {
 		//
 		// ARCHETYPE
 		//
-		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), formationPD, executionPD, EMPTY, governingArchetypes);
-		if (addr == 0x0) return "Error creating TestArchetype, address is empty";
+		addr = archetypeRegistry.createArchetype(10, false, true, address(this), address(this), address(formationPD), address(executionPD), EMPTY, governingArchetypes);
+		if (addr == address(0)) return "Error creating TestArchetype, address is empty";
 
 		//
 		// AGREEMENT
@@ -516,9 +521,9 @@ contract ActiveAgreementWorkflowTest {
 		address agreement1;
 		address agreement2;
 		agreement1 = agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements);
-		if (agreement1 == 0x0) return "Unexpected error creating agreement1";
+		if (agreement1 == address(0)) return "Unexpected error creating agreement1";
 		agreement2 = agreementRegistry.createAgreement(addr, address(this), address(this), "", false, parties, EMPTY, governingAgreements);
-		if (agreement2 == 0x0) return "Unexpected error creating agreement2";
+		if (agreement2 == address(0)) return "Unexpected error creating agreement2";
 
 		//
 		// FORMATION / EXECUTION
@@ -528,14 +533,14 @@ contract ActiveAgreementWorkflowTest {
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement1));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting the formation process 1 on agreement1";
 		pis[0] = ProcessInstance(addr);
-		if (agreementRegistry.getTrackedFormationProcess(agreement1) == 0x0) return "There should be a tracked formation process for agreement1";
-		if (agreementRegistry.getTrackedExecutionProcess(agreement1) != 0x0) return "There should be NO tracked execution process for agreement1";
+		if (agreementRegistry.getTrackedFormationProcess(agreement1) == address(0)) return "There should be a tracked formation process for agreement1";
+		if (agreementRegistry.getTrackedExecutionProcess(agreement1) != address(0)) return "There should be NO tracked execution process for agreement1";
 		if (agreementRegistry.getTrackedFormationProcess(agreement1) != address(pis[0])) return "The tracked formation process should match the started formation PI for agreement1";
 		(error, addr) = agreementRegistry.startProcessLifecycle(ActiveAgreement(agreement2));
 		if (error != BaseErrors.NO_ERROR()) return "Error starting the formation process 2 on agreement2";
 		pis[1] = ProcessInstance(addr);
-		if (agreementRegistry.getTrackedFormationProcess(agreement2) == 0x0) return "There should be a tracked formation process for agreement2";
-		if (agreementRegistry.getTrackedExecutionProcess(agreement2) != 0x0) return "There should be NO tracked execution process for agreement2";
+		if (agreementRegistry.getTrackedFormationProcess(agreement2) == address(0)) return "There should be a tracked formation process for agreement2";
+		if (agreementRegistry.getTrackedExecutionProcess(agreement2) != address(0)) return "There should be NO tracked execution process for agreement2";
 		if (agreementRegistry.getTrackedFormationProcess(agreement2) != address(pis[1])) return "The tracked formation process should match the started formation PI for agreement2";
 
 		// sign agreement2 and move PI2 into execution phase
@@ -549,7 +554,7 @@ contract ActiveAgreementWorkflowTest {
 		numberOfPIs = bpmService.getNumberOfProcessInstances();
 		// the last added PI should be the execution process of agreement2
 		pis[2] = ProcessInstance(bpmService.getProcessInstanceAtIndex(numberOfPIs-1));
-		if (agreementRegistry.getTrackedExecutionProcess(agreement2) == 0x0) return "There should now be a tracked execution process for agreement2 after signing";
+		if (agreementRegistry.getTrackedExecutionProcess(agreement2) == address(0)) return "There should now be a tracked execution process for agreement2 after signing";
 		if (agreementRegistry.getTrackedExecutionProcess(agreement2) != address(pis[2])) return "The tracked execution process for agreement2 should match the last PI";
 		if (pis[0].getState() != uint8(BpmRuntime.ProcessInstanceState.ACTIVE)) return "The Formation PI for agreement1 should be active";
 		if (pis[1].getState() != uint8(BpmRuntime.ProcessInstanceState.COMPLETED)) return "The Formation PI for agreement2 should be completed";
@@ -578,7 +583,7 @@ contract ActiveAgreementWorkflowTest {
  */
 contract TestRegistry is DefaultActiveAgreementRegistry {
 
-	constructor (string _serviceIdArchetypeRegistry, string _serviceIdBpmService) public
+	constructor (string memory _serviceIdArchetypeRegistry, string memory _serviceIdBpmService) public
 		DefaultActiveAgreementRegistry(_serviceIdArchetypeRegistry, _serviceIdBpmService) {
 	}
 

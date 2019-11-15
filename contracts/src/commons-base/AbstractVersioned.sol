@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/Versioned.sol";
 
@@ -26,7 +26,7 @@ contract AbstractVersioned is Versioned {
      * @param _version the version to which this contract's version is compared
      * @return 0 (equal), -1 (the other version is lower), or 1 (the other version is higher).
      */
-    function compareVersion(uint8[3] _version) public view returns (int result) {
+    function compareVersion(uint8[3] memory _version) public view returns (int result) {
 		result = compareVersions(semanticVersion, _version);
     }
 
@@ -38,7 +38,7 @@ contract AbstractVersioned is Versioned {
      * @return 0 (equal), -1 (B version is lower), or 1 (B version is higher).
      * //TODO move to a math library
      */
-	function compareVersions(uint8[3] _a, uint8[3] _b) private pure returns (int result) {
+	function compareVersions(uint8[3] memory _a, uint8[3] memory _b) private pure returns (int result) {
         result = compareUint8Values(_a[0], _b[0]);
         if (result != 0) { return result; }
         result = compareUint8Values(_a[1], _b[1]);
@@ -77,7 +77,7 @@ contract AbstractVersioned is Versioned {
      * @dev Returns the version as 3-digit array
      * @return the version as unit8[3]
      */
-    function getVersion() external view returns (uint8[3]) {
+    function getVersion() external view returns (uint8[3] memory) {
     	return semanticVersion;
     }
 }

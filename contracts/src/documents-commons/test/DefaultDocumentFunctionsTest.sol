@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "documents-commons/DefaultDocument.sol";
 
@@ -22,7 +22,7 @@ contract DefaultDocumentFunctionsTest {
      */
     function pubCanAddVersion() external view returns (bytes32) {
         if (!defaultDocument.pubCanAddVersion()) return "Expected true";
-        if (foil.pubCanAddVersion(defaultDocument)) return "Expected false";
+        if (foil.pubCanAddVersion(address(defaultDocument))) return "Expected false";
         return "success";
     }
 }
@@ -46,7 +46,7 @@ contract Foil {
  */
 contract TestDefaultDocument is DefaultDocument {
     // Constructor
-    constructor(string _name) DefaultDocument(_name) public {}
+    constructor(string memory _name) DefaultDocument(_name) public {}
 
     /**
      * @dev Implements public `canAddVersion` to permit testing `canAddVersion`.

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/OwnerTransferable.sol";
 import "commons-collections/DataStorage.sol";
@@ -84,7 +84,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _value the string value of the data
 	 * @return error code if the completion failed
 	 */
-    function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string _value) external returns (uint error);
+    function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string calldata _value) external returns (uint error);
 
     /**
 	 * @dev Writes data via BpmService and then completes the specified activity.
@@ -132,7 +132,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the bool value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bool);
+	function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (bool);
 
 	/**
 	 * @dev Returns the string value of the specified IN data mapping in the context of the given activity instance.
@@ -140,7 +140,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the string value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (string);
+	function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (string memory);
 
 	/**
 	 * @dev Returns the bytes32 value of the specified IN data mapping in the context of the given activity instance.
@@ -148,7 +148,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the bytes32 value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (bytes32);
+	function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (bytes32);
 
 	/**
 	 * @dev Returns the uint value of the specified IN data mapping in the context of the given activity instance.
@@ -156,7 +156,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the uint value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (uint);
+	function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (uint);
 
 	/**
 	 * @dev Returns the int value of the specified IN data mapping in the context of the given activity instance.
@@ -164,7 +164,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the int value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (int);
+	function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (int);
 
 	/**
 	 * @dev Returns the address value of the specified IN data mapping in the context of the given activity instance.
@@ -172,7 +172,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an IN data mapping defined for the activity
 	 * @return the address value resulting from resolving the data mapping
 	 */
-	function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId) external view returns (address);
+	function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId) external returns (address);
 
 	/**
 	 * @dev Applies the given value to the OUT data mapping with the specified ID on the specified activity instance.
@@ -188,7 +188,7 @@ contract ProcessInstance is VersionedArtifact, DataStorage, AddressScopes, Owner
 	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
 	 * @param _value the value to set
 	 */
-	function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string _value) public;
+	function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string memory _value) public;
 
 	/**
 	 * @dev Applies the given bytes32 value to the OUT data mapping with the specified ID on the specified activity instance.

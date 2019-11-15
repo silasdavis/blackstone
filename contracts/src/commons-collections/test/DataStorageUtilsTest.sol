@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-collections/DataStorage.sol";
 import "commons-collections/FullDataStorage.sol";
@@ -19,10 +19,11 @@ contract DataStorageUtilsTest {
 	
 	uint error;
 
-	function testConditionalDataHandling() external returns (string) {
+	function testConditionalDataHandling() external returns (string memory) {
 		
 		address addr;
 		bytes32 path;
+		bool success;
 
 		myStorage = new FullDataStorage();
 		mySubDataStorage = new FullDataStorage();
@@ -40,7 +41,8 @@ contract DataStorageUtilsTest {
 		addr = DataStorageUtils.resolveDataStorageAddress("fakePath", address(0), myStorage);
 		if (addr != address(0)) return "address resolution for non-existent dataStorageId should retrieve 0x0 address";
 		// test reverts
-		if (address(helper).call(abi.encodeWithSignature("resolveDataStorageAddress(bytes32,address,address)", bytes32("subStorage"), address(0), address(0))))
+		(success, ) = address(helper).call(abi.encodeWithSignature("resolveDataStorageAddress(bytes32,address,address)", bytes32("subStorage"), address(0), address(0)));
+		if (success)
 			return "Address resolution with a dataStorageId and an empty DataStorage should revert";
 
 		conditionalData = DataStorageUtils.ConditionalData({dataPath: "key1", dataStorageId: "subStorage", dataStorage: address(0), exists: true});
@@ -48,7 +50,8 @@ contract DataStorageUtilsTest {
 		if (addr != address(mySubDataStorage)) return "location for conditionalData should retrieve mySubDataStorage address";
 		if (path != "key1") return "location for conditionalData should retrieve key1 dataPath";
 		// test reverts
-		if (address(helper).call(abi.encodeWithSignature("resolveDataLocation(bytes32,bytes32,address,address)", bytes32("key1"), bytes32("bogusStoriddgeID"), address(0), address(myStorage))))
+		(success, ) = address(helper).call(abi.encodeWithSignature("resolveDataLocation(bytes32,bytes32,address,address)", bytes32("key1"), bytes32("bogusStoriddgeID"), address(0), address(myStorage)));
+		if (success)
 			return "Location resolution with non-existent dataStorageId should revert";
 
 		return SUCCESS;

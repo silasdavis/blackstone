@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "bpm-runtime/Application.sol";
 import "bpm-runtime/ProcessInstance.sol";

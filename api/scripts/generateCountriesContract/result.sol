@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "./IsoCountries.sol";
     
@@ -1191,13 +1191,13 @@ contract IsoCountries100 is VersionLinkedAppendOnly([1,0,0]), IsoCountries {
 
     }
 
-    function registerCountry(bytes2 _alpha2, bytes3 _alpha3, bytes3 _m49, string _name) internal returns (Country) {
+    function registerCountry(bytes2 _alpha2, bytes3 _alpha3, bytes3 _m49, string memory _name) internal returns (Country) {
         bytes32[] memory regionKeys;
         countries[_alpha2] = Country({ alpha2: _alpha2, alpha3: _alpha3, m49: _m49, name: _name, regionKeys: regionKeys, exists: true });
         countryKeys.push(_alpha2);
     }
 
-    function registerRegion(bytes2 _alpha2, bytes2 _code2, bytes3 _code3, string _name, bytes32 regionKey) internal returns (Region) {
+    function registerRegion(bytes2 _alpha2, bytes2 _code2, bytes3 _code3, string memory _name, bytes32 regionKey) internal returns (Region) {
         countries[_alpha2].regions[regionKey] = Region({ country: _alpha2, code2: _code2, code3: _code3, name: _name, exists: true });
         countries[_alpha2].regionKeys.push(regionKey);
     }

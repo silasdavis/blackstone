@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.12;
 
 import "commons-base/ErrorsLib.sol";
 import "commons-base/BaseErrors.sol";
@@ -138,13 +138,13 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
     function execute(BpmService _service) public returns (uint error) {
         // TODO should check that the owner of the DB and the owner of the PI match (or that the PI is in the DB)
         // TODO external invocation still possible, but might be OK since it might not result in any processing if the engine has not changed the state of the PI?!
-        return self.execute(_service);
+        error = self.execute(_service);
         emit LogProcessInstanceStateUpdate(
             EVENT_ID_PROCESS_INSTANCES,
             address(this),
             uint8(self.state)
         );
-
+        return error;
     }
 
 	/**
@@ -178,7 +178,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
         // Processing the activity instance is the beginning of a new recursive loop
         error = self.activities.rows[_activityInstanceId].value.execute(this, self.processDefinition, _service);
         if (error != BaseErrors.NO_ERROR()) {
-            return;
+            return (error);
         }
         
         if (self.activities.rows[_activityInstanceId].value.state == BpmRuntime.ActivityInstanceState.COMPLETED) {
@@ -219,7 +219,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @param _value the string value of the data
 	 * @return error code if the completion failed
 	 */
-    function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string _value)
+    function completeActivityWithStringData(bytes32 _activityInstanceId, BpmService _service, bytes32 _dataMappingId, string calldata _value)
         external
         returns (uint error)
     {
@@ -309,7 +309,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the bool value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsBool(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
         returns (bool)
     {
@@ -325,9 +325,9 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the string value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
-        returns (string)
+        returns (string memory)
     {
         (address storageAddress, bytes32 dataPath) = resolveInDataLocation(_activityInstanceId, _dataMappingId);
         return DataStorage(storageAddress).getDataValueAsString(dataPath);
@@ -341,7 +341,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the bytes32 value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsBytes32(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
         returns (bytes32)
     {
@@ -357,7 +357,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the uint value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsUint(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
         returns (uint)
     {
@@ -373,7 +373,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the int value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsInt(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
         returns (int)
     {
@@ -389,7 +389,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the address value resulting from resolving the data mapping
 	 */
     function getActivityInDataAsAddress(bytes32 _activityInstanceId, bytes32 _dataMappingId)
-        external view
+        external
         pre_inDataPermissionCheck(_activityInstanceId)
         returns (address)
     {
@@ -419,7 +419,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @param _dataMappingId the ID of an OUT data mapping defined for the activity
 	 * @param _value the value to set
 	 */
-    function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string _value)
+    function setActivityOutDataAsString(bytes32 _activityInstanceId, bytes32 _dataMappingId, string memory _value)
         public
         pre_outDataPermissionCheck(_activityInstanceId)
     {
@@ -526,7 +526,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
      */
     function resolveTransitionCondition(bytes32 _sourceId, bytes32 _targetId) external view returns (bool) {
         if (self.processDefinition.modelElementExists(_targetId)) {
-            return self.processDefinition.resolveTransitionCondition(_sourceId, _targetId, this);
+            return self.processDefinition.resolveTransitionCondition(_sourceId, _targetId, address(this));
         }
         else {
             BpmRuntime.ActivityNode memory currentTarget = self.graph.activities[_targetId];
@@ -534,7 +534,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
                 ErrorsLib.INVALID_INPUT(), "ProcessInstance.resolveTransitionCondition", "The specified target element ID is unsuitable to determine a successor. It is either not a graph activity or it has no output elements");
             ErrorsLib.revertIf(!self.processDefinition.modelElementExists(currentTarget.node.outputs[0]),
                 ErrorsLib.INVALID_INPUT(), "ProcessInstance.resolveTransitionCondition", "Neither the specified target element nor its successor (in case of artificial graph places) is a known element in the ProcessDefinition");
-            return self.processDefinition.resolveTransitionCondition(_sourceId, currentTarget.node.outputs[0], this);
+            return self.processDefinition.resolveTransitionCondition(_sourceId, currentTarget.node.outputs[0], address(this));
         }
     }
 
@@ -543,7 +543,7 @@ contract DefaultProcessInstance is AbstractVersionedArtifact(1,0,0), AbstractDel
 	 * @return the address of a ProcessDefinition
 	 */
 	function getProcessDefinition() external view returns (address) {
-		return self.processDefinition;
+		return address(self.processDefinition);
 	}
 
     /**
