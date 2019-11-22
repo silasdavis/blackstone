@@ -1,5 +1,6 @@
 pragma solidity ^0.5.12;
 
+import "commons-management/ObjectFactory.sol";
 import "commons-management/Upgradeable.sol";
 import "bpm-runtime/ProcessStateChangeListener.sol";
 
