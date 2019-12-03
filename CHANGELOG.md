@@ -2,6 +2,7 @@
 
 ## Release History
 
+- Version [0.10.0](#v0.10.0)
 - Version [0.9.1](#v0.9.1)
 - Version [0.9.0](#v0.9.0)
 - Version [0.8.0](#v0.8.0)
@@ -10,6 +11,25 @@
 - Version [0.6.0](#v0.6.0)
 - Version [0.5.2](#v0.5.2)
 - Version [0.5.1](#v0.5.1)
+
+## <a name="v0.10.0">Release 0.10.0</a>
+
+This release removes the HTTP API and most JS controllers from the project in order to turn blackstone into a (smart contract + JavaScript) library that can be embedded into other projects.
+
+### Compatibility
+
+This release was tested with the following software and versions:
+
+|                    |        |
+| :----------------- | :----- |
+| Hyperledger Burrow | 0.28.2 |
+| Solc               | 0.5.12 |
+
+### Features / Bug Fixes
+
+- Removed all HTTP endpoints and all JS controllers from the project. Only the `contracts-controller` remains as the lowest level interface to provide a JS API to communicate with the smart contracts.
+- Exposed the `ActiveAgreement.isSignedBy(address)` function as a JS function in the contracts-controller.
+
 
 ## <a name="v0.9.1">Release 0.9.1</a>
 
