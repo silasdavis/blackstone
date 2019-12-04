@@ -463,38 +463,38 @@ const createArchetypePackage = (author, isPrivate, active) => new Promise((resol
 
 const activateArchetypePackage = (packageId, userAccount) => new Promise((resolve, reject) => {
   log.debug(`REQUEST: Activate archetype package with id ${packageId} by user at ${userAccount}`);
-  appManager.contracts['ArchetypeRegistry'].factory.activatePackage(packageId, userAccount, (err) => {
-    if (err) {
-      return reject(boomify(err, `Failed to activate archetype package with id ${packageId} by user ${userAccount}`));
-    }
-    log.info(`SUCCESS: Archetype package with id ${packageId} activated by user at ${userAccount}`);
-    return resolve();
-  });
+  appManager.contracts['ArchetypeRegistry'].factory.activatePackage(packageId, userAccount)
+    .then(ventHelper.waitForVent)
+    .then(() => {
+      log.info(`SUCCESS: Archetype package with id ${packageId} activated by user at ${userAccount}`);
+      return resolve();
+    })
+    .catch(err => reject(boomify(err, `Failed to activate archetype package with id ${packageId} by user ${userAccount}`)));
 });
 
 const deactivateArchetypePackage = (packageId, userAccount) => new Promise((resolve, reject) => {
   log.debug(`REQUEST: Deactivate archetype package with id ${packageId} by user at ${userAccount}`);
   appManager
-    .contracts['ArchetypeRegistry'].factory.deactivatePackage(packageId, userAccount, (err) => {
-      if (err) {
-        return reject(boomify(err, `Failed to deactivate archetype package with id ${packageId} by user ${userAccount}`));
-      }
+    .contracts['ArchetypeRegistry'].factory.deactivatePackage(packageId, userAccount)
+    .then(ventHelper.waitForVent)
+    .then(() => {
       log.info(`SUCCESS: Archetype package with id ${packageId} deactivated by user at ${userAccount}`);
       return resolve();
-    });
+    })
+    .catch(err => reject(boomify(err, `Failed to deactivate archetype package with id ${packageId} by user ${userAccount}`)));
 });
 
 const addArchetypeToPackage = (packageId, archetype) => new Promise((resolve, reject) => {
   log.debug(`REQUEST: Add archetype at ${archetype} to package ${packageId}`);
   appManager
     .contracts['ArchetypeRegistry']
-    .factory.addArchetypeToPackage(packageId, archetype, (err) => {
-      if (err) {
-        return reject(boomify(err, `Failed to add archetype at ${archetype} to package ${packageId}`));
-      }
+    .factory.addArchetypeToPackage(packageId, archetype)
+    .then(ventHelper.waitForVent)
+    .then(() => {
       log.info(`SUCCESS: Added archetype at ${archetype} to package with id ${packageId}`);
       return resolve();
-    });
+    })
+    .catch(err => reject(boomify(err, `Failed to add archetype at ${archetype} to package ${packageId}`)));
 });
 
 const addJurisdictions = (address, jurisdictions) => new Promise((resolve, reject) => {
@@ -513,21 +513,19 @@ const addJurisdictions = (address, jurisdictions) => new Promise((resolve, rejec
   });
   log.debug(`REQUEST: Add jurisdictions to archetype at ${address}. ` +
     `Countries: ${JSON.stringify(countries)}, Regions: ${JSON.stringify(regions)}`);
-  appManager.contracts['ArchetypeRegistry'].factory.addJurisdictions(
-    address,
-    countries,
-    regions,
-    (error, data) => {
-      if (error || !data.raw) {
-        return reject(boom.badImplementation(`Failed to add juridictions to archetype at ${address}: ${error}`));
+  appManager.contracts['ArchetypeRegistry'].factory.addJurisdictions(address, countries, regions)
+    .then(ventHelper.waitForVent)
+    .then((data) => {
+      if (!data.raw) {
+        return reject(boom.badImplementation(`Failed to add juridictions to archetype at ${address} since no result}`));
       }
       if (parseInt(data.raw[0], 10) !== 1) {
         return reject(boom.badImplementation(`Error code adding jurisdictions to archetype at ${address}: ${data.raw[0]}`));
       }
       log.info(`SUCCESS: Added jurisdictions to archetype at ${address}`);
       return resolve();
-    },
-  );
+    })
+    .catch(error => reject(boom.badImplementation(`Failed to add juridictions to archetype at ${address}: ${error}`)));
 });
 
 const createAgreement = agreement => new Promise((resolve, reject) => {
